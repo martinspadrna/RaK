@@ -1,7 +1,7 @@
-// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.06.
+// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.07.
 const CACHE_VERSION = 'v1.6.0';
 const SW_APP_VERSION = '1.6.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.06';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.07';
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
@@ -15,7 +15,7 @@ const DEVELOPMENT_ADMIN_HOTFIX_ASSETS = [
   './app-admin-unlock.js?v=1.6.0',
   './app-menu.js?v=1.6.0',
   './app-home-boot.js?v=1.6.0',
-  './kalirna-daymod-override.js?v=20260912-1',
+  './kalirna-daymod-override.js?v=20260913-1607',
   './rotation-tasks.js?v=1.6.0'
 ];
 

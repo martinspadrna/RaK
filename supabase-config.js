@@ -7,11 +7,11 @@ window.SUPABASE_CONFIG = {
 // Development-only viditelná testovací verze. Produkční main dál zobrazuje
 // veřejnou verzi RaK 1.6; každý další testovací balík budeme číslovat
 // 1.6.01, 1.6.02, 1.6.03, 1.6.04… aby bylo v O aplikaci hned vidět, co běží.
-window.RAK_RELEASE_VERSION = "1.6.04";
-window.RAK_TEST_DISPLAY_VERSION = "1.6.04";
+window.RAK_RELEASE_VERSION = "1.6.07";
+window.RAK_TEST_DISPLAY_VERSION = "1.6.07";
 // PWA build marker se v testovací větvi zvedá s každým testovacím buildem,
 // aby se znovu povolilo potvrzení aktualizace a nezůstalo potlačené po minulé verzi.
-window.RAK_PWA_BUILD = "v1.6.04";
+window.RAK_PWA_BUILD = "v1.6.07";
 
 // Development-only ochrana proti přenesení starého admin odemčení v běžícím
 // PWA runtime při přepnutí z produkční Supabase na testovací. Maže pouze
@@ -98,10 +98,10 @@ window.RAK_PWA_BUILD = "v1.6.04";
   }
 })();
 
-// Development-only rychlá vrstva pro denní výjimku „kalírna“.
+// Development-only rychlá vrstva pro denní výjimku „kalírna“ a regresní opravy test buildu.
 // Je v samostatném souboru, aby produkční main zůstal beze změny.
 (function loadRakKalirnaDayModOverride() {
-  const src = "kalirna-daymod-override.js?v=20260912-1";
+  const src = "kalirna-daymod-override.js?v=20260913-1607";
   try {
     if (document.querySelector('script[data-rak-kalirna-daymod-override="1"]')) return;
     const script = document.createElement("script");

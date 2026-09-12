@@ -21,7 +21,7 @@ assert.match(app, /RAK_DEV_UPDATE_BUILD\s*=\s*["']v1\.6\.0["']/, 'app update bui
 assert(app.includes('window.RAK_RELEASE_VERSION = "1.6";'), 'public RaK 1.6 release version marker missing');
 assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.(?:0|\d{2,})["']/, 'service worker cache must stay in the RaK 1.6 production/test line');
 assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.(?:0|\d{2,})["']/, 'service worker technical version must stay in the RaK 1.6 production/test line');
-assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.06';"), 'service worker test display version must be 1.6.06');
+assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.07';"), 'service worker test display version must be 1.6.07');
 assert(sw.includes("appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'service worker update messages must expose the visible development build');
 assert(sw.includes("technicalAppVersion: SW_APP_VERSION"), 'service worker must preserve the technical 1.6.0 version separately');
 assert(sw.includes("'./core.js?v=1.6.0'"), 'warm-start core must use current 1.6.0 build');
@@ -35,8 +35,11 @@ assert(!sw.includes('await self.skipWaiting();'), 'service worker install must w
 assert(sw.includes("if (data.type === 'SKIP_WAITING')"), 'confirmed update message handler missing');
 assert(sw.includes('self.skipWaiting();'), 'confirmed update activation missing');
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase runtime config');
+assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.07";'), 'development config release marker must be 1.6.07');
+assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.07";'), 'development config display marker must be 1.6.07');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.6.07";'), 'development config PWA marker must be v1.6.07');
 assert(loginLife.includes("const TEST_BUILD='1.6.05'"), 'legacy login helper marker unexpectedly changed');
-assert(hotfix.includes("const TEST_BUILD = '1.6.06';"), 'effective development recovery build must be 1.6.06');
+assert(hotfix.includes("const TEST_BUILD = '1.6.07';"), 'effective development recovery build must be 1.6.07');
 assert(hotfix.includes("lockBuildMarker('RAK_RELEASE_VERSION', TEST_BUILD);"), 'effective development release marker lock missing');
 assert(hotfix.includes("lockBuildMarker('RAK_TEST_DISPLAY_VERSION', TEST_BUILD);"), 'effective development display marker lock missing');
 assert(hotfix.includes("lockBuildMarker('RAK_PWA_BUILD', 'v' + TEST_BUILD);"), 'effective development PWA marker lock missing');
@@ -47,14 +50,21 @@ assert(routing.includes("automatic: Object.freeze(['sync'])"), 'routing layer mu
 assert(routing.includes("intentOnly: Object.freeze(['rotation', 'calculators', 'menu', 'admin'])"), 'routing source intent-only policy drifted');
 assert(routing.includes('adminAutoPreload: false'), 'admin must never auto-preload for ordinary users');
 assert(routing.includes("document.addEventListener('pointerdown'"), 'pointerdown intent prefetch must stay enabled');
-assert(routing.includes('el.click();'), 'click replay after lazy feature load must stay enabled');
+assert(routing.includes('el.click();'), 'click replay after lazy feature load must stay enabled for the remaining lazy routes');
 assert(!routing.includes('startBackgroundWarmup'), 'legacy background feature warmup must stay removed');
 assert(!routing.includes('queueBackgroundWarmup'), 'legacy queued feature warmup must stay removed');
 assert(!routing.includes("Boot v2 admin warmup failed"), 'Admin background warmup must not return');
 assert(app.includes("requestIdleCallback(startSync, { timeout: 1200 })"), 'Home must keep lightweight sync idle preload');
-assert(hotfix.includes("window.rakEnsureFeature('rotation')"), 'Rotace must be restored to the effective startup minimum for Home correctness');
-assert(hotfix.includes("window.__rak1606StartupRotationMode = 'startup-minimum';"), 'Rotace startup recovery marker missing');
+assert(hotfix.includes("window.rakEnsureFeature('rotation')"), 'Rotace must remain in the effective startup minimum for Home correctness');
+assert(hotfix.includes("window.__rak1607StartupRotationMode = 'startup-minimum';"), 'Rotace startup recovery marker missing');
+assert(hotfix.includes("if (action !== 'rotace' && action !== 'menu') return;"), 'Rotace/Více deterministic first-tap scope missing');
+assert(hotfix.includes('event.stopImmediatePropagation();'), 'deterministic first-tap guard must stop the later lazy/nav race');
+assert(hotfix.includes('await window.rakEnsureFeature(feature);'), 'deterministic first-tap guard must await feature readiness');
 assert(hotfix.includes("if (typeof openAppMenu === 'function') openAppMenu('menu');"), 'Více first-tap recovery must render menu content');
+assert(hotfix.includes("stats && stats.mfkSoloCounts"), 'person stats MFK solo counter missing');
+assert(hotfix.includes("stats && stats.mskPairCounts"), 'person stats MSK pair counter missing');
+assert(hotfix.includes("'Sám na 2 frézkách'"), 'person MFK solo tile missing');
+assert(hotfix.includes("'Ve 2 lidech na soustruzích'"), 'person two-lathe-workers tile missing');
 
 assert(!runtimeGuards.includes('new MutationObserver'), 'startup numeric-keyboard guard must not observe the whole DOM permanently');
 assert(runtimeGuards.includes("window.addEventListener('rak:feature-ready', onFeatureReady)"), 'numeric keyboard guard must use calculator feature lifecycle');
@@ -103,4 +113,4 @@ for (const accidental of ['__never_use__', '__noop__', '__noop2__', 'noop']) {
 assert(String(pkg.scripts.check || '').includes('tools/v160-smoke.mjs'), 'v1.6 smoke must run in npm check');
 assert(!String(pkg.scripts.check || '').includes('tools/v1599-smoke.mjs'), 'old v1.5.99 smoke must not remain in active check chain');
 
-console.log('[v1.6-smoke] OK 1.6.06 recovery + observer lifecycle cleanup + confirmed-update PWA flow + mobile/Brusy invariants preserved');
+console.log('[v1.6-smoke] OK 1.6.07 deterministic Rotace/Více first tap + person MFK/MSK stats + observer/PWA/mobile/Brusy invariants preserved');
