@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const hotfix = read('kalirna-daymod-override.js');
-const worker = read('sw-test-1606.js');
+const sw = read('sw.js');
 const pkg = JSON.parse(read('package.json'));
 
 assert(hotfix.includes("const TEST_BUILD = '1.6.06';"), 'RaK 1.6.06 regression recovery build marker missing');
@@ -22,15 +22,15 @@ assert(hotfix.includes("if (typeof setBottomNavActive === 'function') setBottomN
 assert(hotfix.includes("window.__rak1606MoreMode = 'show+open+active';"), 'Více recovery mode marker missing');
 assert(hotfix.includes("if (feature === 'menu') patchMoreToggle();"), 'Více must be fixed immediately after lazy menu feature becomes ready');
 
-assert(hotfix.includes("const TEST_WORKER_URL = 'sw-test-1606.js';"), '1.6.06 test worker URL missing');
-assert(hotfix.includes("updateVersionSource: 'service-worker-testDisplayVersion'"), 'update version source marker missing');
-assert(hotfix.includes("el.textContent = 'Nová verze: ' + safe;"), 'update toast must show test display version');
-assert(worker.includes("const RAK_TEST_DISPLAY_VERSION = '1.6.06';"), 'test worker must advertise 1.6.06');
-assert(worker.includes("testDisplayVersion: RAK_TEST_DISPLAY_VERSION"), 'GET_VERSION must expose testDisplayVersion');
-assert(worker.includes("importScripts('./sw.js?v=1.6.05-base');"), 'test worker must reuse confirmed-update base lifecycle');
-assert(worker.includes('event.stopImmediatePropagation()'), 'wrapper must prevent base GET_VERSION from overwriting 1.6.06 with 1.6.0');
+assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.06';"), 'service worker must itself change for the 1.6.05 → 1.6.06 update');
+assert(sw.includes("type: 'sw-version', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'waiting worker must report visible 1.6.06 to the old client');
+assert(sw.includes("type: 'sw-activated', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'activated worker must report visible 1.6.06');
+assert(sw.includes('technicalAppVersion: SW_APP_VERSION'), 'technical 1.6.0 worker version must remain separately available');
+assert(!hotfix.includes('sw-test-1606.js'), 'runtime must not register a second helper service worker');
+assert(!fs.existsSync('sw-test-1606.js'), 'obsolete helper service worker must be removed');
 
 assert(String(pkg.scripts.check || '').includes('tools/v1606-regression-smoke.mjs'), '1.6.06 regression smoke must run in npm check');
+assert(!String(pkg.scripts.check || '').includes('node --check sw-test-1606.js'), 'removed helper worker must not stay in npm check');
 assert.equal(pkg.version, '1.6.0', 'technical package version must stay 1.6.0');
 
-console.log('[v1606-regression-smoke] OK Home/Rotace auto-recovery + first-tap Více + 1.6.06 update label locked');
+console.log('[v1606-regression-smoke] OK Home/Rotace auto-recovery + first-tap Více + direct 1.6.06 SW update label locked');
