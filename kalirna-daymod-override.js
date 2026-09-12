@@ -366,16 +366,19 @@
     }
   }
 
-  document.addEventListener('click', (event) => {
-    const source = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
-    const nav = source && source.closest('nav.bottomNav button[data-action]');
-    if (!nav || !document.documentElement.contains(nav)) return;
-    const action = String(nav.dataset.action || '').trim();
-    if (action !== 'rotace' && action !== 'menu') return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    void openFeatureFromBottomNav(action, nav);
-  }, true);
+  if (!window.__rak1607FirstTapGuardInstalled) {
+    window.__rak1607FirstTapGuardInstalled = true;
+    document.addEventListener('click', (event) => {
+      const source = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
+      const nav = source && source.closest('nav.bottomNav button[data-action]');
+      if (!nav || !document.documentElement.contains(nav)) return;
+      const action = String(nav.dataset.action || '').trim();
+      if (action !== 'rotace' && action !== 'menu') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void openFeatureFromBottomNav(action, nav);
+    }, true);
+  }
 
   let rotationStartRequested = false;
   function ensureStartupRotation() {

@@ -34,9 +34,12 @@ assert(sw.includes("type: 'sw-version', version: CACHE_VERSION, appVersion: DEVE
 assert(sw.includes("type: 'sw-activated', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'activated worker must report visible 1.6.07');
 assert(sw.includes('technicalAppVersion: SW_APP_VERSION'), 'technical 1.6.0 worker version must remain separately available');
 assert(config.includes('kalirna-daymod-override.js?v=20260913-1607'), 'development override must use a fresh 1.6.07 URL');
+assert(config.includes('window.__rak1607FirstTapGuardInstalled = true;'), 'critical config must install first-tap guard before lazy router');
+assert(config.includes('event.stopImmediatePropagation();'), 'critical first-tap guard must stop downstream replay handlers');
+assert(config.includes('await Promise.all([window.rakEnsureFeature(feature), waitForStartupReady()]);'), 'critical guard must await feature + startup readiness before opening');
 assert(sw.includes("'./kalirna-daymod-override.js?v=20260913-1607'"), 'service worker hotfix inventory must match the 1.6.07 override URL');
 
 assert(String(pkg.scripts.check || '').includes('tools/v1606-regression-smoke.mjs'), 'regression smoke must run in npm check');
 assert.equal(pkg.version, '1.6.0', 'technical package version must stay 1.6.0');
 
-console.log('[v1606-regression-smoke] OK RaK 1.6.07 deterministic Rotace/Více first tap + person MFK/MSK counters + visible update label');
+console.log('[v1606-regression-smoke] OK RaK 1.6.07 critical first-tap guard + deterministic Rotace/Více + person MFK/MSK counters + visible update label');
