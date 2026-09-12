@@ -142,3 +142,168 @@
 
   window.rakKalirnaDayModOverrideRefresh = installAvailablePatches;
 })();
+
+// RaK 1.6.06 – recovery po regresi příliš agresivního lazy-loadingu.
+// Rotace je znovu součást startovního minima, Více se po prvním tapu opravdu
+// vyrenderuje a testovací PWA update ukazuje testDisplayVersion místo 1.6.0.
+(function installRak1606RegressionRecovery() {
+  'use strict';
+
+  const TEST_BUILD = '1.6.06';
+  const TEST_SUPABASE_REF = 'cgshssdjgzzuprlwnabl';
+  const TEST_WORKER_URL = 'sw-test-1606.js';
+  if (window.__rak1606RegressionRecoveryInstalled) return;
+
+  const testUrl = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '');
+  if (!testUrl.includes(TEST_SUPABASE_REF)) return;
+  window.__rak1606RegressionRecoveryInstalled = true;
+
+  function lockBuildMarker(name, value) {
+    try {
+      Object.defineProperty(window, name, {
+        configurable: true,
+        enumerable: true,
+        get: () => value,
+        set: () => value
+      });
+    } catch (_) {
+      try { window[name] = value; } catch (_) {}
+    }
+  }
+  lockBuildMarker('RAK_RELEASE_VERSION', TEST_BUILD);
+  lockBuildMarker('RAK_TEST_DISPLAY_VERSION', TEST_BUILD);
+  lockBuildMarker('RAK_PWA_BUILD', 'v' + TEST_BUILD);
+  window.__rak1606BuildMarkerMode = 'locked-test-runtime';
+
+  try {
+    const buildMarker = 'v' + TEST_BUILD;
+    const resetKey = 'rak_1606_prompt_reset_build';
+    if (localStorage.getItem(resetKey) !== buildMarker) {
+      sessionStorage.removeItem('rotace_sw_update_notice_v1');
+      sessionStorage.removeItem('rotace_sw_update_pending_v1');
+      localStorage.removeItem('rotace_sw_update_suppress_v1');
+      localStorage.setItem('rak_dev_entry_prompt_reset_build', buildMarker);
+      localStorage.setItem('rak_dev_pwa_prompt_reset_build', buildMarker);
+      localStorage.setItem(resetKey, buildMarker);
+    }
+  } catch (_) {}
+
+  function refreshRecoveredViews() {
+    try {
+      if (typeof window.forceHomeRefresh === 'function') window.forceHomeRefresh();
+      else if (typeof forceHomeRefresh === 'function') forceHomeRefresh();
+    } catch (_) {}
+    try {
+      if (typeof window.updateDashboard === 'function') window.updateDashboard();
+      else if (typeof updateDashboard === 'function') updateDashboard();
+    } catch (_) {}
+    try {
+      const rotationPage = document.getElementById('rotace');
+      if (rotationPage && rotationPage.classList.contains('active')) {
+        if (typeof window.renderRotace === 'function') window.renderRotace();
+        else if (typeof renderRotace === 'function') renderRotace();
+      }
+    } catch (_) {}
+  }
+
+  let rotationStartRequested = false;
+  function ensureStartupRotation() {
+    if (rotationStartRequested) return;
+    if (!window.__rakBootV2StartupReady || typeof window.rakEnsureFeature !== 'function') {
+      window.setTimeout(ensureStartupRotation, 25);
+      return;
+    }
+    rotationStartRequested = true;
+    window.__rak1606StartupRotationMode = 'startup-minimum';
+    window.rakEnsureFeature('rotation').then(() => {
+      refreshRecoveredViews();
+    }).catch((err) => {
+      rotationStartRequested = false;
+      console.warn('RaK 1.6.06 startup Rotation recovery failed', err);
+    });
+  }
+
+  function patchMoreToggle() {
+    if (typeof window.toggleAppMenu !== 'function') return false;
+    if (window.toggleAppMenu.__rak1606FixedMore) return true;
+    const previous = window.toggleAppMenu;
+    const fixed = function toggleAppMenu1606Fixed() {
+      try { if (typeof showPage === 'function') showPage('menu'); } catch (_) {}
+      try { if (typeof openAppMenu === 'function') openAppMenu('menu'); } catch (_) {}
+      try { if (typeof setBottomNavActive === 'function') setBottomNavActive('menu'); } catch (_) {}
+      try { if (typeof window.__rakApplyBottomNavMoreHardFix === 'function') window.__rakApplyBottomNavMoreHardFix(); } catch (_) {}
+      try { if (typeof window.__rakApplyFixedBottomNavMetricsNow === 'function') window.__rakApplyFixedBottomNavMetricsNow(); } catch (_) {}
+    };
+    fixed.__rak1606FixedMore = true;
+    fixed.__rakPreviousToggleAppMenu = previous;
+    window.toggleAppMenu = fixed;
+    window.__rak1606MoreMode = 'show+open+active';
+    return true;
+  }
+
+  function patchUpdateToastVersion(version) {
+    const safe = String(version || TEST_BUILD).trim() || TEST_BUILD;
+    const el = document.querySelector('.rakUpdateToastVersion');
+    if (el) el.textContent = 'Nová verze: ' + safe;
+  }
+
+  function installServiceWorkerRecovery() {
+    if (!('serviceWorker' in navigator)) return;
+    const container = navigator.serviceWorker;
+    if (!container.__rak1606RegisterPatched) {
+      try {
+        const originalRegister = container.register.bind(container);
+        const wrappedRegister = function rak1606Register(scriptURL, options) {
+          const raw = String(scriptURL || '');
+          const next = /(^|\/)sw\.js(?:[?#]|$)/.test(raw) ? TEST_WORKER_URL : scriptURL;
+          return originalRegister(next, options);
+        };
+        Object.defineProperty(container, 'register', { value: wrappedRegister, configurable: true });
+        Object.defineProperty(container, '__rak1606RegisterPatched', { value: true, configurable: true });
+      } catch (_) {}
+    }
+
+    if (!container.__rak1606VersionListenerBound) {
+      try {
+        container.addEventListener('message', (event) => {
+          const data = event && event.data ? event.data : null;
+          if (!data || (data.type !== 'sw-version' && data.type !== 'sw-activated')) return;
+          const displayed = String(data.testDisplayVersion || TEST_BUILD).trim() || TEST_BUILD;
+          window.setTimeout(() => patchUpdateToastVersion(displayed === '1.6.0' ? TEST_BUILD : displayed), 0);
+        });
+        Object.defineProperty(container, '__rak1606VersionListenerBound', { value: true, configurable: true });
+      } catch (_) {}
+    }
+
+    const registerWorker = () => {
+      try {
+        const register = container.register.bind(container);
+        register(TEST_WORKER_URL, { scope: './' }).then((registration) => {
+          try { if (registration && typeof registration.update === 'function') void registration.update(); } catch (_) {}
+        }).catch(() => {});
+      } catch (_) {}
+    };
+    registerWorker();
+    window.setTimeout(registerWorker, 1200);
+    window.setTimeout(registerWorker, 3600);
+  }
+
+  window.addEventListener('rak:feature-ready', (event) => {
+    const feature = String(event && event.detail && event.detail.feature || '').trim();
+    if (feature === 'rotation') refreshRecoveredViews();
+    if (feature === 'menu') patchMoreToggle();
+  });
+
+  installServiceWorkerRecovery();
+  ensureStartupRotation();
+  patchMoreToggle();
+  window.setTimeout(patchMoreToggle, 500);
+  window.setTimeout(patchMoreToggle, 1500);
+
+  window.__rak1606RegressionRecovery = Object.freeze({
+    version: TEST_BUILD,
+    rotation: 'startup-minimum',
+    menu: 'show+open+active',
+    updateVersionSource: 'service-worker-testDisplayVersion'
+  });
+})();
