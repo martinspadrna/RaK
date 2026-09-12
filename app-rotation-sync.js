@@ -1,4 +1,4 @@
-// RaK 1.2 (1.155) – online synchronizace rozpisů oddělená ze startovacích vazeb aplikace.
+// RaK 1.6.03 – online synchronizace rozpisů + secure write gate pro legacy Supabase fallbacky.
 function applyRakRotationState(payload, options) {
   const next = typeof normalizeRotationData === 'function' ? normalizeRotationData(payload) : payload;
   if (!next || !next.months) return null;
@@ -84,5 +84,187 @@ async function saveRotationToSupabase(rotation, meta) {
   }
 }
 
+function getRakSecureBridgeSnapshot(bridge) {
+  try {
+    return bridge && typeof bridge.getState === 'function' ? bridge.getState() : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function getRakSecureAdminWriteState(bridge) {
+  const state = getRakSecureBridgeSnapshot(bridge);
+  const context = state && state.adminAuth ? state.adminAuth.context : null;
+  const capabilities = state && state.adminAuth ? state.adminAuth.capabilities : null;
+  const role = String(context && context.role || '').trim().toLowerCase();
+  return {
+    ok: !!(context && context.authenticated === true && context.account_id && (role === 'owner' || role === 'admin') && capabilities && capabilities.enforced === true),
+    context,
+    capabilities,
+    client: state && state.client ? state.client : null
+  };
+}
+
+async function ensureRakSecureAdminWriteState(bridge) {
+  let status = getRakSecureAdminWriteState(bridge);
+  if (status.ok) return status;
+  try {
+    if (bridge && typeof bridge.getAdminAuthCapabilities === 'function') {
+      await bridge.getAdminAuthCapabilities({ force: false });
+    }
+  } catch (err) {}
+  status = getRakSecureAdminWriteState(bridge);
+  if (status.ok) return status;
+  try {
+    if (bridge && typeof bridge.loadAdminAuthContext === 'function') {
+      await bridge.loadAdminAuthContext();
+    }
+  } catch (err) {}
+  return getRakSecureAdminWriteState(bridge);
+}
+
+async function ensureRakSecureRpcCapability(bridge) {
+  try {
+    if (!bridge || typeof bridge.getAdminAuthCapabilities !== 'function') return false;
+    const capabilities = await bridge.getAdminAuthCapabilities({ force: false });
+    return !!(capabilities && capabilities.available === true && capabilities.enforced === true);
+  } catch (err) {
+    return false;
+  }
+}
+
+function installRakSupabaseSecureWriteGate() {
+  const bridge = window.RotationSupabaseBridge;
+  if (!bridge || bridge.__rakSecureWriteGateV1603) return false;
+
+  const originalSaveRotationMonthEntries = typeof bridge.saveRotationMonthEntries === 'function'
+    ? bridge.saveRotationMonthEntries.bind(bridge)
+    : null;
+  const originalSaveAnnouncement = typeof bridge.saveDashboardAnnouncementOnline === 'function'
+    ? bridge.saveDashboardAnnouncementOnline.bind(bridge)
+    : null;
+  const originalClearAnnouncement = typeof bridge.clearDashboardAnnouncementOnline === 'function'
+    ? bridge.clearDashboardAnnouncementOnline.bind(bridge)
+    : null;
+  const originalAnnouncementStatus = typeof bridge.getDashboardAnnouncementOnlineStatus === 'function'
+    ? bridge.getDashboardAnnouncementOnlineStatus.bind(bridge)
+    : null;
+  const originalSubmitBugReport = typeof bridge.submitBugReport === 'function'
+    ? bridge.submitBugReport.bind(bridge)
+    : null;
+  const originalLoadBugReports = typeof bridge.loadBugReports === 'function'
+    ? bridge.loadBugReports.bind(bridge)
+    : null;
+  const originalUpdateBugReportStatus = typeof bridge.updateBugReportStatus === 'function'
+    ? bridge.updateBugReportStatus.bind(bridge)
+    : null;
+  const originalDeleteBugReport = typeof bridge.deleteBugReport === 'function'
+    ? bridge.deleteBugReport.bind(bridge)
+    : null;
+  const originalFlushPendingWrites = typeof bridge.flushPendingWrites === 'function'
+    ? bridge.flushPendingWrites.bind(bridge)
+    : null;
+
+  if (originalSaveRotationMonthEntries) {
+    bridge.saveRotationMonthEntries = async (monthStart, label, rows) => {
+      const secure = await ensureRakSecureAdminWriteState(bridge);
+      if (!secure.ok) return { ok: false, reason: 'admin-auth-required', months: 0, entries: 0 };
+      const result = await originalSaveRotationMonthEntries(monthStart, label, rows);
+      if (!result || result.ok !== true) return result;
+      return Object.assign({}, result, {
+        months: Number.isFinite(Number(result.months)) ? Number(result.months) : 1,
+        entries: Number.isFinite(Number(result.entries)) ? Number(result.entries) : (Array.isArray(rows) ? rows.length : 0)
+      });
+    };
+  }
+
+  if (originalSaveAnnouncement) {
+    bridge.saveDashboardAnnouncementOnline = async (payload) => {
+      const secure = await ensureRakSecureAdminWriteState(bridge);
+      if (!secure.ok) return { ok: false, reason: 'admin-auth-required' };
+      return await originalSaveAnnouncement(payload);
+    };
+  }
+
+  if (originalClearAnnouncement) {
+    bridge.clearDashboardAnnouncementOnline = async () => {
+      const secure = await ensureRakSecureAdminWriteState(bridge);
+      if (!secure.ok) return { ok: false, reason: 'admin-auth-required' };
+      return await originalClearAnnouncement();
+    };
+  }
+
+  if (originalAnnouncementStatus) {
+    bridge.getDashboardAnnouncementOnlineStatus = () => Object.assign({}, originalAnnouncementStatus(), {
+      writeMode: 'authenticated admin RPC save/clear only; direct table fallback closed by RaK 1.6.03'
+    });
+  }
+
+  if (originalSubmitBugReport) {
+    bridge.submitBugReport = async (payload) => {
+      if (typeof navigator !== 'undefined' && navigator.onLine !== false) {
+        const rpcReady = await ensureRakSecureRpcCapability(bridge);
+        if (!rpcReady) return { ok: false, reason: 'secure-rpc-capability-required' };
+      }
+      return await originalSubmitBugReport(payload);
+    };
+  }
+
+  if (originalLoadBugReports) {
+    bridge.loadBugReports = async (options = {}) => {
+      const secure = await ensureRakSecureAdminWriteState(bridge);
+      if (!secure.ok) return { ok: false, reason: 'admin-auth-required', rows: [] };
+      return await originalLoadBugReports(options);
+    };
+  }
+
+  if (originalUpdateBugReportStatus) {
+    bridge.updateBugReportStatus = async (id, status, note = '') => {
+      const secure = await ensureRakSecureAdminWriteState(bridge);
+      if (!secure.ok) return { ok: false, reason: 'admin-auth-required' };
+      return await originalUpdateBugReportStatus(id, status, note);
+    };
+  }
+
+  if (originalDeleteBugReport) {
+    bridge.deleteBugReport = async (id) => {
+      const secure = await ensureRakSecureAdminWriteState(bridge);
+      if (!secure.ok) return { ok: false, reason: 'admin-auth-required' };
+      return await originalDeleteBugReport(id);
+    };
+  }
+
+  if (originalFlushPendingWrites) {
+    bridge.flushPendingWrites = async (...args) => {
+      if (typeof navigator !== 'undefined' && navigator.onLine !== false) {
+        const rpcReady = await ensureRakSecureRpcCapability(bridge);
+        if (!rpcReady) return { ok: false, reason: 'secure-rpc-capability-required' };
+      }
+      return await originalFlushPendingWrites(...args);
+    };
+    window.flushSupabaseSyncQueue = (...args) => bridge.flushPendingWrites(...args);
+  }
+
+  bridge.__rakSecureWriteGateV1603 = true;
+  window.__rakSupabaseSecureWriteGate = Object.freeze({
+    version: '1.6.03',
+    mode: 'secure-rpc-gate',
+    guarded: Object.freeze([
+      'rotation_month_entries',
+      'dashboard_announcements',
+      'bug_report_submission',
+      'bug_report_admin',
+      'queued_writes'
+    ])
+  });
+
+  if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+    void ensureRakSecureRpcCapability(bridge);
+  }
+  window.addEventListener('online', () => { void ensureRakSecureRpcCapability(bridge); }, { passive: true });
+  return true;
+}
+
 window.syncRotationFromSupabase = syncRotationFromSupabase;
 window.saveRotationToSupabase = saveRotationToSupabase;
+installRakSupabaseSecureWriteGate();
