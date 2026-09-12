@@ -5,6 +5,8 @@ const read = (file) => fs.readFileSync(file, 'utf8');
 const app = read('app.js');
 const pkg = JSON.parse(read('package.json'));
 const sw = read('sw.js');
+const config = read('supabase-config.js');
+const routing = read('rak-feature-routing.js');
 const menuPages = read('app-menu-pages.js');
 const brus = read('brusy-fhb-v158.js');
 const viewport = read('styles-viewport-polish.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -17,12 +19,28 @@ assert(app.includes('window.RAK_RELEASE_VERSION = "1.6";'), 'public RaK 1.6 rele
 assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.(?:0|\d{2,})["']/, 'service worker cache must stay in the RaK 1.6 production/test line');
 assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.(?:0|\d{2,})["']/, 'service worker technical version must stay in the RaK 1.6 production/test line');
 assert(sw.includes("'./core.js?v=1.6.0'"), 'warm-start core must use current 1.6.0 build');
+assert(sw.includes("'./rak-feature-routing.js?v=1.6.0'"), 'lazy routing must be prewarmed for activation without bypassing update confirmation');
 assert(sw.includes("nextUrl.searchParams.set('_rak_update', CACHE_VERSION + '-' + Date.now().toString(36))"), 'confirmed update cache-busting navigation missing');
 assert(sw.includes("const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.6.0'];"), 'same-version About cache invalidation missing');
 assert(sw.includes('await clearSameVersionHotfixAssets();'), 'same-version About cache invalidation must run during SW install');
 assert(!sw.includes('await self.skipWaiting();'), 'service worker install must wait for explicit user confirmation');
 assert(sw.includes("if (data.type === 'SKIP_WAITING')"), 'confirmed update message handler missing');
 assert(sw.includes('self.skipWaiting();'), 'confirmed update activation missing');
+assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.04";'), 'development display version must be 1.6.04');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.6.04";'), 'development PWA marker must be v1.6.04');
+
+assert(routing.includes("version: '1.6.04'"), 'true lazy loading policy version missing');
+assert(routing.includes("mode: 'intent-only-features'"), 'true lazy loading mode missing');
+assert(routing.includes("automatic: Object.freeze(['sync'])"), 'only sync may preload automatically after Home boot');
+assert(routing.includes("intentOnly: Object.freeze(['rotation', 'calculators', 'menu', 'admin'])"), 'feature intent-only policy drifted');
+assert(routing.includes('adminAutoPreload: false'), 'admin must never auto-preload for ordinary users');
+assert(routing.includes("document.addEventListener('pointerdown'"), 'pointerdown intent prefetch must stay enabled');
+assert(routing.includes('el.click();'), 'click replay after lazy feature load must stay enabled');
+assert(!routing.includes('startBackgroundWarmup'), 'legacy background feature warmup must stay removed');
+assert(!routing.includes('queueBackgroundWarmup'), 'legacy queued feature warmup must stay removed');
+assert(!routing.includes("Promise.allSettled(['rotation', 'calculators']"), 'Rotace/Kalkulačky must not preload automatically');
+assert(!routing.includes("Boot v2 admin warmup failed"), 'Admin background warmup must not return');
+assert(app.includes("requestIdleCallback(startSync, { timeout: 1200 })"), 'Home must keep lightweight sync idle preload');
 
 assert(menuPages.includes('function buildAppMenuAboutHistoryHtml()'), 'concise About history builder missing');
 assert(menuPages.includes("range: 'RaK 1.6'"), 'RaK 1.6 About section missing');
@@ -62,4 +80,4 @@ for (const accidental of ['__never_use__', '__noop__', '__noop2__']) {
 assert(String(pkg.scripts.check || '').includes('tools/v160-smoke.mjs'), 'v1.6 smoke must run in npm check');
 assert(!String(pkg.scripts.check || '').includes('tools/v1599-smoke.mjs'), 'old v1.5.99 smoke must not remain in active check chain');
 
-console.log('[v1.6-smoke] OK concise About history + confirmed-update PWA flow + mobile/Brusy invariants preserved');
+console.log('[v1.6-smoke] OK true lazy feature loading + concise About history + confirmed-update PWA flow + mobile/Brusy invariants preserved');

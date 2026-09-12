@@ -1,7 +1,7 @@
-// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.03.
+// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.04.
 const CACHE_VERSION = 'v1.6.0';
 const SW_APP_VERSION = '1.6.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.04';
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
