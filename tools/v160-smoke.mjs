@@ -7,6 +7,8 @@ const pkg = JSON.parse(read('package.json'));
 const sw = read('sw.js');
 const config = read('supabase-config.js');
 const routing = read('rak-feature-routing.js');
+const runtimeGuards = read('app-runtime-guards.js');
+const loginLife = read('rak-login-life.js');
 const menuPages = read('app-menu-pages.js');
 const brus = read('brusy-fhb-v158.js');
 const viewport = read('styles-viewport-polish.css').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -18,16 +20,22 @@ assert.match(app, /RAK_DEV_UPDATE_BUILD\s*=\s*["']v1\.6\.0["']/, 'app update bui
 assert(app.includes('window.RAK_RELEASE_VERSION = "1.6";'), 'public RaK 1.6 release version marker missing');
 assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.(?:0|\d{2,})["']/, 'service worker cache must stay in the RaK 1.6 production/test line');
 assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.(?:0|\d{2,})["']/, 'service worker technical version must stay in the RaK 1.6 production/test line');
+assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.05';"), 'service worker test display version must be 1.6.05');
 assert(sw.includes("'./core.js?v=1.6.0'"), 'warm-start core must use current 1.6.0 build');
 assert(sw.includes("'./rak-feature-routing.js?v=1.6.0'"), 'lazy routing must be prewarmed for activation without bypassing update confirmation');
+assert(sw.includes("'./app-runtime-guards.js?v=1.6.0'"), 'runtime guards must stay in the warm-start activation set');
+assert(sw.includes("'./rak-login-life.js?v=1.6.0'"), 'login mascot must stay in the warm-start activation set');
 assert(sw.includes("nextUrl.searchParams.set('_rak_update', CACHE_VERSION + '-' + Date.now().toString(36))"), 'confirmed update cache-busting navigation missing');
 assert(sw.includes("const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.6.0'];"), 'same-version About cache invalidation missing');
 assert(sw.includes('await clearSameVersionHotfixAssets();'), 'same-version About cache invalidation must run during SW install');
 assert(!sw.includes('await self.skipWaiting();'), 'service worker install must wait for explicit user confirmation');
 assert(sw.includes("if (data.type === 'SKIP_WAITING')"), 'confirmed update message handler missing');
 assert(sw.includes('self.skipWaiting();'), 'confirmed update activation missing');
-assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.04";'), 'development display version must be 1.6.04');
-assert(config.includes('window.RAK_PWA_BUILD = "v1.6.04";'), 'development PWA marker must be v1.6.04');
+assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase runtime config');
+assert(loginLife.includes("const TEST_BUILD='1.6.05'"), 'effective development test build must be 1.6.05');
+assert(loginLife.includes("window.RAK_RELEASE_VERSION=TEST_BUILD"), 'effective development release marker missing');
+assert(loginLife.includes("window.RAK_TEST_DISPLAY_VERSION=TEST_BUILD"), 'effective development display marker missing');
+assert(loginLife.includes("window.RAK_PWA_BUILD='v'+TEST_BUILD"), 'effective development PWA marker missing');
 
 assert(routing.includes("version: '1.6.04'"), 'true lazy loading policy version missing');
 assert(routing.includes("mode: 'intent-only-features'"), 'true lazy loading mode missing');
@@ -41,6 +49,15 @@ assert(!routing.includes('queueBackgroundWarmup'), 'legacy queued feature warmup
 assert(!routing.includes("Promise.allSettled(['rotation', 'calculators']"), 'Rotace/Kalkulačky must not preload automatically');
 assert(!routing.includes("Boot v2 admin warmup failed"), 'Admin background warmup must not return');
 assert(app.includes("requestIdleCallback(startSync, { timeout: 1200 })"), 'Home must keep lightweight sync idle preload');
+
+assert(!runtimeGuards.includes('new MutationObserver'), 'startup numeric-keyboard guard must not observe the whole DOM permanently');
+assert(runtimeGuards.includes("window.addEventListener('rak:feature-ready', onFeatureReady)"), 'numeric keyboard guard must use calculator feature lifecycle');
+assert(runtimeGuards.includes("window.removeEventListener('rak:feature-ready', onFeatureReady)"), 'numeric keyboard feature listener must detach after calculators are ready');
+assert(runtimeGuards.includes("window.__rakCalcNumericKeyboardGuardMode = 'initial+calculator-feature-ready'"), 'numeric keyboard lifecycle marker missing');
+assert(!loginLife.includes('new MutationObserver'), 'login mascot must not keep a permanent body observer');
+assert(loginLife.includes('wrapped.__rakLoginLifeWrapped=true'), 'login splash install hook marker missing');
+assert(loginLife.includes("window.__rakLoginLifeMountMode='login-install-hook'"), 'login mascot lifecycle mode marker missing');
+assert(loginLife.includes('const overlay=original.apply(this,arguments);') && loginLife.includes('boot();'), 'login mascot must mount directly when login splash opens');
 
 assert(menuPages.includes('function buildAppMenuAboutHistoryHtml()'), 'concise About history builder missing');
 assert(menuPages.includes("range: 'RaK 1.6'"), 'RaK 1.6 About section missing');
@@ -80,4 +97,4 @@ for (const accidental of ['__never_use__', '__noop__', '__noop2__']) {
 assert(String(pkg.scripts.check || '').includes('tools/v160-smoke.mjs'), 'v1.6 smoke must run in npm check');
 assert(!String(pkg.scripts.check || '').includes('tools/v1599-smoke.mjs'), 'old v1.5.99 smoke must not remain in active check chain');
 
-console.log('[v1.6-smoke] OK true lazy feature loading + concise About history + confirmed-update PWA flow + mobile/Brusy invariants preserved');
+console.log('[v1.6-smoke] OK observer lifecycle cleanup + true lazy feature loading + confirmed-update PWA flow + mobile/Brusy invariants preserved');

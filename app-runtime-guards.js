@@ -1,4 +1,4 @@
-// RaK 1.2 (1.155) – runtime guardy aplikace oddělené z app.js.
+// RaK 1.6.05 – startup guardy bez permanentního sledování celého DOM.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-runtime-guards.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 (function setupRakAppLikeTextSelectionGuard() {
@@ -20,6 +20,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 (function setupRakCalcNumericKeyboard() {
   if (window.__rakCalcNumericKeyboardGuard) return;
   window.__rakCalcNumericKeyboardGuard = true;
+  window.__rakCalcNumericKeyboardGuardMode = 'initial+calculator-feature-ready';
   const selector = '#soustruhy input, #frezky input, #brusy input, .calcPage input';
   const apply = () => {
     try {
@@ -32,12 +33,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       });
     } catch (err) {}
   };
+  const onFeatureReady = (event) => {
+    const feature = String(event && event.detail && event.detail.feature || '').trim();
+    if (feature !== 'calculators') return;
+    apply();
+    window.removeEventListener('rak:feature-ready', onFeatureReady);
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
   else apply();
-  if (typeof MutationObserver !== 'undefined') {
-    const observer = new MutationObserver(() => apply());
-    observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
-  }
+  window.addEventListener('rak:feature-ready', onFeatureReady);
 })();
 (function setupErrorCapture() {
   const LOG_KEY = "rotace_err_log_v1";
