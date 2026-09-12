@@ -1,7 +1,7 @@
-// RaK 1.6 production PWA service worker – v1.6.0 warm-start cache + confirmed-update navigation.
-const CACHE_VERSION = 'v1.6.0';
-const SW_APP_VERSION = '1.6.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.01';
+// RaK 1.6 test PWA service worker – v1.6.02 confirmed-update flow.
+const CACHE_VERSION = 'v1.6.02';
+const SW_APP_VERSION = '1.6.02';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.02';
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
@@ -193,8 +193,8 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     await clearSameVersionHotfixAssets();
     await installCoreAndPrewarm();
-    // Development hotfix: nenechá novou opravu čekat za starým iOS PWA klientem.
-    await self.skipWaiting();
+    // Záměrně bez skipWaiting(): nový build nejdřív zůstane waiting,
+    // aplikace ukáže potvrzení a aktivace proběhne až po klepnutí na Aktualizovat.
   })());
 });
 

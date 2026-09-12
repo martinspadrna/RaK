@@ -7,8 +7,11 @@ window.SUPABASE_CONFIG = {
 // Development-only viditelná testovací verze. Produkční main dál zobrazuje
 // veřejnou verzi RaK 1.6; každý další testovací balík budeme číslovat
 // 1.6.01, 1.6.02, 1.6.03… aby bylo v O aplikaci hned vidět, co běží.
-window.RAK_RELEASE_VERSION = "1.6.01";
-window.RAK_TEST_DISPLAY_VERSION = "1.6.01";
+window.RAK_RELEASE_VERSION = "1.6.02";
+window.RAK_TEST_DISPLAY_VERSION = "1.6.02";
+// PWA build marker se v testovací větvi zvedá s každým testovacím buildem,
+// aby se znovu povolilo potvrzení aktualizace a nezůstalo potlačené po minulé verzi.
+window.RAK_PWA_BUILD = "v1.6.02";
 
 // Development-only ochrana proti přenesení starého admin odemčení v běžícím
 // PWA runtime při přepnutí z produkční Supabase na testovací. Maže pouze

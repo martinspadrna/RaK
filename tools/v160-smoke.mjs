@@ -14,12 +14,15 @@ assert.equal(pkg.version, '1.6.0', 'package version must stay 1.6.0');
 assert.match(app, /RAK_MODULE_CACHE_VERSION\s*=\s*["']1\.6\.0["']/, 'app cache version must stay 1.6.0');
 assert.match(app, /RAK_DEV_UPDATE_BUILD\s*=\s*["']v1\.6\.0["']/, 'app update build must stay v1.6.0');
 assert(app.includes('window.RAK_RELEASE_VERSION = "1.6";'), 'public RaK 1.6 release version marker missing');
-assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.0["']/, 'service worker cache must stay v1.6.0');
-assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.0["']/, 'service worker technical version must stay 1.6.0');
+assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.(?:0|\d{2,})["']/, 'service worker cache must stay in the RaK 1.6 production/test line');
+assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.(?:0|\d{2,})["']/, 'service worker technical version must stay in the RaK 1.6 production/test line');
 assert(sw.includes("'./core.js?v=1.6.0'"), 'warm-start core must use current 1.6.0 build');
 assert(sw.includes("nextUrl.searchParams.set('_rak_update', CACHE_VERSION + '-' + Date.now().toString(36))"), 'confirmed update cache-busting navigation missing');
 assert(sw.includes("const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.6.0'];"), 'same-version About cache invalidation missing');
 assert(sw.includes('await clearSameVersionHotfixAssets();'), 'same-version About cache invalidation must run during SW install');
+assert(!sw.includes('await self.skipWaiting();'), 'service worker install must wait for explicit user confirmation');
+assert(sw.includes("if (data.type === 'SKIP_WAITING')"), 'confirmed update message handler missing');
+assert(sw.includes('self.skipWaiting();'), 'confirmed update activation missing');
 
 assert(menuPages.includes('function buildAppMenuAboutHistoryHtml()'), 'concise About history builder missing');
 assert(menuPages.includes("range: 'RaK 1.6'"), 'RaK 1.6 About section missing');
@@ -59,4 +62,4 @@ for (const accidental of ['__never_use__', '__noop__', '__noop2__']) {
 assert(String(pkg.scripts.check || '').includes('tools/v160-smoke.mjs'), 'v1.6 smoke must run in npm check');
 assert(!String(pkg.scripts.check || '').includes('tools/v1599-smoke.mjs'), 'old v1.5.99 smoke must not remain in active check chain');
 
-console.log('[v1.6-smoke] OK concise About history without extra rendered labels + same-version cache hotfix + PWA/mobile/Brusy invariants preserved');
+console.log('[v1.6-smoke] OK concise About history + confirmed-update PWA flow + mobile/Brusy invariants preserved');
