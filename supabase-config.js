@@ -9,9 +9,82 @@ window.SUPABASE_CONFIG = {
 // 1.6.01, 1.6.02, 1.6.03… aby bylo v O aplikaci hned vidět, co běží.
 window.RAK_RELEASE_VERSION = "1.6.03";
 window.RAK_TEST_DISPLAY_VERSION = "1.6.03";
-// PWA build marker se v testovací větvi zvedá s každým testovacím buildem,
-// aby se znovu povolilo potvrzení aktualizace a nezůstalo potlačené po minulé verzi.
-window.RAK_PWA_BUILD = "v1.6.03";
+// PWA build marker je interní a může se změnit i při malém hotfixu stejné
+// viditelné verze. Tím se znovu povolí potvrzení aktualizace na iOS PWA.
+window.RAK_PWA_BUILD = "v1.6.03-home1";
+
+// RaK 1.6.03 Home quick-paint: uložený profil + lokální data vykreslíme hned,
+// jakmile je připravený Dashboard. Nečekáme na dokončení celé startup sady.
+// Běžný Home boot později provede standardní plný refresh beze změny navigace.
+(function installRak1603EarlyHomePaint() {
+  if (window.__rak1603EarlyHomePaintInstalled) return;
+  window.__rak1603EarlyHomePaintInstalled = true;
+
+  const startedAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  let attempts = 0;
+  const MAX_ATTEMPTS = 240;
+
+  function getStoredProfile() {
+    try {
+      return typeof window.rakUserProfileGet === "function" ? window.rakUserProfileGet() : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function activePageAllowsPaint() {
+    try {
+      const active = document.querySelector(".page.active");
+      return !active || active.id === "home";
+    } catch (err) {
+      return true;
+    }
+  }
+
+  function finish(status) {
+    const endedAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    window.__rak1603EarlyHomePaint = {
+      status,
+      attempts,
+      elapsedMs: Math.max(0, Math.round(endedAt - startedAt)),
+      startupReady: !!window.__rakBootV2StartupReady,
+      at: Date.now()
+    };
+  }
+
+  function tryPaint() {
+    if (window.__rak1603EarlyHomePaintDone) return;
+    attempts += 1;
+
+    try {
+      const profile = getStoredProfile();
+      const appReady = typeof app !== "undefined" && !!app;
+      const dashboardReady = typeof window.updateDashboard === "function";
+
+      if (profile && appReady && dashboardReady && activePageAllowsPaint()) {
+        if (typeof window.rakUserProfileApplyToRuntime === "function") {
+          window.rakUserProfileApplyToRuntime(profile);
+        }
+        window.updateDashboard();
+        try { if (typeof window.updateFoodTile === "function") window.updateFoodTile(); } catch (err) {}
+        try { if (typeof window.updateEportalTile === "function") window.updateEportalTile(); } catch (err) {}
+        window.__rak1603EarlyHomePaintDone = true;
+        finish("painted");
+        return;
+      }
+    } catch (err) {}
+
+    if (attempts >= MAX_ATTEMPTS) {
+      finish("timeout");
+      return;
+    }
+
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(tryPaint);
+    else setTimeout(tryPaint, 16);
+  }
+
+  tryPaint();
+})();
 
 // Development-only ochrana proti přenesení starého admin odemčení v běžícím
 // PWA runtime při přepnutí z produkční Supabase na testovací. Maže pouze

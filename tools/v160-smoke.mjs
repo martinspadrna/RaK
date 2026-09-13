@@ -19,9 +19,11 @@ assert(app.includes('window.RAK_RELEASE_VERSION = "1.6";'), 'public RaK 1.6 rele
 assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.(?:0|\d{2,})["']/, 'service worker cache must stay in the RaK 1.6 production/test line');
 assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.(?:0|\d{2,})["']/, 'service worker technical version must stay in the RaK 1.6 production/test line');
 assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'service worker visible test version must be 1.6.03');
+assert(sw.includes("const DEVELOPMENT_BUILD_ID = '1.6.03-home1';"), 'service worker internal Home hotfix build id missing');
 assert(sw.includes("type: 'sw-version', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'update offer must expose visible 1.6.03 as appVersion');
 assert(sw.includes("type: 'sw-activated', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'activated worker must expose visible 1.6.03 as appVersion');
 assert(sw.includes('technicalAppVersion: SW_APP_VERSION'), 'technical 1.6.0 must remain separately available');
+assert(sw.includes('buildId: DEVELOPMENT_BUILD_ID'), 'worker must report internal hotfix build id without changing visible version');
 assert(sw.includes("'./core.js?v=1.6.0'"), 'warm-start core must use current 1.6.0 build');
 assert(sw.includes("nextUrl.searchParams.set('_rak_update', CACHE_VERSION + '-' + Date.now().toString(36))"), 'confirmed update cache-busting navigation missing');
 assert(sw.includes("const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.6.0'];"), 'same-version About cache invalidation missing');
@@ -32,7 +34,13 @@ assert(sw.includes('self.skipWaiting();'), 'confirmed update activation missing'
 
 assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display version must be 1.6.03');
 assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
-assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03";'), 'development PWA marker must be v1.6.03');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03-home1";'), 'development internal PWA marker must identify the Home hotfix');
+assert(config.includes('installRak1603EarlyHomePaint'), 'early Home paint installer missing');
+assert(config.includes('window.__rak1603EarlyHomePaintInstalled = true;'), 'early Home paint idempotency guard missing');
+assert(config.includes('typeof window.updateDashboard === "function"'), 'early Home paint must wait for dashboard readiness');
+assert(config.includes('window.rakUserProfileApplyToRuntime(profile);'), 'early Home paint must restore stored profile before rendering');
+assert(config.includes('active.id === "home"'), 'early Home paint must never steal navigation away from another page');
+assert(config.includes('window.__rak1603EarlyHomePaintDone = true;'), 'early Home paint completion marker missing');
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase');
 assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase must not enter development runtime');
 
@@ -86,4 +94,4 @@ for (const accidental of ['__never_use__', '__noop__', '__noop2__']) {
 assert(String(pkg.scripts.check || '').includes('tools/v160-smoke.mjs'), 'v1.6 smoke must run in npm check');
 assert(!String(pkg.scripts.check || '').includes('tools/v1599-smoke.mjs'), 'old v1.5.99 smoke must not remain in active check chain');
 
-console.log('[v1.6-smoke] OK 1.6.03 recovery baseline + requested person stats + TTKW shift-report machines + visible 1.6.03 update label + mobile/Brusy invariants preserved');
+console.log('[v1.6-smoke] OK 1.6.03 stable baseline + early Home local/profile paint + requested person stats + TTKW shift-report machines + visible 1.6.03 update label + mobile/Brusy invariants preserved');

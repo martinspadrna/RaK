@@ -48,7 +48,7 @@ assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'"), 'PWA must invalidate cac
 assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'SW test display version must be 1.6.03');
 assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display release version must be 1.6.03');
 assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
-assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03";'), 'development PWA build marker must be v1.6.03');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03-home1";'), 'development PWA build marker must identify Home hotfix');
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
 assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
 
@@ -57,4 +57,4 @@ assert(exportJs.includes('"app-rotation-sync.js": "src-app-rotation-sync-js"'), 
 assert(String(pkg.scripts.check || '').includes('tools/supabase-secure-write-paths-smoke.mjs'), 'secure write paths smoke must run in npm check');
 assert.equal(pkg.version, '1.6.0', 'technical package version must stay 1.6.0');
 
-console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; dev build 1.6.03; export/SW/boot links preserved');
+console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; visible dev build 1.6.03, internal home1 marker; export/SW/boot links preserved');
