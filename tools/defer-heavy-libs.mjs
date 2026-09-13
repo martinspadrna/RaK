@@ -5,10 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const indexPath = path.join(root, 'index.html');
-const appPath = path.join(root, 'app.js');
 const swPath = path.join(root, 'sw.js');
 let html = fs.readFileSync(indexPath, 'utf8');
-let appJs = fs.readFileSync(appPath, 'utf8');
 let sw = fs.readFileSync(swPath, 'utf8');
 
 const patterns = [
@@ -36,39 +34,27 @@ for (const file of idleDiagnosticFiles) {
   html = html.replace(new RegExp('\\n?<script\\s+src="' + escaped + '"[^>]*><\\/script>'), '');
 }
 
-// RaK 1.6.03: Home nemusí čekat na zbytek startup vrstvy. Nejdřív načteme jen
-// minimum potřebné pro lokální Dashboard, vykreslíme ho, pustíme browser k paintu
-// a teprve potom dokončíme QR, vzhled, navigaci a ostatní stabilní startup moduly.
-const homeFirstStageMarker = "window.__rak1603HomeFirstStagePaint = {";
-if (!appJs.includes(homeFirstStageMarker)) {
-  const originalStartupAwait = '  await loadFiles(startupFiles);';
-  if (!appJs.includes(originalStartupAwait)) {
-    throw new Error('[defer-heavy-libs] app.js nemá očekávaný startup await pro Home first-stage.');
+// Auth-safe warm Home: žádná změna pořadí app.js, auth, admin ani login modulů.
+// Jen obnovíme poslední známé textové hodnoty Dashboardu synchronně z localStorage,
+// takže PWA nemusí první vteřinu ukazovat samé "--". Standardní updateDashboard je
+// vzápětí přepíše aktuálními daty. Ukládáme pouze textContent, nikdy HTML.
+const snapshotMarker = 'id="rak-home-warm-snapshot"';
+if (!html.includes(snapshotMarker)) {
+  const beforeCalculators = '\n<div id="kalkulacky" class="page">';
+  if (!html.includes(beforeCalculators)) {
+    throw new Error('[defer-heavy-libs] Nenalezen bod pro Home warm snapshot.');
   }
-  const homeFirstStage = `  const homeFirstFiles = [\n    "core.js",\n    "lifecycle.js",\n    "app-runtime-guards.js",\n    "payroll.js",\n    "dashboard.js"\n  ];\n  await loadFiles(homeFirstFiles);\n\n  try {\n    const nowMs = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();\n    const storedProfile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;\n    if (storedProfile && typeof window.rakUserProfileApplyToRuntime === 'function') {\n      window.rakUserProfileApplyToRuntime(storedProfile);\n    }\n    if (typeof window.updateDashboard === 'function') window.updateDashboard();\n    window.__rak1603HomeFirstStagePaint = {\n      mode: 'dashboard-before-heavy-startup',\n      paintedAtMs: Math.max(0, Math.round(nowMs() - bootStartedAt)),\n      remainingReadyAtMs: 0,\n      at: Date.now()\n    };\n  } catch (err) {\n    console.warn('RaK Home first-stage paint failed', err);\n  }\n\n  await new Promise((resolve) => {\n    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(resolve);\n    else setTimeout(resolve, 0);\n  });\n\n  await loadFiles(startupFiles.filter((file) => !homeFirstFiles.includes(file)));\n  try {\n    if (window.__rak1603HomeFirstStagePaint) {\n      const endedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();\n      window.__rak1603HomeFirstStagePaint.remainingReadyAtMs = Math.max(0, Math.round(endedAt - bootStartedAt));\n    }\n  } catch (err) {}`;
-  appJs = appJs.replace(originalStartupAwait, homeFirstStage);
+  const snapshotScript = `\n<script id="rak-home-warm-snapshot">\n(function(){\n  var KEY='rak_home_warm_snapshot_v1';\n  var MAX_AGE=6*60*60*1000;\n  var selectors=[\n    '.dashboardHeroLine1Text',\n    '.dashboardHeroLine2',\n    '.dashboardHeroLine3Pill',\n    '#dashCalendar .dashboardValue',\n    '#dashCalendar .dashboardMeta',\n    '#dashCountdown .dashboardValue',\n    '#dashCountdown .dashboardMeta',\n    '#dashKantyna .dashboardValue',\n    '#dashKantyna .dashboardMeta',\n    '#dashJidelna .dashboardValue',\n    '#dashJidelna .dashboardMeta',\n    '#dashVyplata .dashboardValue',\n    '#dashVyplata .dashboardMeta',\n    '#dashCzd .dashboardValue',\n    '#dashCzd .dashboardMeta'\n  ];\n  function validText(text){\n    text=String(text||'').trim();\n    return !!text && text!=='--' && text.indexOf('Načítám')<0;\n  }\n  function restore(){\n    try{\n      var raw=localStorage.getItem(KEY);\n      if(!raw)return false;\n      var snap=JSON.parse(raw);\n      if(!snap||!snap.values||!snap.at||Date.now()-Number(snap.at)>MAX_AGE)return false;\n      var count=0;\n      selectors.forEach(function(sel){\n        var value=snap.values[sel];\n        if(!validText(value))return;\n        var el=document.querySelector(sel);\n        if(!el)return;\n        el.textContent=String(value);\n        count++;\n      });\n      window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:Math.max(0,Date.now()-Number(snap.at)),at:Date.now()};\n      return count>0;\n    }catch(err){return false;}\n  }\n  function save(){\n    try{\n      var values={};\n      var count=0;\n      selectors.forEach(function(sel){\n        var el=document.querySelector(sel);\n        if(!el)return;\n        var text=String(el.textContent||'').trim();\n        if(!validText(text))return;\n        values[sel]=text;\n        count++;\n      });\n      if(count<4)return false;\n      localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values}));\n      window.__rak1603HomeWarmSnapshot=Object.assign({},window.__rak1603HomeWarmSnapshot||{},{saved:true,savedCount:count,savedAt:Date.now()});\n      return true;\n    }catch(err){return false;}\n  }\n  restore();\n  window.addEventListener('pagehide',save,{capture:true});\n  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save();});\n})();\n<\/script>\n`;
+  html = html.replace(beforeCalculators, snapshotScript + beforeCalculators);
 }
 
-// Instalovaná PWA už má schválený app shell v cache. Při běžném znovuotevření
-// ho proto vrať hned a síťovou kopii obnov na pozadí. První návštěva bez cache
-// dál normálně čeká na síť.
-if (!sw.includes("strategy: 'navigation-cache-first-background-refresh;build-static-cache-first;isolated-prewarm'")) {
-  const oldNavigation = `async function navigationResponse(request, event) {\n  try {\n    if (event && event.preloadResponse) {\n      const preload = await event.preloadResponse;\n      if (cacheable(preload)) {\n        put(RUNTIME_CACHE, request, preload);\n        return preload;\n      }\n    }\n  } catch (_) {}\n  const fallback = (await cached('./index.html')) || (await cached('./')) || Response.error();\n  return networkFirst(request, fallback);\n}`;
-  const newNavigation = `async function navigationResponse(request, event) {\n  const shell = (await cached('./index.html')) || (await cached('./'));\n  const refresh = (async () => {\n    let response = null;\n    try {\n      if (event && event.preloadResponse) response = await event.preloadResponse;\n    } catch (_) {}\n    if (!cacheable(response)) {\n      response = await fetch(new Request(request, { cache: 'no-store' }));\n    }\n    if (cacheable(response)) await put(RUNTIME_CACHE, request, response);\n    return response;\n  })();\n\n  if (shell) {\n    try { if (event && typeof event.waitUntil === 'function') event.waitUntil(refresh.catch(() => null)); } catch (_) {}\n    return shell;\n  }\n\n  try {\n    const response = await refresh;\n    return response || Response.error();\n  } catch (_) {\n    return Response.error();\n  }\n}`;
-  if (!sw.includes(oldNavigation)) {
-    throw new Error('[defer-heavy-libs] sw.js nemá očekávanou navigationResponse pro cache-first warm start.');
-  }
-  sw = sw.replace(oldNavigation, newNavigation);
-  sw = sw.replace(
-    "strategy: 'navigation-network-first;build-static-cache-first;isolated-prewarm'",
-    "strategy: 'navigation-cache-first-background-refresh;build-static-cache-first;isolated-prewarm'"
-  );
-}
-
+// Posuň SW build marker, aby se po stažení této opravy spolehlivě nabídla aktualizace.
+// Navigační strategii necháváme původní network-first: poslední cache-first experiment
+// se kvůli neočekávanému admin promptu zcela ruší.
 if (sw.includes("const DEVELOPMENT_BUILD_ID = '1.6.03-home2';")) {
   sw = sw.replace(
     "const DEVELOPMENT_BUILD_ID = '1.6.03-home2';",
-    "const DEVELOPMENT_BUILD_ID = '1.6.03-home3';\n// Previous Home marker kept for diagnostics: const DEVELOPMENT_BUILD_ID = '1.6.03-home2';"
+    "const DEVELOPMENT_BUILD_ID = '1.6.03-home4';\n// Previous Home marker kept for diagnostics: const DEVELOPMENT_BUILD_ID = '1.6.03-home2';"
   );
 }
 
@@ -89,17 +75,16 @@ if (!/@supabase\/supabase-js@2\.110\.7/.test(html)) {
 if (!/src="rak-dom-security-hardening\.js"/.test(html)) {
   throw new Error('[defer-heavy-libs] DOM security hardening musí zůstat v startup HTML.');
 }
-if (!appJs.includes(homeFirstStageMarker) || !appJs.includes("mode: 'dashboard-before-heavy-startup'")) {
-  throw new Error('[defer-heavy-libs] Home first-stage paint se nepodařilo vložit do app.js.');
+if (!html.includes(snapshotMarker) || !html.includes("localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values}))")) {
+  throw new Error('[defer-heavy-libs] Home warm snapshot nebyl vložen.');
 }
-if (!sw.includes("strategy: 'navigation-cache-first-background-refresh;build-static-cache-first;isolated-prewarm'")) {
-  throw new Error('[defer-heavy-libs] PWA warm navigation není cache-first.');
+if (!sw.includes("strategy: 'navigation-network-first;build-static-cache-first;isolated-prewarm'")) {
+  throw new Error('[defer-heavy-libs] Navigace musí po rollbacku zůstat network-first.');
 }
-if (!sw.includes("const DEVELOPMENT_BUILD_ID = '1.6.03-home3';")) {
-  throw new Error('[defer-heavy-libs] PWA build ID nebylo posunuto na home3.');
+if (!sw.includes("const DEVELOPMENT_BUILD_ID = '1.6.03-home4';")) {
+  throw new Error('[defer-heavy-libs] PWA build ID nebylo posunuto na home4.');
 }
 
 fs.writeFileSync(indexPath, html, 'utf8');
-fs.writeFileSync(appPath, appJs, 'utf8');
 fs.writeFileSync(swPath, sw, 'utf8');
-console.log('[defer-heavy-libs] OK XLSX + JSZip + diagnostics deferred; Home paints before heavy startup; installed navigation cache-first; Supabase + DOM security untouched');
+console.log('[defer-heavy-libs] OK XLSX + JSZip + diagnostics deferred; auth-safe original boot restored; Home text snapshot warm-start active; navigation network-first');
