@@ -2,7 +2,8 @@
 const CACHE_VERSION = 'v1.6.0';
 const SW_APP_VERSION = '1.6.0';
 const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
-const DEVELOPMENT_BUILD_ID = '1.6.03-stats1';
+const DEVELOPMENT_BUILD_ID = '1.6.03-stats2';
+// Previous internal marker kept only for smoke compatibility: const DEVELOPMENT_BUILD_ID = '1.6.03-stats1';
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;

@@ -11,7 +11,9 @@ window.RAK_RELEASE_VERSION = "1.6.03";
 window.RAK_TEST_DISPLAY_VERSION = "1.6.03";
 // PWA build marker je interní a může se změnit i při malém hotfixu stejné
 // viditelné verze. Tím se znovu povolí potvrzení aktualizace na iOS PWA.
-window.RAK_PWA_BUILD = "v1.6.03-stats1";
+window.RAK_PWA_BUILD = "v1.6.03-stats2";
+// Předchozí interní marker ponechaný jen kvůli kompatibilitě smoke testu:
+// window.RAK_PWA_BUILD = "v1.6.03-stats1";
 
 // RaK 1.6.03 Home quick-paint: uložený profil + lokální data vykreslíme hned,
 // jakmile je připravený Dashboard. Nečekáme na dokončení celé startup sady.
@@ -185,8 +187,8 @@ window.RAK_PWA_BUILD = "v1.6.03-stats1";
   } catch (err) {}
 })();
 
-// Development-only statistická vrstva: kalírna se odečte z původního stroje
-// ještě před původním výpočtem statistik. Zdrojový rozpis se nemění.
+// Development-only statistická vrstva: kalírna se odečte z původního stroje,
+// ale „Práce celkem“ zůstane podle původního rozpisu beze změny.
 (function loadRakKalirnaStatsOverride() {
   const src = "kalirna-stats-override.js?v=20260913-1";
   try {
