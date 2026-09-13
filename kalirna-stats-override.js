@@ -1,3 +1,59 @@
+// RaK 1.6.03 Home startup hotfix – souběžně přednačte skripty, které app.js
+// stejně použije při startu. Pořadí jejich spuštění dál řídí app.js beze změny.
+(function installRak1603HomeBootPreload() {
+  'use strict';
+
+  if (window.__rak1603HomeBootPreloadInstalled) return;
+  window.__rak1603HomeBootPreloadInstalled = true;
+
+  const version = '1.6.0';
+  const files = [
+    'rak-user-profile.js',
+    'rak-auth-gate.js',
+    'rak-account-access.js',
+    'rak-login-splash.js',
+    'rak-login-fix.js',
+    'rak-login-life.js',
+    'core.js',
+    'lifecycle.js',
+    'app-runtime-guards.js',
+    'qr.js',
+    'payroll.js',
+    'dashboard.js',
+    'appearance-theme.js',
+    'ui.js',
+    'app-navigation.js',
+    'app-bottom-nav.js',
+    'app-actions.js',
+    'app-pwa-connectivity.js',
+    'app-home-boot.js',
+    'rak-runtime-stability.js',
+    'rak-mobile-layout-guard.js',
+    'rak-feature-routing.js'
+  ];
+  let queued = 0;
+
+  files.forEach((file) => {
+    try {
+      if (document.querySelector('link[data-rak-home-boot-preload="' + file + '"]')) return;
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'script';
+      link.href = file + '?v=' + encodeURIComponent(version);
+      link.dataset.rakHomeBootPreload = file;
+      (document.head || document.documentElement).appendChild(link);
+      queued += 1;
+    } catch (err) {}
+  });
+
+  window.__rak1603HomeBootPreload = Object.freeze({
+    mode: 'parallel-fetch-preserve-app-execution-order',
+    queued,
+    total: files.length,
+    at: Date.now()
+  });
+})();
+
 // RaK 1.6.03 development hotfix – pracovník označený „Odešel na kalírnu“
 // se ve statistice nepočítá na původním stroji, ale pořád se počítá do „Práce celkem“.
 (function installRakKalirnaStatsFilter() {
