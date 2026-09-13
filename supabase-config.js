@@ -11,7 +11,7 @@ window.RAK_RELEASE_VERSION = "1.6.03";
 window.RAK_TEST_DISPLAY_VERSION = "1.6.03";
 // PWA build marker je interní a může se změnit i při malém hotfixu stejné
 // viditelné verze. Tím se znovu povolí potvrzení aktualizace na iOS PWA.
-window.RAK_PWA_BUILD = "v1.6.03-home1";
+window.RAK_PWA_BUILD = "v1.6.03-report1";
 
 // RaK 1.6.03 Home quick-paint: uložený profil + lokální data vykreslíme hned,
 // jakmile je připravený Dashboard. Nečekáme na dokončení celé startup sady.
