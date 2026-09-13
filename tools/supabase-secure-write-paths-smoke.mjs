@@ -45,12 +45,10 @@ const syncPos = syncFeature[1].indexOf('"app-rotation-sync.js"');
 assert(bridgePos >= 0 && syncPos > bridgePos, 'app-rotation-sync secure gate must load after supabase-bridge');
 
 assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
-const swDisplayMatch = sw.match(/const DEVELOPMENT_TEST_DISPLAY_VERSION = '(1\.6\.\d{2})';/);
-assert(swDisplayMatch, 'SW development display version must stay in 1.6.xx test line');
-const devDisplayVersion = swDisplayMatch[1];
-assert(config.includes(`window.RAK_RELEASE_VERSION = "${devDisplayVersion}";`), 'development display release version must match SW');
-assert(config.includes(`window.RAK_TEST_DISPLAY_VERSION = "${devDisplayVersion}";`), 'development test display version must match SW');
-assert(config.includes(`window.RAK_PWA_BUILD = "v${devDisplayVersion}";`), 'development PWA build marker must match SW');
+assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'SW test display version must be 1.6.03');
+assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display release version must be 1.6.03');
+assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03";'), 'development PWA build marker must be v1.6.03');
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
 assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
 
@@ -59,4 +57,4 @@ assert(exportJs.includes('"app-rotation-sync.js": "src-app-rotation-sync-js"'), 
 assert(String(pkg.scripts.check || '').includes('tools/supabase-secure-write-paths-smoke.mjs'), 'secure write paths smoke must run in npm check');
 assert.equal(pkg.version, '1.6.0', 'technical package version must stay 1.6.0');
 
-console.log(`[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; dev build ${devDisplayVersion}; export/SW/boot links preserved`);
+console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; dev build 1.6.03; export/SW/boot links preserved');

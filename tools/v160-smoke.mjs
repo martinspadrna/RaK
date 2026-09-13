@@ -6,7 +6,6 @@ const app = read('app.js');
 const pkg = JSON.parse(read('package.json'));
 const sw = read('sw.js');
 const config = read('supabase-config.js');
-const routing = read('rak-feature-routing.js');
 const menuPages = read('app-menu-pages.js');
 const brus = read('brusy-fhb-v158.js');
 const hotfix = read('kalirna-daymod-override.js');
@@ -19,31 +18,23 @@ assert.match(app, /RAK_DEV_UPDATE_BUILD\s*=\s*["']v1\.6\.0["']/, 'app update bui
 assert(app.includes('window.RAK_RELEASE_VERSION = "1.6";'), 'public RaK 1.6 release version marker missing');
 assert.match(sw, /CACHE_VERSION\s*=\s*["']v1\.6\.(?:0|\d{2,})["']/, 'service worker cache must stay in the RaK 1.6 production/test line');
 assert.match(sw, /SW_APP_VERSION\s*=\s*["']1\.6\.(?:0|\d{2,})["']/, 'service worker technical version must stay in the RaK 1.6 production/test line');
+assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'service worker visible test version must be 1.6.03');
+assert(sw.includes("type: 'sw-version', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'update offer must expose visible 1.6.03 as appVersion');
+assert(sw.includes("type: 'sw-activated', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION"), 'activated worker must expose visible 1.6.03 as appVersion');
+assert(sw.includes('technicalAppVersion: SW_APP_VERSION'), 'technical 1.6.0 must remain separately available');
 assert(sw.includes("'./core.js?v=1.6.0'"), 'warm-start core must use current 1.6.0 build');
-assert(sw.includes("'./rak-feature-routing.js?v=1.6.0'"), 'lazy routing must be prewarmed for activation without bypassing update confirmation');
 assert(sw.includes("nextUrl.searchParams.set('_rak_update', CACHE_VERSION + '-' + Date.now().toString(36))"), 'confirmed update cache-busting navigation missing');
 assert(sw.includes("const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.6.0'];"), 'same-version About cache invalidation missing');
 assert(sw.includes('await clearSameVersionHotfixAssets();'), 'same-version About cache invalidation must run during SW install');
 assert(!sw.includes('await self.skipWaiting();'), 'service worker install must wait for explicit user confirmation');
 assert(sw.includes("if (data.type === 'SKIP_WAITING')"), 'confirmed update message handler missing');
 assert(sw.includes('self.skipWaiting();'), 'confirmed update activation missing');
-assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.04";'), 'recovery must use the last functional 1.6.04 display version');
-assert(config.includes('window.RAK_PWA_BUILD = "v1.6.04";'), 'recovery must use the last functional 1.6.04 PWA marker');
-assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.04';"), 'recovery service worker must report 1.6.04');
-assert(sw.includes("'./kalirna-daymod-override.js?v=20260912-1'"), 'recovery service worker must invalidate the extension asset');
 
-assert(routing.includes("version: '1.6.04'"), 'true lazy loading policy version missing');
-assert(routing.includes("mode: 'intent-only-features'"), 'true lazy loading mode missing');
-assert(routing.includes("automatic: Object.freeze(['sync'])"), 'only sync may preload automatically after Home boot');
-assert(routing.includes("intentOnly: Object.freeze(['rotation', 'calculators', 'menu', 'admin'])"), 'feature intent-only policy drifted');
-assert(routing.includes('adminAutoPreload: false'), 'admin must never auto-preload for ordinary users');
-assert(routing.includes("document.addEventListener('pointerdown'"), 'pointerdown intent prefetch must stay enabled');
-assert(routing.includes('el.click();'), 'click replay after lazy feature load must stay enabled');
-assert(!routing.includes('startBackgroundWarmup'), 'legacy background feature warmup must stay removed');
-assert(!routing.includes('queueBackgroundWarmup'), 'legacy queued feature warmup must stay removed');
-assert(!routing.includes("Promise.allSettled(['rotation', 'calculators']"), 'Rotace/Kalkulačky must not preload automatically');
-assert(!routing.includes("Boot v2 admin warmup failed"), 'Admin background warmup must not return');
-assert(app.includes("requestIdleCallback(startSync, { timeout: 1200 })"), 'Home must keep lightweight sync idle preload');
+assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display version must be 1.6.03');
+assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03";'), 'development PWA marker must be v1.6.03');
+assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase');
+assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase must not enter development runtime');
 
 assert(hotfix.includes("const SHIFT_REPORT_EXTRA_MACHINES = ['TTKW01', 'TTKW02'];"), 'shift report extra TTKW machines missing');
 assert(hotfix.includes("option.value === 'TPKW02'"), 'TTKW machines must be inserted after TPKW02');
@@ -51,7 +42,9 @@ assert(hotfix.includes("'Sám na 2 frézkách'"), 'personal MFK solo tile missin
 assert(hotfix.includes("'Ve 2 lidech na soustruzích'"), 'personal MSK pair tile missing');
 assert(hotfix.includes('stats.mfkSoloCounts && stats.mfkSoloCounts[name]'), 'personal MFK tile must use existing verified yearly counter');
 assert(hotfix.includes('stats.mskPairCounts && stats.mskPairCounts[name]'), 'personal MSK tile must use existing verified yearly counter');
-assert(hotfix.includes("base: '1.6.04'"), 'recovery extension baseline marker missing');
+assert(hotfix.includes("base: '1.6.03'"), 'requested extension baseline marker must stay 1.6.03');
+assert(hotfix.includes('__rak1603RequestedExtensionsInstalled'), '1.6.03 requested extension guard missing');
+assert(!hotfix.includes('__rak1604RequestedExtensionsInstalled'), '1.6.04 recovery extension must not remain');
 assert(!hotfix.includes('__rak1606RegressionRecoveryInstalled'), 'broken 1.6.06 recovery layer must not return');
 assert(!hotfix.includes('__rak1607'), 'broken 1.6.07 navigation layer must not return');
 
@@ -93,4 +86,4 @@ for (const accidental of ['__never_use__', '__noop__', '__noop2__']) {
 assert(String(pkg.scripts.check || '').includes('tools/v160-smoke.mjs'), 'v1.6 smoke must run in npm check');
 assert(!String(pkg.scripts.check || '').includes('tools/v1599-smoke.mjs'), 'old v1.5.99 smoke must not remain in active check chain');
 
-console.log('[v1.6-smoke] OK 1.6.04 recovery baseline + requested person stats + TTKW shift-report machines + original lazy/PWA/mobile/Brusy invariants preserved');
+console.log('[v1.6-smoke] OK 1.6.03 recovery baseline + requested person stats + TTKW shift-report machines + visible 1.6.03 update label + mobile/Brusy invariants preserved');

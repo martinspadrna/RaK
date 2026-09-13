@@ -1,4 +1,4 @@
-// RaK 1.6.04 – true lazy feature routing + stabilní korekční folds + iOS PWA update reload guard.
+// RaK v1.5.93 – Boot v2 routing + stabilní korekční folds + iOS PWA update reload guard.
 (function installRakFeatureRouting() {
   'use strict';
   if (window.__rakFeatureRoutingInstalled) return;
@@ -21,7 +21,7 @@
     const updateWasApproved = () => !!(readStorage(sessionStorage, PENDING_KEY) && readStorage(localStorage, SUPPRESS_KEY));
     const freshUrl = (reason) => {
       const url = new URL(window.location.href);
-      const build = String(window.RAK_PWA_BUILD || window.RAK_DEV_BUILD || 'v1.6.04').replace(/\s+/g, '');
+      const build = String(window.RAK_PWA_BUILD || window.RAK_DEV_BUILD || 'v1.5.93').replace(/\s+/g, '');
       url.searchParams.set('_rak_update', build + '-' + Date.now().toString(36));
       url.searchParams.set('_rak_update_reason', String(reason || 'confirmed').slice(0, 32));
       return url.href;
@@ -306,15 +306,10 @@
     setTimeout(run, 0);
   }
 
-  window.__rakLazyLoadingPolicy = Object.freeze({
-    version: '1.6.04',
-    mode: 'intent-only-features',
-    automatic: Object.freeze(['sync']),
-    intentOnly: Object.freeze(['rotation', 'calculators', 'menu', 'admin']),
-    pointerPrefetch: true,
-    clickReplay: true,
-    adminAutoPreload: false
-  });
+  function scheduleIdle(fn, timeout, fallbackDelay) {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout });
+    else setTimeout(fn, fallbackDelay);
+  }
 
   document.addEventListener('pointerdown', (event) => {
     const target = resolveTarget(event);
@@ -372,6 +367,33 @@
     });
   }, true);
 
+  let warmupQueued = false;
+  let warmupStarted = false;
+  function startBackgroundWarmup() {
+    if (warmupStarted || typeof window.rakEnsureFeature !== 'function') return;
+    warmupStarted = true;
+    Promise.allSettled(['rotation', 'calculators'].map((feature) => window.rakEnsureFeature(feature))).catch(() => {});
+    scheduleIdle(() => {
+      window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('menu')).catch((err) => {
+        console.warn('Boot v2 sync/menu warmup failed', err);
+      });
+    }, 1500, 650);
+    scheduleIdle(() => {
+      ensureFeatureWithAuthOrder('admin').catch((err) => console.warn('Boot v2 admin warmup failed', err));
+    }, 3600, 2400);
+  }
+
+  function queueBackgroundWarmup() {
+    if (warmupQueued) return;
+    if (!window.__rakBootV2StartupReady) {
+      setTimeout(queueBackgroundWarmup, 40);
+      return;
+    }
+    warmupQueued = true;
+    scheduleIdle(startBackgroundWarmup, 900, 350);
+  }
+  setTimeout(queueBackgroundWarmup, 0);
+
   window.addEventListener('rak:feature-ready', (event) => {
     const feature = String(event && event.detail && event.detail.feature || '');
     if (feature !== 'admin') return;
@@ -404,7 +426,7 @@
 
   try {
     if (typeof window.rakMarkModuleReady === 'function') {
-      window.rakMarkModuleReady('rak-feature-routing.js', 'loaded', { source: 'boot-v2-loader', build: '1.6.04' });
+      window.rakMarkModuleReady('rak-feature-routing.js', 'loaded', { source: 'boot-v2-loader', build: '1.5.93' });
     }
   } catch (_) {}
 })();

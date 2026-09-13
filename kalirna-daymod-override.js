@@ -143,12 +143,12 @@
   window.rakKalirnaDayModOverrideRefresh = installAvailablePatches;
 })();
 
-// RaK 1.6.04 recovery extensions – pouze požadované nové funkce nad posledním funkčním základem.
-(function installRak1604RequestedExtensions() {
+// RaK 1.6.03 recovery extensions – jen nové funkce požadované nad funkčním základem 1.6.03.
+(function installRak1603RequestedExtensions() {
   'use strict';
 
-  if (window.__rak1604RequestedExtensionsInstalled) return;
-  window.__rak1604RequestedExtensionsInstalled = true;
+  if (window.__rak1603RequestedExtensionsInstalled) return;
+  window.__rak1603RequestedExtensionsInstalled = true;
 
   const SHIFT_REPORT_EXTRA_MACHINES = ['TTKW01', 'TTKW02'];
 
@@ -172,7 +172,7 @@
 
   function patchStatsNameView() {
     const original = window.renderStatsNameViewNodes;
-    if (typeof original !== 'function' || original.__rak1604PersonLoadStatsPatched) return false;
+    if (typeof original !== 'function' || original.__rak1603PersonLoadStatsPatched) return false;
 
     function wrappedRenderStatsNameViewNodes(person, year, stats) {
       const nodes = original.apply(this, arguments);
@@ -188,10 +188,10 @@
       return nodes;
     }
 
-    wrappedRenderStatsNameViewNodes.__rak1604PersonLoadStatsPatched = true;
+    wrappedRenderStatsNameViewNodes.__rak1603PersonLoadStatsPatched = true;
     wrappedRenderStatsNameViewNodes.__rakOriginal = original;
     window.renderStatsNameViewNodes = wrappedRenderStatsNameViewNodes;
-    window.__rak1604PersonStatsMode = 'existing-year-counters';
+    window.__rak1603PersonStatsMode = 'existing-year-counters';
     return true;
   }
 
@@ -217,13 +217,13 @@
       });
     });
 
-    if (selects.length) window.__rak1604ShiftReportMachineMode = 'TPKW02>TTKW01>TTKW02';
+    if (selects.length) window.__rak1603ShiftReportMachineMode = 'TPKW02>TTKW01>TTKW02';
     return changed || selects.length > 0;
   }
 
   function patchShiftReportOpen() {
     const api = window.RakShiftReport;
-    if (!api || typeof api.open !== 'function' || api.open.__rak1604ExtraMachinesPatched) return false;
+    if (!api || typeof api.open !== 'function' || api.open.__rak1603ExtraMachinesPatched) return false;
     const originalOpen = api.open;
 
     function wrappedShiftReportOpen() {
@@ -232,7 +232,7 @@
       return result;
     }
 
-    wrappedShiftReportOpen.__rak1604ExtraMachinesPatched = true;
+    wrappedShiftReportOpen.__rak1603ExtraMachinesPatched = true;
     wrappedShiftReportOpen.__rakOriginal = originalOpen;
     api.open = wrappedShiftReportOpen;
     return true;
@@ -258,8 +258,8 @@
   installRequestedPatches();
   [150, 500, 1200, 3000].forEach((delay) => window.setTimeout(installRequestedPatches, delay));
 
-  window.__rak1604RequestedExtensions = Object.freeze({
-    base: '1.6.04',
+  window.__rak1603RequestedExtensions = Object.freeze({
+    base: '1.6.03',
     personStats: Object.freeze(['mfk-solo', 'msk-pair']),
     shiftReportMachines: Object.freeze(SHIFT_REPORT_EXTRA_MACHINES.slice())
   });
