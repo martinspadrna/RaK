@@ -7,86 +7,11 @@ window.SUPABASE_CONFIG = {
 // Development-only viditelná testovací verze. Produkční main dál zobrazuje
 // veřejnou verzi RaK 1.6; každý další testovací balík budeme číslovat
 // 1.6.01, 1.6.02, 1.6.03, 1.6.04… aby bylo v O aplikaci hned vidět, co běží.
-window.RAK_RELEASE_VERSION = "1.6.07";
-window.RAK_TEST_DISPLAY_VERSION = "1.6.07";
+window.RAK_RELEASE_VERSION = "1.6.04";
+window.RAK_TEST_DISPLAY_VERSION = "1.6.04";
 // PWA build marker se v testovací větvi zvedá s každým testovacím buildem,
 // aby se znovu povolilo potvrzení aktualizace a nezůstalo potlačené po minulé verzi.
-window.RAK_PWA_BUILD = "v1.6.07";
-
-// RaK 1.6.07: první tap na Rotace/Více se zachytí už v kritické vrstvě,
-// tedy dřív než se načte obecný lazy router. Tím se na iOS odstraní závod
-// mezi replay klikem a původním handlerem spodní navigace.
-(function installRak1607EarlyFirstTapGuard() {
-  if (window.__rak1607FirstTapGuardInstalled) return;
-  window.__rak1607FirstTapGuardInstalled = true;
-
-  function setBusy(button, busy) {
-    if (!button) return;
-    try {
-      button.classList.toggle('rakFeatureLoading', !!busy);
-      if (busy) button.setAttribute('aria-busy', 'true');
-      else button.removeAttribute('aria-busy');
-    } catch (err) {}
-  }
-
-  function waitForStartupReady() {
-    if (window.__rakBootV2StartupReady) return Promise.resolve(true);
-    return new Promise((resolve) => {
-      let attempts = 0;
-      const check = () => {
-        attempts += 1;
-        if (window.__rakBootV2StartupReady || attempts >= 240) {
-          resolve(!!window.__rakBootV2StartupReady);
-          return;
-        }
-        window.setTimeout(check, 16);
-      };
-      check();
-    });
-  }
-
-  async function openAfterReady(action, button) {
-    const feature = action === 'rotace' ? 'rotation' : 'menu';
-    setBusy(button, true);
-    try {
-      if (typeof window.rakEnsureFeature !== 'function') throw new Error('RaK feature loader není připravený.');
-      await Promise.all([window.rakEnsureFeature(feature), waitForStartupReady()]);
-      if (action === 'rotace') {
-        if (typeof window.openRotaceNames === 'function') window.openRotaceNames();
-        else {
-          try { if (typeof showPage === 'function') showPage('rotace'); } catch (err) {}
-          try { if (typeof setRotaceView === 'function') setRotaceView('names'); } catch (err) {}
-          try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
-          try { if (typeof setBottomNavActive === 'function') setBottomNavActive('rotace'); } catch (err) {}
-        }
-        if (typeof requestAnimationFrame === 'function') {
-          requestAnimationFrame(() => { try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {} });
-        }
-      } else {
-        try { if (typeof showPage === 'function') showPage('menu'); } catch (err) {}
-        try { if (typeof openAppMenu === 'function') openAppMenu('menu'); } catch (err) {}
-        try { if (typeof setBottomNavActive === 'function') setBottomNavActive('menu'); } catch (err) {}
-      }
-      window.__rak1607LastEarlyNav = { action, feature, at: Date.now() };
-    } catch (err) {
-      if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, feature);
-      else console.error('RaK 1.6.07 early navigation failed', action, err);
-    } finally {
-      setBusy(button, false);
-    }
-  }
-
-  document.addEventListener('click', (event) => {
-    const source = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
-    const nav = source && source.closest('nav.bottomNav button[data-action]');
-    if (!nav || !document.documentElement.contains(nav)) return;
-    const action = String(nav.dataset.action || '').trim();
-    if (action !== 'rotace' && action !== 'menu') return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    void openAfterReady(action, nav);
-  }, true);
-})();
+window.RAK_PWA_BUILD = "v1.6.04";
 
 // Development-only ochrana proti přenesení starého admin odemčení v běžícím
 // PWA runtime při přepnutí z produkční Supabase na testovací. Maže pouze
@@ -173,10 +98,10 @@ window.RAK_PWA_BUILD = "v1.6.07";
   }
 })();
 
-// Development-only rychlá vrstva pro denní výjimku „kalírna“ a regresní opravy test buildu.
+// Development-only rychlá vrstva pro denní výjimku „kalírna“.
 // Je v samostatném souboru, aby produkční main zůstal beze změny.
 (function loadRakKalirnaDayModOverride() {
-  const src = "kalirna-daymod-override.js?v=20260913-1607";
+  const src = "kalirna-daymod-override.js?v=20260912-1";
   try {
     if (document.querySelector('script[data-rak-kalirna-daymod-override="1"]')) return;
     const script = document.createElement("script");

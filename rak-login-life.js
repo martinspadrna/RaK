@@ -1,17 +1,8 @@
-// RaK 1.6.05 – animated mascot crab without a permanent DOM observer.
+// RaK DEV – animated mascot crab for the login splash.
 // This is intentionally NOT the static app icon. It is a dedicated vector crab
 // inspired by the approved neon-crab concept so every body part can move.
 (function(){
   const STYLE_ID='rak-login-life-style-v3';
-  const TEST_BUILD='1.6.05';
-  try{
-    const testUrl=String(window.SUPABASE_CONFIG&&window.SUPABASE_CONFIG.url||'');
-    if(testUrl.includes('cgshssdjgzzuprlwnabl')){
-      window.RAK_RELEASE_VERSION=TEST_BUILD;
-      window.RAK_TEST_DISPLAY_VERSION=TEST_BUILD;
-      window.RAK_PWA_BUILD='v'+TEST_BUILD;
-    }
-  }catch(_){ }
 
   const ensureStyle=()=>{
     if(document.getElementById(STYLE_ID))return;
@@ -99,29 +90,15 @@
 
   const mount=()=>{
     const brand=document.getElementById('rakSplashBrand');
-    if(!brand)return false;
+    if(!brand)return;
     if(!brand.querySelector('.rakLivingLogo')){
       const old=brand.querySelector('.rakSplashLogo');
       if(old){const holder=document.createElement('div');holder.className='rakLivingLogo';holder.innerHTML=livingSvg();old.replaceWith(holder)}
     }
-    return !!brand.querySelector('.rakLivingLogo');
   };
-  const boot=()=>{ensureStyle();return mount()};
-  const hookSplashInstall=()=>{
-    const original=window.installRakLoginSplash;
-    if(typeof original!=='function'||original.__rakLoginLifeWrapped)return;
-    const wrapped=function(){
-      const overlay=original.apply(this,arguments);
-      boot();
-      return overlay;
-    };
-    wrapped.__rakLoginLifeWrapped=true;
-    wrapped.__rakLoginLifeOriginal=original;
-    window.installRakLoginSplash=wrapped;
-    if(window.rakLoginSplashOpen===original)window.rakLoginSplashOpen=wrapped;
-    window.__rakLoginLifeMountMode='login-install-hook';
-  };
+  const boot=()=>{ensureStyle();mount()};
   window.rakInstallLoginLife=boot;
-  hookSplashInstall();
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{hookSplashInstall();boot()},{once:true});else boot();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  const start=()=>{if(document.body)new MutationObserver(()=>mount()).observe(document.body,{childList:true,subtree:true})};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

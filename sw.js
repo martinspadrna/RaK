@@ -1,7 +1,7 @@
-// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.07.
+// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.04.
 const CACHE_VERSION = 'v1.6.0';
 const SW_APP_VERSION = '1.6.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.07';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.04';
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
@@ -15,7 +15,7 @@ const DEVELOPMENT_ADMIN_HOTFIX_ASSETS = [
   './app-admin-unlock.js?v=1.6.0',
   './app-menu.js?v=1.6.0',
   './app-home-boot.js?v=1.6.0',
-  './kalirna-daymod-override.js?v=20260913-1607',
+  './kalirna-daymod-override.js?v=20260912-1',
   './rotation-tasks.js?v=1.6.0'
 ];
 
@@ -216,7 +216,7 @@ self.addEventListener('activate', event => {
     const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
     const navigations = [];
     clients.forEach(client => {
-      try { client.postMessage({ type: 'sw-activated', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION, technicalAppVersion: SW_APP_VERSION, testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION }); } catch (_) {}
+      try { client.postMessage({ type: 'sw-activated', version: CACHE_VERSION, appVersion: SW_APP_VERSION, testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION }); } catch (_) {}
       if (approvedUpdateClientId && client.id === approvedUpdateClientId && typeof client.navigate === 'function') {
         try {
           const nextUrl = new URL(client.url);
@@ -240,7 +240,7 @@ self.addEventListener('message', event => {
     return;
   }
   if (data.type === 'GET_VERSION' && event.source) {
-    event.source.postMessage({ type: 'sw-version', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION, technicalAppVersion: SW_APP_VERSION, testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION });
+    event.source.postMessage({ type: 'sw-version', version: CACHE_VERSION, appVersion: SW_APP_VERSION, testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION });
     return;
   }
   if (data.type === 'GET_CACHE_STATUS' && event.source) {

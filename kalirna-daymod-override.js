@@ -143,280 +143,124 @@
   window.rakKalirnaDayModOverrideRefresh = installAvailablePatches;
 })();
 
-// RaK 1.6.07 – deterministické první otevření Rotace/Více na iOS + osobní statistiky vytížení.
-(function installRak1607RegressionRecovery() {
+// RaK 1.6.04 recovery extensions – pouze požadované nové funkce nad posledním funkčním základem.
+(function installRak1604RequestedExtensions() {
   'use strict';
 
-  const TEST_BUILD = '1.6.07';
-  const TEST_SUPABASE_REF = 'cgshssdjgzzuprlwnabl';
-  if (window.__rak1607RegressionRecoveryInstalled) return;
+  if (window.__rak1604RequestedExtensionsInstalled) return;
+  window.__rak1604RequestedExtensionsInstalled = true;
 
-  const testUrl = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '');
-  if (!testUrl.includes(TEST_SUPABASE_REF)) return;
-  window.__rak1607RegressionRecoveryInstalled = true;
+  const SHIFT_REPORT_EXTRA_MACHINES = ['TTKW01', 'TTKW02'];
 
-  function lockBuildMarker(name, value) {
-    try {
-      Object.defineProperty(window, name, {
-        configurable: true,
-        enumerable: true,
-        get: () => value,
-        set: () => value
-      });
-    } catch (_) {
-      try { window[name] = value; } catch (_) {}
-    }
-  }
-
-  lockBuildMarker('RAK_RELEASE_VERSION', TEST_BUILD);
-  lockBuildMarker('RAK_TEST_DISPLAY_VERSION', TEST_BUILD);
-  lockBuildMarker('RAK_PWA_BUILD', 'v' + TEST_BUILD);
-  window.__rak1607BuildMarkerMode = 'locked-test-runtime';
-
-  try {
-    const buildMarker = 'v' + TEST_BUILD;
-    const resetKey = 'rak_1607_prompt_reset_build';
-    if (localStorage.getItem(resetKey) !== buildMarker) {
-      sessionStorage.removeItem('rotace_sw_update_notice_v1');
-      sessionStorage.removeItem('rotace_sw_update_pending_v1');
-      localStorage.removeItem('rotace_sw_update_suppress_v1');
-      localStorage.setItem('rak_dev_entry_prompt_reset_build', buildMarker);
-      localStorage.setItem('rak_dev_pwa_prompt_reset_build', buildMarker);
-      localStorage.setItem(resetKey, buildMarker);
-    }
-  } catch (_) {}
-
-  function setNavBusy(button, busy) {
-    if (!button) return;
-    try {
-      button.classList.toggle('rakFeatureLoading', !!busy);
-      if (busy) button.setAttribute('aria-busy', 'true');
-      else button.removeAttribute('aria-busy');
-    } catch (_) {}
-  }
-
-  function refreshRecoveredViews() {
-    try {
-      if (typeof window.forceHomeRefresh === 'function') window.forceHomeRefresh();
-      else if (typeof forceHomeRefresh === 'function') forceHomeRefresh();
-    } catch (_) {}
-    try {
-      if (typeof window.updateDashboard === 'function') window.updateDashboard();
-      else if (typeof updateDashboard === 'function') updateDashboard();
-    } catch (_) {}
-  }
-
-  function addStatsSummaryTile(summary, key, label, value) {
-    if (!summary) return;
-    let tile = summary.querySelector('[data-rak-stats-person-extra="' + key + '"]');
-    if (tile) {
-      const caption = tile.querySelector('.smallText');
-      const amount = tile.querySelector('.statsSummaryValue');
-      if (caption) caption.textContent = label;
-      if (amount) amount.textContent = String(value);
-      return;
-    }
-    tile = document.createElement('div');
+  function makePersonStatsTile(kind, label, value) {
+    const tile = document.createElement('div');
     tile.className = 'tile';
-    tile.setAttribute('data-rak-stats-person-extra', key);
-    const caption = document.createElement('div');
-    caption.className = 'smallText';
-    caption.textContent = label;
-    const amount = document.createElement('div');
-    amount.className = 'statsSummaryValue';
-    amount.textContent = String(value);
-    tile.appendChild(caption);
-    tile.appendChild(amount);
-    summary.appendChild(tile);
-  }
+    tile.setAttribute('data-rak-person-load-stat', kind);
 
-  function personSpecialCounts(person, stats) {
-    const name = String(person && person.name || '').trim();
-    return {
-      mfkSolo: Math.max(0, Math.round(Number(stats && stats.mfkSoloCounts && stats.mfkSoloCounts[name] || 0) || 0)),
-      mskPair: Math.max(0, Math.round(Number(stats && stats.mskPairCounts && stats.mskPairCounts[name] || 0) || 0))
-    };
-  }
+    const small = document.createElement('div');
+    small.className = 'smallText';
+    small.textContent = label;
 
-  function decorateStatsNameNodes(nodes, person, stats) {
-    const list = Array.isArray(nodes) ? nodes : [];
-    const summary = list.find(node => node && node.classList && node.classList.contains('statsSummary')) || null;
-    if (!summary) return list;
-    const counts = personSpecialCounts(person, stats);
-    addStatsSummaryTile(summary, 'mfk-solo', 'Sám na 2 frézkách', counts.mfkSolo + '×');
-    addStatsSummaryTile(summary, 'msk-pair', 'Ve 2 lidech na soustruzích', counts.mskPair + '×');
-    return list;
-  }
+    const number = document.createElement('div');
+    number.className = 'statsSummaryValue';
+    number.textContent = String(Math.max(0, Number(value) || 0)) + '×';
 
-  function decorateCurrentStatsDom() {
-    try {
-      const selectedName = String(window.app && window.app.selectedStatsName || '').trim();
-      if (!selectedName || typeof window.buildStatsForYear !== 'function') return false;
-      const view = document.getElementById('statsNameView');
-      const summary = view && view.querySelector('.statsSummary');
-      if (!summary) return false;
-      const year = parseInt(window.app && window.app.selectedYear, 10) || new Date().getFullYear();
-      const stats = window.buildStatsForYear(year);
-      const person = stats && stats.people ? stats.people[selectedName] : null;
-      if (!person) return false;
-      const counts = personSpecialCounts(person, stats);
-      addStatsSummaryTile(summary, 'mfk-solo', 'Sám na 2 frézkách', counts.mfkSolo + '×');
-      addStatsSummaryTile(summary, 'msk-pair', 'Ve 2 lidech na soustruzích', counts.mskPair + '×');
-      return true;
-    } catch (_) {
-      return false;
-    }
+    tile.appendChild(small);
+    tile.appendChild(number);
+    return tile;
   }
 
   function patchStatsNameView() {
     const original = window.renderStatsNameViewNodes;
-    if (typeof original !== 'function') return false;
-    if (original.__rak1607PersonExtraPatched) return true;
-    const wrapped = function renderStatsNameViewNodes1607(person, year, stats, topWork, topClean) {
-      return decorateStatsNameNodes(original.apply(this, arguments), person, stats);
-    };
-    wrapped.__rak1607PersonExtraPatched = true;
-    wrapped.__rakOriginal = original;
-    window.renderStatsNameViewNodes = wrapped;
+    if (typeof original !== 'function' || original.__rak1604PersonLoadStatsPatched) return false;
+
+    function wrappedRenderStatsNameViewNodes(person, year, stats) {
+      const nodes = original.apply(this, arguments);
+      try {
+        const list = Array.isArray(nodes) ? nodes : [];
+        const summary = list.find((node) => node && node.classList && node.classList.contains('statsSummary'));
+        if (summary && person && stats) {
+          const name = String(person.name || '');
+          summary.appendChild(makePersonStatsTile('mfk-solo', 'Sám na 2 frézkách', stats.mfkSoloCounts && stats.mfkSoloCounts[name]));
+          summary.appendChild(makePersonStatsTile('msk-pair', 'Ve 2 lidech na soustruzích', stats.mskPairCounts && stats.mskPairCounts[name]));
+        }
+      } catch (err) {}
+      return nodes;
+    }
+
+    wrappedRenderStatsNameViewNodes.__rak1604PersonLoadStatsPatched = true;
+    wrappedRenderStatsNameViewNodes.__rakOriginal = original;
+    window.renderStatsNameViewNodes = wrappedRenderStatsNameViewNodes;
+    window.__rak1604PersonStatsMode = 'existing-year-counters';
     return true;
   }
 
-  function patchStatsPanel() {
-    const original = window.renderStatsPanel;
-    if (typeof original !== 'function') return false;
-    if (original.__rak1607PersonExtraPatched) return true;
-    const wrapped = function renderStatsPanel1607() {
-      const result = original.apply(this, arguments);
-      decorateCurrentStatsDom();
-      return result;
-    };
-    wrapped.__rak1607PersonExtraPatched = true;
-    wrapped.__rakOriginal = original;
-    window.renderStatsPanel = wrapped;
-    return true;
-  }
+  function ensureShiftReportMachineOptions(root) {
+    const host = root && typeof root.querySelectorAll === 'function' ? root : document;
+    const selects = host.querySelectorAll('#rakShiftReport select.rakShiftMachine');
+    let changed = false;
 
-  function installStatsPersonExtras() {
-    const nameViewPatched = patchStatsNameView();
-    const panelPatched = patchStatsPanel();
-    if (nameViewPatched || panelPatched) {
-      window.__rak1607StatsPersonExtras = 'mfk-solo+msk-pair';
-      decorateCurrentStatsDom();
-      return true;
-    }
-    return false;
-  }
-
-  function patchMoreToggle() {
-    if (typeof window.toggleAppMenu !== 'function') return false;
-    if (window.toggleAppMenu.__rak1607FixedMore) return true;
-    const previous = window.toggleAppMenu;
-    const fixed = function toggleAppMenu1607Fixed() {
-      try { if (typeof showPage === 'function') showPage('menu'); } catch (_) {}
-      try { if (typeof openAppMenu === 'function') openAppMenu('menu'); } catch (_) {}
-      try { if (typeof setBottomNavActive === 'function') setBottomNavActive('menu'); } catch (_) {}
-      try { if (typeof window.__rakApplyBottomNavMoreHardFix === 'function') window.__rakApplyBottomNavMoreHardFix(); } catch (_) {}
-      try { if (typeof window.__rakApplyFixedBottomNavMetricsNow === 'function') window.__rakApplyFixedBottomNavMetricsNow(); } catch (_) {}
-    };
-    fixed.__rak1607FixedMore = true;
-    fixed.__rakPreviousToggleAppMenu = previous;
-    window.toggleAppMenu = fixed;
-    window.__rak1607MoreMode = 'deterministic-show+open+active';
-    return true;
-  }
-
-  function openRotationNow() {
-    installStatsPersonExtras();
-    if (typeof window.openRotaceNames === 'function') window.openRotaceNames();
-    else if (typeof openRotaceNames === 'function') openRotaceNames();
-    else {
-      try { if (typeof showPage === 'function') showPage('rotace'); } catch (_) {}
-      try { if (typeof setRotaceView === 'function') setRotaceView('names'); } catch (_) {}
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (_) {}
-      try { if (typeof setBottomNavActive === 'function') setBottomNavActive('rotace'); } catch (_) {}
-    }
-    const repaint = () => {
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (_) {}
-    };
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(repaint);
-    else window.setTimeout(repaint, 0);
-  }
-
-  function openMenuNow() {
-    patchMoreToggle();
-    try { if (typeof showPage === 'function') showPage('menu'); } catch (_) {}
-    try { if (typeof openAppMenu === 'function') openAppMenu('menu'); } catch (_) {}
-    try { if (typeof setBottomNavActive === 'function') setBottomNavActive('menu'); } catch (_) {}
-  }
-
-  async function openFeatureFromBottomNav(action, button) {
-    const feature = action === 'rotace' ? 'rotation' : 'menu';
-    setNavBusy(button, true);
-    try {
-      if (typeof window.rakEnsureFeature !== 'function') throw new Error('RaK feature loader není připravený.');
-      await window.rakEnsureFeature(feature);
-      if (action === 'rotace') openRotationNow();
-      else openMenuNow();
-      window.__rak1607LastDeterministicNav = { action, feature, at: Date.now() };
-    } catch (err) {
-      if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, feature);
-      else console.error('RaK 1.6.07 deterministic nav failed', action, err);
-    } finally {
-      setNavBusy(button, false);
-    }
-  }
-
-  if (!window.__rak1607FirstTapGuardInstalled) {
-    window.__rak1607FirstTapGuardInstalled = true;
-    document.addEventListener('click', (event) => {
-      const source = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
-      const nav = source && source.closest('nav.bottomNav button[data-action]');
-      if (!nav || !document.documentElement.contains(nav)) return;
-      const action = String(nav.dataset.action || '').trim();
-      if (action !== 'rotace' && action !== 'menu') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      void openFeatureFromBottomNav(action, nav);
-    }, true);
-  }
-
-  let rotationStartRequested = false;
-  function ensureStartupRotation() {
-    if (rotationStartRequested) return;
-    if (!window.__rakBootV2StartupReady || typeof window.rakEnsureFeature !== 'function') {
-      window.setTimeout(ensureStartupRotation, 25);
-      return;
-    }
-    rotationStartRequested = true;
-    window.__rak1607StartupRotationMode = 'startup-minimum';
-    window.rakEnsureFeature('rotation').then(() => {
-      installStatsPersonExtras();
-      refreshRecoveredViews();
-    }).catch((err) => {
-      rotationStartRequested = false;
-      console.warn('RaK 1.6.07 startup Rotation recovery failed', err);
+    selects.forEach((select) => {
+      let insertAfter = Array.from(select.options || []).find((option) => option.value === 'TPKW02') || null;
+      SHIFT_REPORT_EXTRA_MACHINES.forEach((code) => {
+        let option = Array.from(select.options || []).find((item) => item.value === code) || null;
+        if (!option) {
+          option = document.createElement('option');
+          option.value = code;
+          option.textContent = code;
+          if (insertAfter && insertAfter.nextSibling) select.insertBefore(option, insertAfter.nextSibling);
+          else if (insertAfter) select.appendChild(option);
+          else select.appendChild(option);
+          changed = true;
+        }
+        insertAfter = option;
+      });
     });
+
+    if (selects.length) window.__rak1604ShiftReportMachineMode = 'TPKW02>TTKW01>TTKW02';
+    return changed || selects.length > 0;
   }
 
-  window.addEventListener('rak:feature-ready', (event) => {
-    const feature = String(event && event.detail && event.detail.feature || '').trim();
-    if (feature === 'rotation') {
-      installStatsPersonExtras();
-      refreshRecoveredViews();
+  function patchShiftReportOpen() {
+    const api = window.RakShiftReport;
+    if (!api || typeof api.open !== 'function' || api.open.__rak1604ExtraMachinesPatched) return false;
+    const originalOpen = api.open;
+
+    function wrappedShiftReportOpen() {
+      const result = originalOpen.apply(this, arguments);
+      try { ensureShiftReportMachineOptions(document); } catch (err) {}
+      return result;
     }
-    if (feature === 'menu') patchMoreToggle();
-  });
 
-  ensureStartupRotation();
-  patchMoreToggle();
-  window.setTimeout(patchMoreToggle, 500);
-  window.setTimeout(patchMoreToggle, 1500);
+    wrappedShiftReportOpen.__rak1604ExtraMachinesPatched = true;
+    wrappedShiftReportOpen.__rakOriginal = originalOpen;
+    api.open = wrappedShiftReportOpen;
+    return true;
+  }
 
-  window.__rak1607RegressionRecovery = Object.freeze({
-    version: TEST_BUILD,
-    rotation: 'deterministic-first-tap+startup-minimum',
-    menu: 'deterministic-first-tap+show+open+active',
-    statsPersonExtras: Object.freeze(['mfkSoloCounts', 'mskPairCounts']),
-    updateVersionSource: 'service-worker-direct-display-version'
+  function installRequestedPatches() {
+    patchStatsNameView();
+    patchShiftReportOpen();
+    ensureShiftReportMachineOptions(document);
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
+    if (!target) return;
+    if (target.closest('#rakShiftReport .rakShiftAddProblem')) {
+      window.setTimeout(() => ensureShiftReportMachineOptions(document), 0);
+    }
+  }, false);
+
+  window.addEventListener('rak:feature-ready', installRequestedPatches);
+  window.addEventListener('pageshow', installRequestedPatches);
+
+  installRequestedPatches();
+  [150, 500, 1200, 3000].forEach((delay) => window.setTimeout(installRequestedPatches, delay));
+
+  window.__rak1604RequestedExtensions = Object.freeze({
+    base: '1.6.04',
+    personStats: Object.freeze(['mfk-solo', 'msk-pair']),
+    shiftReportMachines: Object.freeze(SHIFT_REPORT_EXTRA_MACHINES.slice())
   });
 })();

@@ -7,8 +7,6 @@ const bridge = read('supabase-bridge.js');
 const app = read('app.js');
 const sw = read('sw.js');
 const config = read('supabase-config.js');
-const loginLife = read('rak-login-life.js');
-const recovery = read('kalirna-daymod-override.js');
 const exportJs = read('export.js');
 const pkg = JSON.parse(read('package.json'));
 
@@ -50,11 +48,9 @@ assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'"), 'PWA must invalidate cac
 const swDisplayMatch = sw.match(/const DEVELOPMENT_TEST_DISPLAY_VERSION = '(1\.6\.\d{2})';/);
 assert(swDisplayMatch, 'SW development display version must stay in 1.6.xx test line');
 const devDisplayVersion = swDisplayMatch[1];
-const runtimeBuildSource = config + '\n' + loginLife + '\n' + recovery;
-assert(runtimeBuildSource.includes(`window.RAK_RELEASE_VERSION = "${devDisplayVersion}";`) || runtimeBuildSource.includes(`window.RAK_RELEASE_VERSION=TEST_BUILD;`) || runtimeBuildSource.includes(`lockBuildMarker('RAK_RELEASE_VERSION', TEST_BUILD);`), 'development display release version must match effective runtime build');
-assert(runtimeBuildSource.includes(`window.RAK_TEST_DISPLAY_VERSION = "${devDisplayVersion}";`) || runtimeBuildSource.includes(`window.RAK_TEST_DISPLAY_VERSION=TEST_BUILD;`) || runtimeBuildSource.includes(`lockBuildMarker('RAK_TEST_DISPLAY_VERSION', TEST_BUILD);`), 'development test display version must match effective runtime build');
-assert(runtimeBuildSource.includes(`window.RAK_PWA_BUILD = "v${devDisplayVersion}";`) || runtimeBuildSource.includes(`window.RAK_PWA_BUILD='v'+TEST_BUILD;`) || runtimeBuildSource.includes(`lockBuildMarker('RAK_PWA_BUILD', 'v' + TEST_BUILD);`), 'development PWA build marker must match effective runtime build');
-assert(loginLife.includes(`const TEST_BUILD='${devDisplayVersion}'`) || recovery.includes(`const TEST_BUILD = '${devDisplayVersion}';`), 'runtime test-build owner must match SW display version');
+assert(config.includes(`window.RAK_RELEASE_VERSION = "${devDisplayVersion}";`), 'development display release version must match SW');
+assert(config.includes(`window.RAK_TEST_DISPLAY_VERSION = "${devDisplayVersion}";`), 'development test display version must match SW');
+assert(config.includes(`window.RAK_PWA_BUILD = "v${devDisplayVersion}";`), 'development PWA build marker must match SW');
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
 assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
 
