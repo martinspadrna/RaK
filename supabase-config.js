@@ -11,7 +11,7 @@ window.RAK_RELEASE_VERSION = "1.6.03";
 window.RAK_TEST_DISPLAY_VERSION = "1.6.03";
 // PWA build marker je interní a může se změnit i při malém hotfixu stejné
 // viditelné verze. Tím se znovu povolí potvrzení aktualizace na iOS PWA.
-window.RAK_PWA_BUILD = "v1.6.03-report1";
+window.RAK_PWA_BUILD = "v1.6.03-stats1";
 
 // RaK 1.6.03 Home quick-paint: uložený profil + lokální data vykreslíme hned,
 // jakmile je připravený Dashboard. Nečekáme na dokončení celé startup sady.
@@ -181,6 +181,20 @@ window.RAK_PWA_BUILD = "v1.6.03-report1";
     script.src = src;
     script.async = false;
     script.dataset.rakKalirnaDaymodOverride = "1";
+    (document.head || document.documentElement).appendChild(script);
+  } catch (err) {}
+})();
+
+// Development-only statistická vrstva: kalírna se odečte z původního stroje
+// ještě před původním výpočtem statistik. Zdrojový rozpis se nemění.
+(function loadRakKalirnaStatsOverride() {
+  const src = "kalirna-stats-override.js?v=20260913-1";
+  try {
+    if (document.querySelector('script[data-rak-kalirna-stats-override="1"]')) return;
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = false;
+    script.dataset.rakKalirnaStatsOverride = "1";
     (document.head || document.documentElement).appendChild(script);
   } catch (err) {}
 })();
