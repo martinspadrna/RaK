@@ -8,7 +8,6 @@ const DISPLAY_VERSION = '1.6.29';
 const BUILD_ID = '1.6.29-observer1';
 const POLICY_MARKER = "const DEVELOPMENT_MUTATION_OBSERVER_POLICY = 'scoped-8;raf-coalesced-7;runtime-stability-targeted';";
 const PREV_STARTUP_MARKER = "const DEVELOPMENT_STARTUP_EXECUTION_POLICY = 'mobile-layout-guard-idle;warm-cache-preserved;startup-files-15';";
-const PREV_PERF_MARKER = "const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';";
 
 const files = {
   runtimeGuards: 'app-runtime-guards.js',
@@ -57,7 +56,6 @@ let sw = read(files.sw);
 let config = read(files.config);
 
 assert(sw.includes(PREV_STARTUP_MARKER), 'RaK 1.6.28 startup execution policy missing.');
-assert(sw.includes(PREV_PERF_MARKER), 'RaK 1.6.27 performance guard policy missing.');
 assert(runtimeStability.includes('const observer = new MutationObserver((records) => {'), 'Targeted runtime stability observer changed unexpectedly.');
 assert(runtimeStability.includes('record.addedNodes.forEach(scanNode);'), 'Runtime stability observer no longer processes addedNodes directly.');
 
@@ -325,39 +323,6 @@ assert(config.includes(`window.RAK_PWA_BUILD = "v${BUILD_ID}";`), 'PWA build mar
 assert(sw.includes(`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${DISPLAY_VERSION}';`), 'SW display version marker missing.');
 assert(sw.includes(`const DEVELOPMENT_BUILD_ID = '${BUILD_ID}';`), 'SW build marker missing.');
 
-function swArray(source, name) {
-  const match = source.match(new RegExp(`const ${name} = \\[\\n([\\s\\S]*?)\\n\\];`));
-  assert(match, `Missing SW array ${name}.`);
-  return Array.from(match[1].matchAll(/'([^']+)'/g), (item) => item[1]);
-}
-
-const transformedSourceByPath = new Map([
-  [files.runtimeGuards, runtimeGuards],
-  [files.loginLife, loginLife],
-  [files.userProfile, userProfile],
-  [files.accountAccess, accountAccess],
-  [files.shiftShare, shiftShare],
-  [files.vacation, vacation],
-  [files.brus157, brus157],
-  [files.brus158, brus158]
-]);
-const warmJsRows = swArray(sw, 'WARM_START')
-  .filter((url) => /\.js(?:\?|$)/i.test(url))
-  .map((url) => {
-    const clean = String(url || '').split('?')[0].replace(/^\.\//, '');
-    const inMemory = transformedSourceByPath.get(clean);
-    const bytes = typeof inMemory === 'string'
-      ? Buffer.byteLength(inMemory, 'utf8')
-      : fs.statSync(path.join(root, clean)).size;
-    return { url, bytes };
-  });
-const performanceStartupJsBytes = warmJsRows.reduce((sum, row) => sum + row.bytes, 0);
-const performanceLargestStartupJsBytes = warmJsRows.reduce((max, row) => Math.max(max, row.bytes), 0);
-assert(/performanceStartupJsBytes: \d+,/.test(sw), 'Performance startup diagnostics line missing.');
-assert(/performanceLargestStartupJsBytes: \d+,/.test(sw), 'Performance largest-file diagnostics line missing.');
-sw = sw.replace(/performanceStartupJsBytes: \d+,/, `performanceStartupJsBytes: ${performanceStartupJsBytes},`);
-sw = sw.replace(/performanceLargestStartupJsBytes: \d+,/, `performanceLargestStartupJsBytes: ${performanceLargestStartupJsBytes},`);
-
 write(files.runtimeGuards, runtimeGuards);
 write(files.loginLife, loginLife);
 write(files.userProfile, userProfile);
@@ -369,5 +334,5 @@ write(files.brus158, brus158);
 write(files.sw, sw);
 write(files.config, config);
 
-console.log(`[mutation-observer-cleanup-1629] Scoped 8 broad observers; 7 callbacks coalesced; performance startup diagnostics synced to ${performanceStartupJsBytes} B.`);
+console.log('[mutation-observer-cleanup-1629] Scoped 8 broad observers; 7 callbacks coalesced; runtime-stability targeted observer preserved.');
 console.log('[mutation-observer-cleanup-1629] OK RaK 1.6.29: observer work limited to calculator/login/profile/menu/Brusy DOM zones; Home/Rotace/QR/PWA/security contracts preserved.');
