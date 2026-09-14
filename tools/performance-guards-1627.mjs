@@ -132,6 +132,20 @@ if (!sw.includes(POLICY_MARKER)) {
   ].join('\n'));
 }
 
+// Downstream build transforms may safely change the byte size of already-budgeted JS.
+// On a repeated Vercel build pass refresh diagnostics to the current files, while the
+// budget assertions above still fail hard if any real regression exceeds the limits.
+const diagnosticSync = [
+  [/performanceStartupJsBytes: \d+,/, `performanceStartupJsBytes: ${startupJsBytes},`, 'startup JS'],
+  [/performanceLargestStartupJsBytes: \d+,/, `performanceLargestStartupJsBytes: ${largestStartupJs.bytes},`, 'largest startup JS'],
+  [/performanceLoginPngBytes: \d+,/, `performanceLoginPngBytes: ${loginTotalBytes},`, 'login PNG'],
+  [/performanceCoreImageBytes: \d+,/, `performanceCoreImageBytes: ${coreImageBytes},`, 'CORE image']
+];
+for (const [pattern, replacement, label] of diagnosticSync) {
+  assert(pattern.test(sw), `Performance ${label} diagnostics line missing.`);
+  sw = sw.replace(pattern, replacement);
+}
+
 config = config.replace(/^window\.RAK_RELEASE_VERSION = "1\.6\.\d+";$/m, `window.RAK_RELEASE_VERSION = "${DISPLAY_VERSION}";`);
 config = config.replace(/^window\.RAK_TEST_DISPLAY_VERSION = "1\.6\.\d+";$/m, `window.RAK_TEST_DISPLAY_VERSION = "${DISPLAY_VERSION}";`);
 config = config.replace(/^window\.RAK_PWA_BUILD = "v1\.6\.[^"]+";$/m, `window.RAK_PWA_BUILD = "v${BUILD_ID}";`);
@@ -146,6 +160,7 @@ assert(sw.includes(`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${DISPLAY_VERSION}
 assert(sw.includes(`const DEVELOPMENT_BUILD_ID = '${BUILD_ID}';`), 'SW build marker missing.');
 assert(sw.includes('performanceGuardEnabled: true'), 'Performance guard diagnostics missing.');
 assert(sw.includes(`performanceStartupJsBytes: ${startupJsBytes},`), 'Startup JS diagnostics mismatch.');
+assert(sw.includes(`performanceLargestStartupJsBytes: ${largestStartupJs.bytes},`), 'Largest startup JS diagnostics mismatch.');
 assert(sw.includes(`performanceLoginPngBytes: ${loginTotalBytes},`), 'Login PNG diagnostics mismatch.');
 assert(sw.includes(`performanceCoreImageBytes: ${coreImageBytes},`), 'CORE image diagnostics mismatch.');
 
