@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read = (f) => fs.readFileSync(f, 'utf8');
 const write = (f, v) => fs.writeFileSync(f, v, 'utf8');
 const must = (ok, m) => { if (!ok) throw new Error('[rak-170-profile-appearance-sync] ' + m); };
-const BUILD = '1.7.0-release4';
+const BUILD = '1.7.0-release5';
 let app = read('app.js');
 const anchor = "  window.rakEnsureFeature = ensureFeature;\n";
 const hook = "  if (!window.__rakProfileAppearanceSyncListener) {\n    window.__rakProfileAppearanceSyncListener = true;\n    window.addEventListener('rak:user-profile-ready', () => {\n      void ensureFeature('sync').then(() => {\n        try { if (typeof applyProfileUiPreferencesForActiveAccount === 'function') applyProfileUiPreferencesForActiveAccount({ loadRemote: true, source: 'profile-sync-ready' }); } catch (err) {}\n      }).catch(() => {});\n    });\n  }\n";
