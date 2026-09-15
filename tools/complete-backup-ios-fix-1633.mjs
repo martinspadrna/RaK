@@ -25,6 +25,7 @@ function gitSha() {
 }
 
 function prepare() {
+  assert(fs.existsSync(SOURCE_ARCHIVE_PATH), 'tracked source archive placeholder missing');
   const archive = execFileSync('git', ['archive', '--format=zip', 'HEAD'], {
     cwd: root,
     encoding: null,
@@ -103,7 +104,7 @@ function finalize() {
   write('supabase-config.js', config);
   write('CHANGELOG.md', changelog);
 
-  console.log('[complete-backup-ios-fix-1633] OK RaK 1.6.33: one same-origin source archive replaces 229 raw GitHub fetches; archive=' + archiveSize + ' B; sha=' + sha);
+  console.log('[complete-backup-ios-fix-1633] OK RaK 1.6.33: one same-origin source archive replaces raw GitHub fan-out; archive=' + archiveSize + ' B; sha=' + sha);
 }
 
 if (mode === 'prepare') prepare();
