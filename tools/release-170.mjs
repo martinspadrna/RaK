@@ -7,10 +7,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mode = String(process.argv[2] || '').trim();
 const DISPLAY_VERSION = '1.7';
 const TECH_VERSION = '1.7.0';
-const BUILD_ID = '1.7.0-release1';
+const BUILD_ID = '1.7.0-release2';
 const ABOUT_START = '    // RAK_170_ABOUT_START';
 const ABOUT_END = '    // RAK_170_ABOUT_END';
-const RELEASE_POLICY = "const RAK_RELEASE_170_POLICY = 'display-1.7;technical-1.7.0;cache-v1.7.0;about-summary;complete-backup-preserved';";
+const RELEASE_POLICY = "const RAK_RELEASE_170_POLICY = 'display-1.7;technical-1.7.0;cache-v1.7.0;startup-auth-restore-only;about-production-stability-backup;complete-backup-preserved';";
+const STARTUP_AUTH_HOTFIX_ASSETS = "const RAK_170_STARTUP_AUTH_HOTFIX_ASSETS = ['./core.js?v=1.7.0', './app-admin-unlock.js?v=1.7.0', './app-menu-pages.js?v=1.7.0'];";
 
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const write = (file, value) => fs.writeFileSync(path.join(root, file), value, 'utf8');
@@ -81,9 +82,10 @@ function final() {
   app = app.replace(/^\/\/ RaK 1\.6\.0[^\n]*$/m, '// RaK 1.7 – stabilní release po dokončení 1.6 optimalizací, auditu a úplné zálohy.');
   write('app.js', app);
 
+  // APP_VERSION je historicky runtime kompatibilitni marker, ne verejne cislo release.
+  // Verejna verze 1.7 se zobrazuje pres RAK_RELEASE_VERSION; core marker zustava 1.5.
   let core = read('core.js');
-  core = core.replace(/const APP_VERSION = "[^"]+";/, `const APP_VERSION = "${DISPLAY_VERSION}";`);
-  core = core.replace(/^\/\/ RaK 1\.5[^\n]*$/m, '// RaK 1.7 – core stav, verze a sdílené helpery aplikace.');
+  core = core.replace(/const APP_VERSION = "[^"]+";/, 'const APP_VERSION = "1.5";');
   write('core.js', core);
 
   let sw = read('sw.js');
@@ -93,11 +95,22 @@ function final() {
   sw = sw.replace(/^const DEVELOPMENT_BUILD_ID = '[^']+';$/m, `const DEVELOPMENT_BUILD_ID = '${BUILD_ID}';`);
   sw = sw.replace(/\?v=1\.6\.0/g, `?v=${TECH_VERSION}`);
   sw = sw.replace(/\.\/app\.js\?v=1\.5\.1/g, `./app.js?v=${TECH_VERSION}`);
-  if (!sw.includes(RELEASE_POLICY)) {
+  if (/^const RAK_RELEASE_170_POLICY = .*$/m.test(sw)) {
+    sw = sw.replace(/^const RAK_RELEASE_170_POLICY = .*$/m, RELEASE_POLICY);
+  } else {
     const anchor = "const DEVELOPMENT_COMPLETE_BACKUP_IOS_POLICY = 'single-same-origin-source-archive;no-raw-github-fetch;expanded-repository-folder';";
     assert(sw.includes(anchor), '1.6.34 complete-backup policy marker missing');
     sw = sw.replace(anchor, anchor + '\n' + RELEASE_POLICY);
   }
+  if (!sw.includes('const RAK_170_STARTUP_AUTH_HOTFIX_ASSETS =')) {
+    sw = sw.replace(RELEASE_POLICY, RELEASE_POLICY + '\n' + STARTUP_AUTH_HOTFIX_ASSETS);
+  } else {
+    sw = sw.replace(/^const RAK_170_STARTUP_AUTH_HOTFIX_ASSETS = .*$/m, STARTUP_AUTH_HOTFIX_ASSETS);
+  }
+  sw = sw.replace(/const hotfixAssets = ([^;]+);/, (match, expr) => {
+    if (expr.includes('RAK_170_STARTUP_AUTH_HOTFIX_ASSETS')) return match;
+    return `const hotfixAssets = ${expr}.concat(RAK_170_STARTUP_AUTH_HOTFIX_ASSETS);`;
+  });
   sw = sw.replace(/^\/\/ RaK 1\.6[^\n]*service worker[^\n]*$/m, '// RaK 1.7 PWA service worker – v1.7.0 cache + confirmed-update navigation.');
   write('sw.js', sw);
 
@@ -112,7 +125,7 @@ function final() {
     ABOUT_START,
     '    {',
     "      range: 'RaK 1.7',",
-    "      title: 'Co je nové proti 1.6',",
+    "      title: 'Výroba, stabilita a zálohování',",
     '      lines: [',
     "        'Výrobní přehledy jsou přesnější: Kalírna se už nepočítá na původní stroj, osobní statistiky ukazují samostatné frézky a dvojici na soustruzích a report směny umí MO volné kusy i TTKW01/TTKW02.',",
     "        'Úkoly MSKC01 se při obsazení jen MSKC03 + MSKC04 správně sdílí na oba soustruhy, včetně úkolů upravených v administraci.',",
@@ -130,6 +143,19 @@ function final() {
   menuPages = menuPages.replace(/window\.RAK_RELEASE_VERSION \|\| versionText \|\| '1\.6'/, "window.RAK_RELEASE_VERSION || versionText || '1.7'");
   write('app-menu-pages.js', menuPages);
 
+  // Start aplikace smi jen tise obnovit existujici admin relaci. Heslo se vyzaduje
+  // az pri vedomem vstupu do chranene casti, nikdy automaticky pri bootu.
+  let adminUnlock = read('app-admin-unlock.js');
+  adminUnlock = adminUnlock.replace(/function rakAdminScheduleStartupPrompt\(\)/g, 'function rakAdminScheduleStartupRestore()');
+  adminUnlock = adminUnlock.replace(/rakAdminScheduleStartupPrompt\(\);/g, 'rakAdminScheduleStartupRestore();');
+  adminUnlock = adminUnlock.replace("setTimeout(() => { void rakAdminLoadSettingsThenCheck('startup'); }, delay);", "setTimeout(() => { void rakAdminRestoreSecureSessionForActiveAccount('startup'); }, delay);");
+  adminUnlock = adminUnlock.replace("    rakAdminLoadSettingsThenCheck('settings-loaded');", "    void rakAdminRestoreSecureSessionForActiveAccount('settings-loaded');");
+  assert(!adminUnlock.includes("rakAdminLoadSettingsThenCheck('startup')"), 'startup must not trigger admin password flow');
+  assert(!adminUnlock.includes("rakAdminLoadSettingsThenCheck('settings-loaded')"), 'settings-loaded must not trigger admin password flow');
+  assert(adminUnlock.includes("rakAdminRestoreSecureSessionForActiveAccount('startup')"), 'silent startup admin session restore missing');
+  assert(adminUnlock.includes("rakAdminRestoreSecureSessionForActiveAccount('settings-loaded')"), 'silent settings-loaded admin session restore missing');
+  write('app-admin-unlock.js', adminUnlock);
+
   let changelog = removeChangelog170(read('CHANGELOG.md'));
   const changelog170 = [
     '## RaK 1.7',
@@ -139,7 +165,8 @@ function final() {
     '- Výkon/PWA: CSS cleanup, bezpečné lazy/idle načítání, MutationObserver cleanup, optimalizace PNG, cache tuning a výkonové guardy.',
     '- Celkový audit: opravený ZIP export, srovnaná diagnostika/changelog, odstraněné pozůstatky Her a nové security/regresní smoke testy.',
     '- Úplná záloha RaK: jeden ZIP obsahuje přesný Git zdroj, nasazenou PWA, Supabase data a strukturu, sanitizovaný Auth přehled, Storage, manifest a návod k obnově.',
-    '- Release metadata sjednocena na veřejnou verzi RaK 1.7, technickou verzi 1.7.0 a novou PWA cache v1.7.0.',
+    '- Start admin účtu už jen tiše obnovuje platnou relaci; samotné spuštění aplikace nikdy automaticky neotevírá dialog pro heslo administrace.',
+    '- Release metadata sjednocena na veřejnou verzi RaK 1.7, technickou verzi 1.7.0 a PWA cache v1.7.0.',
     '',
     ''
   ].join('\n');
@@ -150,7 +177,7 @@ function final() {
   index = index.replace(/app\.js\?v=1\.5\.1/g, `app.js?v=${TECH_VERSION}`);
   write('index.html', index);
 
-  console.log('[release-170] final: RaK 1.7 / technical 1.7.0 release metadata + concise About summary applied');
+  console.log('[release-170] final: RaK 1.7 release2 – silent startup auth restore, stable legacy core marker and updated About summary applied');
 }
 
 if (mode === 'pre') pre();
