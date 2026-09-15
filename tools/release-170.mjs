@@ -46,6 +46,7 @@ function pre() {
   sw = sw.replace(/^const DEVELOPMENT_TEST_DISPLAY_VERSION = '[^']+';$/m, "const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';");
   sw = sw.replace(/^const DEVELOPMENT_BUILD_ID = '[^']+';$/m, "const DEVELOPMENT_BUILD_ID = '1.6.03-home2';");
   sw = sw.replace(/\?v=1\.7\.0/g, '?v=1.6.0');
+  sw = sw.replace(/\.\/app\.js\?v=1\.6\.0/g, './app.js?v=1.5.1');
   write('sw.js', sw);
 
   let config = read('supabase-config.js');
