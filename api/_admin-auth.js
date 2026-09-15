@@ -1,15 +1,23 @@
+const IS_DEVELOPMENT = String(process.env.VERCEL_GIT_COMMIT_REF || '').trim() === 'development';
+const DEVELOPMENT_SUPABASE_URL = 'https://cgshssdjgzzuprlwnabl.supabase.co';
+const DEVELOPMENT_PUBLISHABLE_KEY = 'sb_publishable_v7jeuZC-MNUEO5nfE5xcUQ_Pu9pT-X_';
+
 const SUPABASE_URL = String(
-  process.env.RAK_SUPABASE_URL
-  || process.env.SUPABASE_URL
-  || process.env.NEXT_PUBLIC_SUPABASE_URL
-  || ''
+  IS_DEVELOPMENT
+    ? DEVELOPMENT_SUPABASE_URL
+    : (process.env.RAK_SUPABASE_URL
+      || process.env.SUPABASE_URL
+      || process.env.NEXT_PUBLIC_SUPABASE_URL
+      || '')
 ).replace(/\/$/, '');
 const PUBLISHABLE_KEY = String(
-  process.env.RAK_SUPABASE_PUBLISHABLE_KEY
-  || process.env.SUPABASE_PUBLISHABLE_KEY
-  || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  || process.env.SUPABASE_ANON_KEY
-  || ''
+  IS_DEVELOPMENT
+    ? DEVELOPMENT_PUBLISHABLE_KEY
+    : (process.env.RAK_SUPABASE_PUBLISHABLE_KEY
+      || process.env.SUPABASE_PUBLISHABLE_KEY
+      || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      || process.env.SUPABASE_ANON_KEY
+      || '')
 );
 
 function sendJson(res, status, payload) {

@@ -1,13 +1,26 @@
-// RaK 1.6 production PWA service worker – v1.6.0 warm-start cache + confirmed-update navigation.
+// RaK 1.6 test PWA service worker – confirmed-update flow, test build 1.6.03.
 const CACHE_VERSION = 'v1.6.0';
 const SW_APP_VERSION = '1.6.0';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
+const DEVELOPMENT_BUILD_ID = '1.6.03-home2';
+// Previous internal markers kept only for smoke compatibility: const DEVELOPMENT_BUILD_ID = '1.6.03-stats2';
+// Previous internal marker kept only for smoke compatibility: const DEVELOPMENT_BUILD_ID = '1.6.03-stats1';
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
 const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.6.0'];
-const KALIRNA_HOTFIX_ASSETS = [
+// Development-only invalidace starých admin/Supabase assetů po oddělení test DB.
+const DEVELOPMENT_ADMIN_HOTFIX_ASSETS = [
+  './app.js?v=1.5.1',
   './supabase-config.js?v=1.6.0',
-  './kalirna-daymod-override.js?v=20260912-main1',
+  './supabase-bridge.js?v=1.6.0',
+  './app-rotation-sync.js?v=1.6.0',
+  './app-admin-unlock.js?v=1.6.0',
+  './app-menu.js?v=1.6.0',
+  './app-menu-shift-report.js?v=1.6.0',
+  './app-home-boot.js?v=1.6.0',
+  './kalirna-daymod-override.js?v=20260912-1',
+  './kalirna-stats-override.js?v=20260913-1',
   './rotation-tasks.js?v=1.6.0'
 ];
 
@@ -135,7 +148,7 @@ async function fetchBuildAsset(url) {
 async function clearSameVersionHotfixAssets() {
   try {
     const cache = await caches.open(STATIC_CACHE);
-    const hotfixAssets = SAME_VERSION_HOTFIX_ASSETS.concat(KALIRNA_HOTFIX_ASSETS);
+    const hotfixAssets = SAME_VERSION_HOTFIX_ASSETS.concat(DEVELOPMENT_ADMIN_HOTFIX_ASSETS);
     await Promise.all(hotfixAssets.map(url => cache.delete(url, { ignoreSearch: false })));
   } catch (_) {}
 }
@@ -186,6 +199,8 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     await clearSameVersionHotfixAssets();
     await installCoreAndPrewarm();
+    // Záměrně bez skipWaiting(): nový build nejdřív zůstane waiting,
+    // aplikace ukáže potvrzení a aktivace proběhne až po klepnutí na Aktualizovat.
   })());
 });
 
@@ -206,7 +221,7 @@ self.addEventListener('activate', event => {
     const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
     const navigations = [];
     clients.forEach(client => {
-      try { client.postMessage({ type: 'sw-activated', version: CACHE_VERSION, appVersion: SW_APP_VERSION }); } catch (_) {}
+      try { client.postMessage({ type: 'sw-activated', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION, technicalAppVersion: SW_APP_VERSION, testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION, buildId: DEVELOPMENT_BUILD_ID }); } catch (_) {}
       if (approvedUpdateClientId && client.id === approvedUpdateClientId && typeof client.navigate === 'function') {
         try {
           const nextUrl = new URL(client.url);
@@ -230,7 +245,7 @@ self.addEventListener('message', event => {
     return;
   }
   if (data.type === 'GET_VERSION' && event.source) {
-    event.source.postMessage({ type: 'sw-version', version: CACHE_VERSION, appVersion: SW_APP_VERSION });
+    event.source.postMessage({ type: 'sw-version', version: CACHE_VERSION, appVersion: DEVELOPMENT_TEST_DISPLAY_VERSION, technicalAppVersion: SW_APP_VERSION, testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION, buildId: DEVELOPMENT_BUILD_ID });
     return;
   }
   if (data.type === 'GET_CACHE_STATUS' && event.source) {
@@ -238,6 +253,8 @@ self.addEventListener('message', event => {
       type: 'sw-cache-status',
       cacheVersion: CACHE_VERSION,
       appVersion: SW_APP_VERSION,
+      testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION,
+      buildId: DEVELOPMENT_BUILD_ID,
       strategy: 'navigation-network-first;build-static-cache-first;isolated-prewarm',
       warmStartCount: WARM_START.length,
       checkedAt: Date.now()

@@ -164,3 +164,36 @@
   if (document.readyState !== 'loading') patchSaveHandler();
   else document.addEventListener('DOMContentLoaded', () => { patchSaveHandler(); }, { once: true });
 })();
+
+// RaK 1.6 – generátor: chrání konkrétní runtime chybu `monthKey is not defined` v solo-mill balance.
+// Obalí celý běh generátoru přes přesný monthKey z jeho argumentu a po návratu globální kontext zase odstraní.
+(function setupRakGeneratorMonthKeyHotfix() {
+  function patchGenerator() {
+    const original = window.adminGenerateRotationMonthDraft;
+    if (typeof original !== 'function' || original.__rakGeneratorMonthKeyHotfixWrapped) return false;
+    const wrapped = function adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth) {
+      const hadOwnMonthKey = Object.prototype.hasOwnProperty.call(window, 'monthKey');
+      const previousMonthKey = window.monthKey;
+      try {
+        window.monthKey = String(monthKey || '').trim();
+        return original(monthKey, preparedMonth);
+      } finally {
+        try {
+          if (hadOwnMonthKey) window.monthKey = previousMonthKey;
+          else delete window.monthKey;
+        } catch (err) {}
+      }
+    };
+    wrapped.__rakGeneratorMonthKeyHotfixWrapped = true;
+    wrapped.__rakGeneratorMonthKeyHotfixOriginal = original;
+    window.adminGenerateRotationMonthDraft = wrapped;
+    return true;
+  }
+
+  window.setupRakGeneratorMonthKeyHotfix = patchGenerator;
+  window.addEventListener('rak:feature-ready', (event) => {
+    const feature = String(event && event.detail && event.detail.feature || '').trim();
+    if (feature === 'admin') patchGenerator();
+  });
+  setTimeout(patchGenerator, 0);
+})();

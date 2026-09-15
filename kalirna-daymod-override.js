@@ -142,3 +142,125 @@
 
   window.rakKalirnaDayModOverrideRefresh = installAvailablePatches;
 })();
+
+// RaK 1.6.03 recovery extensions – jen nové funkce požadované nad funkčním základem 1.6.03.
+(function installRak1603RequestedExtensions() {
+  'use strict';
+
+  if (window.__rak1603RequestedExtensionsInstalled) return;
+  window.__rak1603RequestedExtensionsInstalled = true;
+
+  const SHIFT_REPORT_EXTRA_MACHINES = ['TTKW01', 'TTKW02'];
+
+  function makePersonStatsTile(kind, label, value) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.setAttribute('data-rak-person-load-stat', kind);
+
+    const small = document.createElement('div');
+    small.className = 'smallText';
+    small.textContent = label;
+
+    const number = document.createElement('div');
+    number.className = 'statsSummaryValue';
+    number.textContent = String(Math.max(0, Number(value) || 0)) + '×';
+
+    tile.appendChild(small);
+    tile.appendChild(number);
+    return tile;
+  }
+
+  function patchStatsNameView() {
+    const original = window.renderStatsNameViewNodes;
+    if (typeof original !== 'function' || original.__rak1603PersonLoadStatsPatched) return false;
+
+    function wrappedRenderStatsNameViewNodes(person, year, stats) {
+      const nodes = original.apply(this, arguments);
+      try {
+        const list = Array.isArray(nodes) ? nodes : [];
+        const summary = list.find((node) => node && node.classList && node.classList.contains('statsSummary'));
+        if (summary && person && stats) {
+          const name = String(person.name || '');
+          summary.appendChild(makePersonStatsTile('mfk-solo', 'Sám na 2 frézkách', stats.mfkSoloCounts && stats.mfkSoloCounts[name]));
+          summary.appendChild(makePersonStatsTile('msk-pair', 'Ve 2 lidech na soustruzích', stats.mskPairCounts && stats.mskPairCounts[name]));
+        }
+      } catch (err) {}
+      return nodes;
+    }
+
+    wrappedRenderStatsNameViewNodes.__rak1603PersonLoadStatsPatched = true;
+    wrappedRenderStatsNameViewNodes.__rakOriginal = original;
+    window.renderStatsNameViewNodes = wrappedRenderStatsNameViewNodes;
+    window.__rak1603PersonStatsMode = 'existing-year-counters';
+    return true;
+  }
+
+  function ensureShiftReportMachineOptions(root) {
+    const host = root && typeof root.querySelectorAll === 'function' ? root : document;
+    const selects = host.querySelectorAll('#rakShiftReport select.rakShiftMachine');
+    let changed = false;
+
+    selects.forEach((select) => {
+      let insertAfter = Array.from(select.options || []).find((option) => option.value === 'TPKW02') || null;
+      SHIFT_REPORT_EXTRA_MACHINES.forEach((code) => {
+        let option = Array.from(select.options || []).find((item) => item.value === code) || null;
+        if (!option) {
+          option = document.createElement('option');
+          option.value = code;
+          option.textContent = code;
+          if (insertAfter && insertAfter.nextSibling) select.insertBefore(option, insertAfter.nextSibling);
+          else if (insertAfter) select.appendChild(option);
+          else select.appendChild(option);
+          changed = true;
+        }
+        insertAfter = option;
+      });
+    });
+
+    if (selects.length) window.__rak1603ShiftReportMachineMode = 'TPKW02>TTKW01>TTKW02';
+    return changed || selects.length > 0;
+  }
+
+  function patchShiftReportOpen() {
+    const api = window.RakShiftReport;
+    if (!api || typeof api.open !== 'function' || api.open.__rak1603ExtraMachinesPatched) return false;
+    const originalOpen = api.open;
+
+    function wrappedShiftReportOpen() {
+      const result = originalOpen.apply(this, arguments);
+      try { ensureShiftReportMachineOptions(document); } catch (err) {}
+      return result;
+    }
+
+    wrappedShiftReportOpen.__rak1603ExtraMachinesPatched = true;
+    wrappedShiftReportOpen.__rakOriginal = originalOpen;
+    api.open = wrappedShiftReportOpen;
+    return true;
+  }
+
+  function installRequestedPatches() {
+    patchStatsNameView();
+    patchShiftReportOpen();
+    ensureShiftReportMachineOptions(document);
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
+    if (!target) return;
+    if (target.closest('#rakShiftReport .rakShiftAddProblem')) {
+      window.setTimeout(() => ensureShiftReportMachineOptions(document), 0);
+    }
+  }, false);
+
+  window.addEventListener('rak:feature-ready', installRequestedPatches);
+  window.addEventListener('pageshow', installRequestedPatches);
+
+  installRequestedPatches();
+  [150, 500, 1200, 3000].forEach((delay) => window.setTimeout(installRequestedPatches, delay));
+
+  window.__rak1603RequestedExtensions = Object.freeze({
+    base: '1.6.03',
+    personStats: Object.freeze(['mfk-solo', 'msk-pair']),
+    shiftReportMachines: Object.freeze(SHIFT_REPORT_EXTRA_MACHINES.slice())
+  });
+})();
