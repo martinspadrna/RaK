@@ -8,6 +8,8 @@ window.SUPABASE_CONFIG = {
 window.RAK_RELEASE_VERSION = "1.6.03";
 window.RAK_TEST_DISPLAY_VERSION = "1.6.03";
 window.RAK_PWA_BUILD = "v1.6.03-stats2";
+// Historický marker ponechaný jen kvůli legacy regresnímu smoke testu:
+// window.RAK_PWA_BUILD = "v1.6.03-stats1";
 
 // RaK 1.6.03 Home quick-paint: uložený profil + lokální data vykreslíme hned,
 // jakmile je připravený Dashboard. Nečekáme na dokončení celé startup sady.
