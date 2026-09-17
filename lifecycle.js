@@ -313,3 +313,107 @@
   if (typeof window.registerListener === 'function') window.registerListener(document, 'change', onActiveChange);
   else document.addEventListener('change', onActiveChange);
 })();
+
+// RaK 1.7 – barevný výsledný náhled reportu směny podle výrobního indexu.
+(function setupShiftReportPreviewColors() {
+  if (window.__rakShiftReportPreviewColorsInstalled) return;
+  window.__rakShiftReportPreviewColorsInstalled = true;
+
+  const INDEX_TONES = { AF: 'blue', AD: 'blue', AG: 'green', AE: 'green', AH: 'orange' };
+  let scheduled = false;
+
+  function ensurePreviewStyles() {
+    if (document.getElementById('rak-shift-preview-colors')) return;
+    const style = document.createElement('style');
+    style.id = 'rak-shift-preview-colors';
+    style.textContent = [
+      '#rakShiftReport .rakShiftPreviewColored{font-weight:850}',
+      '#rakShiftReport .rakShiftPreviewTone--blue{color:#52caff;text-shadow:0 0 12px rgba(82,202,255,.28)}',
+      '#rakShiftReport .rakShiftPreviewTone--green{color:#55efa8;text-shadow:0 0 12px rgba(85,239,168,.24)}',
+      '#rakShiftReport .rakShiftPreviewTone--orange{color:#ffc04d;text-shadow:0 0 12px rgba(255,192,77,.25)}',
+      '#rakShiftReport .rakShiftPreviewIndex{display:inline-block;min-width:26px;padding:0 4px;border-radius:6px;text-align:center;font-weight:950}',
+      '#rakShiftReport .rakShiftPreviewIndex.rakShiftPreviewTone--blue{background:rgba(38,168,255,.14);box-shadow:inset 0 0 0 1px rgba(82,202,255,.28)}',
+      '#rakShiftReport .rakShiftPreviewIndex.rakShiftPreviewTone--green{background:rgba(42,216,132,.13);box-shadow:inset 0 0 0 1px rgba(85,239,168,.25)}',
+      '#rakShiftReport .rakShiftPreviewIndex.rakShiftPreviewTone--orange{background:rgba(255,172,35,.14);box-shadow:inset 0 0 0 1px rgba(255,192,77,.28)}',
+      '#rakShiftReport .rakShiftPreviewColorMarker{display:none!important}'
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
+  function coloredSpan(text, className) {
+    const span = document.createElement('span');
+    span.className = 'rakShiftPreviewColored ' + className;
+    span.textContent = text;
+    return span;
+  }
+
+  function appendColoredNumbers(parent, text, toneClass) {
+    String(text || '').split(/(\d+)/).forEach((part) => {
+      if (!part) return;
+      if (/^\d+$/.test(part)) parent.appendChild(coloredSpan(part, toneClass));
+      else parent.appendChild(document.createTextNode(part));
+    });
+  }
+
+  function decoratePreview() {
+    scheduled = false;
+    const root = document.getElementById('rakShiftReport');
+    const preview = root && root.querySelector('.rakShiftPreview');
+    if (!preview) return;
+    const text = preview.textContent || '';
+    if (!text.trim()) return;
+    if (preview.dataset.rakColoredText === text && preview.querySelector('.rakShiftPreviewColorMarker')) return;
+
+    ensurePreviewStyles();
+    const fragment = document.createDocumentFragment();
+    const lines = text.split('\n');
+
+    lines.forEach((line, index) => {
+      const match = line.match(/^(\s*-\s+)(\d+)(\s+)(AF|AG|AH|AD|AE)\b(.*)$/i);
+      if (!match) {
+        fragment.appendChild(document.createTextNode(line));
+      } else {
+        const reportIndex = match[4].toUpperCase();
+        const toneClass = 'rakShiftPreviewTone--' + (INDEX_TONES[reportIndex] || 'blue');
+        fragment.appendChild(document.createTextNode(match[1]));
+        fragment.appendChild(coloredSpan(match[2], toneClass));
+        fragment.appendChild(document.createTextNode(match[3]));
+        const indexSpan = coloredSpan(reportIndex, toneClass + ' rakShiftPreviewIndex');
+        fragment.appendChild(indexSpan);
+        appendColoredNumbers(fragment, match[5], toneClass);
+      }
+      if (index < lines.length - 1) fragment.appendChild(document.createTextNode('\n'));
+    });
+
+    const marker = document.createElement('span');
+    marker.className = 'rakShiftPreviewColorMarker';
+    marker.setAttribute('aria-hidden', 'true');
+    fragment.appendChild(marker);
+    preview.replaceChildren(fragment);
+    preview.dataset.rakColoredText = text;
+
+    const hint = root.querySelector('.rakShiftPreviewHint');
+    if (hint && hint.textContent !== 'Barvy platí pro náhled v RaK; při textovém kopírování nebo sdílení se nepřenášejí.') {
+      hint.textContent = 'Barvy platí pro náhled v RaK; při textovém kopírování nebo sdílení se nepřenášejí.';
+    }
+  }
+
+  function schedulePreviewColors() {
+    if (scheduled) return;
+    scheduled = true;
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(decoratePreview);
+    else setTimeout(decoratePreview, 0);
+  }
+
+  function startPreviewColors() {
+    ensurePreviewStyles();
+    schedulePreviewColors();
+    const host = document.body || document.documentElement;
+    if (!host || typeof MutationObserver !== 'function') return;
+    const observer = new MutationObserver(schedulePreviewColors);
+    observer.observe(host, { childList: true, subtree: true, characterData: true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startPreviewColors, { once: true });
+  else startPreviewColors();
+})();
