@@ -35,5 +35,5 @@ if (already17006) {
 if (!already17006 && already17005 === false && fs.readFileSync('index.html', 'utf8').includes("var build='v1.7.04-png4';")) {
   await import('./development-version-17005.mjs');
 }
-await import('./development-version-17006.mjs');
+await import('./development-version-17006-bootstrap.mjs');
 console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, generator, PNG report and smart manual admin input verified; test build 1.7.06');
