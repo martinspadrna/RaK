@@ -11,11 +11,17 @@ await import('./rak-v170-three-absence-regression.mjs');
 await import('./development-version-17001.mjs');
 const indexSource = fs.readFileSync('index.html', 'utf8');
 const imageSource = fs.readFileSync('rak-shift-report-image.js', 'utf8');
+const already17005 = indexSource.includes("var build='v1.7.05-png5';") && imageSource.includes('// RAK_REPORT_COMPACT_PAIRS_17005');
 const already17004 = indexSource.includes("var build='v1.7.04-png4';") && imageSource.includes('// RAK_REPORT_ACCENT_PALETTE_17004');
-if (already17004) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.04 image layer already includes 1.7.03 light base; skipping 1.7.03 downgrade');
+if (already17005) {
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.05 image layer already complete; skipping 1.7.03/1.7.04 rebuild');
 } else {
-  await import('./development-version-17003.mjs');
+  if (already17004) {
+    console.log('[shift-report-mo-hotfix-170-smoke] 1.7.04 image layer already includes 1.7.03 light base; skipping 1.7.03 downgrade');
+  } else {
+    await import('./development-version-17003.mjs');
+  }
+  await import('./development-version-17004.mjs');
 }
-await import('./development-version-17004.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, generator and grinder tasks verified; test build 1.7.04');
+await import('./development-version-17005.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, generator and grinder tasks verified; test build 1.7.05');
