@@ -17,6 +17,11 @@ const generatorSource = fs.readFileSync('admin-rotation-generator.js', 'utf8');
 const rotationSource = fs.readFileSync('rotace.js', 'utf8');
 const adminRotationSource = fs.readFileSync('admin-rotation.js', 'utf8');
 
+const already17009 = indexSource.includes("var build='v1.7.09-solomill3';")
+  && imageSource.includes('// RAK_SHIFT_REPORT_GLASS_17009')
+  && shareSource.includes('// RAK_SHIFT_REPORT_GLASS_17009')
+  && generatorSource.includes('// RAK_GENERATOR_SOLO_MILL_SPREAD_17009')
+  && adminRotationSource.includes('// RAK_GENERATOR_SOLO_MILL_SPREAD_CALL_17009');
 const already17008 = indexSource.includes("var build='v1.7.08-solomill2';")
   && imageSource.includes('// RAK_SHIFT_REPORT_FREE_PRIMARY_17008')
   && shareSource.includes('// RAK_SHIFT_REPORT_FREE_PRIMARY_17008')
@@ -34,7 +39,7 @@ const already17006 = indexSource.includes("var build='v1.7.06-smartadmin1';")
 const already17005 = indexSource.includes("var build='v1.7.05-png5';") && imageSource.includes('// RAK_REPORT_COMPACT_PAIRS_17005');
 const already17004 = indexSource.includes("var build='v1.7.04-png4';") && imageSource.includes('// RAK_REPORT_ACCENT_PALETTE_17004');
 
-if (already17008 || already17007) {
+if (already17009 || already17008 || already17007) {
   // The full three-absence regression already ran on the clean first pass before the
   // development-only solo-mill helper layers were applied. Their dedicated smoke owns
   // those transformed helpers on Vercel's repeated build pass.
@@ -43,34 +48,39 @@ if (already17008 || already17007) {
   await import('./rak-v170-three-absence-regression.mjs');
 }
 
-if (already17008) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.08 layer already complete; skipping 1.7.07 and older development rebuilds');
+if (already17009) {
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.09 layer already complete; skipping 1.7.08 and older development rebuilds');
 } else {
-  if (already17007) {
-    console.log('[shift-report-mo-hotfix-170-smoke] 1.7.07 roster/report/generator layer already complete; skipping older development rebuilds');
+  if (already17008) {
+    console.log('[shift-report-mo-hotfix-170-smoke] 1.7.08 layer already complete; skipping 1.7.07 and older development rebuilds');
   } else {
-    if (already17006) {
-      console.log('[shift-report-mo-hotfix-170-smoke] 1.7.06 admin + 1.7.05 image layers already complete; skipping older visual rebuilds');
+    if (already17007) {
+      console.log('[shift-report-mo-hotfix-170-smoke] 1.7.07 roster/report/generator layer already complete; skipping older development rebuilds');
     } else {
-      if (already17005) {
-        console.log('[shift-report-mo-hotfix-170-smoke] 1.7.05 image layer already complete; skipping 1.7.03/1.7.04 rebuild');
+      if (already17006) {
+        console.log('[shift-report-mo-hotfix-170-smoke] 1.7.06 admin + 1.7.05 image layers already complete; skipping older visual rebuilds');
       } else {
-        if (already17004) {
-          console.log('[shift-report-mo-hotfix-170-smoke] 1.7.04 image layer already includes 1.7.03 light base; skipping 1.7.03 downgrade');
+        if (already17005) {
+          console.log('[shift-report-mo-hotfix-170-smoke] 1.7.05 image layer already complete; skipping 1.7.03/1.7.04 rebuild');
         } else {
-          await import('./development-version-17003.mjs');
+          if (already17004) {
+            console.log('[shift-report-mo-hotfix-170-smoke] 1.7.04 image layer already includes 1.7.03 light base; skipping 1.7.03 downgrade');
+          } else {
+            await import('./development-version-17003.mjs');
+          }
+          await import('./development-version-17004.mjs');
+          await import('./development-version-17005.mjs');
         }
-        await import('./development-version-17004.mjs');
-        await import('./development-version-17005.mjs');
+        if (already17005 === false && fs.readFileSync('index.html', 'utf8').includes("var build='v1.7.04-png4';")) {
+          await import('./development-version-17005.mjs');
+        }
+        await import('./development-version-17006-bootstrap.mjs');
       }
-      if (already17005 === false && fs.readFileSync('index.html', 'utf8').includes("var build='v1.7.04-png4';")) {
-        await import('./development-version-17005.mjs');
-      }
-      await import('./development-version-17006-bootstrap.mjs');
     }
+    await import('./development-version-17007.mjs');
   }
-  await import('./development-version-17007.mjs');
+  await import('./development-version-17008.mjs');
 }
 
-await import('./development-version-17008.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, smart admin, active roster, final solo-mill repair and PNG "volné" quantity verified; test build 1.7.08');
+await import('./development-version-17009.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, smart admin, active roster, consecutive + monthly solo-mill fairness and transparent PNG glass verified; test build 1.7.09');
