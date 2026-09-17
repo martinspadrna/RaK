@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const helper = fs.readFileSync('rak-shift-report-image.js', 'utf8');
 const runtime = fs.readFileSync('rak-shift-report-share.js', 'utf8');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const marker = '__rakShiftReportImageExport170Installed';
 
 function assert(condition, message) {
   if (!condition) throw new Error('[shift-report-image-170-smoke] ' + message);
@@ -20,9 +21,11 @@ assert(helper.includes("saveButton.textContent = 'Uložit PNG';"), 'PNG action m
 assert(String(pkg.scripts && pkg.scripts['vercel-build'] || '').includes('node tools/shift-report-image-170.mjs'), 'Vercel build transform missing');
 assert(String(pkg.scripts && pkg.scripts.check || '').includes('node tools/shift-report-image-170-smoke.mjs'), 'smoke not wired into npm run check');
 
-if (runtime.includes('__rakShiftReportImageExport170Installed')) {
-  const count = runtime.split('__rakShiftReportImageExport170Installed').length - 1;
-  assert(count === 1, 'runtime image helper must be attached exactly once');
+const helperMarkerCount = helper.split(marker).length - 1;
+assert(helperMarkerCount >= 1, 'source helper marker missing');
+if (runtime.includes(marker)) {
+  const runtimeMarkerCount = runtime.split(marker).length - 1;
+  assert(runtimeMarkerCount === helperMarkerCount, 'runtime image helper must be attached exactly once as a complete helper');
 }
 
 console.log('[shift-report-image-170-smoke] OK portrait PNG, exact login crab watermark, save + image sharing contract');
