@@ -262,6 +262,7 @@
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.checked = isActive;
+        if (isActive) input.setAttribute('checked', '');
         input.setAttribute('data-worker-field', 'active');
         input.setAttribute('aria-label', 'Aktivní pracovník');
         label.appendChild(input);
