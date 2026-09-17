@@ -5,8 +5,7 @@ await import('./rak-170-profile-appearance-sync.mjs');
 await import('./generator-finalize-170.mjs');
 await import('./generator-staffing-170-smoke.mjs');
 await import('./rak-v170-three-absence-regression.mjs');
-// Development-only visible release + fresh PWA cache AFTER the frozen release gates.
+// Development test release is applied AFTER the frozen 1.7 release and regression gates.
 await import('./development-version-17001.mjs');
-// Follow-on test build: subdued report PNG, stronger exact crab watermark, fresh iOS update.
-await import('./development-version-17002.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, generator and grinder tasks verified; test build 1.7.02');
+await import('./development-version-17003.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, generator and grinder tasks verified; test build 1.7.03');
