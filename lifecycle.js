@@ -122,7 +122,7 @@
   }
 
   function workerSettingsRow() {
-    const rows = (window.app && Array.isArray(window.app.machineSettingsRows)) ? window.app.machineSettingsRows : [];
+    const rows = (typeof app !== 'undefined' && app && Array.isArray(app.machineSettingsRows)) ? app.machineSettingsRows : [];
     return rows.find((row) => String(row && row.category || '').trim() === 'worker_roster_settings')
       || rows.find((row) => String(row && row.machine_key || '').trim() === 'WORKER_ROSTER_SETTINGS')
       || null;
