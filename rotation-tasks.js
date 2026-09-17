@@ -3,6 +3,8 @@
 (function installRotationTasks() {
   'use strict';
 
+  const RAK_SHARED_MSKC01_TASKS_MODE = '1.6.13-two-lathes';
+
   const MACHINE_TASKS = Object.freeze({
     TNKS01: Object.freeze([
       Object.freeze({ label: 'O nic se nestarej a jen si užij nýtování.' })
@@ -74,7 +76,32 @@
     return /^N/.test(shift) || /NOČN/.test(shift) ? 'N' : ( /^R/.test(shift) || /RANN/.test(shift) ? 'R' : '');
   }
 
-  function getTasksForAssignment(value, shift) {
+  function tasksForMachine(machine, normalizedShift) {
+    const configuredTasks = typeof window.getRotationMachineTasksForMachine === 'function'
+      ? window.getRotationMachineTasksForMachine(machine, normalizedShift)
+      : null;
+    const baseTasks = configuredTasks || (MACHINE_TASKS[machine] || []);
+    const shiftTasks = configuredTasks ? [] : ((MACHINE_SHIFT_TASKS[machine] && MACHINE_SHIFT_TASKS[machine][normalizedShift]) || []);
+    return baseTasks.concat(shiftTasks).map((task) => ({ label: task.label, place: task.place || '' }));
+  }
+
+  function mergeTasks() {
+    const seen = new Set();
+    const merged = [];
+    Array.from(arguments).forEach((list) => {
+      (Array.isArray(list) ? list : []).forEach((task) => {
+        const safe = { label: String(task && task.label || '').trim(), place: String(task && task.place || '').trim() };
+        if (!safe.label) return;
+        const key = safe.label.toLowerCase() + '\u0000' + safe.place.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push(safe);
+      });
+    });
+    return merged;
+  }
+
+  function getTasksForAssignment(value, shift, options) {
     const machine = assignmentMachine(value);
     const normalizedShift = assignmentShift(shift);
     // Kalírna je zvláštní denní výjimka, ne konfigurovatelný výrobní stroj.
@@ -85,14 +112,14 @@
         tasks: (MACHINE_TASKS[machine] || []).map((task) => ({ label: task.label, place: task.place || '' }))
       };
     }
-    const configuredTasks = typeof window.getRotationMachineTasksForMachine === 'function'
-      ? window.getRotationMachineTasksForMachine(machine, normalizedShift)
-      : null;
-    const baseTasks = configuredTasks || (MACHINE_TASKS[machine] || []);
-    const shiftTasks = configuredTasks ? [] : ((MACHINE_SHIFT_TASKS[machine] && MACHINE_SHIFT_TASKS[machine][normalizedShift]) || []);
+    const sharedMskc01 = !!(options && options.sharedMskc01 && (machine === 'MSKC03' || machine === 'MSKC04'));
+    const sharedTpkw02 = !!(options && options.sharedTpkw02 && (machine === 'TBKR01' || machine === 'TBKR07'));
+    const ownTasks = tasksForMachine(machine, normalizedShift);
+    const ownAndMsk = sharedMskc01 ? mergeTasks(ownTasks, tasksForMachine('MSKC01', normalizedShift)) : ownTasks;
+    const tasks = sharedTpkw02 ? mergeTasks(ownAndMsk, tasksForMachine('TPKW02', normalizedShift)) : ownAndMsk;
     return {
-      machine,
-      tasks: baseTasks.concat(shiftTasks).map((task) => ({ label: task.label, place: task.place || '' }))
+      machine: (sharedMskc01 ? machine + ' (+MSKC01)' : machine) + (sharedTpkw02 ? ' (+TPKW02)' : ''),
+      tasks
     };
   }
 
@@ -144,7 +171,7 @@
 
   function showRotationTaskModal(details) {
     const input = details || {};
-    const result = getTasksForAssignment(input.machine, input.shift);
+    const result = getTasksForAssignment(input.machine, input.shift, { sharedMskc01: !!input.sharedMskc01, sharedTpkw02: !!input.sharedTpkw02 });
     const overlay = ensureRotationTaskModal();
     const title = overlay.querySelector('#rotationTaskModalTitle');
     const meta = overlay.querySelector('.rotationTaskMeta');
@@ -178,12 +205,48 @@
     return result;
   }
 
+  function shouldShareMskc01FromCard(card) {
+    if (!card) return false;
+    const currentMachine = assignmentMachine(card.dataset.rotationTaskMachine || '');
+    if (currentMachine !== 'MSKC03' && currentMachine !== 'MSKC04') return false;
+    const date = String(card.dataset.rotationTaskDate || '').trim();
+    const shift = assignmentShift(card.dataset.rotationTaskShift || '');
+    const occupied = new Set();
+    document.querySelectorAll('.rotaceShiftTaskCard').forEach((candidate) => {
+      if (String(candidate.dataset.rotationTaskDate || '').trim() !== date) return;
+      if (assignmentShift(candidate.dataset.rotationTaskShift || '') !== shift) return;
+      const machine = assignmentMachine(candidate.dataset.rotationTaskMachine || '');
+      if (machine === 'MSKC01' || machine === 'MSKC03' || machine === 'MSKC04') occupied.add(machine);
+    });
+    return occupied.size === 2 && occupied.has('MSKC03') && occupied.has('MSKC04') && !occupied.has('MSKC01');
+  }
+
+  function shouldShareTpkw02FromCard(card) {
+    if (!card) return false;
+    const machine = assignmentMachine(card.dataset.rotationTaskMachine || '');
+    if (machine !== 'TBKR01' && machine !== 'TBKR07') return false;
+    const date = String(card.dataset.rotationTaskDate || '').trim();
+    const shift = assignmentShift(card.dataset.rotationTaskShift || '');
+    let tpkw02Occupied = false;
+    let grinderOccupied = false;
+    document.querySelectorAll('.rotaceShiftTaskCard').forEach((other) => {
+      if (String(other.dataset.rotationTaskDate || '').trim() !== date) return;
+      if (assignmentShift(other.dataset.rotationTaskShift || '') !== shift) return;
+      const otherMachine = assignmentMachine(other.dataset.rotationTaskMachine || '');
+      if (otherMachine === 'TPKW02') tpkw02Occupied = true;
+      if (otherMachine === machine) grinderOccupied = true;
+    });
+    return grinderOccupied && !tpkw02Occupied;
+  }
+
   function openTaskFromCard(card) {
     showRotationTaskModal({
       person: card.dataset.rotationTaskPerson || '',
       date: card.dataset.rotationTaskDate || '',
       shift: card.dataset.rotationTaskShift || '',
-      machine: card.dataset.rotationTaskMachine || ''
+      machine: card.dataset.rotationTaskMachine || '',
+      sharedMskc01: shouldShareMskc01FromCard(card),
+      sharedTpkw02: shouldShareTpkw02FromCard(card)
     });
   }
 

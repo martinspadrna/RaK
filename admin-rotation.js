@@ -507,6 +507,26 @@ function buildAdminPressRotationOverridesHtml(month, monthKey, hardRows) {
   ].join('');
 }
 
+// Pro tri absence je rezervovana jedna pozice na frezkach. Validujeme cely den,
+// ne jen celkovy pocet lidi: prazdne TPKW02, MSKC01 a MFKF06 jsou zamerne.
+function adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent) {
+  if (!Array.isArray(knownNames) || knownNames.length !== 10 || !absent || absent.size !== 3) return [];
+  const issues = [];
+  const inspect = (headers, row, required) => {
+    (Array.isArray(headers) ? headers : []).forEach((machine, idx) => {
+      const shouldBeOccupied = required.includes(machine);
+      const cell = row && Array.isArray(row.cells) ? row.cells[idx] : '';
+      const occupied = shouldBeOccupied
+        ? adminRotationIsRealName(cell, knownNames)
+        : !!String(cell || '').trim();
+      if (occupied !== shouldBeOccupied) issues.push({ machine, shouldBeOccupied });
+    });
+  };
+  inspect(HARD_MACHINE_HEADERS, hardRow, ['TNKS01', 'TBKR07', 'TPKW01', 'TBKR01']);
+  inspect(SOFT_MACHINE_HEADERS, softRow, ['MSKC03', 'MSKC04', 'MFKF10']);
+  return issues;
+}
+
 // Obsazení poslední skutečné pracovní směny před cílovým měsícem.
 // Tento okraj chrání proti stejnému nýtování nebo samostatným frézkám hned po přelomu.
 function adminRotationValidateMonthRules(month, monthKey, options) {
@@ -578,6 +598,11 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
     });
     if (!adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) {
       const absent = new Set(noteNamesForDate(dateLabel).map((noteName) => noteName.canonical).filter((name) => knownNames.includes(name)));
+      adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent).forEach((issue) => {
+        addIssue('error', 'three-absence-staffing', String(dateLabel) + ': ' + issue.machine
+          + (issue.shouldBeOccupied ? ' musí být obsazená.' : ' musí zůstat neobsazená.'),
+          'Při třech absencích: 4 TO (bez TPKW02), 3 MO (MSKC03, MSKC04, MFKF10).');
+      });
       const unused = knownNames.filter((name) => !absent.has(name) && !assigned.has(name));
       if (unused.length) {
         addIssue(opts.source === 'generator' ? 'error' : 'warn', 'available-unused', String(dateLabel) + ': dostupný člověk není v rozpisu: ' + unused.join(', ') + '.', '');
@@ -812,17 +837,22 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
   const tnksConsecutiveRepair = adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey);
   const finalSoftKindBalance = adminRotationGeneratorBalanceSoftKind(month, model);
   const finalTnksBalance = adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
+  const tpkw02Balance = adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
+  const finalSoloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);
   const ruleCheck = adminRotationValidateMonthRules(month, monthKey, { source: 'generator' });
   const criticalIssues = ruleCheck.issues.filter((issue) => issue && issue.severity === 'error');
   if (criticalIssues.length) {
     throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · '));
   }
+  // Po opravach a prohozech vrat skutecny pocet obsazenych bunek, ne puvodni odhad.
+  const finalFilledCells = hardRows.concat(softRows).reduce((count, row) => count +
+    (Array.isArray(row && row.cells) ? row.cells : []).filter((name) => adminRotationIsRealName(name, model.knownNames)).length, 0);
   const normalized = normalizeMonthForImport(month, fallback);
   adminRotationGeneratorSetPendingDraft(monthKey, normalized);
   return {
     normalized,
     days,
-    filledCells,
+    filledCells: finalFilledCells,
     historyTemplates: model.dayTemplates.length,
     previousYearTemplates: model.previousYearTemplates.length,
     previousYearKey: model.previousYearKey,
@@ -834,7 +864,8 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
       + (tnksPostRepairBalance && Number(tnksPostRepairBalance.swaps || 0))
       + (finalTnksBalance && Number(finalTnksBalance.swaps || 0)),
     tnksConsecutiveRepairs: tnksConsecutiveRepair && Number(tnksConsecutiveRepair.repairs || 0),
-    soloMillBalanceSwaps: (soloMillBalance && Number(soloMillBalance.swaps || 0)) + (soloMillRebalance && Number(soloMillRebalance.swaps || 0)),
+    soloMillBalanceSwaps: (soloMillBalance && Number(soloMillBalance.swaps || 0)) + (soloMillRebalance && Number(soloMillRebalance.swaps || 0)) + (finalSoloMillBalance && Number(finalSoloMillBalance.swaps || 0)),
+    tpkw02BalanceSwaps: tpkw02Balance && Number(tpkw02Balance.swaps || 0),
     softTotalBalanceSwaps: softTotalBalance && Number(softTotalBalance.swaps || 0),
     softKindBalanceSwaps: (softKindBalance && Number(softKindBalance.swaps || 0)) + (finalSoftKindBalance && Number(finalSoftKindBalance.swaps || 0)),
     kminekNovotnyMoToBalanceSwaps: kminekNovotnyMoToBalance && Number(kminekNovotnyMoToBalance.swaps || 0),

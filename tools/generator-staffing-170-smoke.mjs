@@ -46,10 +46,10 @@ for (const machine of ['TBKR01','TBKR07']) {
   assert(inherited.tasks.some((task) => task.label === 'TPKW02 kontrola'), 'missing configured TPKW02 duty for ' + machine);
   assert(inherited.machine.includes('(+TPKW02)'), 'inherited TPKW02 not shown on ' + machine);
 }
-assert(sw.includes("const DEVELOPMENT_BUILD_ID = '1.7.0-release8';"), 'new PWA build identifier missing');
+assert(sw.includes("const DEVELOPMENT_BUILD_ID = '1.7.0-release9';"), 'new PWA build identifier missing');
 assert(sw.includes('concat(RAK_170_GENERATOR_STAFFING_ASSETS)'), 'same-version generator cache invalidation missing');
 for (const file of ['admin-rotation-generator.js','admin-rotation.js','rotation-tasks.js']) assert(sw.includes("'./" + file + "?v=1.7.0'"), 'same-version asset missing: ' + file);
 assert(config.includes('window.RAK_RELEASE_VERSION = "1.7";'), 'visible version changed');
 assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.7";'), 'technical display changed');
-assert(config.includes('window.RAK_PWA_BUILD = "v1.7.0-release8";'), 'new build config missing');
+assert(config.includes('window.RAK_PWA_BUILD = "v1.7.0-release9";'), 'new build config missing');
 console.log('[generator-staffing-170-smoke] OK 7 workers => 4 TO / 3 MO, TPKW02 closed, final balancing, valid syntax, inherited configurable grinder tasks, RaK 1.7 PWA cache');

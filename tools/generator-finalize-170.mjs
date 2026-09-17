@@ -15,7 +15,7 @@ if (!read('rotation-tasks.js').includes('sharedTpkw02: shouldShareTpkw02FromCard
   must(read('rotation-tasks.js').includes("tasksForMachine('TPKW02', normalizedShift)"), 'incomplete grinder task patch on repeated build');
   console.log('[generator-finalize-170] repeated build: grinder task patch already applied');
 }
-const BUILD = '1.7.0-release8';
+const BUILD = '1.7.0-release9';
 let sw = read('sw.js');
 sw = sw.replace(/^const DEVELOPMENT_BUILD_ID = '[^']+';$/m, `const DEVELOPMENT_BUILD_ID = '${BUILD}';`);
 const assets = "const RAK_170_GENERATOR_STAFFING_ASSETS = ['./admin-rotation-generator.js?v=1.7.0', './admin-rotation.js?v=1.7.0', './rotation-tasks.js?v=1.7.0'];";
