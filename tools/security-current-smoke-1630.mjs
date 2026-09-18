@@ -70,4 +70,27 @@ assert(publicSurface.includes('rak_admin_account_requires_auth') &&
   publicSurface.includes('RAK_RLS_ADMIN_TYPE_TEST_FIXTURE') && publicSurface.includes('ROLLBACK;'),
   'Public RPC allowlist and disguised-row test missing');
 
-console.log('[security-current-smoke-1630] OK current security/export/diagnostic/API contract; retired routes and admin JSON guards verified');
+// P0: Keep the already-applied test privacy cutovers in the source package and
+// fail Vercel builds if their migration/test files vanish or get weakened.
+const workerRoster = read('supabase/migrations/20260918214441_rak_hide_worker_roster_from_public_reads.sql');
+assert(workerRoster.includes('rak_machine_settings_anon_no_worker_roster_v7') &&
+  workerRoster.includes('rak_machine_settings_authenticated_worker_roster_admin_only_v7') &&
+  workerRoster.includes("settings_json->>'type'") &&
+  workerRoster.includes("machine_key,'') <> 'WORKER_ROSTER_SETTINGS'"),
+  'Worker roster / login-number read protection missing');
+const announcementsPrivacy = read('supabase/migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql');
+assert(announcementsPrivacy.includes('DROP POLICY rak_announcements_public_read_v2') &&
+  announcementsPrivacy.includes('rak_announcements_active_public_read_v3') &&
+  announcementsPrivacy.includes('rak_announcements_active_or_admin_read_v3') &&
+  announcementsPrivacy.includes('USING (is_active IS TRUE)') &&
+  announcementsPrivacy.includes('private.rak_is_admin()'),
+  'Inactive-announcement privacy or admin access missing');
+const dataSurface = read('tools/security-public-data-matrix.sql');
+assert(dataSurface.includes("ARRAY['announcements','machine_settings','rotation_state']") &&
+  dataSurface.includes('rak_lookup_account_for_login_v1') &&
+  dataSurface.includes('SET LOCAL ROLE anon;') &&
+  dataSurface.includes('SET LOCAL ROLE authenticated;') &&
+  dataSurface.includes('ROLLBACK;'),
+  'Integrated public data, login and owner read regression matrix missing');
+
+console.log('[security-current-smoke-1630] OK privacy/RPC/export/API contract; roster, announcements, owner and public regression guards verified');
