@@ -56,3 +56,4 @@ assert(read('rak-account-access.js').includes('Příliš mnoho pokusů. Zkus to 
 assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v1'")&&!read('rak-user-profile.js').includes(".from('game_accounts')"),'[17029] login direct read regression');
 assert(read('index.html').includes(`var build='${BUILD}';`)&&read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`),'[17029] release/cache mismatch');
 console.log('[development-version-17029] OK: account bulk SELECT cutover, bounded login RPC, clear retry message, test Supabase only, visible 1.7.29 and new SW cache');
+await import('./development-version-17030.mjs');
