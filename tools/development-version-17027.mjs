@@ -121,3 +121,4 @@ for (const path of ['rak-user-profile.js', 'rak-account-access.js', 'supabase-br
 }
 assert(read('index.html').includes(`var build='${BUILD}';`) && read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`), '[17027] release and PWA mismatch');
 console.log('[development-version-17027] OK 1.7.27: single-account login RPC, authenticated bulk directory, no anonymous browser table read, two-pass release/version/cache');
+await import('./development-version-17028.mjs');
