@@ -47,3 +47,4 @@ execFileSync(process.execPath,['--check',historySmoke],{stdio:'pipe'});
 console.log('[development-version-17021] OK second-pass historical About regression aligned with current feature set');
 await import('./admin-compact-17022.mjs');
 await import('./rotation-toolbar-slim-17023.mjs');
+await import('./cross-shift-fixes-17024.mjs');
