@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const read=file=>fs.readFileSync(file,'utf8');
+const core=read('core.js'),dash=read('dashboard.js'),nav=read('app-navigation.js');
+const report=read('rak-shift-report.js'),image=read('rak-shift-report-image.js'),share=read('rak-shift-report-share.js');
+assert(core.includes('// RAK_EXTERNAL_SHIFT_TEAMS_17020'),'shift-team helpers');
+assert(core.includes('data-app-account-field="shiftTeam"'),'admin has shift selection');
+assert(core.includes('appAccounts.push({ name, loginNumber, shiftTeam })'),'selected team persisted');
+assert(core.includes('getVacationCountdownTeamShiftCount(sourceDate, upcoming.start, countdownTeam)'),'vacation follows team');
+assert(core.includes('new Set(names)')||core.includes('new Set(names.length'),'roster stays separate');
+assert(!core.includes('settings.workers.concat(settings.appAccounts).map'),'outside accounts must not enter generator');
+const normalize=core.slice(core.indexOf('function normalizeRakApplicationAccountEntry('),core.indexOf('function normalizeRakWorkerRosterSettings('));
+assert(normalize.startsWith('function normalizeRakApplicationAccountEntry'),'normalization fixture function');
+const test={normalizeRakWorkerLoginNumber:n=>String(n||'').replace(/\D/g,'').slice(0,4)};
+vm.runInNewContext(normalize+'\nthis.normalize=normalizeRakApplicationAccountEntry;',test);
+assert.equal(test.normalize({name:'Novák',loginNumber:'1234',shiftTeam:'A'}).shiftTeam,'A');
+assert.equal(test.normalize({name:'Novák',loginNumber:'1234'}).shiftTeam,'D','existing outside accounts default D');
+assert.equal(test.normalize({name:'Novák',loginNumber:'1234',shiftTeam:'Q'}).shiftTeam,'D','invalid shift cannot escalate');
+assert.equal(test.normalize({name:'',loginNumber:'1234'}),null);
+const helper=core.slice(core.indexOf('// RAK_EXTERNAL_SHIFT_TEAMS_17020'),core.indexOf('window.getWorkerNameByLoginNumber = getWorkerNameByLoginNumber;'));
+const runtime={window:{rakUserProfileGet:()=>({accountNumber:'1234'})},app:{activeAccountId:'1234'},getRakWorkerRosterSettings:()=>({workers:[{name:'Kříž',loginNumber:'5678'}],appAccounts:[{name:'Novák',loginNumber:'1234',shiftTeam:'A'}]}),document:{querySelectorAll:()=>[],getElementById:()=>null}};
+vm.runInNewContext(helper+'\nthis.team=getRakActiveAccountShiftTeam;this.allowed=rakCanAccessRotations;this.info=getRakActiveAccountShiftInfo;',runtime);
+assert.equal(runtime.team(),'A');assert.equal(runtime.allowed(),false,'A cannot see rotations');
+runtime.getRakWorkerRosterSettings=()=>({workers:[],appAccounts:[{loginNumber:'1234',shiftTeam:'D'}]});
+assert.equal(runtime.team(),'D');assert.equal(runtime.allowed(),true,'outside D retains rotations');
+runtime.window.rakUserProfileGet=()=>({accountNumber:'5678'});
+assert.equal(runtime.info().outside,false);assert.equal(runtime.allowed(),true,'rostered D unaffected');
+for(const other of ['B','C']){runtime.window.rakUserProfileGet=()=>({accountNumber:'1234'});runtime.getRakWorkerRosterSettings=()=>({workers:[],appAccounts:[{loginNumber:'1234',shiftTeam:other}]});assert.equal(runtime.team(),other);assert.equal(runtime.allowed(),false);}
+assert(core.includes("button.style.setProperty('display','none','important')"),'nav must hide despite CSS important');
+assert(nav.includes("(id === 'rotace' || id === 'statistiky') && !rakCanAccessRotations()"),'direct URL guard');
+for(const name of ['openRotaceNames','openRotaceMonths','openRotaceStats'])assert(nav.includes(`function ${name}() {\n  if (!rakCanAccessRotations())`),'guard '+name);
+assert(dash.includes('const assigned = getRakActiveAccountShiftInfo()')&&dash.includes('active = own.active')&&dash.includes('nextWorkShift = own.next'),'personal countdown');
+assert(dash.includes("getRakActiveAccountShiftTeam() !== 'D') return []"),'non-D never sees D absences');
+assert(dash.includes("title = 'Směna ' + accountTeam + ' končí za '")&&dash.includes("title = 'Směna ' + accountTeam + ' začíná za '"),'own team hero');
+assert(report.includes('rakAdminCanOpenShiftReport()'),'deputy permission retained');
+assert(report.includes('getTeamShiftState(d,info.team)'),'deputy report defaults from assigned team');
+assert(report.includes('Směna ' + "' + team"),'text report team');
+assert(report.includes("'NOK'+inputNumber")&&report.includes("'NOK: '+fmt(count(draft.moNok))"),'MO input/text NOK concise');
+for(const [file,src] of [['image',image],['share',share]]){assert(src.includes('// RAK_EXTERNAL_SHIFT_TEAMS_17020'),file+' team');assert(src.includes("getRakActiveAccountShiftTeam()"),file+' correct shift');assert(!src.includes('NOK celkem: '),file+' compact NOK');}
+assert(read('admin-machine-settings.js').includes('rakApplyShiftAccess()'),'online settings refresh nav');
+assert(read('app-menu.js').includes('rakApplyShiftAccess()'),'saved settings refresh nav');
+const config=read('supabase-config.js'),index=read('index.html'),sw=read('sw.js');
+assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'test DB only');
+assert(config.includes('RAK_RELEASE_VERSION = "1.7.20"')&&index.includes("v1.7.20-shiftteams1")&&sw.includes("CACHE_VERSION = 'v1.7.20'"),'version sync');
+assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
+console.log('[shift-team-17020-smoke] OK A/B/C hide all Rotace routes, D retains, old account D fallback, own dashboard/absence/countdown, deputy report and concise NOK, test DB');
