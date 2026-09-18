@@ -44,7 +44,7 @@ assert(user.includes("const ACCOUNT_UI_PROFILE_KEY = 'rotace_kalkulacky:games_pr
 assert(user.includes('window.gamesGetProfile = getAccountUiProfile')&&user.includes('window.gamesSaveProfile = saveAccountUiProfile'),'appearance compatibility preserved');
 assert(read('rak-account-access.js').includes("from('game_accounts')"),'real employee login table retained');
 const driver=read('tools/shift-report-mo-hotfix-170-smoke.mjs');
-assert(driver.includes('// RAK_17021_TWO_PASS_GUARD')&&driver.includes('const already17021=')&&driver.includes('const old=already17021?'),'second-pass build handles release');
+assert(driver.includes('// RAK_17021_TWO_PASS_GUARD')&&driver.includes('const already17021=')&&(driver.includes('const old=already17021?')||driver.includes('const old=already17022?')),'second-pass build handles release and later versions');
 const config=read('supabase-config.js'),sw=read('sw.js'),index=read('index.html');
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co')&&!config.includes('bkqamcbkiwumsvelahxr'),'test DB only');
 assert(config.includes('window.RAK_RELEASE_VERSION = "1.7.21";')&&config.includes('window.RAK_PWA_BUILD = "v1.7.21-gamescleanup1";'),'release version');
