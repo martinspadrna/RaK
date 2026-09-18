@@ -78,3 +78,4 @@ for (const path of ['module-readiness.js', 'app-admin-unlock.js', 'app-menu.js',
 }
 assert(read('index.html').includes(`var build='${BUILD}';`) && read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`), '[17026] visible version and update cache mismatch');
 console.log('[development-version-17026] OK 1.7.26: new admin passwords >=12, anonymous directory prefetch removed, test DB, PWA/cache/app display consistent, two-pass guard');
+await import('./development-version-17027.mjs');
