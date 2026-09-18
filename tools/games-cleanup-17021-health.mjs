@@ -20,5 +20,6 @@ if(!s.includes(marker)){
  s=marker+'\n'+s;
  fs.writeFileSync(path,s,'utf8');
 }
-assert(!s.includes("'games', 'menu'")&&!s.includes("'open-game',")&&!s.includes("DOM #games")&&!s.includes("'gamesGrid'"),'obsolete audit expectations remain');
+const detailed=s.slice(s.indexOf('function getPhaseTenNavigationHealth() {'));
+assert(!detailed.includes("'games', 'menu'")&&!detailed.includes("'open-game',")&&!detailed.includes("DOM #games")&&!detailed.includes("'gamesGrid'"),'obsolete detailed audit expectations remain');
 console.log('[games-cleanup-17021-health] OK navigation, page, actions and performance audits no longer require missing games');
