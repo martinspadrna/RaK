@@ -53,7 +53,10 @@ assert(adminApi.includes('String(profile.user_id || \'\') !== String(user.id)'),
   'Admin helper must bind the role to the verified user');
 assert(adminApi.includes('options.ownerOnly && profile.role !== \'owner\''),
   'Owner-only API must retain the owner gate');
-const payloadPolicy = read('supabase/migrations/20260918211000_rak_machine_settings_protect_admin_json_types.sql');
+const policyFiles = fs.readdirSync('supabase/migrations')
+  .filter((name) => name.endsWith('_rak_machine_settings_protect_admin_json_types.sql'));
+assert.equal(policyFiles.length, 1, 'Admin JSON guard must have exactly one migration');
+const payloadPolicy = read('supabase/migrations/' + policyFiles[0]);
 assert(payloadPolicy.includes('rak_machine_settings_anon_admin_json_type_v6') &&
   payloadPolicy.includes('rak_machine_settings_authenticated_admin_json_type_v6'),
   'Disguised admin settings read guards missing');
