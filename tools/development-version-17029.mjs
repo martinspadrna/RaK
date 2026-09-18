@@ -57,3 +57,4 @@ assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_
 assert(read('index.html').includes(`var build='${BUILD}';`)&&read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`),'[17029] release/cache mismatch');
 console.log('[development-version-17029] OK: account bulk SELECT cutover, bounded login RPC, clear retry message, test Supabase only, visible 1.7.29 and new SW cache');
 await import('./development-version-17030.mjs');
+await import('./development-version-17031.mjs');
