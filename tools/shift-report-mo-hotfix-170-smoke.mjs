@@ -16,7 +16,11 @@ const rotationSource=fs.readFileSync('rotace.js','utf8');
 const adminRotationSource=fs.readFileSync('admin-rotation.js','utf8');
 const vacationSource=fs.readFileSync('rak-vacation-report.js','utf8');
 const authSource=fs.readFileSync('app-admin-unlock.js','utf8');
-const already17019=indexSource.includes("var build='v1.7.19-deputy1';")
+const already17020=indexSource.includes("var build='v1.7.20-shiftteams1';")
+  && coreSource.includes('// RAK_EXTERNAL_SHIFT_TEAMS_17020')
+  && authSource.includes('// RAK_REPORT_ONLY_DEPUTY_17019')
+  && imageSource.includes('// RAK_EXTERNAL_SHIFT_TEAMS_17020');
+const already17019=(already17020||indexSource.includes("var build='v1.7.19-deputy1';"))
   && authSource.includes('// RAK_REPORT_ONLY_DEPUTY_17019')
   && vacationSource.includes('// RAK_VACATION_GROUP_REASON_17018')
   && imageSource.includes('// RAK_REPORT_SMART_TOTALS_17017');
@@ -81,7 +85,7 @@ if(already17015||already17014||already17013||already17012||already17010||already
 }else await import('./rak-v170-three-absence-regression.mjs');
 
 if(already17015){
-  console.log('[shift-report-mo-hotfix-170-smoke] second build: preserve 1.7.15–1.7.19 index grid, skip earlier development transforms');
+  console.log('[shift-report-mo-hotfix-170-smoke] second build: preserve 1.7.15–1.7.20 index grid, skip earlier development transforms');
 }else if(already17014){
   console.log('[shift-report-mo-hotfix-170-smoke] 1.7.14 layer complete; skip older stages');
 }else if(already17013){
@@ -135,12 +139,11 @@ else{
   await import('./development-version-17013.mjs');
 }
 if(!already17015)await import('./development-version-17014.mjs');
-// The frozen 1.7 baseline rewrites report text on pass two. Restore the
-// 1.7.15 marker temporarily, then replay each exact stage in order.
+// Frozen 1.7 baseline rewrites report text on pass two. Replay all later stages.
 if(already17016){
   const current=fs.readFileSync('index.html','utf8');
-  const old=already17019?"var build='v1.7.19-deputy1';":already17018?"var build='v1.7.18-absencegroups1';":already17017?"var build='v1.7.17-smarttotals1';":"var build='v1.7.16-absenceunion1';";
-  if(!current.includes(old))throw Error('[17019] latest index marker missing on second pass');
+  const old=already17020?"var build='v1.7.20-shiftteams1';":already17019?"var build='v1.7.19-deputy1';":already17018?"var build='v1.7.18-absencegroups1';":already17017?"var build='v1.7.17-smarttotals1';":"var build='v1.7.16-absenceunion1';";
+  if(!current.includes(old))throw Error('[17020] latest index marker missing on second pass');
   fs.writeFileSync('index.html',current.replace(old,"var build='v1.7.15-indexgrid1';"),'utf8');
 }
 await import('./development-version-17015.mjs');
@@ -149,4 +152,6 @@ await import('./development-version-17016.mjs');
 await import('./development-version-17017.mjs');
 await import('./development-version-17018.mjs');
 await import('./development-version-17019.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.19: regression, report text/PNG, absence grouping, deputy role and test DB verified');
+await import('./shift-team-17020-pre.mjs');
+await import('./development-version-17020.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.20: A/B/C/D outsider shifts, routing, deputy report, concise MO NOK, regression and test DB verified');
