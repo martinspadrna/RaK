@@ -37,7 +37,7 @@ assert(dash.includes("title = 'Směna ' + accountTeam + ' končí za '")&&dash.i
 assert(report.includes('rakAdminCanOpenShiftReport()'),'deputy permission preserved');
 assert(report.includes('getTeamShiftState(d,info.team)'),'report defaults to assigned shift');
 assert(report.includes("date + ' · Směna ' + team"),'report text carries team');
-assert(report.includes("'NOK'+inputNumber")&&report.includes("'NOK: '+fmt(count(draft.moNok))"),'short MO NOK');
+assert(report.includes("NOK'+inputNumber")&&!report.includes('NoK celkem')&&!report.includes('NOK celkem: ')&&report.includes("NOK: '+fmt(count(draft.moNok))"),'short MO NOK');
 for(const [file,src] of [['image',image],['share',share]]){assert(src.includes('// RAK_EXTERNAL_SHIFT_TEAMS_17020'),file+' team header');assert(src.includes('getRakActiveAccountShiftTeam()'),file+' assigned team');assert(!src.includes('NOK celkem: '),file+' NOK');}
 assert(read('admin-machine-settings.js').includes('rakApplyShiftAccess()'),'online settings access refresh');
 assert(read('app-menu.js').includes('rakApplyShiftAccess()'),'saving settings access refresh');
