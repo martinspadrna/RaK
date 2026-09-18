@@ -18,6 +18,7 @@ const r01Rows=[{index:'AD',qty:'555',free:'21',nok:'2'},{index:'AE',qty:'21',fre
 const r07Rows=[{index:'AD',qty:'222',free:'5',nok:'1'},{index:'AH',qty:'0',free:'100',nok:'0'}];
 for(const file of ['rak-shift-report-image.js','rak-shift-report-share.js']) {
   const source=read(file);
+  const smartTotals=source.includes('// RAK_REPORT_SMART_TOTALS_17017');
   assert(source.includes('// RAK_REPORT_INDEX_GRID_TEXT_17015'),file+' new formatter missing');
   assert(source.includes('// RAK_REPORT_NOK_TOTALS_ZERO_17014'),file+' previous zero/NOK rules lost');
   assert(source.includes('const CANVAS_WIDTH = 1080;'),file+' portrait dimensions changed');
@@ -61,9 +62,9 @@ for(const file of ['rak-shift-report-image.js','rak-shift-report-share.js']) {
   assert.deepEqual(texts({id:'r07',rows:r07Rows}),[
     '222 AD ks (z toho 1 NOK)','5 AD volné','100 AH volné','Celkově 327 ks (227 AD, 100 AH)'
   ],file+' TBKR07 NOK/free totals');
-  assert.deepEqual(texts({id:'r07',rows:[{index:'AH',qty:'0',free:'100',nok:'3'}]}),[
-    '100 AH volné (z toho 3 NOK)','Celkově 100 ks (100 AH)'
-  ],file+' free-only positive NOK');
+  assert.deepEqual(texts({id:'r07',rows:[{index:'AH',qty:'0',free:'100',nok:'3'}]}),
+    smartTotals ? ['100 AH volné (z toho 3 NOK)'] : ['100 AH volné (z toho 3 NOK)','Celkově 100 ks (100 AH)'],
+    file+' free-only positive NOK / single-row summary');
   assert.deepEqual(texts({id:'r01',rows:[{index:'AD',qty:'0',free:'0',nok:'0'}]}),['Bez záznamu'],file+' zero suppression');
   const ctx={font:'',measureText:txt=>({width:String(txt).length*22})};
   const moLayout=layout(ctx,{id:'mo',rows:moRows},980);
@@ -103,6 +104,8 @@ assert(text.includes('\nMO:\n') && text.includes('\nTO:\n'),'copied text must pr
 assert(!text.includes('NOK 0') && !/^\s*-\s*0 AH (?:ks|volné)\s*$/m.test(text),'copied text shows zero lines');
 const freeText=render({date:'2026-09-18',shift:'R',moNok:'0',production:{mo:[],to:[],r01:[],r07:[{index:'AH',qty:'0',free:'100',nok:'3'}]},problems:[]});
 assert(freeText.includes('100 AH volné (z toho 3 NOK)'),'copied text free-only NOK');
-assert(freeText.includes('Celkově 100 ks (100 AH)'),'copied text free-only total');
+if (shift.includes('// RAK_REPORT_SMART_TOTALS_17017'))
+  assert(!freeText.includes('Celkově 100 ks (100 AH)'),'smart single-row summary leaked into text');
+else assert(freeText.includes('Celkově 100 ks (100 AH)'),'legacy text free-only total');
 assert(!freeText.includes('NOK celkem: 0'),'copied text zero MO NOK');
-console.log('[report-index-grid-17015-smoke] OK 2 index-colored columns; MO 255, TO 1054, TBKR01 597, TBKR07 327; full-width totals; free-only NOK; zero suppression; copied text matches PNG; test DB only');
+console.log('[report-index-grid-17015-smoke] OK 2 index-colored columns; MO 255, TO 1054, TBKR01 597, TBKR07 327; conditional single-row totals; free-only NOK; zero suppression; copied text matches PNG; test DB only');
