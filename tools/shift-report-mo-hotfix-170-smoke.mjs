@@ -60,7 +60,7 @@ if (already17013 || already17012 || already17010 || already17009 || already17008
 }
 
 if (already17013) {
-  console.log('[shift-report-mo-hotfix-170-smoke] repeated build: 1.7.13 complete; skipping older stages');
+  console.log('[shift-report-mo-hotfix-170-smoke] repeated build: 1.7.13 complete; older transforms not re-applied');
 } else if (already17012) {
   console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.12 layer already complete; skipping older development rebuilds');
 } else if (already17011) {
@@ -107,9 +107,13 @@ if (already17013) {
   await import('./development-version-17010.mjs');
 }
 
-if (!already17013) {
+if (already17013) {
+  // The complete 1.7.13 transform intentionally replaces old image sections, so do
+  // not run its pre-transform assertions again. Validate resulting output instead.
+  await import('./tpkw02-mobile-report-17013-smoke.mjs');
+} else {
   if (!already17012) await import('./development-version-17011.mjs');
   await import('./development-version-17012.mjs');
+  await import('./development-version-17013.mjs');
 }
-await import('./development-version-17013.mjs');
 console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.13: original regression gates, press + TPKW02 month balance and mobile-portrait shift report verified');
