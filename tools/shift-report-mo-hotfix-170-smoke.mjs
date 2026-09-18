@@ -17,6 +17,11 @@ const generatorSource = fs.readFileSync('admin-rotation-generator.js', 'utf8');
 const rotationSource = fs.readFileSync('rotace.js', 'utf8');
 const adminRotationSource = fs.readFileSync('admin-rotation.js', 'utf8');
 
+const already17014 = indexSource.includes("var build='v1.7.14-reporttotals1';")
+  && imageSource.includes('// RAK_REPORT_NOK_TOTALS_ZERO_17014')
+  && shareSource.includes('// RAK_REPORT_NOK_TOTALS_ZERO_17014')
+  && generatorSource.includes('// RAK_TPKW02_FINAL_FAIRNESS_17013')
+  && adminRotationSource.includes('// RAK_TPKW02_FINAL_CALL_17013');
 const already17013 = indexSource.includes("var build='v1.7.13-tpkwmobile1';")
   && generatorSource.includes('// RAK_TPKW02_FINAL_FAIRNESS_17013')
   && adminRotationSource.includes('// RAK_TPKW02_FINAL_CALL_17013')
@@ -53,13 +58,15 @@ const already17006 = indexSource.includes("var build='v1.7.06-smartadmin1';")
 const already17005 = indexSource.includes("var build='v1.7.05-png5';") && imageSource.includes('// RAK_REPORT_COMPACT_PAIRS_17005');
 const already17004 = indexSource.includes("var build='v1.7.04-png4';") && imageSource.includes('// RAK_REPORT_ACCENT_PALETTE_17004');
 
-if (already17013 || already17012 || already17010 || already17009 || already17008 || already17007) {
+if (already17014 || already17013 || already17012 || already17010 || already17009 || already17008 || already17007) {
   console.log('[shift-report-mo-hotfix-170-smoke] repeated build: first-pass three-absence regression already passed; dedicated development smokes will run');
 } else {
   await import('./rak-v170-three-absence-regression.mjs');
 }
 
-if (already17013) {
+if (already17014) {
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.14 layer already complete; skipping older development rebuilds');
+} else if (already17013) {
   console.log('[shift-report-mo-hotfix-170-smoke] repeated build: 1.7.13 complete; older transforms not re-applied');
 } else if (already17012) {
   console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.12 layer already complete; skipping older development rebuilds');
@@ -107,13 +114,15 @@ if (already17013) {
   await import('./development-version-17010.mjs');
 }
 
-if (already17013) {
-  // The complete 1.7.13 transform intentionally replaces old image sections, so do
-  // not run its pre-transform assertions again. Validate resulting output instead.
+if (already17014) {
+  // Repeated Vercel build: preserve the already patched image and run only 1.7.14's final validation.
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserving 1.7.14 report formatting and generator');
+} else if (already17013) {
   await import('./tpkw02-mobile-report-17013-smoke.mjs');
 } else {
   if (!already17012) await import('./development-version-17011.mjs');
   await import('./development-version-17012.mjs');
   await import('./development-version-17013.mjs');
 }
-console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.13: original regression gates, press + TPKW02 month balance and mobile-portrait shift report verified');
+await import('./development-version-17014.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.14: regression gates, TPKW02/press balancing, mobile portrait report, NOK-inclusive production totals, zero suppression and stronger index colors verified');
