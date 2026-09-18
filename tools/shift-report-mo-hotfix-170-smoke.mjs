@@ -16,8 +16,10 @@ const coreSource = fs.readFileSync('core.js', 'utf8');
 const generatorSource = fs.readFileSync('admin-rotation-generator.js', 'utf8');
 const rotationSource = fs.readFileSync('rotace.js', 'utf8');
 const adminRotationSource = fs.readFileSync('admin-rotation.js', 'utf8');
-
-const already17015 = indexSource.includes("var build='v1.7.15-indexgrid1';")
+const vacationSource = fs.readFileSync('rak-vacation-report.js', 'utf8');
+const already17016 = indexSource.includes("var build='v1.7.16-absenceunion1';")
+  && vacationSource.includes('// RAK_VACATION_COMPLETE_ABSENCES_17016');
+const already17015 = (already17016 || indexSource.includes("var build='v1.7.15-indexgrid1';"))
   && imageSource.includes('// RAK_REPORT_INDEX_GRID_TEXT_17015')
   && shareSource.includes('// RAK_REPORT_INDEX_GRID_TEXT_17015')
   && generatorSource.includes('// RAK_TPKW02_FINAL_FAIRNESS_17013')
@@ -70,7 +72,7 @@ if (already17015 || already17014 || already17013 || already17012 || already17010
 }
 
 if (already17015) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserve 1.7.15 index grid, older development transforms skipped');
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserve 1.7.15/1.7.16 index grid, older development transforms skipped');
 } else if (already17014) {
   console.log('[shift-report-mo-hotfix-170-smoke] 1.7.14 layer complete; older development transforms skipped');
 } else if (already17013) {
@@ -134,6 +136,16 @@ if (already17015) {
   await import('./development-version-17013.mjs');
 }
 if (!already17015) await import('./development-version-17014.mjs');
+// 1.7.15 is intentionally replayed on the second pass because the frozen
+// 1.7.0 hotfix rewrites reportText. Restore its expected index marker briefly;
+// the 1.7.16 finalizer reinstates its own version after all 1.7.15 checks.
+if (already17016) {
+  const latestIndex = fs.readFileSync('index.html','utf8');
+  const oldMarker = "var build='v1.7.16-absenceunion1';";
+  if (!latestIndex.includes(oldMarker)) throw Error('[17016] index marker missing on repeated build');
+  fs.writeFileSync('index.html',latestIndex.replace(oldMarker,"var build='v1.7.15-indexgrid1';"),'utf8');
+}
 await import('./development-version-17015.mjs');
 await import('./report-index-grid-17015-compat-final.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.15: original regression gates, safe press/TPKW02, colored MO/TO index grid, full-width totals and matching copy/share verified');
+await import('./development-version-17016.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.16: all 1.7.15 PNG/text regression gates + full calendar/roster absence union verified');
