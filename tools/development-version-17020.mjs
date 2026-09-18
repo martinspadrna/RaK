@@ -30,3 +30,4 @@ const status=ctx.getStatus(new Date('2026-09-18T10:00:00Z'));
 assert.equal(called,0,'outside worker must never query D rotation');
 assert.equal(status.active,null);assert.equal(status.next,null);assert.equal(status.absence,null);
 console.log('[development-version-17020] OK outside-roster identity isolated from D roster even for matching surnames; own-shift hero detail verified');
+await import('./games-residue-audit-17021.mjs');
