@@ -17,6 +17,9 @@ const generatorSource = fs.readFileSync('admin-rotation-generator.js', 'utf8');
 const rotationSource = fs.readFileSync('rotace.js', 'utf8');
 const adminRotationSource = fs.readFileSync('admin-rotation.js', 'utf8');
 
+const already17012 = indexSource.includes("var build='v1.7.12-presshalf1';")
+  && generatorSource.includes('// RAK_GENERATOR_PRESS_HALF_STEP_17012')
+  && adminRotationSource.includes('// RAK_GENERATOR_PRESS_HALF_STEP_CALL_17012');
 const already17011 = indexSource.includes("var build='v1.7.11-cleanfair1';")
   && generatorSource.includes('// RAK_GENERATOR_SUNDAY_TBK_FAIRNESS_17011')
   && adminRotationSource.includes('// RAK_GENERATOR_SUNDAY_TBK_FAIRNESS_CALL_17011');
@@ -45,14 +48,16 @@ const already17006 = indexSource.includes("var build='v1.7.06-smartadmin1';")
 const already17005 = indexSource.includes("var build='v1.7.05-png5';") && imageSource.includes('// RAK_REPORT_COMPACT_PAIRS_17005');
 const already17004 = indexSource.includes("var build='v1.7.04-png4';") && imageSource.includes('// RAK_REPORT_ACCENT_PALETTE_17004');
 
-if (already17011 || already17010 || already17009 || already17008 || already17007) {
+if (already17012 || already17011 || already17010 || already17009 || already17008 || already17007) {
   console.log('[shift-report-mo-hotfix-170-smoke] repeated build: first-pass three-absence regression already passed; dedicated development smokes will run');
 } else {
   await import('./rak-v170-three-absence-regression.mjs');
 }
 
-if (already17011) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.11 layer already complete; skipping older development rebuilds');
+if (already17012) {
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.12 layer already complete; skipping older development rebuilds');
+} else if (already17011) {
+  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.11 layer already complete; skipping older development rebuilds');
 } else {
   if (already17010) {
     console.log('[shift-report-mo-hotfix-170-smoke] 1.7.10 layer already complete; skipping older development rebuilds');
@@ -95,5 +100,6 @@ if (already17011) {
   await import('./development-version-17010.mjs');
 }
 
-await import('./development-version-17011.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, fair solo mills, annual Sunday TBK cleanup fairness, transparent PNG glass and grinder free-only label verified; test build 1.7.11');
+if (!already17012) await import('./development-version-17011.mjs');
+await import('./development-version-17012.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK RaK 1.7 hotfixes, fair solo mills, annual Sunday TBK fairness, 0.5-step press balance, PNG glass and free-only label verified; test build 1.7.12');
