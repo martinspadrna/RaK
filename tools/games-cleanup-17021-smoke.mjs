@@ -42,7 +42,17 @@ assert(menu.includes('ensureGameAccountsExistForWorkers(workerSettings.workers)'
 const user=read('rak-user-profile.js');
 assert(user.includes("const ACCOUNT_UI_PROFILE_KEY = 'rotace_kalkulacky:games_profile_v1';"),'existing appearance storage key preserved');
 assert(user.includes('window.gamesGetProfile = getAccountUiProfile')&&user.includes('window.gamesSaveProfile = saveAccountUiProfile'),'appearance compatibility preserved');
-assert(read('rak-account-access.js').includes("from('game_accounts')"),'real employee login table retained');
+// The legacy build expects the old direct table read; the new release replaces it
+// with a single-account login RPC and an authenticated administrator-only directory.
+const access=read('rak-account-access.js');
+const bridge=read('supabase-bridge.js');
+if (user.includes('rak_lookup_account_for_login_v1') || access.includes('RAK_ADMIN_DIRECTORY_RPC_17027')) {
+  assert(user.includes("client.rpc('rak_lookup_account_for_login_v1'") && !user.includes(".from('game_accounts')"), 'secure single-account login RPC retained');
+  assert(access.includes('RAK_ADMIN_DIRECTORY_RPC_17027') && access.includes('listApplicationAccountsSecure') && !access.includes(".from('game_accounts')"), 'admin directory must not use anonymous bulk table reads');
+  assert(bridge.includes('rak_admin_list_application_accounts_v1') && bridge.includes('listApplicationAccountsSecure'), 'verified administrator directory bridge retained');
+} else {
+  assert(access.includes("from('game_accounts')"),'legacy employee login table retained before secure release stage');
+}
 const driver=read('tools/shift-report-mo-hotfix-170-smoke.mjs');
 assert(driver.includes('// RAK_17021_TWO_PASS_GUARD')&&driver.includes('const already17021=')&&(driver.includes('const old=already17021?')||driver.includes('const old=already17022?')),'second-pass build handles release and later versions');
 const config=read('supabase-config.js'),sw=read('sw.js'),index=read('index.html');
@@ -50,4 +60,4 @@ assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co')&&!config.incl
 assert(config.includes('window.RAK_RELEASE_VERSION = "1.7.21";')&&config.includes('window.RAK_PWA_BUILD = "v1.7.21-gamescleanup1";'),'release version');
 assert(index.includes("var build='v1.7.21-gamescleanup1';")&&sw.includes("const CACHE_VERSION = 'v1.7.21';"),'cache and index version');
 assert.equal(JSON.parse(read('package.json')).version,'1.7.0','technical version unchanged');
-console.log('[games-cleanup-17021-smoke] OK current identity and bug report, no game UI or phantom audits, dashboard/profile/appearance intact, two-pass build, test DB, version 1.7.21');
+console.log('[games-cleanup-17021-smoke] OK current identity and bug report, no game UI or phantom audits, dashboard/profile/appearance intact, secure directory transition and two-pass build');
