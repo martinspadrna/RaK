@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// RaK 1.7.21: remove user-visible references to retired Games, not account/appearance compatibility.
+// RaK 1.7.21: remove retired Games UI without changing real user accounts or appearance storage.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -7,9 +7,9 @@ const VERSION='1.7.21', BUILD='v1.7.21-gamescleanup1';
 const MARK='// RAK_NO_RETIRED_GAMES_17021';
 const read=p=>fs.readFileSync(p,'utf8');
 const put=(p,text)=>fs.writeFileSync(p,text,'utf8');
-function change(text,from,to,tag){if(text.includes(to))return text;assert(text.includes(from),'[17021] missing '+tag);return text.replace(from,to);}
-function update(file,fn){let src=read(file);const newSrc=fn(src);if(src!==newSrc)put(file,newSrc);return newSrc;}
-// Bug reporting must use the *real* employee login. The discontinued Games profile is not an identity provider.
+function change(text,from,to,tag){if(to && text.includes(to))return text;assert(text.includes(from),'[17021] missing '+tag);return text.replace(from,to);}
+function update(file,fn){const before=read(file),after=fn(before);if(before!==after)put(file,after);return after;}
+// Employee bug reports use the actual logged-in account, never the removed game profile.
 update('app-menu-bug-report.js',s=>{
  if(s.includes(MARK))return s;
  const begin=s.indexOf('function getBugReportAccount() {'),end=s.indexOf('function getBugReportBuildVersion() {',begin);
@@ -30,11 +30,11 @@ function getBugReportAccount() {
  s=change(s,"    'Stránka: ' + String(report.page || '—') + (report.game ? ' · hra: ' + report.game : ''),","    'Stránka: ' + String(report.page || '—'),",'game report text');
  s=change(s,"account.name || account.id || 'Hráč'","account.name || account.id || 'Uživatel'",'report account label');
  s=s.replaceAll('Nejdřív se přihlas v herním profilu.','Nejdřív se přihlas do RaK.');
- s=change(s,'    \u0027    <option>Hra</option>\u0027,\n','', 'obsolete report option');
+ s=change(s,"    '    <option>Hra</option>',\n",'', 'obsolete report option');
  assert(!/herním profilu|<option>Hra<\/option>|report\.game|activeGameShell/.test(s),'old game report UI remains');
  return s;
 });
-// The old sync badge advertised and invoked leaderboard refreshes that are no longer installed.
+// Manual sync still updates rotation, profile appearance, live data and PWA, not old leaderboards.
 update('dashboard.js',s=>{
  if(s.includes(MARK))return s;
  const tooltip='Kliknutím vynutíš synchronizaci rozpisu, herních statistik a kontrolu aktualizace.';
@@ -48,7 +48,7 @@ update('dashboard.js',s=>{
  s=change(s,"    await step('herni-statistiky', () => typeof gamesRefreshRemoteLeaderboards === 'function' ? gamesRefreshRemoteLeaderboards(true) : null);\n",'','old leaderboard sync');
  return MARK+'\n'+s;
 });
-// Settings should show the native RaK profile only; historical feature names do not belong in About.
+// Native RaK profile is the only settings card. About history no longer lists removed features.
 update('app-menu-pages.js',s=>{
  if(s.includes(MARK))return s;
  s=change(s,'Aplikace se dál rozdělila do menších modulů, odstranily se Hry a řada starých oprav a duplicit, takže je snazší ji bezpečně udržovat.','Aplikace se rozdělila do menších modulů, odstranily se nepoužívané části a duplicity, takže se snáze a bezpečněji udržuje.','About 1.6');
@@ -57,30 +57,27 @@ update('app-menu-pages.js',s=>{
  s=change(s,"      if (typeof gamesRenderAccountChips === 'function') {\n        try { gamesRenderAccountChips(); } catch (err) {}\n      }\n      if (typeof renderGamesProfileStatus === 'function') {\n        try { renderGamesProfileStatus(); } catch (err) {}\n      }\n",'', 'obsolete account chips');
  return MARK+'\n'+s;
 });
-// Do not create duplicate old login forms or XP/rank overlays from the remaining UI bridge.
+// Remove old duplicate game login forms and XP/rank overlays; current profile is in app-menu-profile.js.
 update('ui.js',s=>{
  if(s.includes(MARK))return s;
  const begin=s.indexOf('function buildGamesProfileSettingsHtml() {');
  const end=s.indexOf('function readSupabaseKeepaliveStatusForUi() {',begin);
  assert(begin>=0&&end>begin,'obsolete rank/profile UI boundaries');
- s=s.slice(0,begin)+MARK+'\n// Current login UI lives exclusively in app-menu-profile.js.\n\n'+s.slice(end);
- // Archived detailed timeline is a fallback; omit retired feature lines and sections if it renders.
+ s=s.slice(0,begin)+MARK+'\n// Current profile UI lives in app-menu-profile.js.\n\n'+s.slice(end);
  const histStart=s.indexOf('function buildAppHistoryHtml(versionText) {');
  const histEnd=s.indexOf('// RaK 1.2 (1.155) – Administrace / Rozpisy',histStart);
  assert(histStart>=0&&histEnd>histStart,'legacy About boundaries');
  let hist=s.slice(histStart,histEnd);
  assert(hist.includes('  return [')&&hist.includes('sections.map(section => ['),'legacy history render anchors');
- hist=hist.replace('  return [',`  const workSections = sections.filter(section => !/(?:hry|herní|herní hub|piškvorky|online hry|herní ladění)/i.test(section.title || ''))
+ hist=hist.replace('  return [',`  const workSections = sections.filter(section => !/(?:hry|herní|piškvorky|online hry)/i.test(section.title || ''))
     .map(section => ({...section,lines:(section.lines || []).filter(line => !/(?:hry|herní|piškvorky|top score|achievement|leaderboard|hráčsk|lodě online)/i.test(line))}));
   return [`);
  hist=hist.replace('sections.map(section => [','workSections.map(section => [');
- s=s.slice(0,histStart)+hist+s.slice(histEnd);
- return s;
+ return s.slice(0,histStart)+hist+s.slice(histEnd);
 });
-// Removed game button and launch action must not remain in action dispatchers.
 update('app-bottom-nav.js',s=>change(s,"    games: () => { openGamesPage(); },\n",'', 'dead bottom nav route'));
 update('app-actions.js',s=>change(s,"    'open-game': (el) => {\n      const gameId = String(el.dataset.game || '').trim();\n      if (gameId) openGameShell(gameId);\n    },\n",'', 'dead game action'));
-// Audits must not report missing #games, its deleted stylesheet, or a non-existing bottom button.
+// The removed game page, stylesheet and button must not be required by health audits.
 update('app-health-audits.js',s=>{
  s=change(s,"    '#dashJidelna',\n    '#games'","    '#dashJidelna'",'phase-one page list');
  s=change(s,"    'styles-games.css',\n",'', 'deleted stylesheet requirement');
@@ -92,24 +89,22 @@ update('app-postload-audits.js',s=>{
  s=change(s,"  try { runGameEngineBaselineAudit(); } catch (err) { console.warn('Game engine baseline audit failed', err); }\n",'', 'game engine audit');
  return s;
 });
-// The admin diagnostics panel aggregates old read-only historic audits. Exclude dead game lines,
-// but retain currently needed account/appearance, Supabase, deployment and workplace metrics.
+// Diagnostic UI must not suggest old game smoke/leaderboard checks are still relevant.
 update('app-menu.js',s=>{
  if(s.includes(MARK))return s;
  s=change(s,"' · nových herních profilů: ' + createdCount","' · nových účtů pracovníků: ' + createdCount",'worker saved status');
  const old="        ].join('\\n');\n        body.innerHTML = [\n          '<div class=\"appMenuCard appMenuDiagnosticsCard\">',";
- const next=`        ]${MARK ? '.filter(line => !/(?:herní|herni|piškvorky|lodě|online hry|top.?score|leaderboard|game[_ -]|gameengine|battleship|\\bttt\\b|herních profilů|session\\/pozvánky|RPC pokrytí|herní cache)/i.test(String(line)))' : ''}.join('\\n');\n        body.innerHTML = [\n          '<div class=\"appMenuCard appMenuDiagnosticsCard\">',`;
+ const filter=".filter(line => !/(?:herní|herni|piškvorky|lodě|online hry|top.?score|leaderboard|game[_ -]|gameengine|battleship|ttt|herních profilů|session\\/pozvánky|RPC pokrytí|herní cache)/i.test(String(line)))";
+ const next="        ]"+filter+".join('\\n');\n        body.innerHTML = [\n          '<div class=\"appMenuCard appMenuDiagnosticsCard\">',";
  assert(s.includes(old),'diagnostics output anchor');
- s=s.replace(old,next);
- return MARK+'\n'+s;
+ return MARK+'\n'+s.replace(old,next);
 });
-// All versions are development-only; keep the underlying 1.7.0 technical app version intact.
+// Release labels and cache, still using the separate test Supabase and technical version 1.7.0.
 update('supabase-config.js',s=>{
  assert(s.includes('https://cgshssdjgzzuprlwnabl.supabase.co')&&!s.includes('bkqamcbkiwumsvelahxr'),'test Supabase isolation');
- s=s.replace(/^window\.RAK_RELEASE_VERSION = "[^"]+";$/m,`window.RAK_RELEASE_VERSION = "${VERSION}";`)
-    .replace(/^window\.RAK_TEST_DISPLAY_VERSION = "[^"]+";$/m,`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`)
-    .replace(/^window\.RAK_PWA_BUILD = "[^"]+";$/m,`window.RAK_PWA_BUILD = "${BUILD}";`);
- return s;
+ return s.replace(/^window\.RAK_RELEASE_VERSION = "[^"]+";$/m,`window.RAK_RELEASE_VERSION = "${VERSION}";`)
+ .replace(/^window\.RAK_TEST_DISPLAY_VERSION = "[^"]+";$/m,`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`)
+ .replace(/^window\.RAK_PWA_BUILD = "[^"]+";$/m,`window.RAK_PWA_BUILD = "${BUILD}";`);
 });
 update('app.js',s=>s.replace(/^  const RAK_DEV_UPDATE_BUILD = "[^"]+";$/m,`  const RAK_DEV_UPDATE_BUILD = "${BUILD}";`).replace(/^  window\.RAK_RELEASE_VERSION = "[^"]+";$/m,`  window.RAK_RELEASE_VERSION = "${VERSION}";`));
 update('sw.js',s=>{
@@ -120,7 +115,7 @@ update('sw.js',s=>{
 });
 update('index.html',s=>change(s,"var build='v1.7.20-shiftteams1';",`var build='${BUILD}';`,'index build version'));
 assert.equal(JSON.parse(read('package.json')).version,'1.7.0','technical package version');
-// Frozen two-pass builder recognizes v1.7.20; extend the guard to recognize the new version.
+// Two-pass driver must recognize new version before it attempts to replay earlier transforms.
 update('tools/shift-report-mo-hotfix-170-smoke.mjs',s=>{
  const marker='// RAK_17021_TWO_PASS_GUARD';
  if(s.includes(marker))return s;
@@ -133,4 +128,4 @@ update('tools/shift-report-mo-hotfix-170-smoke.mjs',s=>{
 for(const file of ['app-menu-bug-report.js','dashboard.js','app-menu-pages.js','ui.js','app-bottom-nav.js','app-actions.js','app-health-audits.js','app-postload-audits.js','app-menu.js','supabase-config.js','app.js','sw.js','tools/shift-report-mo-hotfix-170-smoke.mjs'])
  execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 execFileSync(process.execPath,['tools/games-cleanup-17021-smoke.mjs'],{stdio:'inherit'});
-console.log('[development-version-17021] OK retired Games UI, real employee bug-report identity, current dashboard sync, audits, appearance/login compatibility and PWA version');
+console.log('[development-version-17021] OK retired Games UI, real employee bug-report identity, dashboard sync, audits, appearance/login compatibility and PWA version');
