@@ -57,3 +57,4 @@ assert(read('index.html').includes(`var build='${BUILD}';`) && read('sw.js').inc
 assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v1'") && !read('rak-user-profile.js').includes(".from('game_accounts')"), '[17028] login must use scoped RPC');
 assert(read('rak-account-access.js').includes('listApplicationAccountsSecure') && !read('rak-account-access.js').includes(".from('game_accounts')"), '[17028] admin directory must be gated');
 console.log('[development-version-17028] OK 1.7.28: scoped login/directory preserved; test-only empty legacy rotation tables closed via independent migration; PWA version/cache aligned');
+await import('./development-version-17029.mjs');
