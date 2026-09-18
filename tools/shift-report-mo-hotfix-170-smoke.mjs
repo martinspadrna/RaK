@@ -122,9 +122,8 @@ if (already17015) {
 }
 
 if (already17015) {
-  // The first build transformed image+share already. The 1.7.0 report hotfix rewrites
-  // reportText on each pass, so the 1.7.15 finalizer must restore it every time.
-  console.log('[shift-report-mo-hotfix-170-smoke] second build: reapply final shared text + release labels only');
+  // The 1.7.0 hotfix rewrites reportText each pass. Finalize its output again.
+  console.log('[shift-report-mo-hotfix-170-smoke] second build: restoring final shared text + release labels');
 } else if (already17014) {
   console.log('[shift-report-mo-hotfix-170-smoke] 1.7.14 image is complete; applying final grid/text stage');
 } else if (already17013) {
@@ -136,4 +135,5 @@ if (already17015) {
 }
 if (!already17015) await import('./development-version-17014.mjs');
 await import('./development-version-17015.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.15: original regression gates, safe press/TPKW02, colored MO/TO grid, full-width MO/TO totals and identical copied text verified');
+await import('./report-index-grid-17015-compat-final.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.15: original regression gates, safe press/TPKW02, colored MO/TO index grid, full-width totals and matching copy/share verified');
