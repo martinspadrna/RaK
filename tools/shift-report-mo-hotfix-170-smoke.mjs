@@ -17,6 +17,11 @@ const generatorSource = fs.readFileSync('admin-rotation-generator.js', 'utf8');
 const rotationSource = fs.readFileSync('rotace.js', 'utf8');
 const adminRotationSource = fs.readFileSync('admin-rotation.js', 'utf8');
 
+const already17015 = indexSource.includes("var build='v1.7.15-indexgrid1';")
+  && imageSource.includes('// RAK_REPORT_INDEX_GRID_TEXT_17015')
+  && shareSource.includes('// RAK_REPORT_INDEX_GRID_TEXT_17015')
+  && generatorSource.includes('// RAK_TPKW02_FINAL_FAIRNESS_17013')
+  && adminRotationSource.includes('// RAK_TPKW02_FINAL_CALL_17013');
 const already17014 = indexSource.includes("var build='v1.7.14-reporttotals1';")
   && imageSource.includes('// RAK_REPORT_NOK_TOTALS_ZERO_17014')
   && shareSource.includes('// RAK_REPORT_NOK_TOTALS_ZERO_17014')
@@ -58,41 +63,43 @@ const already17006 = indexSource.includes("var build='v1.7.06-smartadmin1';")
 const already17005 = indexSource.includes("var build='v1.7.05-png5';") && imageSource.includes('// RAK_REPORT_COMPACT_PAIRS_17005');
 const already17004 = indexSource.includes("var build='v1.7.04-png4';") && imageSource.includes('// RAK_REPORT_ACCENT_PALETTE_17004');
 
-if (already17014 || already17013 || already17012 || already17010 || already17009 || already17008 || already17007) {
+if (already17015 || already17014 || already17013 || already17012 || already17010 || already17009 || already17008 || already17007) {
   console.log('[shift-report-mo-hotfix-170-smoke] repeated build: first-pass three-absence regression already passed; dedicated development smokes will run');
 } else {
   await import('./rak-v170-three-absence-regression.mjs');
 }
 
-if (already17014) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.14 layer already complete; skipping older development rebuilds');
+if (already17015) {
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserve 1.7.15 index grid, older development transforms skipped');
+} else if (already17014) {
+  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.14 layer complete; older development transforms skipped');
 } else if (already17013) {
-  console.log('[shift-report-mo-hotfix-170-smoke] repeated build: 1.7.13 complete; older transforms not re-applied');
+  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.13 layer complete; older development transforms skipped');
 } else if (already17012) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: 1.7.12 layer already complete; skipping older development rebuilds');
+  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.12 layer complete; older development transforms skipped');
 } else if (already17011) {
-  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.11 layer already complete; skipping older development rebuilds');
+  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.11 layer complete; older development transforms skipped');
 } else {
   if (already17010) {
-    console.log('[shift-report-mo-hotfix-170-smoke] 1.7.10 layer already complete; skipping older development rebuilds');
+    console.log('[shift-report-mo-hotfix-170-smoke] 1.7.10 layer complete; older development transforms skipped');
   } else {
     if (already17009) {
-      console.log('[shift-report-mo-hotfix-170-smoke] 1.7.09 layer already complete; skipping 1.7.08 and older development rebuilds');
+      console.log('[shift-report-mo-hotfix-170-smoke] 1.7.09 layer complete; skipping 1.7.08 and older development rebuilds');
     } else {
       if (already17008) {
-        console.log('[shift-report-mo-hotfix-170-smoke] 1.7.08 layer already complete; skipping 1.7.07 and older development rebuilds');
+        console.log('[shift-report-mo-hotfix-170-smoke] 1.7.08 layer complete; skipping 1.7.07 and older development rebuilds');
       } else {
         if (already17007) {
-          console.log('[shift-report-mo-hotfix-170-smoke] 1.7.07 roster/report/generator layer already complete; skipping older development rebuilds');
+          console.log('[shift-report-mo-hotfix-170-smoke] 1.7.07 roster/report/generator layer complete; skipping older development rebuilds');
         } else {
           if (already17006) {
-            console.log('[shift-report-mo-hotfix-170-smoke] 1.7.06 admin + 1.7.05 image layers already complete; skipping older visual rebuilds');
+            console.log('[shift-report-mo-hotfix-170-smoke] 1.7.06 admin + 1.7.05 image layers complete; skipping older visual rebuilds');
           } else {
             if (already17005) {
-              console.log('[shift-report-mo-hotfix-170-smoke] 1.7.05 image layer already complete; skipping 1.7.03/1.7.04 rebuild');
+              console.log('[shift-report-mo-hotfix-170-smoke] 1.7.05 image layer complete; skipping 1.7.03/1.7.04 rebuild');
             } else {
               if (already17004) {
-                console.log('[shift-report-mo-hotfix-170-smoke] 1.7.04 image layer already includes 1.7.03 light base; skipping 1.7.03 downgrade');
+                console.log('[shift-report-mo-hotfix-170-smoke] 1.7.04 already includes 1.7.03 light base; skipping downgrade');
               } else {
                 await import('./development-version-17003.mjs');
               }
@@ -114,9 +121,12 @@ if (already17014) {
   await import('./development-version-17010.mjs');
 }
 
-if (already17014) {
-  // Repeated Vercel build: preserve the already patched image and run only 1.7.14's final validation.
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserving 1.7.14 report formatting and generator');
+if (already17015) {
+  // The first build transformed image+share already. The 1.7.0 report hotfix rewrites
+  // reportText on each pass, so the 1.7.15 finalizer must restore it every time.
+  console.log('[shift-report-mo-hotfix-170-smoke] second build: reapply final shared text + release labels only');
+} else if (already17014) {
+  console.log('[shift-report-mo-hotfix-170-smoke] 1.7.14 image is complete; applying final grid/text stage');
 } else if (already17013) {
   await import('./tpkw02-mobile-report-17013-smoke.mjs');
 } else {
@@ -124,5 +134,6 @@ if (already17014) {
   await import('./development-version-17012.mjs');
   await import('./development-version-17013.mjs');
 }
-await import('./development-version-17014.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.14: regression gates, TPKW02/press balancing, mobile portrait report, NOK-inclusive production totals, zero suppression and stronger index colors verified');
+if (!already17015) await import('./development-version-17014.mjs');
+await import('./development-version-17015.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.15: original regression gates, safe press/TPKW02, colored MO/TO grid, full-width MO/TO totals and identical copied text verified');
