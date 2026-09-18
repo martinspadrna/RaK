@@ -94,7 +94,8 @@ for(const expected of [
  '222 AD ks (z toho 1 NOK)','100 AH volné','Celkově 327 ks (227 AD, 100 AH)',
  'NOK celkem: 5','TBKR07:'
 ]) assert(text.includes(expected),'copied text missing '+expected);
-assert(!text.includes('NOK 0') && !text.includes('0 AH ks') && !text.includes('0 AH volné'),'copied text shows zeros');
+assert(text.includes('\nMO:\n') && text.includes('\nTO:\n'),'copied text must preserve readable newlines');
+assert(!text.includes('NOK 0') && !/^\s*-\s*0 AH (?:ks|volné)\s*$/m.test(text),'copied text shows zero lines');
 const freeText=render({date:'2026-09-18',shift:'R',moNok:'0',production:{mo:[],to:[],r01:[],r07:[{index:'AH',qty:'0',free:'100',nok:'3'}]},problems:[]});
 assert(freeText.includes('100 AH volné (z toho 3 NOK)'),'copied text free-only NOK');
 assert(freeText.includes('Celkově 100 ks (100 AH)'),'copied text free-only total');
