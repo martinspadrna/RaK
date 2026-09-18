@@ -8,6 +8,9 @@ if(source.includes(old))source=source.replace(old,next);
 const oldDefault="function defaultShiftContext(now) { const d = new Date(now || Date.now()); const hour=d.getHours(); let shift='R';";
 const nextDefault="function defaultShiftContext(now) {\n  const d = new Date(now || Date.now()); const hour=d.getHours(); let shift='R';";
 if(source.includes(oldDefault))source=source.replace(oldDefault,nextDefault);
+// Earlier compatibility tests deliberately restore the old wording on repeated builds.
+// The final release always restores the requested short NOK label after those tests.
+source=source.replaceAll('NOK celkem: ','NOK: ').replaceAll('NoK celkem: ','NOK: ');
 if(!source.includes('Report směny pro mistra'))throw Error('[17020 pre] report title missing');
 fs.writeFileSync(report,source,'utf8');
 for(const path of ['rak-shift-report-image.js','rak-shift-report-share.js']){
