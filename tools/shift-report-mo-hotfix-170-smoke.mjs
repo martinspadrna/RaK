@@ -17,7 +17,11 @@ const generatorSource = fs.readFileSync('admin-rotation-generator.js', 'utf8');
 const rotationSource = fs.readFileSync('rotace.js', 'utf8');
 const adminRotationSource = fs.readFileSync('admin-rotation.js', 'utf8');
 const vacationSource = fs.readFileSync('rak-vacation-report.js', 'utf8');
-const already17017 = indexSource.includes("var build='v1.7.17-smarttotals1';")
+const already17018 = indexSource.includes("var build='v1.7.18-absencegroups1';")
+  && vacationSource.includes('// RAK_VACATION_GROUP_REASON_17018')
+  && imageSource.includes('// RAK_REPORT_SMART_TOTALS_17017')
+  && shareSource.includes('// RAK_REPORT_SMART_TOTALS_17017');
+const already17017 = (already17018 || indexSource.includes("var build='v1.7.17-smarttotals1';"))
   && imageSource.includes('// RAK_REPORT_SMART_TOTALS_17017')
   && shareSource.includes('// RAK_REPORT_SMART_TOTALS_17017')
   && vacationSource.includes('// RAK_VACATION_COMPLETE_ABSENCES_17016');
@@ -76,7 +80,7 @@ if (already17015 || already17014 || already17013 || already17012 || already17010
 }
 
 if (already17015) {
-  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserve 1.7.15–1.7.17 index grid, older development transforms skipped');
+  console.log('[shift-report-mo-hotfix-170-smoke] second build pass: preserve 1.7.15–1.7.18 index grid, older development transforms skipped');
 } else if (already17014) {
   console.log('[shift-report-mo-hotfix-170-smoke] 1.7.14 layer complete; older development transforms skipped');
 } else if (already17013) {
@@ -141,15 +145,17 @@ if (already17015) {
 }
 if (!already17015) await import('./development-version-17014.mjs');
 // 1.7.15 checks must be replayed on pass two. Temporarily restore its index
-// marker before 1.7.16 and 1.7.17 each restore their final version/markers.
+// marker before 1.7.16/1.7.17/1.7.18 restore their final version/markers.
 if (already17016) {
   const latestIndex = fs.readFileSync('index.html','utf8');
-  const oldMarker = already17017 ? "var build='v1.7.17-smarttotals1';" : "var build='v1.7.16-absenceunion1';";
-  if (!latestIndex.includes(oldMarker)) throw Error('[17017] index marker missing on repeated build');
+  const oldMarker = already17018 ? "var build='v1.7.18-absencegroups1';"
+    : already17017 ? "var build='v1.7.17-smarttotals1';" : "var build='v1.7.16-absenceunion1';";
+  if (!latestIndex.includes(oldMarker)) throw Error('[17018] index marker missing on repeated build');
   fs.writeFileSync('index.html',latestIndex.replace(oldMarker,"var build='v1.7.15-indexgrid1';"),'utf8');
 }
 await import('./development-version-17015.mjs');
 await import('./report-index-grid-17015-compat-final.mjs');
 await import('./development-version-17016.mjs');
 await import('./development-version-17017.mjs');
-console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.17: regression gates, colored PNG/clipboard index totals, complete vacation report and nonredundant single-row totals verified');
+await import('./development-version-17018.mjs');
+console.log('[shift-report-mo-hotfix-170-smoke] OK 1.7.18: all regression gates, vacation grouping, copy/share, PNG smart totals, test DB verified');
