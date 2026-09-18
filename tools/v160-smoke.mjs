@@ -56,7 +56,13 @@ assert(shiftReportMenu.includes("input.placeholder = 'volné';"), 'MO free input
 assert(shiftReportMenu.includes('appMenuReadShiftReportMoFreeValues'), 'MO free values must restore from retained report draft');
 assert(shiftReportMenu.includes("data-shift-add=\"mo\""), 'new MO index rows must receive a free input too');
 assert(shiftReportMenu.includes("window.__rakShiftReportMoFreeMode = 'per-index-like-brusy';"), 'MO free diagnostic mode missing');
-assert(shiftReport.includes("if(r.free)extras.push('z toho '+r.free+' volné')"), 'shift report text must include free pieces for MO as well as grinders');
+assert(
+  shiftReport.includes("if(r.free)extras.push('z toho '+r.free+' volné')")
+  || (shiftReport.includes('// RAK_SHIFT_TEXT_INDEX_TOTALS_17015')
+    && shiftReport.includes("if (free) produced.push({index,text:fmt(free)+' '+index+' volné'})")
+    && shiftReport.includes('if (qty+free) totals.set(index,(totals.get(index)||0)+qty+free);')),
+  'shift report text must include free pieces for MO as well as grinders'
+);
 
 assert(hotfix.includes("const SHIFT_REPORT_EXTRA_MACHINES = ['TTKW01', 'TTKW02'];"), 'shift report extra TTKW machines missing');
 assert(hotfix.includes("option.value === 'TPKW02'"), 'TTKW machines must be inserted after TPKW02');
