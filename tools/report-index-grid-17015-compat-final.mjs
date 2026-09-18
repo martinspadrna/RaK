@@ -24,11 +24,13 @@ if(!block.includes(safeReturn)){
 block=block.replaceAll("lines.push('  - '+item.text)","lines.push('  '+item.text)")
   .replace("lines.push('  - Bez záznamu')","lines.push('  Bez záznamu')");
 source=source.slice(0,begin)+block+source.slice(end);
-// The former formatter relabelled this footer. Retain the same NOK title
-// as the PNG while continuing to use the legacy formatting pipeline.
+// Compatibility fixture validates the historical 1.7.15–1.7.19 label before
+// the final 1.7.20 layer reapplies the requested shorter 'NOK' wording.
 const oldNok="if (nok) value = '  - ' + nok[1] + ' NoK';";
 const newNok="if (nok) value = '  NOK celkem: ' + nok[1];";
+const shortNok="if (nok) value = '  NOK: ' + nok[1];";
 if(source.includes(oldNok)) source=source.replace(oldNok,newNok);
+if(source.includes(shortNok)) source=source.replace(shortNok,newNok);
 assert(source.includes(newNok),'MO NOK footer label missing');
 assert(source.includes(safeReturn),'safe text pipeline missing');
 fs.writeFileSync(path,source,'utf8');
