@@ -125,54 +125,6 @@ window.RAK_PWA_BUILD = "v1.6.03-stats2";
   resetRuntimeOnce();
 })();
 
-// Test-only owner bootstrap: testovací Auth začíná bez uživatele 9811.
-// První úspěšné zadání hesla vytvoří účet přímo v test Supabase; databázový
-// trigger ho potvrdí a přiřadí owner profil. Produkční RaK tento soubor na
-// main větvi nemění a fallback je navíc omezený přesně na test URL + 9811.
-(function installRakTestOwnerBootstrap() {
-  const TEST_URL = "https://cgshssdjgzzuprlwnabl.supabase.co";
-  const OWNER_EMAIL = "9811@admin.rak.local";
-  const library = window.supabase;
-  if (!library || typeof library.createClient !== "function" || library.__rakTestOwnerBootstrapInstalled) return;
-
-  const originalCreateClient = library.createClient.bind(library);
-  library.createClient = function rakTestCreateClient(url, key, options) {
-    const client = originalCreateClient(url, key, options);
-    const normalizedUrl = String(url || "").replace(/\/$/, "");
-    if (normalizedUrl !== TEST_URL || !client || !client.auth || typeof client.auth.signInWithPassword !== "function") return client;
-    if (client.auth.__rakTestOwnerBootstrapPatched) return client;
-
-    const originalSignIn = client.auth.signInWithPassword.bind(client.auth);
-    const originalSignUp = typeof client.auth.signUp === "function" ? client.auth.signUp.bind(client.auth) : null;
-    client.auth.signInWithPassword = async function rakTestSignInWithBootstrap(credentials) {
-      const first = await originalSignIn(credentials);
-      if (!first || !first.error || !originalSignUp) return first;
-
-      const email = String(credentials && credentials.email || "").trim().toLowerCase();
-      const password = String(credentials && credentials.password || "");
-      if (email !== OWNER_EMAIL || !password) return first;
-
-      try {
-        await originalSignUp({ email: OWNER_EMAIL, password });
-      } catch (err) {}
-      return await originalSignIn({ email: OWNER_EMAIL, password });
-    };
-
-    try {
-      Object.defineProperty(client.auth, "__rakTestOwnerBootstrapPatched", { value: true, configurable: false });
-    } catch (err) {
-      client.auth.__rakTestOwnerBootstrapPatched = true;
-    }
-    return client;
-  };
-
-  try {
-    Object.defineProperty(library, "__rakTestOwnerBootstrapInstalled", { value: true, configurable: false });
-  } catch (err) {
-    library.__rakTestOwnerBootstrapInstalled = true;
-  }
-})();
-
 // Development-only rychlá vrstva pro denní výjimku „kalírna“.
 // Je v samostatném souboru, aby produkční main zůstal beze změny.
 (function loadRakKalirnaDayModOverride() {
