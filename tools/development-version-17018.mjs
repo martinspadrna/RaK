@@ -64,7 +64,7 @@ if (!report.includes(MARKER)) {
   report = report.slice(0, start) + replacement + report.slice(end);
 }
 assert(report.includes(MARKER), 'reason grouping not applied');
-assert(report.includes('lines.push(\'- \'+ name + \' (\' + reason + \'): \' + dates.join(\', \'))'), 'multi-day grouping lost');
+assert(report.includes("else lines.push('- ' + name + ' (' + reason + '): ' + dates.join(', '));"), 'multi-day grouping lost');
 write('rak-vacation-report.js', report);
 
 let config = read('supabase-config.js');
