@@ -11,7 +11,10 @@ function assert(condition, message) {
 }
 
 assert(helper.includes("const WATERMARK_SRC = './assets/rak-login-crab.png';"), 'must use exact login crab asset');
-assert(helper.includes('const CANVAS_WIDTH = 1440;'), 'portrait PNG width must stay 1440');
+// Before the development-only portrait transform the original layout remains 1440px;
+// after 1.7.13 the mobile-specific single-column report is intentionally 1080px.
+const mobilePortrait = helper.includes('// RAK_MOBILE_REPORT_LINES_17013');
+assert(helper.includes(mobilePortrait ? 'const CANVAS_WIDTH = 1080;' : 'const CANVAS_WIDTH = 1440;'), 'portrait PNG must use the matching versioned width');
 assert(helper.includes('const MIN_CANVAS_HEIGHT = 1920;'), 'portrait PNG minimum height must stay 1920');
 assert(helper.includes('canvas.toBlob'), 'PNG blob export missing');
 assert(helper.includes("canvas.toDataURL('image/png')"), 'same-gesture iOS image share path missing');
@@ -28,4 +31,4 @@ if (runtime.includes(marker)) {
   assert(runtimeMarkerCount === helperMarkerCount, 'runtime image helper must be attached exactly once as a complete helper');
 }
 
-console.log('[shift-report-image-170-smoke] OK portrait PNG, exact login crab watermark, save + image sharing contract');
+console.log('[shift-report-image-170-smoke] OK mobile/legacy portrait PNG width, exact crab, save + image sharing contract');
