@@ -82,8 +82,13 @@ const shift=read('rak-shift-report.js');
 assert(shift.includes('// RAK_SHIFT_TEXT_INDEX_TOTALS_17015'),'shared copied text patch missing');
 const textStart=shift.indexOf('  function reportText(draft)');
 const textEnd=shift.indexOf('  function saveLocal',textStart);
-assert(textStart>=0 && textEnd>textStart,'text formatter bounds');
-const textContext=vm.createContext({});
+const helpersStart=shift.indexOf('  function reportLineIndex(line) {');
+assert(helpersStart>=0 && textStart>helpersStart && textEnd>textStart,'real report text/helper bounds');
+// First build uses the new text function directly; repeated Vercel build adds the
+// original formatShiftReportText/sortReportRowsByIndexColor compatibility layer.
+// Exercise the same real helpers on both passes, never mock them away.
+const textContext=vm.createContext({REPORT_SEPARATOR:'__________',INDEX_ORDER:{AG:0,AE:0,AF:1,AD:1,AH:2}});
+vm.runInContext(shift.slice(helpersStart,textStart),textContext);
 vm.runInContext(shift.slice(textStart,textEnd),textContext);
 const render=vm.runInContext('reportText',textContext);
 const text=render({date:'2026-09-18',shift:'R',moNok:'5',production:{mo:moRows,to:toRows,r01:r01Rows,r07:r07Rows},problems:[]});
