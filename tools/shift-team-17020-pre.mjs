@@ -8,9 +8,15 @@ if(source.includes(old))source=source.replace(old,next);
 const oldDefault="function defaultShiftContext(now) { const d = new Date(now || Date.now()); const hour=d.getHours(); let shift='R';";
 const nextDefault="function defaultShiftContext(now) {\n  const d = new Date(now || Date.now()); const hour=d.getHours(); let shift='R';";
 if(source.includes(oldDefault))source=source.replace(oldDefault,nextDefault);
-// Earlier compatibility tests deliberately restore the old wording on repeated builds.
-// The final release always restores the requested short NOK label after those tests.
+// Legacy compatibility tests intentionally check the old NOK label. Restore
+// requested wording after those tests, on both the first and second pass.
 source=source.replaceAll('NOK celkem: ','NOK: ').replaceAll('NoK celkem: ','NOK: ');
+if(source.includes('// RAK_EXTERNAL_SHIFT_TEAMS_17020')) {
+  const oldHeader="const lines = ['RaK – REPORT SMĚNY', date + (draft.shift ? ' · ' + draft.shift : ''), ''];";
+  const newHeader="const team=typeof getRakActiveAccountShiftTeam==='function'?getRakActiveAccountShiftTeam():'D';\n    const lines = ['RaK – REPORT SMĚNY', date + ' · Směna ' + team + (draft.shift ? ' · ' + draft.shift : ''), ''];";
+  if(source.includes(oldHeader))source=source.replace(oldHeader,newHeader);
+  if(!source.includes(newHeader))throw Error('[17020 pre] team header not restored in report text');
+}
 if(!source.includes('Report směny pro mistra'))throw Error('[17020 pre] report title missing');
 fs.writeFileSync(report,source,'utf8');
 for(const path of ['rak-shift-report-image.js','rak-shift-report-share.js']){
