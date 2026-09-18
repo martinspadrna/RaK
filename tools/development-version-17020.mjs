@@ -48,3 +48,4 @@ console.log('[development-version-17021] OK second-pass historical About regress
 await import('./admin-compact-17022.mjs');
 await import('./rotation-toolbar-slim-17023.mjs');
 await import('./cross-shift-fixes-17024.mjs');
+await import('./development-version-17025.mjs');
