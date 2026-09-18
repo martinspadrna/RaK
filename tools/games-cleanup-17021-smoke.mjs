@@ -29,7 +29,10 @@ assert(ui.includes('function buildAppHistoryHtml(versionText)')&&ui.includes('wo
 assert(!read('app-bottom-nav.js').includes('games: () => { openGamesPage(); }'),'nav action removed');
 assert(!read('app-actions.js').includes("'open-game':"),'game click dispatch removed');
 const health=read('app-health-audits.js');
-assert(!health.includes("    '#games'")&&!health.includes("    'styles-games.css'")&&!health.includes("'kalkulacky', 'games', 'menu'"),'no false games health requirements');
+const phaseOne=health.slice(health.indexOf('function runPhaseOneFinalAudit()'),health.indexOf('function runPhaseTwoCalcScopeAudit()'));
+assert(phaseOne.length>0&&!phaseOne.includes("    '#games'")&&!phaseOne.includes("    'styles-games.css'")&&!phaseOne.includes("'kalkulacky', 'games', 'menu'"),'no obsolete phase-one requirements');
+const detailed=health.slice(health.indexOf('function getPhaseTenNavigationHealth()'));
+assert(detailed.length>0&&!detailed.includes("'games', 'menu'")&&!detailed.includes("'open-game',")&&!detailed.includes("DOM #games")&&!detailed.includes("'gamesGrid'"),'no obsolete phase-ten requirements');
 const post=read('app-postload-audits.js');
 assert(!post.includes('runPhaseFiveGamePerformanceAudit()')&&!post.includes('runGameEngineBaselineAudit()'),'no obsolete background game audits');
 const menu=read('app-menu.js');
