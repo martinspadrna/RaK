@@ -229,8 +229,22 @@ const textFormatter = String.raw`  // RAK_SHIFT_TEXT_INDEX_TOTALS_17015
 `;
 function patchText(source) {
   assert(source.includes("fields: ['free']"), 'MO free input missing');
-  if (source.includes('// RAK_SHIFT_TEXT_INDEX_TOTALS_17015')) return source;
-  return replaceRegion(source,'  function reportText(draft)','  function saveLocal',textFormatter,'shift text format');
+  const start = source.indexOf('  function reportText(draft)');
+  const end = source.indexOf('  function saveLocal', start);
+  assert(start >= 0 && end > start, 'reportText boundaries missing');
+  const block = source.slice(start, end);
+  // A repeated build's 1.7.0 compatibility stage rewrites ONLY reportText and
+  // leaves the marker immediately above the function. Never mistake that
+  // surviving marker for the implementation having survived.
+  if (block.includes('const totals = new Map();')
+    && block.includes("if (qty+free) totals.set(index,(totals.get(index)||0)+qty+free);")) return source;
+  const marker = '  // RAK_SHIFT_TEXT_INDEX_TOTALS_17015';
+  const markerStart = source.lastIndexOf(marker, start);
+  const replaceStart = markerStart >= 0 && source.slice(markerStart + marker.length, start).trim() === ''
+    ? markerStart : start;
+  const updated = source.slice(0, replaceStart) + textFormatter.trimEnd() + '\n' + source.slice(end);
+  assert(updated.includes("if (qty+free) totals.set(index,(totals.get(index)||0)+qty+free);"), 'text totals not restored');
+  return updated;
 }
 
 for (const file of ['rak-shift-report-image.js','rak-shift-report-share.js']) {
