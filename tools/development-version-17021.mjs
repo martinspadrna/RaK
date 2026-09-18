@@ -7,7 +7,7 @@ const VERSION='1.7.21', BUILD='v1.7.21-gamescleanup1';
 const MARK='// RAK_NO_RETIRED_GAMES_17021';
 const read=p=>fs.readFileSync(p,'utf8');
 const put=(p,text)=>fs.writeFileSync(p,text,'utf8');
-function change(text,from,to,tag){if(to && text.includes(to))return text;assert(text.includes(from),'[17021] missing '+tag);return text.replace(from,to);}
+function change(text,from,to,tag){if(!text.includes(from)){if(to===''||text.includes(to))return text;assert(false,'[17021] missing '+tag);}return text.replace(from,to);}
 function update(file,fn){const before=read(file),after=fn(before);if(before!==after)put(file,after);return after;}
 // Employee bug reports use the actual logged-in account, never the removed game profile.
 update('app-menu-bug-report.js',s=>{
