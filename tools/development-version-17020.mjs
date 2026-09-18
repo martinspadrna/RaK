@@ -32,3 +32,16 @@ assert.equal(status.active,null);assert.equal(status.next,null);assert.equal(sta
 console.log('[development-version-17020] OK outside-roster identity isolated from D roster even for matching surnames; own-shift hero detail verified');
 await import('./games-cleanup-17021-health.mjs');
 await import('./development-version-17021.mjs');
+// The 1.6 baseline legitimately expects the old history during pass one. On pass two,
+// verify the newer cleaned history instead of forcing the removed Games text back into the UI.
+const historySmoke='tools/v160-smoke.mjs';
+let legacySmoke=fs.readFileSync(historySmoke,'utf8');
+const oldAbout="assert(menuPages.includes('odstranily se Hry'), '1.6 About notes must mention Games removal');";
+const newAbout="assert(menuPages.includes('odstranily se nepoužívané části'), 'About must describe current module cleanup without removed Games');";
+if(legacySmoke.includes(oldAbout)){
+  legacySmoke=legacySmoke.replace(oldAbout,newAbout);
+  fs.writeFileSync(historySmoke,legacySmoke,'utf8');
+}
+assert(legacySmoke.includes(newAbout),'updated About legacy regression missing');
+execFileSync(process.execPath,['--check',historySmoke],{stdio:'pipe'});
+console.log('[development-version-17021] OK second-pass historical About regression aligned with current feature set');
