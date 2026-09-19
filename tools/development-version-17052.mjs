@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// RaK 1.7.52: one coherent mobile/offline reliability bundle, after inherited gates.
+// RaK 1.7.52: mobile/offline reliability release after inherited security gates.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -13,17 +13,17 @@ function change(file,before,after){
  }else assert(old.includes(after),'[17052] missing '+file+': '+after.slice(0,100));
 }
 const conn=read('app-pwa-connectivity.js');
-// 1.7.01 already updates the version getter; the VM regression test below
-// verifies real computed cache values instead of matching literal source text.
-assert(conn.includes("const getAppVersionTag = () => String(window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION || '').trim() || 'unknown';"),
- '[17052] release-based update notice lost');
-assert(conn.includes('const getExpectedServiceWorkerCacheVersion = () => {'),
- '[17052] expected worker cache getter lost');
-// Never recover JS/CSS from a differently versioned worker's CacheStorage.
+assert(conn.includes("const getAppVersionTag = () => String(window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION || '').trim() || 'unknown';"),'[17052] release-based update notice lost');
+assert(conn.includes('const getExpectedServiceWorkerCacheVersion = () => {'),'[17052] expected cache getter lost');
+// Pre-existing 1.7.01 guard already handles TEST_DISPLAY_VERSION. If it is absent,
+// fallback RAK_RELEASE_VERSION is a plain semver, not a v-prefixed cache name.
+change('app-pwa-connectivity.js',
+ "    const raw = getAppVersionTag();",
+ "    const raw = getAppVersionTag();\n    if (/^[0-9]+[.][0-9]+[.][0-9]+$/.test(raw)) return 'v' + raw;");
+// Never recover JS/CSS from a different service-worker generation's CacheStorage.
 change('sw.js',
  "    const hit = await caches.match(request, { ignoreSearch: false });\n    if (hit || opts.exactOnly) return hit || null;\n    return await caches.match(request, { ignoreSearch: true });",
  "    const current = [await caches.open(STATIC_CACHE), await caches.open(RUNTIME_CACHE)];\n    for (const cache of current) {\n      const hit = await cache.match(request, { ignoreSearch: false });\n      if (hit) return hit;\n    }\n    if (opts.exactOnly) return null;\n    for (const cache of current) {\n      const hit = await cache.match(request, { ignoreSearch: true });\n      if (hit) return hit;\n    }\n    return null;");
-// Preserve the currently active SW when BOTH offline entrypoint downloads fail.
 change('sw.js',
  "  }));\n  await Promise.allSettled(WARM_START.map(async url => {",
  "  }));\n  const offlineShell = await Promise.all([staticCache.match('./index.html'), staticCache.match('./')]);\n  if (!offlineShell.some(Boolean)) throw new Error('[RaK] missing offline shell; abort service-worker install');\n  await Promise.allSettled(WARM_START.map(async url => {");
@@ -53,4 +53,4 @@ assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supab
 assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"),'[17052] OS-only login changed');
 for(const file of ['app-pwa-connectivity.js','sw.js','app.js','supabase-config.js',guard,'tools/development-version-17052.mjs','tools/pwa-offline-17052.test.mjs','tools/browser-offline-17052.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 execFileSync(process.execPath,['--test','tools/pwa-offline-17052.test.mjs'],{stdio:'inherit'});
-console.log('[development-version-17052] PASS version getter, scoped caches, offline shell and TEST PWA '+VERSION);
+console.log('[development-version-17052] PASS semver fallback, scoped caches, offline shell and TEST PWA '+VERSION);
