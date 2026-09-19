@@ -59,3 +59,4 @@ for(const path of ['tools/development-version-17039.mjs','tools/release-gate-170
  'tools/shift-report-mo-hotfix-170-smoke.mjs','supabase-config.js','app.js','sw.js'])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 execFileSync(process.execPath,['--test','tools/release-gate-17039.test.mjs'],{stdio:'inherit'});
 console.log(`[development-version-17039] OK: ${result.version}; ${result.taskCount} audit tasks; private author, public guard and OS-only regression; final PWA assets aligned`);
+await import('./development-version-17040.mjs');
