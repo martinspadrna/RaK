@@ -9,10 +9,11 @@ test('release, PWA and TEST DB match after both full builds',()=>{
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });
-test('false cache-version mismatch fixed without changing historical APP_VERSION',()=>{
+test('historical release-version mismatch fix survives both builds unchanged',()=>{
  const app=read('app-pwa-connectivity.js');
  assert(app.includes('window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION'));
- assert(app.includes("if (/^v?\\d+\\.\\d+\\.\\d+$/i.test(raw)) return 'v' + raw.replace(/^v/i, '');"));
+ assert(app.includes("const testVersion = String(window.RAK_TEST_DISPLAY_VERSION || '').trim();"));
+ assert(app.includes("if (/^\\d+\\.\\d+\\.\\d+$/.test(testVersion)) return 'v' + testVersion;"));
  assert(read('core.js').includes('const APP_VERSION = "1.5";'));
 });
 test('worker rejects missing shell and ignores stale cross-version assets',()=>{
@@ -27,7 +28,7 @@ test('browser, offline, online, VM and inherited privacy audits are mandatory',(
  assert(workflow.includes('npm run vercel-build\n          npm run vercel-build'));
  for(const command of ['node --test tools/pwa-offline-17052.test.mjs','node tools/browser-offline-17052.mjs','node --test tools/release-gate-17052.test.mjs','node tools/http-anon-audit-17050.mjs','node tools/backup-source-integrity-17051.mjs'])assert(workflow.includes(command),'missing '+command);
  const browser=read('tools/browser-offline-17052.mjs');
- for(const marker of ['Emulation.setDeviceMetricsOverride','Network.emulateNetworkConditions','offline reload','online recovery','document.documentElement.scrollWidth','getPwaHardeningStatus','Fetch.failRequest','false update'])assert(browser.includes(marker),'missing '+marker);
+ for(const marker of ['Emulation.setDeviceMetricsOverride','Network.emulateNetworkConditions','offline reload','online recovery','document.documentElement.scrollWidth','getPwaHardeningStatus','Fetch.failRequest','false update',"'cache-control':'public,max-age=60'"])assert(browser.includes(marker),'missing '+marker);
  const stage=read('tools/shift-report-mo-hotfix-170-smoke.mjs');
  assert(stage.includes('// RAK_17052_TWO_PASS_GUARD')&&stage.includes(`already17052?"var build='${BUILD}';":already17051?`));
  assert(read('tools/development-version-17048.mjs').includes("await import('./development-version-17052.mjs');"));

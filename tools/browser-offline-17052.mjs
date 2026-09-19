@@ -21,7 +21,8 @@ const server=http.createServer((req,res)=>{
  if(!filename.startsWith(ROOT+path.sep)){res.writeHead(403);res.end();return;}
  fs.stat(filename,(error,stat)=>{
   if(error||!stat.isFile()){res.writeHead(404);res.end();return;}
-  res.writeHead(200,{'content-type':mime[path.extname(filename)]||'application/octet-stream','cache-control':'no-store','service-worker-allowed':'/'});
+  // Offline installation is only meaningful when local HTTP simulates real cacheable CDN pages.
+  res.writeHead(200,{'content-type':mime[path.extname(filename)]||'application/octet-stream','cache-control':'public,max-age=60','service-worker-allowed':'/'});
   if(req.method==='HEAD'){res.end();return;}
   fs.createReadStream(filename).pipe(res);
  });
