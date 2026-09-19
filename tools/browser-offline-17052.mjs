@@ -9,7 +9,7 @@ import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
 const ROOT=path.resolve(process.cwd());
-const CHROME=['google-chrome','google-chrome-stable','chromium','chromium-browser'].find(n=>{try{return fs.statSync('/usr/bin/'+n).isFile();}catch{return false;}})||process.env.CHROME_BIN;
+const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>{try{return fs.statSync(n).isFile();}catch{return false;}});
 assert(CHROME,'[17052-browser] Chrome/Chromium binary missing');
 assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'))).version,'1.7.0');
 const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
@@ -25,7 +25,6 @@ const server=http.createServer((req,res)=>{
  if(!filename.startsWith(ROOT+path.sep)){res.writeHead(403);res.end();return;}
  fs.stat(filename,(error,stat)=>{
   if(error||!stat.isFile()){res.writeHead(404);res.end();return;}
-  // Offline installation is only meaningful when local HTTP simulates real cacheable CDN pages.
   res.writeHead(200,{'content-type':mime[path.extname(filename)]||'application/octet-stream','cache-control':'public,max-age=60','service-worker-allowed':'/'});
   if(req.method==='HEAD'){res.end();return;}
   fs.createReadStream(filename).pipe(res);
@@ -33,6 +32,7 @@ const server=http.createServer((req,res)=>{
 });
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'rak-17052-chrome-'));
 let chrome=null,ws=null;const pending=new Map();let nextId=0;const exceptions=[];const httpFailures=[];
+let chromeStderr='',chromeSpawnError='';
 function send(method,params={}){
  assert(ws&&ws.readyState===WebSocket.OPEN,'[17052-browser] debugger disconnected');
  const id=++nextId;
@@ -65,15 +65,18 @@ async function boot(label,expectedRelease){
 try{
  server.listen(0,'127.0.0.1');await once(server,'listening');
  const base='http://127.0.0.1:'+server.address().port+'/';
- chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--user-data-dir='+temp,'about:blank'],{stdio:'ignore'});
+ chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--user-data-dir='+temp,'about:blank'],{stdio:['ignore','ignore','pipe']});
+ chrome.on('error',error=>{chromeSpawnError=String(error.message||error);});
+ chrome.stderr.on('data',chunk=>{chromeStderr=(chromeStderr+String(chunk)).slice(-3000);});
  let port=0;
- for(let i=0;i<100;i++){
-  if(chrome.exitCode!==null)throw Error('[17052-browser] Chrome exited: '+chrome.exitCode);
+ // Allow slower runner startup, but never bypass the real Chrome and offline gate.
+ for(let i=0;i<300;i++){
+  if(chromeSpawnError||chrome.exitCode!==null)throw Error('[17052-browser] Chrome exited: '+chrome.exitCode+'; spawn='+chromeSpawnError+'; stderr='+chromeStderr.slice(-1500));
   const file=path.join(temp,'DevToolsActivePort');
   if(fs.existsSync(file)){port=Number(fs.readFileSync(file,'utf8').split('\n')[0]);break;}
   await delay(100);
  }
- assert(port>0,'[17052-browser] Chrome debugger did not start');
+ assert(port>0,'[17052-browser] Chrome debugger did not start: executable='+CHROME+'; exit='+chrome.exitCode+'; spawn='+chromeSpawnError+'; stderr='+chromeStderr.slice(-1800));
  const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
  const tab=tabs.find(t=>t.type==='page');assert(tab?.webSocketDebuggerUrl,'[17052-browser] no Chrome page');
  ws=new WebSocket(tab.webSocketDebuggerUrl);
