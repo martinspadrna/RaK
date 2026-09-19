@@ -53,13 +53,13 @@ const extendedGuard=`// RAK_17051_TWO_PASS_GUARD\nconst already17050=indexSource
 if(!stage.includes('// RAK_17051_TWO_PASS_GUARD')){
  stage=replace(stage,previousGuard,extendedGuard,'full second-pass replay');
 }
-// Older 1.7.20 index-grid replay chooses the old version by exact HTML marker.
-// The final newer marker must be normalized to the grid baseline before the
-// inherited stages run; merely extending already17050 is not sufficient.
-const historicalSelector='  const old=already17020?';
-const latestSelector=`  const old=current.includes("var build='${BUILD}';")?"var build='${BUILD}';":already17020?`;
-if(stage.includes(historicalSelector))stage=replace(stage,historicalSelector,latestSelector,'index-grid second-pass marker');
-else assert(stage.includes(latestSelector),'[17051] index-grid replay marker missing');
+// Older release stages prepend many exact-version conditions to the 1.7.20
+// index-grid selector. Prefix the FINAL marker instead of depending on which
+// historical selector currently comes first; do not weaken the old check.
+const selectorPrefix='  const old=';
+const selectorNew=`  const old=current.includes("var build='${BUILD}';")?"var build='${BUILD}';":`;
+if(!stage.includes(selectorNew))stage=replace(stage,selectorPrefix,selectorNew,'index-grid second-pass marker');
+assert(stage.includes(selectorNew)&&stage.includes("if(!current.includes(old))throw Error('[17020] latest index marker missing on second pass');"),'[17051] index-grid replay check lost');
 write(guardFile,stage);
 edit('supabase-config.js',[
  ['window.RAK_RELEASE_VERSION = "1.7.50";',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
