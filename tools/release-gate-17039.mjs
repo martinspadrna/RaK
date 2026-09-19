@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+// Pure release assertions; invoked AFTER the version transform, never writes production or app data.
+import assert from 'node:assert/strict';
+
+export const RELEASE = Object.freeze({
+  version: '1.7.39',
+  build: 'v1.7.39-releasegate1',
+  testProject: 'cgshssdjgzzuprlwnabl',
+  productionProject: 'bkqamcbkiwumsvelahxr'
+});
+
+export function assertReleaseSnapshot(files) {
+  const read = (path) => {
+    assert.equal(typeof files[path], 'string', `Missing release file: ${path}`);
+    return files[path];
+  };
+  const index = read('index.html');
+  const config = read('supabase-config.js');
+  const app = read('app.js');
+  const sw = read('sw.js');
+  const packageJson = JSON.parse(read('package.json'));
+  const plan = read('RAK_PLAN_13.md');
+  const policy = read('EMPLOYEE_AUTH_CUTOVER.md');
+  const privacy = read('PUBLIC_ROTATION_ACTOR_PRIVACY.md');
+  const sql = read('tools/security-rotation-release-17039.sql');
+  const stage = read('tools/shift-report-mo-hotfix-170-smoke.mjs');
+  const { version, build, testProject, productionProject } = RELEASE;
+  const mustInclude = [
+    [index, `var build='${build}';`, 'HTML build'],
+    [config, `window.RAK_RELEASE_VERSION = "${version}";`, 'config release'],
+    [config, `window.RAK_TEST_DISPLAY_VERSION = "${version}";`, 'display version'],
+    [config, `window.RAK_PWA_BUILD = "${build}";`, 'PWA build'],
+    [app, `const RAK_DEV_UPDATE_BUILD = "${build}";`, 'app build'],
+    [sw, `const CACHE_VERSION = 'v${version}';`, 'SW cache'],
+    [sw, `const DEVELOPMENT_TEST_DISPLAY_VERSION = '${version}';`, 'SW display'],
+    [sw, `const DEVELOPMENT_BUILD_ID = '${build}';`, 'SW build'],
+    [sw, "const SW_APP_VERSION = '1.7.0';", 'technical SW version'],
+    [config, `https://${testProject}.supabase.co`, 'test database URL'],
+    [policy, 'OS_ONLY_POLICY_20260919', 'OS-only policy'],
+    [privacy, '24 měsíců', 'honest privacy scope'],
+    [sql, 'SET LOCAL ROLE anon;', 'anonymous regression'],
+    [sql, 'ROLLBACK;', 'rollback-only regression'],
+    [stage, 'RAK_17039_TWO_PASS_GUARD', 'second-pass build guard']
+  ];
+  for (const [content, token, label] of mustInclude) {
+    assert(content.includes(token), `Release gate: ${label} mismatch`);
+  }
+  assert(!config.includes(productionProject), 'Release gate: production Supabase in development config');
+  assert.equal(packageJson.version, '1.7.0', 'Technical package version must remain 1.7.0');
+  const ids = [...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].map((match) => match[1]);
+  const expected = ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4'];
+  assert.deepEqual(ids, expected, 'Progress plan must contain exactly 13 ordered unique tasks');
+  assert(plan.includes('0/13') && plan.includes('OS číslo') && plan.includes('rollback'), 'Progress plan must disclose incomplete tasks and rollback');
+  assert(plan.includes('24 měsíců') && plan.includes('ČÁSTEČNĚ'), 'Progress plan must disclose public history and partial fixes');
+  return Object.freeze({ version, build, taskCount: ids.length, testProject });
+}
