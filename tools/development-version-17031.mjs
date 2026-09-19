@@ -62,3 +62,4 @@ for (const path of ['tools/development-version-17031.mjs', 'tools/shift-report-m
 }
 assert(read('index.html').includes(`var build='${BUILD}';`) && read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`), '[17031] release/cache mismatch');
 console.log('[development-version-17031] OK 1.7.31: two privacy migrations, forged-session SQL matrix, test Supabase, PWA/cache aligned');
+await import('./development-version-17032.mjs');
