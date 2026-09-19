@@ -27,6 +27,16 @@ change('sw.js',
 change('sw.js',
  "  }));\n  await Promise.allSettled(WARM_START.map(async url => {",
  "  }));\n  const offlineShell = await Promise.all([staticCache.match('./index.html'), staticCache.match('./')]);\n  if (!offlineShell.some(Boolean)) throw new Error('[RaK] missing offline shell; abort service-worker install');\n  await Promise.allSettled(WARM_START.map(async url => {");
+// Stats are deliberately loaded lazily, so Home must never unconditionally call
+// their calendar helpers during initial paint or after an offline reload.
+change('dashboard.js',
+ "  setCard('dashCalendar', 'Kalendář', formatCalendarDateLabel(now), getCalendarSpecialText(now), '', false, calendarIcon);",
+ "  const calendarDate = typeof formatCalendarDateLabel === 'function'\n    ? formatCalendarDateLabel(now)\n    : new Intl.DateTimeFormat('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' }).format(now);\n  const calendarMeta = typeof getCalendarSpecialText === 'function' ? getCalendarSpecialText(now) : '';\n  setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', false, calendarIcon);");
+const dashboard=read('dashboard.js');
+assert(dashboard.includes("const calendarDate = typeof formatCalendarDateLabel === 'function'")
+  && dashboard.includes("const calendarMeta = typeof getCalendarSpecialText === 'function'")
+  && !dashboard.includes("setCard('dashCalendar', 'Kalendář', formatCalendarDateLabel(now), getCalendarSpecialText(now)"),
+  '[17052] Home calendar lazy-load crash regression');
 const guard='tools/shift-report-mo-hotfix-170-smoke.mjs';
 let stage=read(guard);
 const oldGuard=`const already17051=indexSource.includes("var build='${PREVIOUS}';");`;
@@ -51,6 +61,6 @@ change('index.html',`var build='${PREVIOUS}';`,`var build='${BUILD}';`);
 assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
 assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'),'[17052] TEST only');
 assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"),'[17052] OS-only login changed');
-for(const file of ['app-pwa-connectivity.js','sw.js','app.js','supabase-config.js',guard,'tools/development-version-17052.mjs','tools/pwa-offline-17052.test.mjs','tools/browser-offline-17052.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
+for(const file of ['dashboard.js','app-pwa-connectivity.js','sw.js','app.js','supabase-config.js',guard,'tools/development-version-17052.mjs','tools/pwa-offline-17052.test.mjs','tools/browser-offline-17052.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 execFileSync(process.execPath,['--test','tools/pwa-offline-17052.test.mjs'],{stdio:'inherit'});
-console.log('[development-version-17052] PASS semver fallback, scoped caches, offline shell and TEST PWA '+VERSION);
+console.log('[development-version-17052] PASS lazy calendar Home boot, semver fallback, scoped caches, offline shell and TEST PWA '+VERSION);
