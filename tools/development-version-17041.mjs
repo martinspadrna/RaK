@@ -25,7 +25,8 @@ change('tools/shift-report-mo-hotfix-170-smoke.mjs', source => {
   if (source.includes('// RAK_17041_TWO_PASS_GUARD')) return source;
   source = swap(source,
     `// RAK_17039_TWO_PASS_GUARD\n// RAK_17040_TWO_PASS_GUARD\nconst already17040=indexSource.includes("var build='${PREVIOUS}';");`,
-    `// RAK_17039_TWO_PASS_GUARD\n// RAK_17040_TWO_PASS_GUARD\n// RAK_17041_TWO_PASS_GUARD\nconst already17041=indexSource.includes("var build='${BUILD}';");\nconst already17040=already17041||indexSource.includes("var build='${PREVIOUS}';");`,
+    `// RAK_17039_TWO_PASS_GUARD\n// RAK_17040_TWO_PASS_GUARD\n// RAK_17041_TWO_PASS_GUARD\nconst already17041=indexSource.includes("var build='${BUILD}';");
+const already17040=already17041||indexSource.includes("var build='${PREVIOUS}';");`,
     'preserve 17039 + 17040 guards');
   return swap(source,
     `already17040?"var build='${PREVIOUS}';":already17039?`,
@@ -77,3 +78,4 @@ for (const path of ['tools/development-version-17039.mjs','tools/development-ver
 }
 console.log('[development-version-17041] OK: version 1.7.41; 1.7.39/1.7.40 guards retained; replay detection; TEST Supabase; PWA aligned');
 await import('./development-version-17042.mjs');
+await import('./development-version-17043.mjs');

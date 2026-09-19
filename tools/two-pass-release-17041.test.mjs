@@ -4,17 +4,23 @@ import fs from 'node:fs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const version = '1.7.41';
 const build = 'v1.7.41-twopass1';
-test('final 1.7.41 markers match after repeated build', () => {
+test('latest release metadata remains consistent after repeated build', () => {
+  const matched = read('index.html').match(/var build='(v1\.7\.(\d+)-[a-z0-9-]+)';/);
+  assert(matched, 'final HTML must contain an unambiguous release build');
+  const observedBuild = matched[1];
+  const observedPatch = Number(matched[2]);
+  assert(Number.isInteger(observedPatch) && observedPatch >= 41, 'final version regressed below 1.7.41');
+  const observedVersion = `1.7.${observedPatch}`;
   for (const [path, marker] of [
-    ['index.html', `var build='${build}';`],
-    ['app.js', `const RAK_DEV_UPDATE_BUILD = "${build}";`],
-    ['app.js', `window.RAK_RELEASE_VERSION = "${version}";`],
-    ['supabase-config.js', `window.RAK_RELEASE_VERSION = "${version}";`],
-    ['supabase-config.js', `window.RAK_TEST_DISPLAY_VERSION = "${version}";`],
-    ['supabase-config.js', `window.RAK_PWA_BUILD = "${build}";`],
-    ['sw.js', `const CACHE_VERSION = 'v${version}';`],
-    ['sw.js', `const DEVELOPMENT_TEST_DISPLAY_VERSION = '${version}';`],
-    ['sw.js', `const DEVELOPMENT_BUILD_ID = '${build}';`],
+    ['index.html', `var build='${observedBuild}';`],
+    ['app.js', `const RAK_DEV_UPDATE_BUILD = "${observedBuild}";`],
+    ['app.js', `window.RAK_RELEASE_VERSION = "${observedVersion}";`],
+    ['supabase-config.js', `window.RAK_RELEASE_VERSION = "${observedVersion}";`],
+    ['supabase-config.js', `window.RAK_TEST_DISPLAY_VERSION = "${observedVersion}";`],
+    ['supabase-config.js', `window.RAK_PWA_BUILD = "${observedBuild}";`],
+    ['sw.js', `const CACHE_VERSION = 'v${observedVersion}';`],
+    ['sw.js', `const DEVELOPMENT_TEST_DISPLAY_VERSION = '${observedVersion}';`],
+    ['sw.js', `const DEVELOPMENT_BUILD_ID = '${observedBuild}';`],
     ['sw.js', "const SW_APP_VERSION = '1.7.0';"]]) assert(read(path).includes(marker), path + ': ' + marker);
   assert.equal(JSON.parse(read('package.json')).version, '1.7.0');
 });
