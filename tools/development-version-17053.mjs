@@ -7,10 +7,11 @@ const VERSION='1.7.53',BUILD='v1.7.53-backupverify1',PREVIOUS='v1.7.52-mobileoff
 const read=path=>fs.readFileSync(path,'utf8');
 function change(file,before,after){
  const src=read(file);
+ if(src.includes(after)) return;
  if(src.includes(before)){
   assert.equal(src.split(before).length,2,'[17053] ambiguous '+file);
   fs.writeFileSync(file,src.replace(before,after),'utf8');
- } else assert(src.includes(after),'[17053] missing '+file+': '+after.slice(0,100));
+ } else assert.fail('[17053] missing '+file+': '+after.slice(0,100));
 }
 const anchor='  function addSupabaseSnapshotFiles(zip, snapshot) {';
 const validator=`  // RAK_17053_BACKUP_STRUCTURE_GUARD: never download an apparently complete but partial ZIP.
@@ -50,13 +51,12 @@ change('rak-complete-backup.js',
 change('rak-complete-backup.js',
  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),",
  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),\n      'Soukromých importů: ' + String(metrics.privateImports || 0),\n      'Sanitizovaných Auth účtů: ' + String(metrics.sanitizedAuthAccounts || 0),");
-change('rak-complete-backup.js',
- "    const snapshot = await fetchCompleteSnapshot(token);",
- "    const snapshot = await fetchCompleteSnapshot(token);\n    const validated = validateCompleteSnapshot(snapshot);");
-// Older build stages extend the metrics initializer: append properties without replacing that initializer.
+assert(read('rak-complete-backup.js').includes('    const snapshot = await fetchCompleteSnapshot(token);'),'[17053] snapshot fetch lost');
+// An earlier stage owns a `validated` binding in createCompleteBackup: use an isolated lexical scope.
+// Older stages also extend the metrics initializer; assign new counters only after initialization.
 change('rak-complete-backup.js',
  "    const progress = (text) => status(text);",
- "    Object.assign(metrics, { privateImports: validated.privateImports, sanitizedAuthAccounts: validated.sanitizedAuthAccounts, schemaTables: validated.schemaTables });\n    const progress = (text) => status(text);");
+ "    { const validated = validateCompleteSnapshot(snapshot); Object.assign(metrics, { privateImports: validated.privateImports, sanitizedAuthAccounts: validated.sanitizedAuthAccounts, schemaTables: validated.schemaTables }); }\n    const progress = (text) => status(text);");
 const guard='tools/shift-report-mo-hotfix-170-smoke.mjs';
 let stage=read(guard);
 const oldGuard=`const already17052=indexSource.includes("var build='${PREVIOUS}';");`;
