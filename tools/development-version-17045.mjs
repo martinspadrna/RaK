@@ -34,7 +34,6 @@ assert(migration.includes('rak_lookup_account_for_login_v2')
   '[17045] test migration must combine the lookup and bound the legacy oracle');
 assert(sqlTest.includes('SET LOCAL ROLE anon;') && sqlTest.includes('ROLLBACK;')
   && sqlTest.includes('legacy oracle did not fail closed'), '[17045] rollback-only SQL regression missing');
-
 change('rak-user-profile.js', source => {
   if (source.includes('// RAK_LOGIN_ADMIN_GATE_17045')) return source;
   source = swap(source,
@@ -94,3 +93,4 @@ for (const file of ['tools/development-version-17045.mjs', 'rak-user-profile.js'
   execFileSync(process.execPath, ['--check', file], {stdio:'pipe'});
 execFileSync(process.execPath, ['--test', 'tools/release-gate-17045.test.mjs'], {stdio:'inherit'});
 console.log('[development-version-17045] OK: one bounded OS lookup, admin password preserved, old PWA oracle limited, 2-pass gate, isolated DB and PWA 1.7.45');
+await import('./development-version-17046.mjs');
