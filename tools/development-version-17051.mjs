@@ -44,22 +44,22 @@ write('rak-complete-backup.js',backup);
 const zip=execFileSync('git',['archive','--format=zip','HEAD','--',...tracked],{encoding:null,maxBuffer:128*1024*1024});
 assert(Buffer.isBuffer(zip)&&zip.length>100000,'[17051] filtered archive unexpectedly small');
 write('rak-complete-backup-source.zip',zip);
-// Historical 1.7.48 -> 1.7.50 transformer needs to replay on the second
-// full build. Treat final 1.7.51 marker as prior 1.7.50, then bump once again.
+// Extend the existing exact-version tail without rewriting the old prefix.
+// Historical 1.7.21 smoke explicitly checks that the 17021/17022 prefix
+// survives a repeated build, while 17050 checks its original tail.
 const guardFile='tools/shift-report-mo-hotfix-170-smoke.mjs';
 let stage=read(guardFile);
 const previousGuard=`const already17050=indexSource.includes("var build='${PREVIOUS}';");`;
-const extendedGuard=`// RAK_17051_TWO_PASS_GUARD\nconst already17050=indexSource.includes("var build='${PREVIOUS}';")||indexSource.includes("var build='${BUILD}';");`;
+const extendedGuard=`// RAK_17051_TWO_PASS_GUARD\nconst already17051=indexSource.includes("var build='${BUILD}';");\nconst already17050=already17051||indexSource.includes("var build='${PREVIOUS}';");`;
+const previousTail=`already17050?"var build='${PREVIOUS}';":already17049?`;
+const extendedTail=`already17051?"var build='${BUILD}';":already17050?"var build='${PREVIOUS}';":already17049?`;
 if(!stage.includes('// RAK_17051_TWO_PASS_GUARD')){
- stage=replace(stage,previousGuard,extendedGuard,'full second-pass replay');
+ stage=replace(stage,previousGuard,extendedGuard,'full second-pass detector');
+ stage=replace(stage,previousTail,extendedTail,'index-grid second-pass marker');
 }
-// Older release stages prepend many exact-version conditions to the 1.7.20
-// index-grid selector. Prefix the FINAL marker instead of depending on which
-// historical selector currently comes first; do not weaken the old check.
-const selectorPrefix='  const old=';
-const selectorNew=`  const old=current.includes("var build='${BUILD}';")?"var build='${BUILD}';":`;
-if(!stage.includes(selectorNew))stage=replace(stage,selectorPrefix,selectorNew,'index-grid second-pass marker');
-assert(stage.includes(selectorNew)&&stage.includes("if(!current.includes(old))throw Error('[17020] latest index marker missing on second pass');"),'[17051] index-grid replay check lost');
+assert(stage.includes('// RAK_17051_TWO_PASS_GUARD')&&stage.includes(extendedTail),'[17051] version-chain replay missing');
+assert((stage.includes('const old=already17021?')||stage.includes('const old=already17022?'))
+ &&stage.includes("if(!current.includes(old))throw Error('[17020] latest index marker missing on second pass');"),'[17051] historical index-grid invariant lost');
 write(guardFile,stage);
 edit('supabase-config.js',[
  ['window.RAK_RELEASE_VERSION = "1.7.50";',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
