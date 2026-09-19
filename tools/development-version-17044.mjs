@@ -68,3 +68,4 @@ for (const file of ['tools/development-version-17043.mjs','tools/development-ver
   execFileSync(process.execPath, ['--check', file], {stdio:'pipe'});
 execFileSync(process.execPath, ['--test','tools/release-gate-17044.test.mjs'], {stdio:'inherit'});
 console.log('[development-version-17044] OK: 13 privacy cases, public guarded values, historical replay, owner backup, TEST DB, OS-only login, PWA 1.7.44');
+await import('./development-version-17045.mjs');

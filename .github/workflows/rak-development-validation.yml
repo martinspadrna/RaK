@@ -36,3 +36,4 @@ jobs:
           node --test tools/two-pass-release-17041.test.mjs
           node --test tools/release-gate-17043.test.mjs
           node --test tools/release-gate-17044.test.mjs
+          node --test tools/release-gate-17045.test.mjs
