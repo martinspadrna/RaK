@@ -8,6 +8,11 @@ const read=path=>fs.readFileSync(path,'utf8');
 function change(file,before,after){
  const src=read(file);
  if(src.includes(after)) return;
+ // The later 1.7.55 stage rewrites the complete recovery sequence. During a
+ // second build, its Auth-first guide takes precedence over this historical
+ // 1.7.53 wording. Keep testing all other 1.7.53 transformations normally.
+ if(file==='rak-complete-backup.js' && src.includes('RAK_17055_RESTORE_ORDER_GUARD') &&
+    (after.includes("'5. Obnov soukromá metadata importů") || after.includes("'7. Pokud existují soubory"))) return;
  if(src.includes(before)){
   assert.equal(src.split(before).length,2,'[17053] ambiguous '+file);
   fs.writeFileSync(file,src.replace(before,after),'utf8');
@@ -52,9 +57,6 @@ change('rak-complete-backup.js',
  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),",
  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),\n      'Soukromých importů: ' + String(metrics.privateImports || 0),\n      'Sanitizovaných Auth účtů: ' + String(metrics.sanitizedAuthAccounts || 0),");
 assert(read('rak-complete-backup.js').includes('    const snapshot = await fetchCompleteSnapshot(token);'),'[17053] snapshot fetch lost');
-// Previous build stages own the initial metrics object. On a later release the
-// validated snapshot assignment was extended: never reinsert the older assignment
-// during the second complete build, or the ZIP preflight runs twice.
 if (!read('rak-complete-backup.js').includes('completePublicTables: validated.completePublicTables')) change('rak-complete-backup.js',
  "    const progress = (text) => status(text);",
  "    { const validated = validateCompleteSnapshot(snapshot); Object.assign(metrics, { privateImports: validated.privateImports, sanitizedAuthAccounts: validated.sanitizedAuthAccounts, schemaTables: validated.schemaTables }); }\n    const progress = (text) => status(text);");
