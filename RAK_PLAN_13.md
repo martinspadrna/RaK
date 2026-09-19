@@ -5,7 +5,7 @@ Stav k 19. 9. 2026; větev `development`, testovací verze **1.7.46**. Dílčí 
 | Bod | Oblast | Stav | Doloženo / zbývá |
 |---|---|---|---|
 | P0.1 | Účty a data pracovníků | ČÁSTEČNĚ | Anonymní úplný adresář uzavřen. Kombinovaný omezený login v2 (1.7.45); OS číslo není silné ověření identity. Zbývá reálný HTTP/JWT a export audit. |
-| P0.2 | Rotace a soukromí | ČÁSTEČNĚ | Importní provenience soukromá, tajné kontaktní hodnoty a admin autorství chráněny. **Jména, absence, běžné poznámky a 24 měsíců historie jsou stále anonymně čitelné.** Poznámky používá generátor, statistiky person/code/text, offline používá snímek; bez kompatibilního přístupového modelu veřejné čtení neuzavírat. |
+| P0.2 | Rotace a soukromí | ČÁSTEČNĚ | Importní provenience `importMeta` je soukromá, tajné kontaktní hodnoty a admin autorství chráněny. **Jména, absence, běžné poznámky a 24 měsíců historie jsou stále anonymně čitelné.** Poznámky používá generátor, statistiky person/code/text, offline používá snímek; bez kompatibilního přístupového modelu veřejné čtení neuzavírat. |
 | P0.3 | API a exporty | ČÁSTEČNĚ | Login v2 sdílí omezení v1, starý admin dotaz má samostatné limity. 1.7.46 přidává globální limit keepalive 6000/h, deduplikaci zápisů za 15 s a omezení polí telemetrie. Reporty už dříve mají globální denní/hodinový limit. Staré PWA a kompletní HTTP/export audit zbývají. |
 | P0.4 | Role vlastníka | ČÁSTEČNĚ | Existují serverové podmínky a SQL matice, heslo pro admina zachováno. Zbývá reálné ověření více relací, dalších adminů a obnovy. |
 | P1.1 | Oprávnění a RLS | ČÁSTEČNĚ | 1.7.46 ověřena anonymní práva k účtům, zálohám a keepalive, inventarizována veřejně spustitelná RPC a kontrola SECURITY DEFINER. Zbývá úplný audit implementací a ověření v HTTP/JWT. |
