@@ -9,9 +9,6 @@ const BUILD = 'v1.7.47-privacyguard1';
 const PREVIOUS = 'v1.7.46-hardening1';
 const read = path => fs.readFileSync(path, 'utf8');
 function swap(source, oldText, newText, label) {
-  // In a second build historical gates are already at 1.7.47. Preserve all
-  // their detailed assertions instead of replaying the textual patch twice.
-  if (source.includes('(43|44|45|46|47)') || source.includes('(45|46|47)') || source.includes('(46|47)')) return source;
   if (source.includes(oldText)) {
     assert.equal(source.split(oldText).length, 2, '[17047] duplicate ' + label);
     return source.replace(oldText, newText);
@@ -20,7 +17,13 @@ function swap(source, oldText, newText, label) {
   return source;
 }
 function change(path, transform) {
-  const old = read(path), next = transform(old);
+  const old = read(path);
+  // Historical gates need ALL edits on the first pass and NONE on the second.
+  // Never skip individual swaps inside the first transform: that loses allowlist entries.
+  if ((path === 'tools/release-gate-17043.test.mjs' && old.includes("'1.7.47': 'v1.7.47-privacyguard1'")) ||
+      (path === 'tools/release-gate-17045.test.mjs' && old.includes('(45|46|47)')) ||
+      (path === 'tools/release-gate-17046.test.mjs' && old.includes('(46|47)'))) return old;
+  const next = transform(old);
   if (old !== next) fs.writeFileSync(path, next, 'utf8');
   return next;
 }
