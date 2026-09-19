@@ -18,7 +18,7 @@ const conn=read('app-pwa-connectivity.js');
 assert(conn.includes("const getAppVersionTag = () => String(window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION || '').trim() || 'unknown';"),
  '[17052] legacy-version mismatch fix was lost');
 assert(conn.includes("const testVersion = String(window.RAK_TEST_DISPLAY_VERSION || '').trim();")
- &&conn.includes("if (/^\\d+\\.\\d+\\.\\d+$/.test(testVersion)) return 'v' + testVersion;"),
+ &&conn.includes("if (/^\d+\.\d+\.\d+$/.test(testVersion)) return 'v' + testVersion;"),
  '[17052] development cache version must match actual worker');
 // Do not retrieve fallback JS/CSS from a stale worker's differently versioned cache.
 change('sw.js',
@@ -39,7 +39,7 @@ if(!stage.includes('// RAK_17052_TWO_PASS_GUARD')){
  stage=stage.replace(oldGuard,newGuard).replace(oldTail,newTail);
  fs.writeFileSync(guard,stage,'utf8');
 }
-assert(stage.includes(newTail)&&stage.includes('const old=already17021?'),'[17052] historical replay lost');
+assert(stage.includes(newTail)&&stage.includes("if(!current.includes(old))throw Error('[17020] latest index marker missing on second pass');"),'[17052] historical replay lost');
 change('supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.51";',`window.RAK_RELEASE_VERSION = "${VERSION}";`);
 change('supabase-config.js','window.RAK_TEST_DISPLAY_VERSION = "1.7.51";',`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`);
 change('supabase-config.js',`window.RAK_PWA_BUILD = "${PREVIOUS}";`,`window.RAK_PWA_BUILD = "${BUILD}";`);
