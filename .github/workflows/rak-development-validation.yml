@@ -40,3 +40,4 @@ jobs:
           node --test tools/release-gate-17046.test.mjs
           node --test tools/release-gate-17047.test.mjs
           node --test tools/release-gate-17048.test.mjs
+          node --test tools/release-gate-17049.test.mjs
