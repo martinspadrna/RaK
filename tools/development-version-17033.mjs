@@ -59,3 +59,4 @@ assert.equal(JSON.parse(read('package.json')).version,'1.7.0','[17033] technical
 for(const path of ['tools/development-version-17033.mjs','tools/shift-report-mo-hotfix-170-smoke.mjs','supabase-config.js','app.js','sw.js'])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 assert(read('index.html').includes(`var build='${BUILD}';`)&&read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`),'[17033] build/cache mismatch');
 console.log('[development-version-17033] OK 1.7.33: employee Auth readiness, no early cutover, live notice RLS, rollback SQL tests and isolated test PWA');
+await import('./development-version-17034.mjs');
