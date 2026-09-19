@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// RaK 1.7.52: mobile Chromium, offline reboot and online recovery; never logs in or writes to Supabase.
+// RaK 1.7.52+: mobile Chromium, offline reboot and online recovery; never logs in or writes to Supabase.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,6 +12,10 @@ const ROOT=path.resolve(process.cwd());
 const CHROME=['google-chrome','google-chrome-stable','chromium','chromium-browser'].find(n=>{try{return fs.statSync('/usr/bin/'+n).isFile();}catch{return false;}})||process.env.CHROME_BIN;
 assert(CHROME,'[17052-browser] Chrome/Chromium binary missing');
 assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'))).version,'1.7.0');
+const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
+const expected=(config.match(/^window\.RAK_RELEASE_VERSION = "(1\.7\.\d+)";$/m)||[])[1];
+assert(expected,'[17052-browser] expected release missing from built configuration');
+assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'[17052-browser] preview must use TEST database');
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml','.jpg':'image/jpeg','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
@@ -47,12 +51,12 @@ async function until(expression,ms=25000){
  while(Date.now()<end){try{last=await check(expression);if(last)return last;}catch(e){last=String(e.message);}await delay(200);}
  throw Error('[17052-browser] timeout: '+expression+'; last='+JSON.stringify(last));
 }
-async function boot(label,expected){
+async function boot(label,expectedRelease){
  const start=Date.now();
  await until("document.readyState==='complete' && !!document.querySelector('.dashboardAppTitle') && !!document.querySelector('#home')");
  await until('!!window.__rakBootV2StartupReady');
  const data=await check(`(()=>({title:document.title,version:window.RAK_RELEASE_VERSION||'',build:window.RAK_PWA_BUILD||'',width:innerWidth,docWidth:document.documentElement.scrollWidth,home:!!document.querySelector('#home'),nav:!!document.querySelector('.bottomNav'),controller:!!navigator.serviceWorker?.controller,connection:document.documentElement.dataset.connection||'',updateToast:!!document.querySelector('.rakUpdateToast')}))()`);
- assert.match(data.title,/Rotace a Kalkulačky/);assert.equal(data.version,expected,'[17052-browser] unexpected release');
+ assert.match(data.title,/Rotace a Kalkulačky/);assert.equal(data.version,expectedRelease,'[17052-browser] unexpected release');
  assert(data.home&&data.nav,'[17052-browser] mobile shell/nav missing');
  assert(data.docWidth<=data.width+4,`[17052-browser] horizontal overflow ${data.docWidth} > ${data.width}`);
  console.log(`[17052-browser] ${label} PASS ${Date.now()-start}ms viewport=${data.width} document=${data.docWidth} SW=${data.controller}`);
@@ -94,12 +98,12 @@ try{
  await send('Fetch.enable',{patterns:[{urlPattern:'https://*',requestStage:'Request'}]});
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true});
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
- const expected='1.7.52',navigation=await send('Page.navigate',{url:base});assert(!navigation.errorText,'[17052-browser] '+navigation.errorText);
+ const navigation=await send('Page.navigate',{url:base});assert(!navigation.errorText,'[17052-browser] '+navigation.errorText);
  await boot('cold mobile',expected);
  await until('!!navigator.serviceWorker?.controller',30000);
  await until('!!window.__rotacePwaBootstrapped');
  await check("window.__rotaceRequestPwaCacheStatus?.('ci-mobile-offline') || false");
- await until("window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v1.7.52'",15000);
+ await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
  const before=httpFailures.length;
  await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
