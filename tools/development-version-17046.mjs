@@ -65,3 +65,4 @@ for(const file of ['tools/development-version-17046.mjs','tools/release-gate-170
   execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 execFileSync(process.execPath,['--test','tools/release-gate-17046.test.mjs'],{stdio:'inherit'});
 console.log('[development-version-17046] OK telemetry budget + private payload, rotation backup structural integrity, inherited gates, OS-only login, TEST PWA 1.7.46');
+await import('./development-version-17047.mjs');
