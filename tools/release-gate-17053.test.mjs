@@ -42,7 +42,7 @@ test('ZIP exports private import JSON explicitly and documents honest recovery',
  assert(source.includes("'supabase/data/private/rak_rotation_import_metadata_v1.json', data.private.rak_rotation_import_metadata_v1"));
  assert(source.includes('Obnov soukromá metadata importů'));
  assert(source.includes('přemapuj rak_admin_profiles.user_id'));
- assert(source.includes('staré záznamy zařízení/relací nepovažuj za platné'));
+ assert(/staré záznamy zařízení\/relací nepovažuj za platné/i.test(source));
  assert(source.includes('Soukromých importů: '));
  assert(source.includes('Sanitizovaných Auth účtů: '));
  const sql=read('tools/role-backup-regression-17053.sql');
