@@ -6,7 +6,11 @@ const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const VERSION='1.7.53',BUILD='v1.7.53-backupverify1';
 const source=read('rak-complete-backup.js');
 const validatorMatch=source.match(/  \/\/ RAK_17053_BACKUP_STRUCTURE_GUARD[^\n]*\n[\s\S]*?(?=  function addSupabaseSnapshotFiles\()/);
-const snapshot={format:'rak-complete-backup-v1', data:{public:{rotation_state:[],rak_admin_profiles:[]},private:{rak_rotation_import_metadata_v1:[{rotation_key:'rotation_state',month_key:'09.2026'}]},auth:{users_sanitized:[{id:'fake'}],identities_sanitized:[]},storage:{buckets:[],objects:[]}},schema:{tables:[{}],functions:[{}],policies:[]},sensitive_exclusions:['auth.sessions excluded']};
+// A second build keeps newer runtime validation. This original 1.7.53 regression
+// must supply a realistic complete inventory without bypassing either validator.
+const publicTables=['announcements','app_keepalive','bug_reports','game_accounts','game_invites','game_sessions','game_stats','gomoku_wins','machine_settings','machine_settings_backups','rak_admin_audit_log','rak_admin_devices','rak_admin_profiles','rak_admin_secrets','rak_admin_settings_backups','rak_rotation_backups_v2','rotation_entries','rotation_months','rotation_state','rotation_state_backups'];
+const exported=Object.fromEntries(publicTables.filter(name=>name!=='rak_admin_secrets').map(name=>[name,[]]));
+const snapshot={format:'rak-complete-backup-v1',data:{public:exported,private:{rak_rotation_import_metadata_v1:[{rotation_key:'rotation_state',month_key:'09.2026',import_metadata:{}}]},auth:{users_sanitized:[{id:'00000000-0000-4000-8000-000000000001',raw_app_meta_data:{}}],identities_sanitized:[]},storage:{buckets:[],objects:[]}},schema:{tables:publicTables.map(name=>({schema:'public',name})).concat([{schema:'private',name:'rak_rotation_import_metadata_v1'}]),functions:[{}],policies:[]},sensitive_exclusions:['auth.sessions excluded']};
 const clone=value=>JSON.parse(JSON.stringify(value));
 test('exact development release, double build, OS-only employees and isolation',()=>{
  for(const [file,text] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]])assert(read(file).includes(text),file+' missing '+text);
@@ -20,7 +24,7 @@ test('actual in-app owner ZIP validator rejects missing records and disclosed se
  const good=validate(clone(snapshot));
  assert.equal(good.privateImports,1);
  assert.equal(good.sanitizedAuthAccounts,1);
- assert.equal(good.schemaTables,1);
+ assert.equal(good.schemaTables,21);
  for(const mutate of [
   x=>delete x.data.public.rotation_state,
   x=>x.data.public.rak_admin_secrets=[],
