@@ -25,7 +25,12 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build and run existing npm check and critical smoke
-        run: npm run vercel-build
-      - name: Check final release gate after build
-        run: node --test tools/release-gate-17039.test.mjs
+      - name: Build and run existing npm check and critical smoke twice
+        run: |
+          npm run vercel-build
+          npm run vercel-build
+      - name: Verify final second-pass release and inherited quality gates
+        run: |
+          node --test tools/release-gate-17039.test.mjs
+          node --test tools/rotation-release-gate-17040.test.mjs
+          node --test tools/two-pass-release-17041.test.mjs

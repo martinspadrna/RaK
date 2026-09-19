@@ -37,7 +37,8 @@ change('tools/shift-report-mo-hotfix-170-smoke.mjs', source => {
   source = swap(source,
     `// RAK_17039_TWO_PASS_GUARD
 const already17039=indexSource.includes("var build='v1.7.39-releasegate1';");`,
-    `// RAK_17040_TWO_PASS_GUARD
+    `// RAK_17039_TWO_PASS_GUARD
+// RAK_17040_TWO_PASS_GUARD
 const already17040=indexSource.includes("var build='${BUILD}';");
 const already17039=already17040||indexSource.includes("var build='v1.7.39-releasegate1';");`,
     'second-pass build guard');
@@ -83,3 +84,4 @@ for (const path of ['tools/development-version-17040.mjs', 'tools/rotation-relea
 }
 execFileSync(process.execPath, ['--test', 'tools/rotation-release-gate-17040.test.mjs'], { stdio: 'inherit' });
 console.log(`[development-version-17040] OK: ${result.version}; source-only provenance archived on TEST DB; existing rotation/OS login unchanged`);
+await import('./development-version-17041.mjs');
