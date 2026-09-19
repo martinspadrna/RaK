@@ -1,23 +1,23 @@
 # RaK – průběžný plán 13 úkolů
 
-Stav k 19. 9. 2026; výchozí větev `development`, testovací verze 1.7.43. Tento soubor není potvrzením dokončeného auditu. „Hotovo“ až po nezávislém testu a ověření provozu. Zaměstnanci používají pouze OS číslo, bez hesla, e-mailu či zaměstnaneckých Supabase Auth účtů. `main` a produkční Supabase bez výslovného souhlasu neměnit.
+Stav k 19. 9. 2026; větev `development`, testovací verze 1.7.44. Jde o dílčí bezpečnostní opravy, nikoliv potvrzení úplného auditu. Zaměstnanci se nadále přihlašují **výhradně osobním (OS) číslem**, bez hesla, e-mailu a zaměstnaneckých Supabase Auth účtů. `main` a produkční databázi neměnit bez výslovného souhlasu.
 
-| Bod | Oblast | Stav | Doložený výsledek / zbývá |
+| Bod | Oblast | Stav | Doloženo / zbývá |
 |---|---|---|---|
-| P0.1 | Účty a data pracovníků | ČÁSTEČNĚ | Adresář a kompletní OS čísla nejsou anonymně čitelná. Zbývá ověřit RPC, exporty a HTTP/JWT test; OS číslo samo nepotvrzuje identitu. |
-| P0.2 | Rotace a soukromí | ČÁSTEČNĚ | Kontroly tajných polí/textů a odstranění `savedBy` trvají. 1.7.40 odděluje `importMeta` soukromě, chrání prázdný veřejný sloupec jména a zúží klientský SELECT. Jména, absence, poznámky a 24 měsíců historie jsou stále anonymně čitelné; jejich oddělení blokují závislosti zaměstnanců/statistik/offline a chybějící bezpečné ověření identity. |
-| P0.3 | API a exporty | ČÁSTEČNĚ | Veřejné RPC částečně omezené; zbývá kompletní audit exportů a reálný browser/HTTP test. |
+| P0.1 | Účty a data pracovníků | ČÁSTEČNĚ | Anonymní úplný adresář a OS čísla nejsou přímo veřejně čitelná. Dále ověřit RPC/exporty a HTTP/JWT; OS číslo není silné ověření identity. |
+| P0.2 | Rotace a soukromí | ČÁSTEČNĚ | Soukromý archiv `importMeta` (1.7.40), bezpečnější výběr sloupců, blokace vnořených tajných polí. **1.7.44** upřesňuje kontrolu formátu telefonu a odmítá označená česká telefonní/OS čísla ve volném textu; všech 13 syntetických SQL případů v TEST DB prošlo bez změny dat. Jména, absence a běžné poznámky v rozpisu **zůstávají anonymně čitelné**. Neukrývat je destruktivním smazáním: generátor z textu detekuje odstávky, statistiky využívají person/code/text, offline funguje z lokálního snapshotu. Chybí kompatibilní autorizovaný model. |
+| P0.3 | API a exporty | ČÁSTEČNĚ | Veřejné RPC částečně omezené; zbývá kompletní audit exportů, reálný browser/HTTP test a inventarizace všech veřejných cest k rotaci. |
 | P0.4 | Role vlastníka | ČÁSTEČNĚ | Serverové podmínky a SQL matice existují; zbývá test reálné relace, dalších adminů a obnovy přístupu. |
-| P1.1 | Oprávnění a RLS | OTEVŘENO | Důkladně prověřit role, politiky a všechny SECURITY DEFINER funkce, včetně nového soukromého archivu. |
-| P1.2 | Hesla administrátorů a relace | OTEVŘENO | Audit hesel, ochrany uniklých hesel a rušení relací; neplatí pro zaměstnance. |
-| P1.3 | Build, testy a verze | ČÁSTEČNĚ | Gate 1.7.39–1.7.43 obsahuje kontrolu značek/databáze, unit testy a v GitHub Actions dva kompletní build průchody; 1.7.42 je na Vercelu READY; 1.7.43 opravuje zastaralý finální CI test a ověřuje nové PWA značky. Zbývá nezávislý iPhone smoke, ověření nového ZIPu a plná reprodukovatelnost na Vercelu. |
-| P1.4 | Nasazování a rollback | OTEVŘENO | Přehled verzí, jeden commit a jeden preview build na balík. Produkční alias stále přidělen chybnému starému deploymentu, i když `main` je opraven; rollback aliasu je bez souhlasu zakázán. |
-| P1.5 | Integrita dat a zálohy | OTEVŘENO | Historie, zálohy, audity a revize ponechány. 1.7.42 přidává dosud vynechaných 12 soukromých importních záznamů do owner-only úplné zálohy, manifestu a README; anon přístup odmítnut SQL testem. Zbývá ověřit ZIP na iPhonu, úplný restore a konfliktní scénáře. |
-| P2.1 | Výkon startu PWA | OTEVŘENO | Změřit studený/teplý start na reálném iPhonu. |
-| P2.2 | Načítání, CSS a DOM | OTEVŘENO | Změřit náklady přepínání obrazovek a cíleně optimalizovat bez vizuálních regresí. |
-| P2.3 | Offline cache a aktualizace | OTEVŘENO | Zmapováno, že localStorage obsahuje plný rozpis a SW cachuje vlastní assety. Zbývá test obnovy online, starých snapshotů a aktualizace PWA. |
-| P2.4 | Diagnostika a výkonnostní testy | OTEVŘENO | Doplnit reálná měření, logy a regresní prahy. |
+| P1.1 | Oprávnění a RLS | OTEVŘENO | Přezkoumat role, policies, SECURITY DEFINER funkce a nový rozsah kontrolního CHECK. |
+| P1.2 | Hesla administrátorů a relace | OTEVŘENO | Audit hesel, kompromitovaných relací a jejich rušení; zaměstnanců se netýká. |
+| P1.3 | Build, testy a verze | ČÁSTEČNĚ | Release gate 1.7.39–1.7.44, testovací DB izolace, dvě úplná sestavení v GitHub Actions, nová SQL a unit regresní matice. Zbývá iPhone smoke, úplný ZIP a produkční reprodukovatelnost. |
+| P1.4 | Nasazování a rollback | OTEVŘENO | Jeden tematický commit/preview build. Produkční alias a rollback neměnit bez výslovného souhlasu. |
+| P1.5 | Integrita dat a zálohy | ČÁSTEČNĚ | 1.7.42 zařazuje 12 soukromých záznamů importů do owner-only ZIPu; 1.7.44 nemění historii ani revize. Zbývá ověřit ZIP na iPhonu, kompletní obnovu a konfliktní scénáře. |
+| P2.1 | Výkon startu PWA | OTEVŘENO | Změřit studený a teplý start na iPhonu. |
+| P2.2 | Načítání, CSS a DOM | OTEVŘENO | Změřit přepínání obrazovek bez vizuálních regresí. |
+| P2.3 | Offline cache a aktualizace | OTEVŘENO | Rozpis se ukládá i lokálně; zbývá ověřit přechod online/offline, starší snapshot a PWA upgrade. |
+| P2.4 | Diagnostika a výkonnostní testy | OTEVŘENO | Doplnit skutečná měření, logy a regresní prahy. |
 
-**Bilance: 0/13** bodů plně uzavřeno. Změny P0.2, P1.3, P1.5 a P2.3 v 1.7.40–1.7.43 jsou dílčí; soukromá záloha `importMeta` neřeší veřejně čitelné absence.
+**Bilance: 0/13 plně uzavřených.** Zlepšení kontroly veřejných vstupů není náhradou skutečně neveřejného rozpisu.
 
-**Pořadí dalších tematických balíků:** (1) P0.2 + P1.5: navrhnout autorizovaný model skutečně neveřejných poznámek, ověřit zachování statistiky/offline bez hesla pro zaměstnance; (2) P0.3 + P0.4 + P1.1: oprávnění, API, exporty a role; (3) P1.2–P1.4: provoz, admin relace, rollback po samostatném souhlasu; (4) P2.1–P2.4: výkon a offline měření.
+**Další kroky:** (1) inventarizovat všechny konzumenty `months.*.notes`, připravit oddělené soukromé důvody a odvozené neosobní příznaky odstávek, rozhodnout kompatibilní klientský/offline model; (2) P0.3/P0.4/P1.1 audit RPC, exportů a rolí; (3) reálná zkouška ZIP restore a admin relací; (4) iPhone/offline výkon. Nezavádět zaměstnancům další přihlašovací údaj.

@@ -62,3 +62,4 @@ for (const file of ['tools/development-version-17043.mjs','tools/shift-report-mo
   execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' });
 execFileSync(process.execPath, ['--test', 'tools/release-gate-17043.test.mjs'], {stdio:'inherit'});
 console.log('[development-version-17043] OK: forward-compatible final gates, private backup preserved, test DB, PWA 1.7.43, OS-number login unchanged');
+await import('./development-version-17044.mjs');
