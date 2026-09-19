@@ -9,12 +9,13 @@ test('release, PWA and TEST DB match after both full builds',()=>{
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });
-test('historical release-version mismatch fix survives both builds unchanged',()=>{
+test('release-based cache getter remains active; runtime values are checked by VM',()=>{
  const app=read('app-pwa-connectivity.js');
  assert(app.includes('window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION'));
- assert(app.includes("const testVersion = String(window.RAK_TEST_DISPLAY_VERSION || '').trim();"));
- assert(app.includes("if (/^\\d+\\.\\d+\\.\\d+$/.test(testVersion)) return 'v' + testVersion;"));
+ assert(app.includes('const getExpectedServiceWorkerCacheVersion = () => {'));
  assert(read('core.js').includes('const APP_VERSION = "1.5";'));
+ const workflow=read('.github/workflows/rak-development-validation.yml');
+ assert(workflow.includes('node --test tools/pwa-offline-17052.test.mjs'));
 });
 test('worker rejects missing shell and ignores stale cross-version assets',()=>{
  const sw=read('sw.js');
