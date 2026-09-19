@@ -54,3 +54,4 @@ assert.equal(JSON.parse(read('package.json')).version,'1.7.0','[17037] technical
 for(const path of ['tools/development-version-17037.mjs','tools/shift-report-mo-hotfix-170-smoke.mjs','supabase-config.js','app.js','sw.js'])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 assert(read('index.html').includes(`var build='${BUILD}';`)&&read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`),'[17037] build/cache mismatch');
 console.log('[development-version-17037] OK: OS-only login, validated rotation key+value guard, TEST Supabase, build 1.7.37');
+await import('./development-version-17038.mjs');
