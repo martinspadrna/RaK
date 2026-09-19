@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// RaK 1.7.48: first pass applies the full security release; second pass
-// preserves already-applied test gates and restores only final version markers.
+// RaK 1.7.48: first pass full security release; second pass restores final markers.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -33,14 +32,13 @@ if(!stage.includes('// RAK_17048_TWO_PASS_GUARD')) {
   [`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${OLD_VERSION}';`,`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],
   [`const DEVELOPMENT_BUILD_ID = '${OLD_BUILD}';`,`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]]);
  preserve('index.html',[[`var build='${OLD_BUILD}';`,`var build='${BUILD}';`]]);
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl') && !read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- for(const file of ['app.js','sw.js','supabase-config.js','app-admin-unlock.js'])
-  execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
- for(const id of ['17043','17044','17045','17046','17047','17048'])
-  execFileSync(process.execPath,['--test',`tools/release-gate-${id}.test.mjs`],{stdio:'inherit'});
+ for(const file of ['app.js','sw.js','supabase-config.js','app-admin-unlock.js'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
+ for(const id of ['17043','17044','17045','17046','17047','17048'])execFileSync(process.execPath,['--test',`tools/release-gate-${id}.test.mjs`],{stdio:'inherit'});
  console.log('[development-version-17048] OK idempotent second build; final release and OS-only employee login intact');
 }
 await import('./development-version-17049.mjs');
 await import('./development-version-17050.mjs');
 await import('./development-version-17051.mjs');
+await import('./development-version-17052.mjs');
