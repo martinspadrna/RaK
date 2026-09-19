@@ -50,7 +50,7 @@ test('real rollback-only PostgreSQL probe round-trips all 19 tables and catches 
   'v_tables<>19','DELETE FROM pg_temp.rak_17055_shadow_rotation_state','missing row went unnoticed',
   'temporary_test_devices_remaining'])assert(sql.includes(value),'shadow restore missing '+value);
  assert(!/\bCOMMIT\s*;/i.test(sql)&&!sql.includes('bkqamcbkiwumsvelahxr'));
- assert(sql.includes('NOT an independent Supabase project'));
+ assert(sql.includes('no independent Supabase project'));
 });
 test('historical two-pass build, headless mobile, HTTP privacy and CRC remain CI requirements',()=>{
  const chain=read('tools/development-version-17048.mjs');

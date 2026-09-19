@@ -25,7 +25,7 @@ const recovery=[
  "      '10. Pokud existují soubory ve supabase/storage-files/, vytvoř odpovídající buckety a nahraj odpovídající fyzické soubory. Samotná metadata nestačí.',",
  "      '11. Znovu nastav Supabase/Vercel tajné klíče, konfiguraci a environment proměnné mimo ZIP.',",
  "      '12. Ověř počet a obsah všech 19 exportovaných tabulek, počty soukromých importů podle manifestu, cizí klíče, role owner/admin/deputy a přihlášení z nových zařízení. Teprve pak nasaď aplikaci a proveď critical runtime + security smoke.',",
- "      '13. SQL shadow test v původní databázi není nezávislá obnova; až úspěšné obnovení do odděleného projektu s Auth/Storage, migracemi a role testy uzavírá disaster recovery.'"
+ "      '13. SQL shadow test v původní databázi není nezávislá obnova; až úspěšné obnovení do odděleného projektu s Auth/Storage, migracemi a role testy uzavírá disaster recovery.',"
 ].join('\n');
 let source=read(backup);
 if(!source.includes('RAK_17055_RESTORE_ORDER_GUARD')){
