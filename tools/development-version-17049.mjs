@@ -23,6 +23,9 @@ function both(src,before,after,label){
 function edit(path,fn){
  const source=read(path);
  if(source.includes('// RAK_17049_COMPAT'))return source;
+ // The following newer replay guard is already installed on the second build.
+ // Do not attempt to reinsert the old 17049 detector into its extended chain.
+ if(path==='tools/shift-report-mo-hotfix-170-smoke.mjs' && source.includes('// RAK_17050_TWO_PASS_GUARD'))return source;
  const output=fn(source);
  if(output!==source)fs.writeFileSync(path,output,'utf8');
  return output;
