@@ -37,7 +37,13 @@ test('restore instructions and manifest include recoverable private import metad
   const source = read('rak-complete-backup.js');
   assert(source.includes('snapshot.data.private.rak_rotation_import_metadata_v1.length'));
   assert(source.includes('privateImportRows: 0'));
-  assert(source.includes('4a. Obnov také supabase/data/private/'));
+  // 1.7.55 corrects the historic unsafe order (data before Auth). Keep both
+  // the original 1.7.42 stage and the later Auth-first recovery testable.
+  const oldGuide = source.includes('4a. Obnov také supabase/data/private/');
+  const authFirstGuide = source.includes('RAK_17055_RESTORE_ORDER_GUARD')
+    && source.includes('8. Obnov soukromá metadata importů ze supabase/data/private/rak_rotation_import_metadata_v1.json')
+    && source.includes('4. NEJDŘÍV v novém projektu znovu vytvoř administrátorské Auth účty');
+  assert(oldGuide || authFirstGuide, 'recoverable private import metadata must appear in the restoration guide');
   assert(source.includes('soukr') || source.includes('Soukrom'));
 });
 test('migration preserves owner authorization, excludes login salts and tests transaction rollback', () => {
