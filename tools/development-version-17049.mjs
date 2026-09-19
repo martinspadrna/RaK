@@ -14,6 +14,12 @@ function once(src,before,after,label){
  assert(src.includes(after),'[17049] missing '+label);
  return src;
 }
+function both(src,before,after,label){
+ // These historical conditions intentionally occur twice: once for a 17046 check
+ // and once for the next release. Extend BOTH cases, never silently skip one.
+ assert.equal(src.split(before).length,3,'[17049] expected two '+label+' locations');
+ return src.replaceAll(before,after);
+}
 function edit(path,fn){
  const source=read(path);
  if(source.includes('// RAK_17049_COMPAT'))return source;
@@ -37,8 +43,8 @@ for(const marker of ['BEGIN;','ROLLBACK;','SET LOCAL ROLE anon;', 'private table
  assert(matrix.includes(marker),'[17049] missing SQL matrix '+marker);
 assert(!/\b(?:update|delete|truncate)\s+public\.rotation_state\b/i.test(migration+matrix),'[17049] cannot mutate rotation');
 
-// These historical tests are deliberately run again at the final 1.7.49 build.
-// Update their exact version/build allowlists, not the underlying security assertions.
+// Historical tests run again at final 1.7.49. Extend exact version/build allowlists,
+// keeping their detailed privacy and login assertions intact.
 edit('tools/release-gate-17043.test.mjs',src=>{
  src=once(src,'(43|44|45|46|47|48)','(43|44|45|46|47|48|49)','17043 release range');
  src=once(src,"'1.7.48': 'v1.7.48-deviceauth1'","'1.7.48': 'v1.7.48-deviceauth1',\n  '1.7.49': 'v1.7.49-reportguard1'",'17043 allowlist');
@@ -50,7 +56,7 @@ edit('tools/release-gate-17043.test.mjs',src=>{
 edit('tools/release-gate-17045.test.mjs',src=>{
  src=once(src,'(45|46|47|48)','(45|46|47|48|49)','17045 release range');
  src=once(src," : 'v1.7.48-deviceauth1');"," : version === '1.7.48' ? 'v1.7.48-deviceauth1' : 'v1.7.49-reportguard1');",'17045 allowlist');
- src=once(src,"version === '1.7.47' || version === '1.7.48'","version === '1.7.47' || version === '1.7.48' || version === '1.7.49'",'17045 old replay');
+ src=both(src,"version === '1.7.47' || version === '1.7.48'","version === '1.7.47' || version === '1.7.48' || version === '1.7.49'",'17045 old replay');
  src=once(src,"  if (version === '1.7.48') assert(stage.includes(`already17048?\"var build='${build}';\":already17047?`));",
   "  if (version === '1.7.48' || version === '1.7.49') assert(stage.includes(`already17048?\"var build='${'v1.7.48-deviceauth1'}';\":already17047?`));\n  if (version === '1.7.49') assert(stage.includes(`already17049?\"var build='${build}';\":already17048?`));",'17045 final replay');
  return src+'\n// RAK_17049_COMPAT: inherited login gate, (45|46|47|48).\n';
@@ -58,7 +64,7 @@ edit('tools/release-gate-17045.test.mjs',src=>{
 edit('tools/release-gate-17046.test.mjs',src=>{
  src=once(src,'(46|47|48)','(46|47|48|49)','17046 release range');
  src=once(src,":'v1.7.48-deviceauth1'",":VERSION==='1.7.48'?'v1.7.48-deviceauth1':'v1.7.49-reportguard1'",'17046 allowlist');
- src=once(src,"VERSION==='1.7.47'||VERSION==='1.7.48'","VERSION==='1.7.47'||VERSION==='1.7.48'||VERSION==='1.7.49'",'17046 replay range');
+ src=both(src,"VERSION==='1.7.47'||VERSION==='1.7.48'","VERSION==='1.7.47'||VERSION==='1.7.48'||VERSION==='1.7.49'",'17046 replay range');
  src=once(src,"if(VERSION==='1.7.48')assert(stage.includes(`already17048?\"var build='${BUILD}';\":already17047?`));",
   "if(VERSION==='1.7.48'||VERSION==='1.7.49')assert(stage.includes(`already17048?\"var build='${'v1.7.48-deviceauth1'}';\":already17047?`));\n if(VERSION==='1.7.49')assert(stage.includes(`already17049?\"var build='${BUILD}';\":already17048?`));",'17046 final replay');
  return src+'\n// RAK_17049_COMPAT: historical report constraints, (46|47|48).\n';
