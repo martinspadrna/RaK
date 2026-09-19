@@ -52,8 +52,15 @@ const previousGuard=`const already17050=indexSource.includes("var build='${PREVI
 const extendedGuard=`// RAK_17051_TWO_PASS_GUARD\nconst already17050=indexSource.includes("var build='${PREVIOUS}';")||indexSource.includes("var build='${BUILD}';");`;
 if(!stage.includes('// RAK_17051_TWO_PASS_GUARD')){
  stage=replace(stage,previousGuard,extendedGuard,'full second-pass replay');
- write(guardFile,stage);
 }
+// Older 1.7.20 index-grid replay chooses the old version by exact HTML marker.
+// The final newer marker must be normalized to the grid baseline before the
+// inherited stages run; merely extending already17050 is not sufficient.
+const historicalSelector='  const old=already17020?';
+const latestSelector=`  const old=current.includes("var build='${BUILD}';")?"var build='${BUILD}';":already17020?`;
+if(stage.includes(historicalSelector))stage=replace(stage,historicalSelector,latestSelector,'index-grid second-pass marker');
+else assert(stage.includes(latestSelector),'[17051] index-grid replay marker missing');
+write(guardFile,stage);
 edit('supabase-config.js',[
  ['window.RAK_RELEASE_VERSION = "1.7.50";',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
  ['window.RAK_TEST_DISPLAY_VERSION = "1.7.50";',`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`],
