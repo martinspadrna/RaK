@@ -37,7 +37,7 @@ test('actual ZIP README requires Auth before FK data, revokes old devices and di
  assert(auth>=0&&auth<remap&&remap<data&&data<devices&&devices<privateImports,'dependency order invalid');
  for(const token of ['game_accounts před bug_reports','rotation_months před rotation_entries',
    'přemapuj rak_admin_profiles.user_id','rak_admin_settings_backups.created_by',
-   'rak_rotation_backups_v2.created_by','staré záznamy zařízení/relací nepovažuj za platné',
+   'rak_rotation_backups_v2.created_by','Staré záznamy zařízení/relací nepovažuj za platné',
    'rak_admin_secrets','private.rak_employee_auth_links','SQL shadow test','NENÍ to automaticky spustitelná obnova'])
    assert(guide.includes(token),'restore guide missing '+token);
  assert(!guide.includes('4. Nahraj aplikační data ze supabase/data/public/.'),'old unsafe order survived');
