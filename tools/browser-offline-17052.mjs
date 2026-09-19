@@ -39,7 +39,7 @@ function send(method,params={}){
 }
 async function check(expression){
  const {result,exceptionDetails}=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
- if(exceptionDetails)throw Error('[17052-browser] JavaScript expression: '+expression+' '+exceptionDetails.text);
+ if(exceptionDetails)throw Error('[17052-browser] JavaScript expression: '+expression+' '+(exceptionDetails.exception?.description||exceptionDetails.text));
  return result.value;
 }
 async function until(expression,ms=25000){
@@ -80,7 +80,12 @@ try{
    message.error?p.reject(Error(message.error.message||'CDP error')):p.resolve(message.result||{});
   }
   if(message.method==='Fetch.requestPaused')void send('Fetch.failRequest',{requestId:message.params.requestId,errorReason:'BlockedByClient'}).catch(()=>{});
-  if(message.method==='Runtime.exceptionThrown')exceptions.push(String(message.params?.exceptionDetails?.text||'uncaught exception'));
+  if(message.method==='Runtime.exceptionThrown'){
+   const d=message.params?.exceptionDetails||{};
+   const detail=String(d.exception?.description||d.exception?.value||d.text||'uncaught exception');
+   const origin=String(d.url||d.stackTrace?.callFrames?.[0]?.url||'unknown').replace(/https?:\/\/[^/]+/g,'[origin]');
+   exceptions.push(`${detail.slice(0,750)} @ ${origin}:${d.lineNumber??'?'}:${d.columnNumber??'?'}`);
+  }
   if(message.method==='Network.responseReceived'&&message.params?.response?.status>=400&&message.params?.response?.url?.startsWith('http://127.0.0.1:'))httpFailures.push({url:message.params.response.url,status:message.params.response.status});
  });
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true});});
@@ -105,7 +110,7 @@ try{
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);
  const severe=exceptions.filter(t=>!/NetworkError|Failed to fetch|fetch|Supabase|network|offline/i.test(t));
- assert(severe.length<=2,'[17052-browser] uncaught browser exceptions: '+severe.slice(0,3).join('; '));
+ assert(severe.length<=2,'[17052-browser] uncaught browser exceptions ('+severe.length+'/'+exceptions.length+'): '+severe.slice(0,5).join(' | '));
  console.log('[17052-browser] PASS actual Chromium mobile cold-start, offline and recovery, cache version, no false update, viewport');
 }catch(error){console.error('[17052-browser] FAIL '+error.stack);process.exitCode=1;
 }finally{
