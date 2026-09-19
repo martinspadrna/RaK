@@ -50,3 +50,4 @@ assert.equal(JSON.parse(read('package.json')).version,'1.7.0','[17036] technical
 for(const path of ['tools/development-version-17036.mjs','tools/shift-report-mo-hotfix-170-smoke.mjs','supabase-config.js','app.js','sw.js'])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 assert(read('index.html').includes(`var build='${BUILD}';`)&&read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`),'[17036] build/cache mismatch');
 console.log('[development-version-17036] OK: test DB migration, public-field regression and honest OS-only privacy scope; PWA 1.7.36');
+await import('./development-version-17037.mjs');

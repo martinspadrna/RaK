@@ -1,9 +1,9 @@
--- RaK 1.7.36 / TEST SUPABASE ONLY. All synthetic writes are rolled back.
+-- RaK 1.7.36/37 / TEST SUPABASE ONLY. Synthetic writes are rolled back.
 BEGIN;
 DO $verify$
 DECLARE blocked boolean := false; old_revision bigint;
 BEGIN
- IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.rotation_state'::regclass AND conname='rak_rotation_no_public_secret_fields_v1' AND convalidated) THEN RAISE EXCEPTION 'Public rotation constraint missing'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.rotation_state'::regclass AND conname IN ('rak_rotation_no_public_secret_fields_v1','rak_rotation_no_public_secret_fields_v2') AND convalidated) THEN RAISE EXCEPTION 'Public rotation constraint missing'; END IF;
  IF private.rak_rotation_has_restricted_public_key('{"months":{"2026-09":{"notes":[{"person":"example","nested":{"email":"fake@example.invalid"}}]}}}'::jsonb) IS DISTINCT FROM true THEN RAISE EXCEPTION 'Nested email allowed'; END IF;
  IF private.rak_rotation_has_restricted_public_key('{"months":{"2026-09":{"dayMods":[{"nested":[{"access_token":"fake"}]}]}}}'::jsonb) IS DISTINCT FROM true THEN RAISE EXCEPTION 'Nested token allowed'; END IF;
  IF private.rak_rotation_has_restricted_public_key('{"months":{"2026-09":{"hard":{},"soft":{},"notes":[{"person":"example","code":"D","text":"example D"}],"dayMods":[{"person":"example","restReason":"D"}]}}}'::jsonb) IS DISTINCT FROM false THEN RAISE EXCEPTION 'Normal schedule rejected'; END IF;
