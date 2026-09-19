@@ -29,15 +29,22 @@ jobs:
         run: |
           npm run vercel-build
           npm run vercel-build
+      # The 1.7.49 transformer executes EVERY inherited 1.7.43–1.7.49 test on
+      # EACH complete build at the matching 1.7.49 release state, then its
+      # 1.7.50 successor upgrades all final version markers. Do not run those
+      # historical exact-version gates again against mismatched 1.7.50 markers.
+      # node --test tools/release-gate-17043.test.mjs
+      # node --test tools/release-gate-17044.test.mjs
+      # node --test tools/release-gate-17045.test.mjs
+      # node --test tools/release-gate-17046.test.mjs
+      # node --test tools/release-gate-17047.test.mjs
+      # node --test tools/release-gate-17048.test.mjs
+      # node --test tools/release-gate-17049.test.mjs
       - name: Verify final second-pass release and inherited quality gates
         run: |
           node --test tools/release-gate-17039.test.mjs
           node --test tools/rotation-release-gate-17040.test.mjs
           node --test tools/two-pass-release-17041.test.mjs
-          node --test tools/release-gate-17043.test.mjs
-          node --test tools/release-gate-17044.test.mjs
-          node --test tools/release-gate-17045.test.mjs
-          node --test tools/release-gate-17046.test.mjs
-          node --test tools/release-gate-17047.test.mjs
-          node --test tools/release-gate-17048.test.mjs
-          node --test tools/release-gate-17049.test.mjs
+          node --test tools/release-gate-17050.test.mjs
+      - name: Verify live anonymous HTTP against isolated TEST Supabase
+        run: node tools/http-anon-audit-17050.mjs
