@@ -52,9 +52,10 @@ change('rak-complete-backup.js',
  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),",
  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),\n      'Soukromých importů: ' + String(metrics.privateImports || 0),\n      'Sanitizovaných Auth účtů: ' + String(metrics.sanitizedAuthAccounts || 0),");
 assert(read('rak-complete-backup.js').includes('    const snapshot = await fetchCompleteSnapshot(token);'),'[17053] snapshot fetch lost');
-// An earlier stage owns a `validated` binding in createCompleteBackup: use an isolated lexical scope.
-// Older stages also extend the metrics initializer; assign new counters only after initialization.
-change('rak-complete-backup.js',
+// Previous build stages own the initial metrics object. On a later release the
+// validated snapshot assignment was extended: never reinsert the older assignment
+// during the second complete build, or the ZIP preflight runs twice.
+if (!read('rak-complete-backup.js').includes('completePublicTables: validated.completePublicTables')) change('rak-complete-backup.js',
  "    const progress = (text) => status(text);",
  "    { const validated = validateCompleteSnapshot(snapshot); Object.assign(metrics, { privateImports: validated.privateImports, sanitizedAuthAccounts: validated.sanitizedAuthAccounts, schemaTables: validated.schemaTables }); }\n    const progress = (text) => status(text);");
 const guard='tools/shift-report-mo-hotfix-170-smoke.mjs';
