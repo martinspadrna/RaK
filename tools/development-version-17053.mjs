@@ -53,9 +53,10 @@ change('rak-complete-backup.js',
 change('rak-complete-backup.js',
  "    const snapshot = await fetchCompleteSnapshot(token);",
  "    const snapshot = await fetchCompleteSnapshot(token);\n    const validated = validateCompleteSnapshot(snapshot);");
+// Older build stages extend the metrics initializer: append properties without replacing that initializer.
 change('rak-complete-backup.js',
- "    const metrics = { repositoryFiles: 0, deployedFiles: 0, publicTables: 0, storageObjects: 0 };",
- "    const metrics = { repositoryFiles: 0, deployedFiles: 0, publicTables: 0, storageObjects: 0, privateImports: validated.privateImports, sanitizedAuthAccounts: validated.sanitizedAuthAccounts, schemaTables: validated.schemaTables };");
+ "    const progress = (text) => status(text);",
+ "    Object.assign(metrics, { privateImports: validated.privateImports, sanitizedAuthAccounts: validated.sanitizedAuthAccounts, schemaTables: validated.schemaTables });\n    const progress = (text) => status(text);");
 const guard='tools/shift-report-mo-hotfix-170-smoke.mjs';
 let stage=read(guard);
 const oldGuard=`const already17052=indexSource.includes("var build='${PREVIOUS}';");`;
