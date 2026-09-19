@@ -34,7 +34,9 @@ const privateTables=[
  ['private-bug-reports','/rest/v1/bug_reports?select=id&limit=1'],
  ['owner-settings-backups','/rest/v1/rak_admin_settings_backups?select=id&limit=1'],
  ['rotation-backups','/rest/v1/rak_rotation_backups_v2?select=id&limit=1'],
- ['admin-secrets','/rest/v1/rak_admin_secrets?select=id&limit=1']
+ // This table has a real 'key' column, not 'id': a nonexistent projection returns
+ // HTTP 400 and cannot establish whether anonymous SELECT is denied.
+ ['admin-secrets','/rest/v1/rak_admin_secrets?select=key&limit=1']
 ];
 for(const [name,path] of privateTables)denied(name,await call(name,path));
 const rotation=await call('intentional-public-rotation','/rest/v1/rotation_state?select=key,revision&key=eq.main');
