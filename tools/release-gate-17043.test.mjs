@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const matched = read('index.html').match(/var build='(v1\.7\.(43|44)-[a-z0-9]+)';/);
+const matched = read('index.html').match(/var build='(v1\.7\.(43|44|45)-[a-z0-9]+)';/);
 assert(matched, 'Expected 1.7.43 or later compatible build marker');
 const version = '1.7.' + matched[2];
 const build = matched[1];
 assert.equal(build, {
   '1.7.43': 'v1.7.43-cigate1',
-  '1.7.44': 'v1.7.44-publicguard1'
+  '1.7.44': 'v1.7.44-publicguard1',
+  '1.7.45': 'v1.7.45-logingate1'
 }[version], 'Unexpected release build marker');
 
 test('final release version, cache, technical package and test database match', () => {
@@ -32,9 +33,13 @@ test('final release version, cache, technical package and test database match', 
 test('all inherited replay guards and owner-only backup survive future stage', () => {
   const stage = read('tools/shift-report-mo-hotfix-170-smoke.mjs');
   const ids = ['17039','17040','17041','17042','17043'];
-  if (version === '1.7.44') ids.push('17044');
+  if (version !== '1.7.43') ids.push('17044');
+  if (version === '1.7.45') ids.push('17045');
   for (const id of ids) assert(stage.includes(`// RAK_${id}_TWO_PASS_GUARD`));
-  if (version === '1.7.44') {
+  if (version === '1.7.45') {
+    assert(stage.includes('const already17044=already17045||indexSource.includes('));
+    assert(stage.includes(`already17045?"var build='${build}';":already17044?`));
+  } else if (version === '1.7.44') {
     assert(stage.includes('const already17043=already17044||indexSource.includes('));
     assert(stage.includes(`already17044?"var build='${build}';":already17043?`));
   } else {
