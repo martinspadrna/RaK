@@ -42,3 +42,6 @@ await import('./development-version-17049.mjs');
 await import('./development-version-17050.mjs');
 await import('./development-version-17051.mjs');
 await import('./development-version-17052.mjs');
+// Exact historical 1.7.52 release gate runs BEFORE the new version bump on BOTH builds.
+execFileSync(process.execPath,['--test','tools/release-gate-17052.test.mjs'],{stdio:'inherit'});
+await import('./development-version-17053.mjs');

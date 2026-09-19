@@ -29,8 +29,7 @@ jobs:
         run: |
           npm run vercel-build
           npm run vercel-build
-      # Historical exact-version tests run inside the transformers on BOTH passes;
-      # running those exact-version tests against the final release is invalid.
+      # Exact historical version tests run in stages on BOTH builds before their next bump.
       # node --test tools/release-gate-17043.test.mjs
       # node --test tools/release-gate-17044.test.mjs
       # node --test tools/release-gate-17045.test.mjs
@@ -40,12 +39,13 @@ jobs:
       # node --test tools/release-gate-17049.test.mjs
       # node --test tools/release-gate-17050.test.mjs
       # node --test tools/release-gate-17051.test.mjs
+      # node --test tools/release-gate-17052.test.mjs
       - name: Verify final release and inherited quality gates
         run: |
           node --test tools/release-gate-17039.test.mjs
           node --test tools/rotation-release-gate-17040.test.mjs
           node --test tools/two-pass-release-17041.test.mjs
-          node --test tools/release-gate-17052.test.mjs
+          node --test tools/release-gate-17053.test.mjs
       - name: Verify source backup ZIP inventory, excluded files and CRC
         run: node tools/backup-source-integrity-17051.mjs
       - name: Real Chromium mobile start, offline restart and online recovery
