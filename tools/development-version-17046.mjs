@@ -6,6 +6,9 @@ import {execFileSync} from 'node:child_process';
 const VERSION='1.7.46', BUILD='v1.7.46-hardening1', PREVIOUS='v1.7.45-logingate1';
 const read=file=>fs.readFileSync(file,'utf8');
 function swap(source,before,after,label){
+  // 1.7.47 second-build compatibility: later historical gate files are already
+  // at their checked 1.7.47 target. Do not try to downgrade them to 1.7.46.
+  if(source.includes('(43|44|45|46|47)')||source.includes('(45|46|47)')) return source;
   if(source.includes(before)){
     assert.equal(source.split(before).length,2,'[17046] duplicate '+label);
     return source.replace(before,after);

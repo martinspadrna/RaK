@@ -9,6 +9,9 @@ const BUILD = 'v1.7.47-privacyguard1';
 const PREVIOUS = 'v1.7.46-hardening1';
 const read = path => fs.readFileSync(path, 'utf8');
 function swap(source, oldText, newText, label) {
+  // In a second build historical gates are already at 1.7.47. Preserve all
+  // their detailed assertions instead of replaying the textual patch twice.
+  if (source.includes('(43|44|45|46|47)') || source.includes('(45|46|47)') || source.includes('(46|47)')) return source;
   if (source.includes(oldText)) {
     assert.equal(source.split(oldText).length, 2, '[17047] duplicate ' + label);
     return source.replace(oldText, newText);
