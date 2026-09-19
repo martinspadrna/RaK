@@ -9,6 +9,8 @@ const BUILD = 'v1.7.47-privacyguard1';
 const PREVIOUS = 'v1.7.46-hardening1';
 const read = path => fs.readFileSync(path, 'utf8');
 function swap(source, oldText, newText, label) {
+  // 1.7.48 second-build: never downgrade an already finalized newer release.
+  if (source.includes('1.7.48') || source.includes('v1.7.48-deviceauth1')) return source;
   if (source.includes(oldText)) {
     assert.equal(source.split(oldText).length, 2, '[17047] duplicate ' + label);
     return source.replace(oldText, newText);
@@ -113,3 +115,4 @@ for (const file of ['tools/development-version-17047.mjs','tools/release-gate-17
   execFileSync(process.execPath, ['--check', file], {stdio:'pipe'});
 execFileSync(process.execPath, ['--test','tools/release-gate-17047.test.mjs'], {stdio:'inherit'});
 console.log('[development-version-17047] OK: identifiers & public machine settings protected; backup month structure; TEST DB; OS-only login; PWA 1.7.47');
+await import('./development-version-17048.mjs');
