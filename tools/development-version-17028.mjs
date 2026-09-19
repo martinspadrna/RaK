@@ -54,7 +54,11 @@ for (const path of ['tools/shift-report-mo-hotfix-170-smoke.mjs', 'supabase-conf
   execFileSync(process.execPath, ['--check', path], {stdio:'pipe'});
 }
 assert(read('index.html').includes(`var build='${BUILD}';`) && read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`), '[17028] release/cache mismatch');
-assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v1'") && !read('rak-user-profile.js').includes(".from('game_accounts')"), '[17028] login must use scoped RPC');
+const login = read('rak-user-profile.js');
+const v1 = login.includes("client.rpc('rak_lookup_account_for_login_v1'");
+const v2 = login.includes("client.rpc('rak_lookup_account_for_login_v2'");
+assert((v1 || v2) && !(v1 && v2) && !login.includes(".from('game_accounts')"), '[17028] login must use a single bounded RPC');
+if (v2) assert(login.includes("typeof data.requiresAdminAuth !== 'boolean'") && login.includes('requiresAdminAuth: data.requiresAdminAuth'), '[17028] v2 admin flag must fail closed');
 assert(read('rak-account-access.js').includes('listApplicationAccountsSecure') && !read('rak-account-access.js').includes(".from('game_accounts')"), '[17028] admin directory must be gated');
 console.log('[development-version-17028] OK 1.7.28: scoped login/directory preserved; test-only empty legacy rotation tables closed via independent migration; PWA version/cache aligned');
 await import('./development-version-17029.mjs');

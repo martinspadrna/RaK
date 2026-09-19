@@ -42,12 +42,15 @@ assert(menu.includes('ensureGameAccountsExistForWorkers(workerSettings.workers)'
 const user=read('rak-user-profile.js');
 assert(user.includes("const ACCOUNT_UI_PROFILE_KEY = 'rotace_kalkulacky:games_profile_v1';"),'existing appearance storage key preserved');
 assert(user.includes('window.gamesGetProfile = getAccountUiProfile')&&user.includes('window.gamesSaveProfile = saveAccountUiProfile'),'appearance compatibility preserved');
-// The legacy build expects the old direct table read; the new release replaces it
-// with a single-account login RPC and an authenticated administrator-only directory.
+// First pass still has the original account-table lookup. Second pass may already
+// contain either the bounded v1 or the combined bounded v2 introduced in 1.7.45.
 const access=read('rak-account-access.js');
 const bridge=read('supabase-bridge.js');
-if (user.includes('rak_lookup_account_for_login_v1') || access.includes('RAK_ADMIN_DIRECTORY_RPC_17027')) {
-  assert(user.includes("client.rpc('rak_lookup_account_for_login_v1'") && !user.includes(".from('game_accounts')"), 'secure single-account login RPC retained');
+const boundedV1=user.includes("client.rpc('rak_lookup_account_for_login_v1'");
+const boundedV2=user.includes("client.rpc('rak_lookup_account_for_login_v2'");
+if (boundedV1 || boundedV2 || access.includes('RAK_ADMIN_DIRECTORY_RPC_17027')) {
+  assert((boundedV1 || boundedV2) && !(boundedV1 && boundedV2) && !user.includes(".from('game_accounts')"), 'secure single-account login RPC retained');
+  if (boundedV2) assert(user.includes("typeof data.requiresAdminAuth !== 'boolean'") && user.includes('requiresAdminAuth: data.requiresAdminAuth'), 'v2 admin prompt must fail closed');
   assert(access.includes('RAK_ADMIN_DIRECTORY_RPC_17027') && access.includes('listApplicationAccountsSecure') && !access.includes(".from('game_accounts')"), 'admin directory must not use anonymous bulk table reads');
   assert(bridge.includes('rak_admin_list_application_accounts_v1') && bridge.includes('listApplicationAccountsSecure'), 'verified administrator directory bridge retained');
 } else {

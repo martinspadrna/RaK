@@ -35,7 +35,10 @@ const profile = change('rak-user-profile.js', source => {
       return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim() };`;
   return source.slice(0, start) + body + source.slice(end);
 });
-assert(profile.includes('rak_lookup_account_for_login_v1') && !profile.includes(".from('game_accounts')"), '[17027] login still reading the entire account table');
+const usesV1 = profile.includes("client.rpc('rak_lookup_account_for_login_v1'");
+const usesV2 = profile.includes("client.rpc('rak_lookup_account_for_login_v2'");
+assert((usesV1 || usesV2) && !(usesV1 && usesV2) && !profile.includes(".from('game_accounts')"), '[17027] login must use exactly one bounded RPC');
+if (usesV2) assert(profile.includes("typeof data.requiresAdminAuth !== 'boolean'") && profile.includes('requiresAdminAuth: data.requiresAdminAuth'), '[17027] combined admin gate must fail closed');
 
 const bridge = change('supabase-bridge.js', source => {
   if (source.includes('// RAK_SECURE_DIRECTORY_17027')) return source;

@@ -53,7 +53,11 @@ change('index.html',source=>swap(source,"var build='v1.7.28-rotationprivacy1';",
 assert.equal(JSON.parse(read('package.json')).version,'1.7.0','[17029] technical package version');
 for(const path of ['rak-account-access.js','tools/shift-report-mo-hotfix-170-smoke.mjs','supabase-config.js','app.js','sw.js'])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 assert(read('rak-account-access.js').includes('Příliš mnoho pokusů. Zkus to později.')&&!read('rak-account-access.js').includes(".from('game_accounts')"),'[17029] login feedback or directory cutover missing');
-assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v1'")&&!read('rak-user-profile.js').includes(".from('game_accounts')"),'[17029] login direct read regression');
+const login = read('rak-user-profile.js');
+const v1 = login.includes("client.rpc('rak_lookup_account_for_login_v1'");
+const v2 = login.includes("client.rpc('rak_lookup_account_for_login_v2'");
+assert((v1 || v2) && !(v1 && v2) && !login.includes(".from('game_accounts')"), '[17029] login direct read regression');
+if (v2) assert(login.includes("typeof data.requiresAdminAuth !== 'boolean'") && login.includes('requiresAdminAuth: data.requiresAdminAuth'), '[17029] new login must fail closed');
 assert(read('index.html').includes(`var build='${BUILD}';`)&&read('sw.js').includes(`const CACHE_VERSION = 'v${VERSION}';`),'[17029] release/cache mismatch');
 console.log('[development-version-17029] OK: account bulk SELECT cutover, bounded login RPC, clear retry message, test Supabase only, visible 1.7.29 and new SW cache');
 await import('./development-version-17030.mjs');
