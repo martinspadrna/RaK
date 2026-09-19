@@ -1,11 +1,11 @@
 # RaK – průběžný plán 13 úkolů
 
-Stav k 19. 9. 2026; větev `development`, testovací verze 1.7.44. Jde o dílčí bezpečnostní opravy, nikoliv potvrzení úplného auditu. Zaměstnanci se nadále přihlašují **výhradně osobním (OS) číslem**, bez hesla, e-mailu a zaměstnaneckých Supabase Auth účtů. `main` a produkční databázi neměnit bez výslovného souhlasu.
+Stav k 19. 9. 2026; větev `development`, testovací verze 1.7.44. Jde o dílčí bezpečnostní opravy, nikoliv potvrzení úplného auditu. Režim přihlášení pracovníků: **OS číslo** a nic dalšího; bez hesla, e-mailu a zaměstnaneckých Supabase Auth účtů. `main` a produkční databázi neměnit bez výslovného souhlasu.
 
 | Bod | Oblast | Stav | Doloženo / zbývá |
 |---|---|---|---|
 | P0.1 | Účty a data pracovníků | ČÁSTEČNĚ | Anonymní úplný adresář a OS čísla nejsou přímo veřejně čitelná. Dále ověřit RPC/exporty a HTTP/JWT; OS číslo není silné ověření identity. |
-| P0.2 | Rotace a soukromí | ČÁSTEČNĚ | Soukromý archiv `importMeta` (1.7.40), bezpečnější výběr sloupců, blokace vnořených tajných polí. **1.7.44** upřesňuje kontrolu formátu telefonu a odmítá označená česká telefonní/OS čísla ve volném textu; všech 13 syntetických SQL případů v TEST DB prošlo bez změny dat. Jména, absence a běžné poznámky v rozpisu **zůstávají anonymně čitelné**. Neukrývat je destruktivním smazáním: generátor z textu detekuje odstávky, statistiky využívají person/code/text, offline funguje z lokálního snapshotu. Chybí kompatibilní autorizovaný model. |
+| P0.2 | Rotace a soukromí | ČÁSTEČNĚ | Soukromý archiv `importMeta` (1.7.40), bezpečnější výběr sloupců, blokace vnořených tajných polí. **1.7.44** upřesňuje kontrolu formátu telefonu a odmítá označená česká telefonní/OS čísla ve volném textu; 13 syntetických SQL případů v TEST DB prošlo bez změny dat. Jména, absence, běžné poznámky a **24 měsíců historie zůstávají anonymně čitelné**. Neukrývat je destruktivním smazáním: generátor z textu detekuje odstávky, statistiky využívají person/code/text, offline funguje z lokálního snapshotu. Chybí kompatibilní autorizovaný model. |
 | P0.3 | API a exporty | ČÁSTEČNĚ | Veřejné RPC částečně omezené; zbývá kompletní audit exportů, reálný browser/HTTP test a inventarizace všech veřejných cest k rotaci. |
 | P0.4 | Role vlastníka | ČÁSTEČNĚ | Serverové podmínky a SQL matice existují; zbývá test reálné relace, dalších adminů a obnovy přístupu. |
 | P1.1 | Oprávnění a RLS | OTEVŘENO | Přezkoumat role, policies, SECURITY DEFINER funkce a nový rozsah kontrolního CHECK. |
