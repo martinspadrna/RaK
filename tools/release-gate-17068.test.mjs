@@ -19,6 +19,8 @@ function fixture({dirty=true,allow=true,editorValid=true}={}){
   const context={app,window:{RotationSupabaseBridge:bridge},
     document:{getElementById:id=>id==='adminRotationEditor'?currentEditor:id==='adminRotationDraftStatus'?status:null},
     console:{warn:()=>{}},refreshRakMachineSettingsInBackground:()=>{},
+    // RAK_17057_BADGE_GUARD runs from syncRotationFromSupabase finally; preserve its real call in the VM.
+    rakRefreshSyncBadgeTruth:()=>{},
     applyRakRotationState:payload=>{applied++;return payload;},
     rakGuardAdminRotationDiscard:()=>{guarded++;if(!allow)return false;app.adminRotationDirty=false;return true;}};
   const sync=excerpt(read('app-rotation-sync.js'),'// RAK_17068_SYNC_EPOCH:','function getRakAdminPinForWrite()');
