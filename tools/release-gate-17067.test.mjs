@@ -56,7 +56,7 @@ test('manual reload never applies stale local cache before remote confirmation',
   let cacheReads=0,applied=0;
   const bridge={loadCachedRotationState:()=>{cacheReads++;return {payload:{stale:true}};},loadRotationState:async()=>payload?{payload}:null};
   const context={window:{RotationSupabaseBridge:bridge},app:{adminRotationDirty:false},document:{getElementById:()=>null},
-   applyRakRotationState:(value)=>{applied++;return value;},refreshRakMachineSettingsInBackground:()=>{},console:{warn:()=>{}}};
+   applyRakRotationState:(value)=>{applied++;return value;},refreshRakMachineSettingsInBackground:()=>{},rakRefreshSyncBadgeTruth:()=>{},console:{warn:()=>{}}};
   vm.runInNewContext(source+'\nglobalThis.sync=syncRotationFromSupabase;',context);
   const actual=await context.sync('discard-draft');
   assert.equal(cacheReads,0,'stale cache was read before remote');
