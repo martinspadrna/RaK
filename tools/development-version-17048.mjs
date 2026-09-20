@@ -60,3 +60,5 @@ await import('./queue-held-reset-17059.mjs');
 await import('./development-version-17059.mjs');
 execFileSync(process.execPath,['--test','tools/release-gate-17059.test.mjs'],{stdio:'inherit'});
 await import('./development-version-17060.mjs');
+execFileSync(process.execPath,['--test','tools/release-gate-17060.test.mjs'],{stdio:'inherit'});
+await import('./development-version-17061.mjs');
