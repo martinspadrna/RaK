@@ -24,30 +24,18 @@ if(!bridge.includes('RAK_17063_UNKNOWN_BASELINE_GUARD')){
  const b=bridge.indexOf('\n  async function upsertGomokuWinDirect(',a);
  assert(a>=0&&b>a&&b-a<6500,'monthly function boundaries');
  const original=bridge.slice(a,b);
- assert(original.includes('rak_admin_save_rotation_month_entries_v2') && original.includes(".from('rotation_months')") && original.includes(".from('rotation_entries')"),'legacy monthly fallback contract changed');
- const replacement=`  async function upsertRotationMonthEntriesDirect(client, monthStart, label, rows) {
-    // RAK_17063_MONTH_RPC_ONLY_GUARD: never use unprivileged month DELETE/INSERT.
-    if (!hasSecureAdminContext()) throw new Error('Měsíční rozpis lze uložit pouze ověřeným administrátorem přes RPC.');
-    const payloadRows = (Array.isArray(rows) ? rows : []).map((row, idx) => ({
-      employee_name: String(row && row.employee_name ? row.employee_name : '').trim(),
-      target_machine: String(row && row.target_machine ? row.target_machine : '').trim() || null,
-      assignment_type: String(row && row.assignment_type ? row.assignment_type : 'work').trim(),
-      shift_code: String(row && row.shift_code ? row.shift_code : '').trim() || null,
-      note: String(row && row.note ? row.note : '').trim() || null,
-      row_order: Number.isFinite(Number(row && row.row_order)) ? Number(row.row_order) : idx
-    }));
-    const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v2', {
-      p_month_start: monthStart,
-      p_label: String(label || '').trim() || null,
-      p_rows: payloadRows
-    });
-    if (error) throw error;
-    const inserted = data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted))
-      ? Number(data.inserted) : payloadRows.length;
-    return { months: 1, entries: inserted };
-  }
-`;
- bridge=bridge.slice(0,a)+replacement+bridge.slice(b);
+ // The 1.6.14 build stage has ALREADY removed the direct month-table fallback.
+ // Preserve its exact validated RPC serialization; fix only zero-row count semantics.
+ assert(original.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'")
+   &&original.includes('if (!hasSecureAdminContext())')
+   &&!original.includes(".from('rotation_months')")
+   &&!original.includes(".from('rotation_entries')"),'monthly RPC-only baseline changed');
+ const fixed=once(original,
+   '    return { months: 1, entries: Number(data && data.inserted || payloadRows.length) || 0 };',
+   '    return { months: 1, entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length };',
+   'preserve zero monthly rows');
+ bridge=bridge.slice(0,a)+fixed.replace('  async function upsertRotationMonthEntriesDirect(',
+   '  // RAK_17063_MONTH_RPC_ONLY_GUARD: previously established RPC-only path, retain zero counts.\n  async function upsertRotationMonthEntriesDirect(')+bridge.slice(b);
  const review=`  // RAK_17063_MANUAL_REVISION_GUARD: on-demand owner/admin only, read the
   // server revision without fetching content. Equal revisions never authorize replay.
   async function reviewRakRotationRevisionOnDemand() {
