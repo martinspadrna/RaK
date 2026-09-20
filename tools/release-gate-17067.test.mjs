@@ -31,7 +31,7 @@ test('real TO and MO render expressions generate identical widths for equal mach
 function reloadFixture(result,{dirty=true,allow=true,throwNetwork=false}={}){
  let guard=0,network=0;const status={textContent:''};
  const app={adminRotationDirty:dirty};
- const context={app,document:{getElementById:id=>id==='adminRotationEditor'?{}:id==='adminRotationDraftStatus'?status:null},
+ const context={rakRotationSyncEpoch:0,app,document:{getElementById:id=>id==='adminRotationEditor'?{}:id==='adminRotationDraftStatus'?status:null},
   rakGuardAdminRotationDiscard:()=>{guard++;if(!allow)return false;app.adminRotationDirty=false;return true;},
   syncRotationFromSupabase:async()=>{network++;if(throwNetwork)throw Error('offline');return result;}};
  vm.runInNewContext(excerpt(read('admin-rotation.js'),'async function loadAdminRotationFromSupabase() {','function adminRotationSettingsJson(')+'\nglobalThis.reload=loadAdminRotationFromSupabase;',context);
@@ -44,14 +44,19 @@ test('cancel online reload preserves editor and does not call network',async()=>
 test('no result and thrown reload restore dirty status; valid response does not',async()=>{
  for(const options of [{},{throwNetwork:true}]){
   const f=reloadFixture(null,options),out=await f.run();assert.equal(out,null);
-  assert.equal(f.app.adminRotationDirty,true);assert(f.status.textContent.includes('selhalo'));
+  assert.equal(f.app.adminRotationDirty,true);
+  const expected=read('admin-rotation.js').includes('RAK_17068_LATE_EDIT_NOTICE')?'nebylo použito':'selhalo';
+  assert(f.status.textContent.includes(expected),'reload must display its version-specific failure notice');
   assert.deepEqual(f.counts(),{guard:1,network:1});
  }
  const f=reloadFixture({months:{}},{});assert(await f.run());assert.equal(f.app.adminRotationDirty,false);
  assert.deepEqual(f.counts(),{guard:1,network:1});
 });
 test('manual reload never applies stale local cache before remote confirmation',async()=>{
- const source=excerpt(read('app-rotation-sync.js'),'async function syncRotationFromSupabase(force) {','function getRakAdminPinForWrite()');
+ const runtime=read('app-rotation-sync.js');
+ // 1.7.68 adds an epoch and fingerprint before the function; test the real helpers in the same VM.
+ const start=runtime.includes('// RAK_17068_SYNC_EPOCH:')?'// RAK_17068_SYNC_EPOCH:':'async function syncRotationFromSupabase(force) {';
+ const source=excerpt(runtime,start,'function getRakAdminPinForWrite()');
  for(const payload of [null,{fresh:true}]){
   let cacheReads=0,applied=0;
   const bridge={loadCachedRotationState:()=>{cacheReads++;return {payload:{stale:true}};},loadRotationState:async()=>payload?{payload}:null};
