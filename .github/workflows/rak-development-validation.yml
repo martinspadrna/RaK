@@ -52,12 +52,13 @@ jobs:
       # node --test tools/release-gate-17062.test.mjs
       # node --test tools/release-gate-17063.test.mjs
       # node --test tools/release-gate-17064.test.mjs
+      # node --test tools/release-gate-17065.test.mjs
       - name: Verify final release and inherited quality gates
         run: |
           node --test tools/release-gate-17039.test.mjs
           node --test tools/rotation-release-gate-17040.test.mjs
           node --test tools/two-pass-release-17041.test.mjs
-          node --test tools/release-gate-17065.test.mjs
+          node --test tools/release-gate-17066.test.mjs
       - name: Verify source backup ZIP inventory, excluded files and CRC
         run: node tools/backup-source-integrity-17051.mjs
       - name: Real Chromium mobile start, offline restart and online recovery
@@ -65,5 +66,6 @@ jobs:
           node --test tools/pwa-offline-17052.test.mjs
           node tools/browser-offline-17052.mjs
           node tools/browser-absence-layout-17061.mjs
+          node tools/browser-soft-grid-17066.mjs
       - name: Verify live anonymous HTTP against isolated TEST Supabase
         run: node tools/http-anon-audit-17050.mjs
