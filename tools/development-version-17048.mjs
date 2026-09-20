@@ -73,3 +73,5 @@ await import('./worker-provisioning-17065.mjs');
 await import('./development-version-17065.mjs');
 execFileSync(process.execPath,['--test','tools/release-gate-17065.test.mjs'],{stdio:'inherit'});
 await import('./development-version-17066.mjs');
+execFileSync(process.execPath,['--test','tools/release-gate-17066.test.mjs'],{stdio:'inherit'});
+await import('./development-version-17067.mjs');
