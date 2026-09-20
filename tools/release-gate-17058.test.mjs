@@ -9,8 +9,8 @@ function fixture({failure=false,permanent=false,concurrent=false,held=false}={})
  let queue=[{id:'first',type:'bug_report',entry:{message:'secret'},queuedAt:new Date().toISOString()}];
  let writes=0;const calls=[],schedules=[];const ctx={};
  Object.assign(ctx,{flushPromise:null,navigator:{onLine:true},document:{visibilityState:'visible'},
- state:{syncGuard:{queueFlushRuns:0,queueFlushErrors:0,queueFlushEmptyRuns:0,queueFlushSuccesses:0,queueConflictHolds:0}},
- getClient:()=>({}),readQueue:()=>queue.slice(),writeQueue:q=>{queue=q.slice();},rememberQueueHealth:q=>({length:q.length}),
+ state:{queueGuard:{storageError:''},syncGuard:{queueFlushRuns:0,queueFlushErrors:0,queueFlushEmptyRuns:0,queueFlushSuccesses:0,queueConflictHolds:0}},
+ getClient:()=>({}),readQueue:()=>queue.slice(),writeQueue:q=>{queue=q.slice();return true;},rememberQueueHealth:q=>({length:q.length}),
  shouldDeferQueueFlushForHiddenPage:()=>false,SUPABASE_QUEUE_FLUSH_BATCH_SIZE:8,SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS:1200,
  SUPABASE_QUEUE_HIDDEN_RETRY_DELAY_MS:1800,getNextQueueRetryAt:q=>q.some(t=>t.retryCount)?Date.now()+2000:null,
  shouldSkipQueuedTaskForBackoff:()=>false,markQueuedTaskAttempt:t=>({...t,lastTriedAt:Date.now()}),
