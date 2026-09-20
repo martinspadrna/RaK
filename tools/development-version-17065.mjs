@@ -179,15 +179,12 @@ if(!browser.includes('RAK_17065_COMPAT_WIDTH_GUARD')){
  'truthful geometry report');
  write('tools/browser-absence-layout-17061.mjs',browser);
 }
-let canonical=read('RAK_PLAN_13.md');
-if(!canonical.includes('RAK_17065_PLAN_NO_GAMES')) {
- canonical=once(canonical,
-   'Zbývá reálný iPhone, staré PWA, atomický serverový CAS pro herní stav a bezpečné ruční vyřešení admin konfliktů;',
-   'Zbývá reálný iPhone, staré PWA, ochrana rozpisů a bezpečné ruční vyřešení admin konfliktů; historické herní položky pouze archivovat.',
-   'remove obsolete game tasks from canonical plan');
- canonical+='\n\n## RAK_17065_PLAN_NO_GAMES – oprava rozsahu\nHry nejsou součástí aplikace. Žádné herní účty se při ukládání pracovníků nesmějí vytvářet; staré položky offline fronty a tabulky zatím nemaž, zachovej možnost soukromé zálohy. Aktuální přehled všech 13 bodů: `RAK_PLAN_17065_STATUS.md`.\n';
- write('RAK_PLAN_13.md',canonical);
-}
+// Live status belongs to source control, not to any historical release transform.
+// RAK_17065_LIVE_PLAN_IMMUTABLE: retain all 13 current rows and the no-games scope without rewriting the roadmap.
+const canonical=read('RAK_PLAN_13.md');
+assert.equal([...canonical.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13,'[17065] expected exactly 13 current plan items');
+assert(!canonical.includes('atomický serverový CAS pro herní stav'),'[17065] obsolete game requirement reappeared in live plan');
+assert(canonical.includes('Hry')||canonical.includes('herní'),'[17065] historical game scope must remain documented');
 let replay=read('tools/shift-report-mo-hotfix-170-smoke.mjs');
 if(!replay.includes('RAK_17065_TWO_PASS_GUARD')){
  replay=once(replay,
