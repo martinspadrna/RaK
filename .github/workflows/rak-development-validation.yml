@@ -60,6 +60,7 @@ jobs:
           node --test tools/rotation-release-gate-17040.test.mjs
           node --test tools/two-pass-release-17041.test.mjs
           node --test tools/release-gate-17067.test.mjs
+          node --test tools/release-gate-17068.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         run: |
           node --check tools/preview-rollback-preflight-17068.mjs
