@@ -24,8 +24,8 @@ if(!bridge.includes('RAK_17063_UNKNOWN_BASELINE_GUARD')){
  const b=bridge.indexOf('\n  async function upsertGomokuWinDirect(',a);
  assert(a>=0&&b>a&&b-a<6500,'monthly function boundaries');
  const original=bridge.slice(a,b);
- // The 1.6.14 build stage has ALREADY removed the direct month-table fallback.
- // Preserve its exact validated RPC serialization; fix only zero-row count semantics.
+ // The 1.6.14 stage already removed direct month-table fallbacks. Preserve its
+ // authenticated RPC serialization, correct zero-row counts and Czech error.
  assert(original.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'")
    &&original.includes('if (!hasSecureAdminContext())')
    &&!original.includes(".from('rotation_months')")
@@ -34,8 +34,11 @@ if(!bridge.includes('RAK_17063_UNKNOWN_BASELINE_GUARD')){
    '    return { months: 1, entries: Number(data && data.inserted || payloadRows.length) || 0 };',
    '    return { months: 1, entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length };',
    'preserve zero monthly rows');
- bridge=bridge.slice(0,a)+fixed.replace('  async function upsertRotationMonthEntriesDirect(',
-   '  // RAK_17063_MONTH_RPC_ONLY_GUARD: previously established RPC-only path, retain zero counts.\n  async function upsertRotationMonthEntriesDirect(')+bridge.slice(b);
+ const localized=once(fixed,
+   "    if (!hasSecureAdminContext()) throw new Error('admin authentication required');",
+   "    // RAK_17063_MONTH_RPC_ONLY_GUARD: authenticated RPC, never direct table DELETE/INSERT.\n    if (!hasSecureAdminContext()) throw new Error('Měsíční rozpis lze uložit pouze ověřeným administrátorem přes RPC.');",
+   'scoped monthly RPC-only marker and Czech error');
+ bridge=bridge.slice(0,a)+localized+bridge.slice(b);
  const review=`  // RAK_17063_MANUAL_REVISION_GUARD: on-demand owner/admin only, read the
   // server revision without fetching content. Equal revisions never authorize replay.
   async function reviewRakRotationRevisionOnDemand() {
