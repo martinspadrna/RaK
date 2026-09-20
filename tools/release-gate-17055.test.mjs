@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.55', BUILD='v1.7.55-restoreshadow1';
 const app=read('rak-complete-backup.js');
@@ -62,11 +63,10 @@ test('historical two-pass build, headless mobile, HTTP privacy and CRC remain CI
   'node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs',
   'node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(command),'CI missing '+command);
 });
-test('historic shadow-restore milestone remains separate from the live 13-point plan',()=>{
- const plan=read('RAK_PLAN_13.md');
+test('historic shadow-restore milestone stays separate from live plan',()=>{
  assert(read('tools/development-version-17055.mjs').includes(VERSION));
- assert(plan.includes('2/13')&&plan.includes('shadow')&&plan.includes('JWT'));
- assert(plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
- assert(plan.includes('0/13 plně technicky'));
- assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert(progress.some(item=>item.id==='P1.5'));
+ assert(read('tools/restore-shadow-17055.sql').includes('no independent Supabase project'));
 });

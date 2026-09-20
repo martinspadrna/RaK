@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const VERSION='1.7.50',BUILD='v1.7.50-privatecase1';
 
@@ -68,9 +69,9 @@ test('all inherited gates execute before bump on BOTH builds; final gate is stri
 });
 
 test('risk acceptance and owner-only backup are preserved, no false security completion',()=>{
- const plan=read('RAK_PLAN_13.md');
- for(const marker of ['1/13 uzavřen rozhodnutím','0/13 plně technicky','OS číslo',
-  'UZAVŘENO ROZHODNUTÍM','24 měsíců','anonymně čitelné','importMeta','rollback'])
-  assert(plan.includes(marker),`[17050] plan missing ${marker}`);
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
+ assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
  assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
 });

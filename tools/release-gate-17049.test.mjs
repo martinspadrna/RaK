@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const VERSION='1.7.49',BUILD='v1.7.49-reportguard1';
 test('exact preview version, TEST Supabase, PWA cache and unchanged technical version',()=>{
@@ -42,10 +43,10 @@ test('OS-only employee access and accepted public-rotation risk are not reinterp
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
  assert(read('rak-account-access.js').includes('Zadej 4 číslice.'));
  assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
- const plan=read('RAK_PLAN_13.md');
- for(const marker of ['1/13 uzavřen rozhodnutím','0/13 plně technicky','OS číslo',
-  'UZAVŘENO ROZHODNUTÍM','riziko přijato','24 měsíců','anonymně čitelné','importMeta'])
-  assert(plan.includes(marker),`missing risk disposition: ${marker}`);
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
+ assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
 });
 test('all inherited historical security gates and double-build workflow survive release 1.7.49',()=>{
  const stage=read('tools/shift-report-mo-hotfix-170-smoke.mjs');

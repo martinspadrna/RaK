@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.58', BUILD='v1.7.58-queuerecovery1';
 function section(a,b){const s=read('supabase-bridge.js'),i=s.indexOf(a),j=s.indexOf(b,i+a.length);assert(i>=0&&j>i,'missing '+a);return s.slice(i,j).trim();}
@@ -75,5 +76,5 @@ test('two-pass build, prior gates, real mobile Chromium and anon HTTP remain in 
  assert(replay.includes(`already17058?"var build='${BUILD}';":already17057?`));
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const s of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17058.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(s));
- const plan=read('RAK_PLAN_13.md');assert(plan.includes('2/13')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
+ assert.equal(verifyRoadmapProgress(read('RAK_PLAN_13.md')).length,13);
 });

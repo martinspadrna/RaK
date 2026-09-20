@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.57',BUILD='v1.7.57-synctruth1';
 function extracted(source,start,end){
@@ -16,8 +17,6 @@ function status(overrides={}){
  const queue=overrides.queue||[];
  const context={readLocalSnapshot:()=>overrides.cache===false?null:{rotation:{months:{}},updatedAt:Date.now()},readQueue:()=>queue,
   getClient:()=>overrides.client===false?null:{},getSupabaseHardeningStatus:()=>({}),
-  // Earlier release gates extract getSyncUiStatus alone. Newer versions can
-  // inject a separate privacy-safe queue summary without changing this fixture's contract.
   summarizeQueuedSyncTask:task=>({label:'test task',retries:Number(task&&task.retryCount||0),conflict:!!(task&&task.conflict)}),
   navigator:{onLine:overrides.online!==false},state,app:{adminRotationDirty:!!overrides.dirty}};
  const fn=vm.runInNewContext('('+extracted(bridge(),'  function getSyncUiStatus() {','\n  window.refreshPublicData = refreshPublicData;')+')',context);
@@ -85,7 +84,7 @@ test('manual success indicator never green without verified status, async recove
  assert(rotation.includes("window.addEventListener('offline', rakRefreshSyncBadgeTruth)"));
  assert(rotation.includes("window.addEventListener('pageshow', rakRefreshSyncBadgeTruth)"));
 });
-test('two builds preserve prior authenticated diagnostic and inherited gates; roadmap stays truthful',()=>{
+test('two builds preserve prior authenticated diagnostic and inherited gates; current roadmap uses structural truth',()=>{
  const chain=read('tools/development-version-17048.mjs');
  assert(chain.includes("await import('./development-version-17056.mjs');"));
  assert(chain.includes("await import('./development-version-17057.mjs');"));
@@ -95,6 +94,6 @@ test('two builds preserve prior authenticated diagnostic and inherited gates; ro
  assert(replay.includes(`already17057?"var build='${BUILD}';":already17056?`));
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const command of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17057.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(command));
- const plan=read('RAK_PLAN_13.md');assert(plan.includes('2/13')&&plan.includes('JWT')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
- assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
 });

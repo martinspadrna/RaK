@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
 const VERSION='1.7.52',BUILD='v1.7.52-mobileoffline1';
 test('release, PWA and TEST DB match after both full builds',()=>{
@@ -34,11 +35,11 @@ test('browser, offline, online, VM and inherited privacy audits are mandatory',(
  assert(stage.includes('// RAK_17052_TWO_PASS_GUARD')&&stage.includes(`already17052?"var build='${BUILD}';":already17051?`));
  assert(read('tools/development-version-17048.mjs').includes("await import('./development-version-17052.mjs');"));
 });
-test('historical 1.7.52 milestone and current 13-point plan independently distinguish Chromium from iPhone',()=>{
+test('historical Chromium milestone is distinct from live iPhone acceptance',()=>{
  const historic=read('tools/development-version-17052.mjs');
- const plan=read('RAK_PLAN_13.md');
- assert(historic.includes(VERSION),'historical milestone must remain in its own release stage');
- assert(plan.includes('2/13')&&plan.includes('Chromium')&&plan.includes('iPhone'));
- assert(plan.includes('0/13 plně technicky'),'current plan must not falsely claim full completion');
- assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert(historic.includes(VERSION));
+ assert.equal(progress.length,13);
+ assert(read('RAK_PLAN_13.md').includes('iPhone'));
+ assert(read('RAK_PLAN_13.md').includes('Chromium'));
 });

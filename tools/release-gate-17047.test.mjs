@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const VERSION='1.7.47', BUILD='v1.7.47-privacyguard1';
 test('1.7.47 PWA, app, test Supabase and 1.7.0 technical version are aligned',()=>{
@@ -47,9 +48,11 @@ test('OS-only login and all existing employee rotation/offline paths stay intact
      'admin-rotation-generator.js','admin-rotation.js','rotace.js','app-rotation-sync.js'])
     assert(!stage.includes(`change('${path}'`),`unexpected runtime edit: ${path}`);
   assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
-  const plan=read('RAK_PLAN_13.md');
-  for(const marker of ['0/13','OS číslo','importMeta','24 měsíců','anonymně čitelné','rollback'])
-    assert(plan.includes(marker),`roadmap lost warning ${marker}`);
+  // P0.2 is acceptance of exposure, not technical protection. The shared contract
+  // checks this and computes current progress without freezing historical wording.
+  const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+  assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
+  assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
 });
 test('full historical gates and two-pass CI include final 1.7.47',()=>{
   const stage=read('tools/shift-report-mo-hotfix-170-smoke.mjs');

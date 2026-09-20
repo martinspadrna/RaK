@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const VERSION='1.7.48',BUILD='v1.7.48-deviceauth1';
 
@@ -53,12 +54,13 @@ test('rollback SQL exercises two sessions, owner authorization, revocation and b
  assert(!/\b(?:delete|truncate|update)\s+public\.rotation_state\b/i.test(sql));
 });
 
-test('owner OS-only decision has an explicit risk-acceptance disposition, not a false security success',()=>{
- const plan=read('RAK_PLAN_13.md');
- for(const marker of ['1/13 uzavřen rozhodnutím','0/13 plně technicky','OS číslo',
-  'UZAVŘENO ROZHODNUTÍM','riziko přijato','24 měsíců','anonymně čitelné','importMeta','rollback'])
-  assert(plan.includes(marker),`risk disposition missing: ${marker}`);
- assert(!/13\/13\s+plně\s+(?:zabezpečen|vyřešen)/i.test(plan));
+test('owner OS-only decision is risk acceptance, never mistaken for technical security',()=>{
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
+ const policy=read('EMPLOYEE_AUTH_CUTOVER.md');
+ assert(policy.includes('OS_ONLY_POLICY_20260919'));
+ assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
  const ui=read('app-admin-unlock.js');
  assert(ui.includes('všechny jeho admin relace'),'device logout must describe all account sessions');
  assert(ui.includes('Odhlásit zařízení'),'device logout button must match scope');

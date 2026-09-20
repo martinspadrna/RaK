@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.60',BUILD='v1.7.60-queuedurability1';
 function section(source,begin,end){const a=source.indexOf(begin),b=source.indexOf(end,a+begin.length);assert(a>=0&&b>a,'missing '+begin);return source.slice(a,b);}
@@ -80,7 +81,6 @@ test('local rescue exports exact original bytes only after manual request and ne
  const ctx={LOCAL_QUEUE_KEY:'queue',localStorage:{getItem:()=>raw},Date,Blob,URL:{createObjectURL:blob=>{objectUrl=blob;return 'blob:local';},revokeObjectURL:()=>{}},
  document:{body:{appendChild:()=>{}},createElement:()=>({style:{},click:()=>{clicked=true;},remove:()=>{},set download(x){download=x;},get download(){return download;}})},setTimeout:()=>{}};
  const bridge=read('supabase-bridge.js');
- // RAK_17069_RESCUE_SECTION_COMPAT: on the second build the newer cleanup helpers sit before the old end marker.
  const end=bridge.includes('  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD.')
    ? '  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD.'
    : '  window.getSupabaseSyncStatus = getSyncUiStatus;';
@@ -94,12 +94,12 @@ test('local rescue exports exact original bytes only after manual request and ne
  vm.runInNewContext(alertSection,dialog);assert.equal(prompts,0);assert.equal(exports,0);
  dialog.source='dashboard-click';vm.runInNewContext(alertSection,dialog);assert.equal(prompts,1);assert.equal(exports,1);
 });
-test('CI keeps historic gates, both builds, mobile offline, anonymous audit and full plan',()=>{
+test('CI keeps historic gates, both builds, mobile offline, anonymous audit and current plan',()=>{
  const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17059.mjs');"));assert(chain.includes("await import('./development-version-17060.mjs');"));assert(chain.indexOf('17059.mjs')<chain.indexOf('17060.mjs'));
  assert(chain.includes("node")||chain.includes('execFileSync'));
  const smoke=read('tools/shift-report-mo-hotfix-170-smoke.mjs');assert(smoke.includes('RAK_17060_TWO_PASS_GUARD'));
  assert(smoke.includes(`already17060?"var build='${BUILD}';":already17059?`));
  const ci=read('.github/workflows/rak-development-validation.yml');for(const item of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17060.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs','node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(item));
- const plan=read('RAK_PLAN_13.md');assert(plan.includes('2/13')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
+ assert.equal(verifyRoadmapProgress(read('RAK_PLAN_13.md')).length,13);
  const progress=read('RAK_PLAN_17060_STATUS.md');for(const item of ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4','2/13'])assert(progress.includes(item));
 });

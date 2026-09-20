@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const VERSION='1.7.48',BUILD='v1.7.48-deviceauth1',PREVIOUS='v1.7.47-privacyguard1';
 const read=file=>fs.readFileSync(file,'utf8');
 function once(src,before,after,label){
@@ -21,9 +22,11 @@ const matrix=read('tools/admin-device-revocation-17048.sql');
 for(const marker of ['rak_admin_devices_user_session_device_key','rak_current_admin_role',"INTERVAL '10 minutes'",'revoked_sessions'])
  assert(sql1.includes(marker),'[17048] primary migration missing '+marker);
 assert(sql2.includes('ON CONFLICT ON CONSTRAINT rak_admin_devices_user_session_device_key') && matrix.includes('ROLLBACK;'), '[17048] correction / rollback fixture missing');
-const plan=read('RAK_PLAN_13.md');
-for(const marker of ['1/13 uzavřen rozhodnutím','0/13 plně technicky','OS číslo','anonymně čitelné'])
- assert(plan.includes(marker),'[17048] OS-only risk disposition lost '+marker);
+// Live roadmap is a moving plan; validate structure and risk disposition, never an obsolete sentence.
+const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+assert.equal(progress.length,13);
+assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
+assert(read('EMPLOYEE_AUTH_CUTOVER.md').includes('OS_ONLY_POLICY_20260919'),'[17048] OS-only decision missing');
 
 // Preserve every historical gate: extend allowed releases, never remove old cases.
 edit('tools/release-gate-17043.test.mjs',src=>{

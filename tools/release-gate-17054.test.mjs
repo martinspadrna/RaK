@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const VERSION='1.7.54',BUILD='v1.7.54-restorepreflight1';
 const backup=read('rak-complete-backup.js');
@@ -64,10 +65,10 @@ test('historical stage, twice-build CI, mobile offline and live TEST HTTP remain
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const cmd of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17054.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs','node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(cmd),'CI missing '+cmd);
 });
-test('historical 1.7.54 coverage milestone does not override current incomplete JWT/restore plan',()=>{
- const plan=read('RAK_PLAN_13.md');
+test('historical backup coverage and living completion evidence remain independent',()=>{
  assert(read('tools/development-version-17054.mjs').includes(VERSION));
- assert(plan.includes('2/13')&&plan.includes('JWT')&&plan.includes('iPhone')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
- assert(plan.includes('0/13 plně technicky'));
- assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert(progress.some(item=>item.id==='P1.5'));
+ assert(backup.includes('přemapuj rak_admin_profiles.user_id'));
 });

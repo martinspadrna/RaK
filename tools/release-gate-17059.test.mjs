@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.59',BUILD='v1.7.59-queueintegrity1';
 function section(text,start,end){const a=text.indexOf(start),b=text.indexOf(end,a+start.length);assert(a>=0&&b>a,'missing '+start);return text.slice(a,b);}
 function queueFixture(initial){
  let stored=initial.map(item=>({...item}));
  const state={queueGuard:{rejected:0,oversized:0,deduped:0,trimmed:0}};
- // 1.7.60 reads the real storage bytes instead of the former cached JSON helpers.
  const localStorage={getItem:()=>JSON.stringify(stored),setItem:(_key,payload)=>{stored=JSON.parse(payload).map(item=>({...item}));}};
  const ctx={state,SUPABASE_QUEUE_MAX_BYTES:650000,SUPABASE_QUEUE_MAX_ITEMS:120,
   SUPPORTED_QUEUE_TYPES:new Set(['rotation_state','machine_settings','rotation_month_entries','gomoku_win','game_stat','game_ui_settings','game_session','bug_report']),
@@ -74,5 +74,5 @@ test('two builds keep historical 1.7.58 tests and final gates, offline Chromium,
  const replay=read('tools/shift-report-mo-hotfix-170-smoke.mjs');assert(replay.includes('RAK_17059_TWO_PASS_GUARD'));
  assert(replay.includes(`already17059?"var build='${BUILD}';":already17058?`));
  const ci=read('.github/workflows/rak-development-validation.yml');for(const phrase of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17059.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs','node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(phrase));
- const plan=read('RAK_PLAN_13.md');assert(plan.includes('2/13')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
+ assert.equal(verifyRoadmapProgress(read('RAK_PLAN_13.md')).length,13);
 });

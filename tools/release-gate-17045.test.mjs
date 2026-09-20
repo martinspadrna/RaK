@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read = file => fs.readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const version = '1.7.45';
 const build = 'v1.7.45-logingate1';
@@ -56,9 +57,10 @@ test('exact 1.7.45 preview version and privacy/offline contracts', () => {
   assert(config.includes('cgshssdjgzzuprlwnabl') && !config.includes('bkqamcbkiwumsvelahxr'));
   assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
   assert(read('admin-rotation-generator.js').includes('note.text'));
-  const plan = read('RAK_PLAN_13.md');
-  assert(plan.includes('0/13') && plan.includes('24 měsíců') && plan.includes('ČÁSTEČNĚ'));
-  assert(plan.includes('OS číslo') && plan.includes('rollback'));
+  const progress = verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+  assert.equal(progress.length, 13);
+  assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
+  assert(read('EMPLOYEE_AUTH_CUTOVER.md').includes('OS_ONLY_POLICY_20260919'));
 });
 
 test('two complete builds, all inherited gates and final 1.7.45 guard', () => {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const VERSION='1.7.51',BUILD='v1.7.51-archiveguard1';
 test('final development version, test DB, OS-only login and technical version',()=>{
@@ -50,10 +51,10 @@ test('two builds and live HTTP remain mandatory; history and replay preserved',(
  assert(stage.includes(`indexSource.includes("var build='${BUILD}';")`));
  assert(read('tools/development-version-17050.mjs').includes("'tools/release-gate-17050.test.mjs'"));
 });
-test('13-item plan distinguishes accepted risk, historical CI milestone and current incomplete technical work',()=>{
- const plan=read('RAK_PLAN_13.md');
- for(const marker of ['2/13','12/13 otevřených','1/13 uzavřen rozhodnutím','0/13 plně technicky','OS číslo','24 měsíců','anonymně čitelné',
- 'importMeta','rollback','P1.3','P1.4','P1.5','iPhone','ČÁSTEČNĚ'])assert(plan.includes(marker),`[17051] missing honest scope ${marker}`);
- assert(plan.includes('ZNOVU OTEVŘENO')&&plan.includes('CI-before-deploy'),'[17051] unfinished build and deploy architecture must remain visible');
- assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
+test('live 13-point plan is checked independently of historic release wording',()=>{
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
+ assert(read('SECURITY_DEPLOYMENT.md').includes('rollback'));
+ assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
 });

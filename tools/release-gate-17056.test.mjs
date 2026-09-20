@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.56', BUILD='v1.7.56-authprobe1';
 test('visible 1.7.56, PWA and TEST database align; OS-only login and technical 1.7.0 remain',()=>{
@@ -54,8 +55,9 @@ test('second full build preserves 1.7.55, all historical gates, offline Chromium
   'node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs',
   'node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(command),'CI missing '+command);
 });
-test('13-point roadmap does not claim unsigned claims or isolated restore were verified',()=>{
- const plan=read('RAK_PLAN_13.md');
- assert(plan.includes('2/13')&&plan.includes('JWT')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
- assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
+test('13-point roadmap validates every percentage independently of old status prose',()=>{
+ const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ assert.equal(progress.length,13);
+ assert(progress.some(item=>item.id==='P1.5'));
+ assert(read('tools/auth-role-diagnostic-17056.js').includes('/auth/v1/user'));
 });
