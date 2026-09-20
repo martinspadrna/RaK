@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {verifyRoadmapSummary} from './roadmap-contract.mjs';
 export const RELEASE = Object.freeze({
   version: '1.7.40', build: 'v1.7.40-rotationmin1',
   testProject: 'cgshssdjgzzuprlwnabl', productionProject: 'bkqamcbkiwumsvelahxr'
@@ -31,9 +32,7 @@ export function assertRotationRelease(files) {
   for (const [path, token] of mustInclude) assert(read(path).includes(token), 'Missing release marker: ' + path + ': ' + token);
   assert(!config.includes(productionProject), 'Production Supabase leaked into preview config');
   assert.equal(JSON.parse(read('package.json')).version, '1.7.0', 'Technical version must be 1.7.0');
-  const roadmap = read('RAK_PLAN_13.md');
-  const actual = [...roadmap.matchAll(/^\| (P[012]\.\d) \|/gm)].map(match => match[1]);
-  assert.deepEqual(actual, ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4']);
-  assert(roadmap.includes('0/13') && roadmap.includes('OS číslo') && roadmap.includes('importMeta'), 'Privacy limitations/13 tasks missing');
-  return { version, build, taskCount: actual.length };
+  // The detailed checkboxes and risk declaration are validated by roadmap-contract.test.mjs.
+  const ids = verifyRoadmapSummary(read('RAK_PLAN_13.md'));
+  return { version, build, taskCount: ids.length };
 }

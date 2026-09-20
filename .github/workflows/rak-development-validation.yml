@@ -25,8 +25,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Preflight build policy and prevent new rewrite stages
-        run: node --test tools/vercel-build-policy.test.mjs tools/build-architecture-contract.test.mjs
+      - name: Preflight build policy, frozen chain and measured thirteen-point roadmap
+        run: node --test tools/vercel-build-policy.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice

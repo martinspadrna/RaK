@@ -15,11 +15,11 @@ function swap(source,before,after,label){
  assert(source.includes(after),'[17039] missing anchor '+label);
  return source;
 }
-const plan=read('RAK_PLAN_13.md');
+// The current roadmap is validated by a stable structural contract, not by
+// frozen 1.7.39 prose. The gate below verifies its thirteen IDs independently.
 const regression=read('tools/security-rotation-release-17039.sql');
 const gate=read('tools/release-gate-17039.mjs');
 const unit=read('tools/release-gate-17039.test.mjs');
-assert(plan.includes('0/13')&&plan.includes('P2.4')&&plan.includes('OS číslo')&&plan.toLowerCase().includes('main'),'[17039] honest 13-task plan missing');
 assert(regression.includes('Public actor exposed')&&regression.includes('Employee directory leaked')&&regression.includes('ROLLBACK;'),'[17039] database privacy regression missing');
 assert(gate.includes('assertReleaseSnapshot')&&unit.includes('node:test'),'[17039] quality gate or unit tests absent');
 change('tools/shift-report-mo-hotfix-170-smoke.mjs',source=>{

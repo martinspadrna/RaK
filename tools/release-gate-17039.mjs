@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Pure release assertions; invoked AFTER the version transform, never writes production or app data.
 import assert from 'node:assert/strict';
+import {verifyRoadmapSummary} from './roadmap-contract.mjs';
 
 export const RELEASE = Object.freeze({
   version: '1.7.39',
@@ -47,10 +48,8 @@ export function assertReleaseSnapshot(files) {
   }
   assert(!config.includes(productionProject), 'Release gate: production Supabase in development config');
   assert.equal(packageJson.version, '1.7.0', 'Technical package version must remain 1.7.0');
-  const ids = [...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].map((match) => match[1]);
-  const expected = ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4'];
-  assert.deepEqual(ids, expected, 'Progress plan must contain exactly 13 ordered unique tasks');
-  assert(plan.includes('0/13') && plan.includes('OS číslo') && plan.includes('rollback'), 'Progress plan must disclose incomplete tasks and rollback');
-  assert(plan.includes('24 měsíců') && plan.includes('ČÁSTEČNĚ'), 'Progress plan must disclose public history and partial fixes');
+  // The living roadmap is validated by IDs here and by counts/percentages in an
+  // independent CI contract; historic releases must never demand frozen prose.
+  const ids = verifyRoadmapSummary(plan);
   return Object.freeze({ version, build, taskCount: ids.length, testProject });
 }

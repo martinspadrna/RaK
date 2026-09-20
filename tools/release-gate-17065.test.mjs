@@ -106,7 +106,7 @@ test('MO and TO narrower, absence untouched, iOS font and browser geometry prese
  assert(browser.includes('data.rotDate.content>=data.rotDate.text+1'));
  assert(browser.includes('data.rotDate.width>=81&&data.rotDate.width<=83&&data.rotCell>=83'));
 });
-test('historical release gates, double build, CRC and exactly thirteen live tasks without build-time rewriting',()=>{
+test('historical release gates, double build, CRC and frozen historical scope without coupling to current plan wording',()=>{
  const stage=read('tools/development-version-17048.mjs');
  assert(stage.includes("execFileSync(process.execPath,['--test','tools/release-gate-17064.test.mjs']"));
  assert(stage.includes("await import('./development-version-17065.mjs');"));
@@ -116,10 +116,9 @@ test('historical release gates, double build, CRC and exactly thirteen live task
  const plan=read('RAK_PLAN_17065_STATUS.md');
  for(const id of ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4','2/13','11/13'])assert(plan.includes(id),id);
  assert(!plan.includes('game-session CAS'));
- const live=read('RAK_PLAN_13.md');
- assert.equal([...live.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
- assert(live.includes('ZNOVU OTEVŘENO')&&live.includes('0/13 plně technicky'));
  const migration=read('tools/development-version-17065.mjs');
  assert(migration.includes('RAK_17065_LIVE_PLAN_IMMUTABLE'));
+ assert(migration.includes("read('RAK_PLAN_17065_STATUS.md')"));
+ assert(!migration.includes("read('RAK_PLAN_13.md')"),'historical build must not depend on evolving roadmap wording');
  assert(!migration.includes("write('RAK_PLAN_13.md'"),'historical build must never modify the live roadmap');
 });

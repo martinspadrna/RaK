@@ -10,7 +10,7 @@ function fixture() {
     'app.js':`const RAK_DEV_UPDATE_BUILD = "${b}";`,
     'sw.js':`const CACHE_VERSION = 'v${v}';\nconst DEVELOPMENT_TEST_DISPLAY_VERSION = '${v}';\nconst DEVELOPMENT_BUILD_ID = '${b}';\nconst SW_APP_VERSION = '1.7.0';`,
     'package.json':JSON.stringify({version:'1.7.0'}),
-    'RAK_PLAN_13.md':'# OS číslo 24 měsíců rollback 0/13 ČÁSTEČNĚ\n'+ids.map(id=>`| ${id} | item |`).join('\n'),
+    'RAK_PLAN_13.md':ids.map(id=>`| ${id} | item |`).join('\n'),
     'EMPLOYEE_AUTH_CUTOVER.md':'OS_ONLY_POLICY_20260919',
     'PUBLIC_ROTATION_ACTOR_PRIVACY.md':'24 měsíců',
     'tools/security-rotation-release-17039.sql':'SET LOCAL ROLE anon;\nROLLBACK;',
@@ -20,5 +20,5 @@ function fixture() {
 test('complete development release passes with all 13 tasks',()=>assert.equal(assertReleaseSnapshot(fixture()).taskCount,13));
 test('wrong test database fails closed',()=>{const f=fixture();f['supabase-config.js']=f['supabase-config.js'].replace(RELEASE.testProject,RELEASE.productionProject);assert.throws(()=>assertReleaseSnapshot(f),/test database URL|production Supabase/);});
 test('PWA build mismatch fails closed',()=>{const f=fixture();f['sw.js']=f['sw.js'].replace(RELEASE.build,'v1.7.38-actorprivacy1');assert.throws(()=>assertReleaseSnapshot(f),/SW build mismatch/);});
-test('missing roadmap item fails closed',()=>{const f=fixture();f['RAK_PLAN_13.md']=f['RAK_PLAN_13.md'].replace(/^\| P2\.4 \|.*$/m,'');assert.throws(()=>assertReleaseSnapshot(f),/exactly 13/);});
-test('unresolved public privacy cannot be labeled complete',()=>{const f=fixture();f['RAK_PLAN_13.md']=f['RAK_PLAN_13.md'].replace('0/13','13/13');assert.throws(()=>assertReleaseSnapshot(f),/incomplete tasks/);});
+test('missing roadmap item fails closed',()=>{const f=fixture();f['RAK_PLAN_13.md']=f['RAK_PLAN_13.md'].replace(/^\| P2\.4 \|.*$/m,'');assert.throws(()=>assertReleaseSnapshot(f),/thirteen unique/);});
+test('public history privacy documentation remains mandatory',()=>{const f=fixture();f['PUBLIC_ROTATION_ACTOR_PRIVACY.md']='history omitted';assert.throws(()=>assertReleaseSnapshot(f),/honest privacy scope/);});
