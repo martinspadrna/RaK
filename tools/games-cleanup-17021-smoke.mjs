@@ -36,9 +36,16 @@ assert(detailed.length>0&&!detailed.includes("'games', 'menu'")&&!detailed.inclu
 const post=read('app-postload-audits.js');
 assert(!post.includes('runPhaseFiveGamePerformanceAudit()')&&!post.includes('runGameEngineBaselineAudit()'),'no obsolete background game audits');
 const menu=read('app-menu.js');
-assert(menu.includes('nových účtů pracovníků:')&&!menu.includes('nových herních profilů:'),'new employee account label');
+// First build still uses the original 1.7.21 account-provisioning contract; the
+// second pass has already applied the deliberate 1.7.65 removal of GAME profiles.
+if(menu.includes('RAK_17065_NO_GAME_PROVISIONING_GUARD')){
+ assert(!menu.includes('ensureGameAccountsExistForWorkers(workerSettings.workers)'), 'removed game provisioning must stay absent');
+ assert(!menu.includes('nových herních profilů:')&&menu.includes('účty aplikace:'),'worker UI retains application account information without game provisioning');
+}else{
+ assert(menu.includes('nových účtů pracovníků:')&&!menu.includes('nových herních profilů:'),'new employee account label');
+ assert(menu.includes('ensureGameAccountsExistForWorkers(workerSettings.workers)'),'historical employee provisioning before 1.7.65');
+}
 assert(menu.includes('.filter(line => !/(?:herní|herni|piškvorky|lodě|online hry|top.?score|leaderboard|game[_ -]'),'diagnostics hides retired-feature lines');
-assert(menu.includes('ensureGameAccountsExistForWorkers(workerSettings.workers)'),'creating real employee accounts must survive');
 const user=read('rak-user-profile.js');
 assert(user.includes("const ACCOUNT_UI_PROFILE_KEY = 'rotace_kalkulacky:games_profile_v1';"),'existing appearance storage key preserved');
 assert(user.includes('window.gamesGetProfile = getAccountUiProfile')&&user.includes('window.gamesSaveProfile = saveAccountUiProfile'),'appearance compatibility preserved');
