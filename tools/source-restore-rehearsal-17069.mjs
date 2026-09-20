@@ -66,7 +66,11 @@ try{
   assert.deepEqual(dirFiles.sort(),expected,'extra or missing extracted source files');
   assert(fs.existsSync(path.join(dest,'package.json'))&&fs.existsSync(path.join(dest,'supabase-config.js'))
     &&fs.existsSync(path.join(dest,'tools','development-version-17048.mjs')),'restored repository lacks essential rebuild inputs');
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dest,'package.json'),'utf8')).version,'1.7.0');
+  // This historical stage runs before the release transform bumps package.json from its Git source version.
+  // The archive must faithfully restore HEAD; final technical version 1.7.0 has its separate release gates.
+  const restoredPackage=JSON.parse(fs.readFileSync(path.join(dest,'package.json'),'utf8'));
+  const originalPackage=JSON.parse(run('git',['show','HEAD:package.json']));
+  assert.equal(restoredPackage.version,originalPackage.version,'restored source package version differs from Git HEAD');
   console.log(`[17069-source-rehearsal] PASS ${expected.length} files / ${bytes} bytes recovered; every Git blob hash matches ${sha}; temp restore removed. Source-only: independent Supabase/Auth/Storage restoration remains unverified.`);
 }finally{
   fs.rmSync(dest,{recursive:true,force:true});
