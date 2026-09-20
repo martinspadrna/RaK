@@ -41,7 +41,7 @@ if(!bridge.includes('RAK_17059_QUEUE_PRESERVE_GUARD')){
   '    const queueIssue = queueLength ? summarizeQueuedSyncTask(queue.find(item => item && item.conflict) || queue[0]) : null;', 'diagnose blocked task first');
  write('supabase-bridge.js',bridge);
 }
-assert(bridge.includes('RAK_17059_QUEUE_PRESERVE_GUARD')&&bridge.includes("conflict: 'unsupported-task'")&&bridge.includes('state.queueGuard.overCapacity = next.length'));
+assert(bridge.includes('RAK_17059_QUEUE_PRESERVE_GUARD')&&bridge.includes("next.conflict = 'unsupported-task'")&&bridge.includes('state.queueGuard.overCapacity = next.length'));
 let dashboard=read('dashboard.js');
 if(!dashboard.includes('RAK_17059_DIAGNOSTIC_DIALOG_GUARD')){
  dashboard=once(dashboard,
