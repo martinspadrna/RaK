@@ -1,0 +1,11 @@
+# RaK – dodatek: příprava preview rollbacku a opakované měření PWA
+
+## P1.4: ověřená metadata nejsou provedený rollback (balík po 1.7.67)
+
+Před jakoukoliv změnou **výhradně izolovaného development preview aliasu** si mimo veřejný repozitář uchovej aktuální snímky metadat obou immutable Vercel deploymentů a snímek GitHub refs (`development`, `main`). JSON metadata použij s `node tools/preview-rollback-preflight-17068.mjs /private/current.json /private/fallback.json /private/refs.json`. Přijaté tvary JSON deploymentu jsou přímo objekt nebo obálka `deployment` / `result.deployment`; `refs.json` obsahuje pouze dvě plná SHA: `{"development":"...","main":"..."}`. Soubor s případným tokenem nezakládej ani necommituj. Validátor nemá žádné mutační ani síťové operace, pouze kontroluje shodu snímků s pevně známými kritérii a nikdy nesmí tvrdit, že živý alias byl přepnut.
+
+**Samostatné povinné brány po metadata PASS:** z autoritativní živé Vercel alias evidence (nikoli jen pole alias ve starém deployment objektu) zjisti, který deployment alias *nyní* obsluhuje. Autentizovaným GET nezávisle potvrď verzi a TEST Supabase ve skutečném obsahu obou immutable preview; HTTP 302 na Vercel SSO není HTTP 200 a není úspěch. Ověř kompatibilitu obou klientských verzí s nezměněným testovacím schématem, platnost zálohy a aktuální revize rozpisu. Před přepnutím mít konkrétní návratový deployment/SHA a práva k aliasu. Pokud jeden důkaz chybí, **nepřepínej alias, nerozbíhej rollback, neprováděj DB rollback**.
+
+Teprve po samostatně schválené preview zkoušce přesměruj *jen výslovně určený testovací alias* na známý fallback; ověř nezávislé HTTP 200, verzi 1.7.66, TEST konfig, read-only smoke a zachování místního návrhu. Vrať alias na původní ověřený 1.7.67 deployment a zopakuj kontrolu. Zdokumentuj oba časy, alias owner, SHA a výsledky bez tokenů a osobních údajů. Při chybném či nejasném alias ownerovi, přihlášení, konfiguraci či zápisech nepokračuj. Žádný force-push, `main`, produkční alias nebo Supabase migrace se do preview cvičení nezapojují.
+
+Výkon PWA nyní sleduje povinný trojitý Chromium CI benchmark (`tools/pwa-start-bench-17068.mjs`, studený/offline/obnovený start). Je to laboratorní Chrome měření bez vzdálených DB požadavků, nikoliv Safari nebo uživatelské ověření. Záznamy obsahují jen milisekundy a fixní prahy; žádné osobní údaje, rozpisy ani JWT.
