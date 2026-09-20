@@ -69,6 +69,8 @@ function reviewFixture(opts={}){
  const ctx={navigator:{onLine:opts.online!==false},state:{rotationRevision:opts.local??8,adminAuth:{context:{account_id:'owner1'}}},
  hasSecureAdminContext:()=>opts.authorized!==false,getRakPendingSyncReview:()=>({storageIssue:!!opts.badQueue}),
  getClient:()=>client,Date};
+ // Mirror the browser global: production code accesses window in this extracted fixture.
+ ctx.window=ctx;
  const snippet=section(read('supabase-bridge.js'),'  // RAK_17063_MANUAL_REVISION_GUARD:', '  window.getSupabaseSyncStatus = getSyncUiStatus;');
  vm.runInNewContext(snippet+'\n globalThis.__review=reviewRakRotationRevisionOnDemand;',ctx);
  return {review:()=>ctx.__review(),calls};
