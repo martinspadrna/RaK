@@ -64,8 +64,10 @@ test('historical stage, twice-build CI, mobile offline and live TEST HTTP remain
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const cmd of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17054.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs','node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(cmd),'CI missing '+cmd);
 });
-test('13-point roadmap is honest about pending true JWT and independent restoration',()=>{
+test('historical 1.7.54 coverage milestone does not override current incomplete JWT/restore plan',()=>{
  const plan=read('RAK_PLAN_13.md');
- assert(plan.includes('1.7.54')&&plan.includes('2/13')&&plan.includes('JWT')&&plan.includes('iPhone')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
+ assert(read('tools/development-version-17054.mjs').includes(VERSION));
+ assert(plan.includes('2/13')&&plan.includes('JWT')&&plan.includes('iPhone')&&plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
+ assert(plan.includes('0/13 plně technicky'));
  assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
 });

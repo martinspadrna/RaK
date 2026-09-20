@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.53',BUILD='v1.7.53-backupverify1';
 const source=read('rak-complete-backup.js');
 const validatorMatch=source.match(/  \/\/ RAK_17053_BACKUP_STRUCTURE_GUARD[^\n]*\n[\s\S]*?(?=  function addSupabaseSnapshotFiles\()/);
@@ -57,9 +57,12 @@ test('historic gates, real mobile/offline, HTTP and safe archive still required'
  const guard=read('tools/shift-report-mo-hotfix-170-smoke.mjs');
  assert(guard.includes('// RAK_17053_TWO_PASS_GUARD')&&guard.includes(`already17053?"var build='${BUILD}';":already17052?`));
 });
-test('13-point report distinguishes partial restoration from completed recovery',()=>{
+test('historical 1.7.53 backup milestone and current report separately preserve honest recovery scope',()=>{
  const plan=read('RAK_PLAN_13.md');
- assert(plan.includes('1.7.53')&&plan.includes('2/13')&&plan.includes('rollback')&&plan.includes('iPhone'));
+ const historical=read('tools/development-version-17053.mjs');
+ assert(historical.includes(VERSION),'historical backup milestone missing from immutable stage');
+ assert(plan.includes('2/13')&&plan.includes('rollback')&&plan.includes('iPhone'));
  assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
- assert(plan.includes('riziko přijato, nikoli zabezpečeno'));
+ assert(/riziko přijato,\s*(?:nikoli|ne) zabezpečeno/i.test(plan));
+ assert(plan.includes('0/13 plně technicky'),'current plan must not misstate technical completion');
 });

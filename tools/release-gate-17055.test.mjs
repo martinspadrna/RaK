@@ -62,9 +62,11 @@ test('historical two-pass build, headless mobile, HTTP privacy and CRC remain CI
   'node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs',
   'node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(command),'CI missing '+command);
 });
-test('13-point status does not claim independent recovery or real signed JWT',()=>{
+test('historic shadow-restore milestone remains separate from the live 13-point plan',()=>{
  const plan=read('RAK_PLAN_13.md');
- assert(plan.includes('1.7.55')&&plan.includes('2/13')&&plan.includes('shadow')&&plan.includes('JWT'));
+ assert(read('tools/development-version-17055.mjs').includes(VERSION));
+ assert(plan.includes('2/13')&&plan.includes('shadow')&&plan.includes('JWT'));
  assert(plan.includes('Izolovaná plná obnova zatím nebyla provedena'));
+ assert(plan.includes('0/13 plně technicky'));
  assert.equal([...plan.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13);
 });
