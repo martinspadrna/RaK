@@ -16,6 +16,9 @@ function status(overrides={}){
  const queue=overrides.queue||[];
  const context={readLocalSnapshot:()=>overrides.cache===false?null:{rotation:{months:{}},updatedAt:Date.now()},readQueue:()=>queue,
   getClient:()=>overrides.client===false?null:{},getSupabaseHardeningStatus:()=>({}),
+  // Earlier release gates extract getSyncUiStatus alone. Newer versions can
+  // inject a separate privacy-safe queue summary without changing this fixture's contract.
+  summarizeQueuedSyncTask:task=>({label:'test task',retries:Number(task&&task.retryCount||0),conflict:!!(task&&task.conflict)}),
   navigator:{onLine:overrides.online!==false},state,app:{adminRotationDirty:!!overrides.dirty}};
  const fn=vm.runInNewContext('('+extracted(bridge(),'  function getSyncUiStatus() {','\n  window.refreshPublicData = refreshPublicData;')+')',context);
  return fn();
@@ -24,8 +27,7 @@ test('1.7.57 visible markers, TEST-only database, original employee OS-only and 
  for(const [file,anchor] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
  ['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
  ['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
- ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`],
- ['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]]) assert(read(file).includes(anchor),'version mismatch '+file);
+ ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_TEST_DISPLAY_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]]) assert(read(file).includes(anchor),'version mismatch '+file);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
