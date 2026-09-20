@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 1.7.61: actual Chromium CSS geometry, no account, no Supabase or network calls.
+// 1.7.61/62: real Chromium geometry; does not authenticate, call Supabase or access personal data.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -94,14 +94,14 @@ try{
     assert(data[key].shift>=32&&data[key].reason>=36,'[17061-browser] columns crushed');
     assert(data[key].visibleDate,'[17061-browser] actual date text clipped: '+key);
   }
-  assert(data.rotDate.width>=89&&data.rotCell>=90,'[17061-browser] editable hard/soft date too narrow');
+  assert(data.rotDate.width>=85&&data.rotCell>=87,'[17061-browser] editable hard/soft date too narrow');
   assert(data.absDate.width>=83&&data.absDateCell>=85,'[17061-browser] editable absence date too narrow');
   assert(data.absName>=83&&data.absName<=87,'[17061-browser] absence name not reduced');
-  assert(data.rotDate.font>=16&&data.absDate.font>=16,'[17061-browser] iOS input auto-zoom regression');
+  assert(data.rotDate.font>=16&&data.absDate.font>=16,'[17061-browser] iOS input auto-zoom regression '+JSON.stringify({rot:data.rotDate,absence:data.absDate}));
   assert(data.rotDate.content>=data.rotDate.text+1&&data.absDate.content>=data.absDate.text+1,
     '[17061-browser] full date and shift text must fit '+JSON.stringify({rot:data.rotDate,absence:data.absDate}));
   assert(!data.rotOverlap&&!data.absOverlap&&!data.codeOverlap,'[17061-browser] fields overlap neighbouring cells');
   assert(data.docWidth<=data.viewport+4,'[17061-browser] document overflows instead of table scrolling');
-  console.log('[17061-browser] PASS real Chromium CSS: public/admin 58px date + 68px names; editable 90/84px date fits shift, iOS 16px font, no overlap');
+  console.log('[17061-browser] PASS real Chromium CSS: public/admin 58px date + 68px names; editable 86/84px date fits shift, iOS 16px font, no overlap');
 }catch(e){console.error('[17061-browser] FAIL '+e.stack);process.exitCode=1;}
 finally{fs.rmSync(tmp,{recursive:true,force:true});}

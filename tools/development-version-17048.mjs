@@ -62,3 +62,5 @@ execFileSync(process.execPath,['--test','tools/release-gate-17059.test.mjs'],{st
 await import('./development-version-17060.mjs');
 execFileSync(process.execPath,['--test','tools/release-gate-17060.test.mjs'],{stdio:'inherit'});
 await import('./development-version-17061.mjs');
+execFileSync(process.execPath,['--test','tools/release-gate-17061.test.mjs'],{stdio:'inherit'});
+await import('./development-version-17062.mjs');
