@@ -179,12 +179,13 @@ if(!browser.includes('RAK_17065_COMPAT_WIDTH_GUARD')){
  'truthful geometry report');
  write('tools/browser-absence-layout-17061.mjs',browser);
 }
-// Live status belongs to source control, not to any historical release transform.
-// RAK_17065_LIVE_PLAN_IMMUTABLE: retain all 13 current rows and the no-games scope without rewriting the roadmap.
-const canonical=read('RAK_PLAN_13.md');
-assert.equal([...canonical.matchAll(/^\| (P[012]\.\d) \|/gm)].length,13,'[17065] expected exactly 13 current plan items');
-assert(!canonical.includes('atomický serverový CAS pro herní stav'),'[17065] obsolete game requirement reappeared in live plan');
-assert(canonical.includes('Hry')||canonical.includes('herní'),'[17065] historical game scope must remain documented');
+// Historical contracts are pinned to the historical release record; this stage must not
+// inspect or modify the evolving RAK_PLAN_13.md. Current plan validation runs independently in CI.
+// RAK_17065_LIVE_PLAN_IMMUTABLE
+const historical=read('RAK_PLAN_17065_STATUS.md');
+assert.equal([...historical.matchAll(/^\| (P[012]\.\d)(?:\s|\|)/gm)].length,13,'[17065] expected exactly 13 historical plan items');
+assert(!historical.includes('game-session CAS'),'[17065] obsolete game requirement in historical release record');
+assert(historical.includes('Hry')||historical.includes('herní'),'[17065] historical game scope must remain documented');
 let replay=read('tools/shift-report-mo-hotfix-170-smoke.mjs');
 if(!replay.includes('RAK_17065_TWO_PASS_GUARD')){
  replay=once(replay,
