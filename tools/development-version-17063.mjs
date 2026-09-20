@@ -25,9 +25,17 @@ if(!bridge.includes('RAK_17063_UNKNOWN_BASELINE_GUARD')) {
  const end=bridge.indexOf('\n  async function upsertGomokuWinDirect(',begin);
  assert(begin>=0&&end>begin&&end-begin<6500,'monthly function boundaries');
  let month=bridge.slice(begin,end);
- month=once(month,'      return Number(data && data.inserted || payloadRows.length) || 0;',
-   "      return { months: 1, entries: Number.isInteger(Number(data && data.inserted)) ? Number(data.inserted) : payloadRows.length };",
-   'monthly RPC result counts including zero');
+ // Existing stages may already wrap the RPC response. Locate its return relative to the
+ // actual successful RPC, rather than depending on a superseded return-value literal.
+ const rpcAt=month.indexOf("client.rpc('rak_admin_save_rotation_month_entries_v2'");
+ const rpcCheck=month.indexOf('      if (error) throw error;',rpcAt);
+ const resultBegin=month.indexOf('      return ',rpcCheck);
+ const resultEnd=month.indexOf(';\n',resultBegin);
+ assert(rpcAt>=0&&rpcCheck>rpcAt&&resultBegin>rpcCheck&&resultEnd>resultBegin
+   &&resultEnd-resultBegin<350&&resultBegin-rpcCheck<350,'monthly RPC result boundaries changed');
+ month=month.slice(0,resultBegin)
+   +"      return { months: 1, entries: data && Number.isSafeInteger(Number(data.inserted)) && data.inserted !== null ? Number(data.inserted) : payloadRows.length };"
+   +month.slice(resultEnd+1);
  const fallback=month.indexOf('    const monthRow = {');
  assert(fallback>=0,'old direct table fallback missing');
  month=month.slice(0,fallback)+`    // RAK_17063_MONTH_RPC_ONLY_GUARD: no anonymous/direct DELETE+INSERT fallback.
@@ -94,7 +102,7 @@ if(!dashboard.includes('RAK_17063_MANUAL_REVISION_DIALOG_GUARD')) {
           : 'Revizi se nepodařilo bezpečně ověřit. Nic nepřepisuj.';
         window.alert(['Kontrola revize rozpisu', description,
           'Obsah serveru a telefonu nebyl porovnán.',
-          'Nebyl proveden žádný zápis ani vyřešen konflikt.'].join('\\n'));
+          'Nebyl proveden žádný zápis ani vyřešen konflikt.'].join('\n'));
       }).catch(() => {
         if (typeof window.alert === 'function') window.alert('Kontrola revize se nezdařila. Nic nepřepisuj.');
       });
