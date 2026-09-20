@@ -89,7 +89,7 @@ if(!bridge.includes('RAK_17060_DURABLE_QUEUE_GUARD')){
  assert(statusStart>=0&&statusEnd>statusStart&&statusEnd-statusStart<6200,'status boundaries');
  let status=bridge.slice(statusStart,statusEnd);
  status=once(status,'    const queueLength = queue.length;',
-  "    const queueLength = queue.length;\n    const storageIssue = String(state.queueGuard.storageError || '');",'storage error status');
+  "    const queueLength = queue.length;\n    const storageIssue = String(state.queueGuard && state.queueGuard.storageError || '');",'storage error status');
  status=once(status,'      conflictCount, dropped, queueIssue, hardening: getSupabaseHardeningStatus() };',
   '      conflictCount, dropped, queueIssue, storageIssue: !!storageIssue, hardening: getSupabaseHardeningStatus() };', 'status exposes boolean only');
  status=once(status,"    if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) {",
