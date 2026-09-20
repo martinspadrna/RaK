@@ -8,11 +8,13 @@ function section(text,start,end){const a=text.indexOf(start),b=text.indexOf(end,
 function queueFixture(initial){
  let stored=initial.map(item=>({...item}));
  const state={queueGuard:{rejected:0,oversized:0,deduped:0,trimmed:0}};
+ // 1.7.60 reads the real storage bytes instead of the former cached JSON helpers.
+ const localStorage={getItem:()=>JSON.stringify(stored),setItem:(_key,payload)=>{stored=JSON.parse(payload).map(item=>({...item}));}};
  const ctx={state,SUPABASE_QUEUE_MAX_BYTES:650000,SUPABASE_QUEUE_MAX_ITEMS:120,
   SUPPORTED_QUEUE_TYPES:new Set(['rotation_state','machine_settings','rotation_month_entries','gomoku_win','game_stat','game_ui_settings','game_session','bug_report']),
   GAME_PROGRESS_RESET_CUTOFF_MS:Date.now(),
   estimateJsonBytes:value=>JSON.stringify(value).length,
-  safeReadJson:()=>stored.map(item=>({...item})),safeWriteJson:(_key,value)=>{stored=value.map(item=>({...item}));},LOCAL_QUEUE_KEY:'test',
+  localStorage,safeReadJson:()=>stored.map(item=>({...item})),safeWriteJson:(_key,value)=>{stored=value.map(item=>({...item}));},LOCAL_QUEUE_KEY:'test',
   queueTaskKey:task=>task.type+':'+String(task.entry&&task.entry.account_number||task.code||''),
   Date,Math,JSON};
  const script=section(read('supabase-bridge.js'),'  // RAK_17059_QUEUE_PRESERVE_GUARD:','\n  function isLikelyOfflineError(');
