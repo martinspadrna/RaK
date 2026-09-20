@@ -25,5 +25,7 @@ try {
 }
 const files = output.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
 const decision = classifyVercelBuild({ branch, previous, files });
-console.log('[vercel-ignore-build]', decision.skip ? 'skip' : 'build', decision.reason, files.join(', '));
+// Preserve the inherited smoke contract: helperOnly is the real non-runtime-files decision.
+const helperOnly = decision.reason === 'verification-or-documentation-only';
+console.log('[vercel-ignore-build]', helperOnly ? 'skip helper-only' : decision.skip ? 'skip' : 'build', decision.reason, files.join(', '));
 process.exit(decision.skip ? 0 : 1);
