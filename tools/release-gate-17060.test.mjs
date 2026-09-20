@@ -77,7 +77,7 @@ test('localStorage failure after online write is reported as failure, not green 
 });
 test('local rescue exports exact original bytes only after manual request and never mutates queue',async()=>{
  const raw='{"raw":"PRIVATE-LOCAL-PAYLOAD"}';let written='',clicked=false,download='',objectUrl='';
- const ctx={localStorage:{getItem:()=>raw},Date,Blob,URL:{createObjectURL:blob=>{objectUrl=blob;return 'blob:local';},revokeObjectURL:()=>{}},
+ const ctx={LOCAL_QUEUE_KEY:'queue',localStorage:{getItem:()=>raw},Date,Blob,URL:{createObjectURL:blob=>{objectUrl=blob;return 'blob:local';},revokeObjectURL:()=>{}},
  document:{body:{appendChild:()=>{}},createElement:()=>({style:{},click:()=>{clicked=true;},remove:()=>{},set download(x){download=x;},get download(){return download;}})},setTimeout:()=>{}};
  const script=section(read('supabase-bridge.js'),'  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD:','  window.getSupabaseSyncStatus = getSyncUiStatus;');
  vm.runInNewContext(script+'\n globalThis.__download=downloadPendingSyncBackup;',ctx);
