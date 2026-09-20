@@ -79,7 +79,12 @@ test('local rescue exports exact original bytes only after manual request and ne
  const raw='{"raw":"PRIVATE-LOCAL-PAYLOAD"}';let written='',clicked=false,download='',objectUrl='';
  const ctx={LOCAL_QUEUE_KEY:'queue',localStorage:{getItem:()=>raw},Date,Blob,URL:{createObjectURL:blob=>{objectUrl=blob;return 'blob:local';},revokeObjectURL:()=>{}},
  document:{body:{appendChild:()=>{}},createElement:()=>({style:{},click:()=>{clicked=true;},remove:()=>{},set download(x){download=x;},get download(){return download;}})},setTimeout:()=>{}};
- const script=section(read('supabase-bridge.js'),'  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD:','  window.getSupabaseSyncStatus = getSyncUiStatus;');
+ const bridge=read('supabase-bridge.js');
+ // RAK_17069_RESCUE_SECTION_COMPAT: on the second build the newer cleanup helpers sit before the old end marker.
+ const end=bridge.includes('  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD.')
+   ? '  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD.'
+   : '  window.getSupabaseSyncStatus = getSyncUiStatus;';
+ const script=section(bridge,'  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD:',end);
  vm.runInNewContext(script+'\n globalThis.__download=downloadPendingSyncBackup;',ctx);
  assert.equal(ctx.__download(),true);assert(clicked);assert(download.startsWith('RaK_fronta_'));
  written=await objectUrl.text();assert.equal(written,raw);
