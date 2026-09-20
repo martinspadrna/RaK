@@ -36,3 +36,5 @@ const docs=read('SECURITY_DEPLOYMENT.md');
 assert(!/\b\d{4}@admin\.rak\.local\b/i.test(docs)&&!docs.includes('test:gomoku-ai')&&!docs.includes('a Hry'),'[17051] obsolete or identifying release guidance');
 assert(docs.includes('development')&&docs.includes('main')&&docs.includes('rollback')&&docs.includes('izolovan'),'[17051] rollback runbook incomplete');
 console.log(`[17051-source-integrity] PASS: SHA ${sha}; ${entries.length} allowlisted Git files; ZIP CRC OK; no excluded files; development only`);
+// P1.5: go beyond ZIP CRC by actually extracting all source files and verifying every Git blob.
+await import('./source-restore-rehearsal-17069.mjs');
