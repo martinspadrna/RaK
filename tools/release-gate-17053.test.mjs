@@ -63,5 +63,5 @@ test('historic backup milestone and live plan are independently verified',()=>{
  const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
  assert(historical.includes(VERSION));
  assert.equal(progress.length,13);
- assert(read('rak-complete-backup.js').includes('SQL shadow test'));
+ assert(read('tools/role-backup-regression-17053.sql').includes('ROLLBACK;'));
 });
