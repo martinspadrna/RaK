@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const BUILD='v1.7.66-softgrid-draftguard1';
+const NEXT_BUILD='v1.7.67-equalgrid-reload1';
+const is67=()=>read('index.html').includes(`var build='${NEXT_BUILD}';`);
 function excerpt(s,b,e){const x=s.indexOf(b),y=s.indexOf(e,x+b.length);assert(x>=0&&y>x,'missing '+b);return s.slice(x,y);}
 function guardFixture({dirty=true,admin=true,stored=true,confirm=true,throwRead=false}={}){
  let reads=0,preserves=0,confirms=0,exports=0;
@@ -18,26 +20,46 @@ function guardFixture({dirty=true,admin=true,stored=true,confirm=true,throwRead=
  vm.runInNewContext(excerpt(source,'// RAK_17066_DIRTY_NAVIGATION_GUARD:','function adminRotationFindShiftForAbsenceDate(')+'\nglobalThis.guard=rakGuardAdminRotationDiscard;',context);
  return {app,status,guard:()=>context.guard(),counts:()=>({reads,preserves,confirms,exports})};
 }
-test('1.7.66 version markers and TEST-only Supabase, technical version stable',()=>{
- for(const [p,part] of [['index.html',`var build='${BUILD}';`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`],['supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.66";'],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['sw.js',"const CACHE_VERSION = 'v1.7.66';"],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]])assert(read(p).includes(part),p);
+test('1.7.66 baseline or explicitly checked 1.7.67 successor, TEST-only Supabase and stable package',()=>{
+ const newer=is67();
+ const build=newer?NEXT_BUILD:BUILD;
+ const version=newer?'1.7.67':'1.7.66';
+ for(const [p,part] of [['index.html',`var build='${build}';`],['supabase-config.js',`window.RAK_PWA_BUILD = "${build}";`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${version}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${build}";`],['sw.js',`const CACHE_VERSION = 'v${version}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${build}';`]])assert(read(p).includes(part),p);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
-test('real MO markup calculates compact width from five or fewer machines; TO unchanged',()=>{
+test('real 1.7.66 MO grid remains guarded; 1.7.67 successor explicitly verifies equal MO/TO geometry',()=>{
  const source=read('admin-rotation-editor.js');
- const soft=source.split('\n').find(line=>line.includes('style="--rak-soft-grid-width:') && line.includes('data-daymod-section="soft"'));
- assert(soft,'real MO table must carry measured width');
- const expression=soft.trim().replace(/,$/,'');
- for(const count of [3,4,5,6]){
-  const context={softMachines:Array(count).fill('machine')};
-  const markup=vm.runInNewContext(expression,context);
-  assert(markup.includes(`--rak-soft-grid-width:${84+48*count}px;`),'wrong MO width '+count);
-  assert(markup.includes('data-daymod-section="soft"'));
+ const newer=is67();
+ if(newer){
+  for(const [section,machines] of [['soft','softMachines'],['hard','hardMachines']]){
+   const line=source.split('\n').find(l=>l.includes(`data-daymod-section="${section}" style="--rak-grid-width:`));
+   assert(line,'real '+section+' table must carry equal-grid width');
+   const expression=line.trim().replace(/,$/,'');
+   for(const count of [3,4,5,6]){
+    const context={[machines]:Array(count).fill('machine')};
+    const markup=vm.runInNewContext(expression,context);
+    assert(markup.includes(`--rak-grid-width:${84+52*count}px;`),'wrong '+section+' width '+count);
+   }
+  }
+  const css67=excerpt(read('styles-inline-legacy.css'),'/* RAK_17067_EQUAL_MO_TO_GRID','/* END_RAK_17067_EQUAL_MO_TO_GRID */');
+  for(const required of ['[data-daymod-section]','width:var(--rak-grid-width) !important','col:not(:first-child) {width:52px !important;}','width:50px !important;min-width:50px !important;'])assert(css67.includes(required),required);
+  assert(!css67.includes('appMenuAdminAbsenceTable'),'absence remains untouched');
+ }else{
+  const soft=source.split('\n').find(line=>line.includes('style="--rak-soft-grid-width:') && line.includes('data-daymod-section="soft"'));
+  assert(soft,'real MO table must carry measured width');
+  const expression=soft.trim().replace(/,$/,'');
+  for(const count of [3,4,5,6]){
+   const context={softMachines:Array(count).fill('machine')};
+   const markup=vm.runInNewContext(expression,context);
+   assert(markup.includes(`--rak-soft-grid-width:${84+48*count}px;`),'wrong MO width '+count);
+   assert(markup.includes('data-daymod-section="soft"'));
+  }
+  assert(source.includes(`data-daymod-section="hard">',`),'TO markup must remain separate');
  }
- assert(source.includes(`data-daymod-section="hard">',`),'TO markup must remain separate');
  const css=excerpt(read('styles-inline-legacy.css'),'/* RAK_17066_COMPACT_MO_GRID:','/* END_RAK_17066_COMPACT_MO_GRID */');
  for(const required of ['[data-daymod-section="soft"]','width:var(--rak-soft-grid-width) !important','col:not(:first-child) {width:48px !important;}','width:46px !important;min-width:46px !important;max-width:46px !important;'])assert(css.includes(required),required);
- assert(!css.includes('[data-daymod-section="hard"]')&&!css.includes('AbsenceTable'),'do not change TO or absence');
+ assert(!css.includes('[data-daymod-section="hard"]')&&!css.includes('AbsenceTable'),'historic 1.7.66 CSS unchanged');
  assert(read('styles-inline-legacy.css').includes('RAK_17065_NARROW_MO_TO_DATE'));
 });
 test('dirty editor: draft must be verified before asking consent; cancellation never clears edits',()=>{
