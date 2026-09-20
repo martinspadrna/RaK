@@ -31,7 +31,13 @@ test('1.7.66 baseline or explicitly checked 1.7.67 successor, TEST-only Supabase
 test('real 1.7.66 MO grid remains guarded; 1.7.67 successor explicitly verifies equal MO/TO geometry',()=>{
  const source=read('admin-rotation-editor.js');
  const newer=is67();
- if(newer){
+ // The second full build regenerates 1.7.66 identifiers before bumping to 1.7.67,
+ // but the already-transformed 1.7.67 editor markup persists. Detect REAL markup
+ // independently of the temporary PWA identifier; never skip geometry assertions.
+ const successorMarkup=source.includes('RAK_17067_EQUAL_GRID_MARKUP');
+ if(newer)assert(successorMarkup,'1.7.67 build must have successor markup');
+ if(successorMarkup&&!newer)assert(read('index.html').includes(`var build='${BUILD}';`),'successor markup requires temporary 1.7.66 identifiers');
+ if(newer||successorMarkup){
   for(const [section,machines] of [['soft','softMachines'],['hard','hardMachines']]){
    const line=source.split('\n').find(l=>l.includes(`data-daymod-section="${section}" style="--rak-grid-width:`));
    assert(line,'real '+section+' table must carry equal-grid width');
