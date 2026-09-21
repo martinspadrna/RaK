@@ -114,3 +114,42 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+  # BEGIN CANONICAL SOURCE PROMOTION — this one-shot job removes itself.
+  promote-canonical-source:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the verified commit
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download this run's verified canonical overlay
+        uses: actions/download-artifact@v4
+        with:
+          name: rak-17069-canonical-overlay-${{ github.sha }}
+          path: .rak-promotion/snapshot
+      - name: Verify and promote the canonical 1.7.69 sources
+        run: node tools/promote-canonical-source.mjs
+      - name: Install dependencies for the isolated build
+        run: npm install --no-audit --no-fund
+      - name: Prove two isolated builds without source mutation
+        run: |
+          npm run vercel-build
+          npm run vercel-build
+          node --test tools/canonical-build-contract.test.mjs tools/build-architecture-contract.test.mjs
+          test -f .rak-canonical-build/verified.json
+          git diff --exit-code -- . ':(exclude)RAK_PLAN_13.md' ':(exclude)package.json' ':(exclude)vercel.json' ':(exclude).gitignore' ':(exclude).github/workflows/rak-development-validation.yml' ':(exclude)tools/build-architecture-contract.test.mjs' ':(exclude)tools/promote-canonical-source.mjs' ':(exclude)tools/canonical-build.mjs' ':(exclude)tools/canonical-build-contract.test.mjs'
+      - name: Commit the verified migration to development
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "build: make 1.7.69 sources canonical"
+          git push origin HEAD:development
