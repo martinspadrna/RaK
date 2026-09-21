@@ -10,6 +10,10 @@ export const STATE = path.join(ROOT, '.rak-canonical-build');
 export const WORK = path.join(STATE, 'work');
 export const OUTPUT = path.join(ROOT, '.rak-dist');
 export const VARIABLE_OUTPUTS = Object.freeze(['rak-complete-backup-source.zip']);
+export const RELEASE = '1.7.70';
+export const BUILD_ID = 'v1.7.70-canonical-source1';
+const LEGACY_RELEASE = '1.7.69';
+const LEGACY_BUILD_ID = 'v1.7.69-local-drafts1';
 const REQUIRED = Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-complete-backup-source.zip']);
 const STATIC_EXT = /\.(?:js|mjs|css|html|json|webmanifest|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|zip)$/i;
 const STATIC_DIR = /^(?:assets|fonts|icons|images|vendor)\//;
@@ -35,10 +39,35 @@ function copy(relative,from,to) {
   fs.copyFileSync(source,destination);
   fs.chmodSync(destination,fs.statSync(source).mode);
 }
+
+function applyMetadata(root,fromVersion,fromBuild,toVersion,toBuild) {
+  const replacements={
+    'index.html':[[`var build='${fromBuild}';`,`var build='${toBuild}';`]],
+    'sw.js':[[`const CACHE_VERSION = 'v${fromVersion}';`,`const CACHE_VERSION = 'v${toVersion}';`],
+      [`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${fromVersion}';`,`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${toVersion}';`],
+      [`const DEVELOPMENT_BUILD_ID = '${fromBuild}';`,`const DEVELOPMENT_BUILD_ID = '${toBuild}';`]],
+    'app.js':[[`const RAK_DEV_UPDATE_BUILD = "${fromBuild}";`,`const RAK_DEV_UPDATE_BUILD = "${toBuild}";`],
+      [`window.RAK_RELEASE_VERSION = "${fromVersion}";`,`window.RAK_RELEASE_VERSION = "${toVersion}";`]],
+    'supabase-config.js':[[`window.RAK_RELEASE_VERSION = "${fromVersion}";`,`window.RAK_RELEASE_VERSION = "${toVersion}";`],
+      [`window.RAK_TEST_DISPLAY_VERSION = "${fromVersion}";`,`window.RAK_TEST_DISPLAY_VERSION = "${toVersion}";`],
+      [`window.RAK_PWA_BUILD = "${fromBuild}";`,`window.RAK_PWA_BUILD = "${toBuild}";`]]
+  };
+  for(const [relative,pairs] of Object.entries(replacements)){
+    const file=path.join(root,relative);let value=fs.readFileSync(file,'utf8');
+    for(const [before,after] of pairs){assert(value.includes(before),'missing metadata '+before+' in '+relative);value=value.replace(before,after);}
+    fs.writeFileSync(file,value);
+  }
+}
+
 function prepareWork() {
   fs.rmSync(WORK,{recursive:true,force:true});
   fs.mkdirSync(WORK,{recursive:true});
   for(const relative of trackedFiles())copy(relative,ROOT,WORK);
+  applyMetadata(WORK,RELEASE,BUILD_ID,LEGACY_RELEASE,LEGACY_BUILD_ID);
+  const pkgFile=path.join(WORK,'package.json'),pkg=JSON.parse(fs.readFileSync(pkgFile,'utf8'));
+  assert(pkg.scripts['legacy:vercel-build'],'legacy compiler is missing');
+  pkg.scripts['vercel-build']=pkg.scripts['legacy:vercel-build'];
+  fs.writeFileSync(pkgFile,JSON.stringify(pkg,null,2)+'\n');
 }
 function publish() {
   fs.rmSync(OUTPUT,{recursive:true,force:true});
@@ -47,6 +76,7 @@ function publish() {
   if(fs.existsSync(path.join(WORK,'rak-complete-backup-source.zip'))&&!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
   for(const relative of candidates.sort())if(fs.existsSync(path.join(WORK,relative)))copy(relative,WORK,OUTPUT);
   for(const required of REQUIRED)assert(fs.existsSync(path.join(OUTPUT,required)),'missing output '+required);
+  applyMetadata(OUTPUT,LEGACY_RELEASE,LEGACY_BUILD_ID,RELEASE,BUILD_ID);
 }
 function manifest() {
   const files=[];
@@ -60,7 +90,7 @@ function manifest() {
   visit(OUTPUT);
   const stable=files.filter(file=>!VARIABLE_OUTPUTS.includes(file.path));
   return {schema:'rak-isolated-canonical-build-v1',sourceCommit:run('git',['rev-parse','HEAD']).trim(),
-    release:'1.7.69',technicalVersion:'1.7.0',variableOutputs:[...VARIABLE_OUTPUTS],files,
+    release:RELEASE,buildId:BUILD_ID,technicalVersion:'1.7.0',variableOutputs:[...VARIABLE_OUTPUTS],files,
     stableDigest:hash(Buffer.from(JSON.stringify(stable)))};
 }
 function compare(first,second) {
@@ -79,7 +109,7 @@ export function build() {
   assert(!before,'source tree is dirty before build: '+before);
   prepareWork();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
-  run(process.platform==='win32'?'npm.cmd':'npm',['run','legacy:vercel-build'],{cwd:WORK,env,stdio:'inherit'});
+  run(process.platform==='win32'?'npm.cmd':'npm',['run','vercel-build'],{cwd:WORK,env,stdio:'inherit'});
   publish();
   const after=run('git',['diff','--name-only','HEAD','--']).trim();
   assert(!after,'build modified canonical sources: '+after);
