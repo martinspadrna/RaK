@@ -4,9 +4,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {equivalentJsonText} from './canonical-build.mjs';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=relative=>fs.readFileSync(path.join(ROOT,relative),'utf8');
 const git=(...args)=>execFileSync('git',args,{cwd:ROOT,encoding:'utf8'}).trim();
+
+test('Vercel may normalize only JSON formatting before the isolated build',()=>{
+  const pretty='{\n  "outputDirectory": ".rak-dist",\n  "git": {"deploymentEnabled": {"development": false}}\n}\n';
+  const minified='{"git":{"deploymentEnabled":{"development":false}},"outputDirectory":".rak-dist"}';
+  const changed='{"git":{"deploymentEnabled":{"development":true}},"outputDirectory":".rak-dist"}';
+  assert.equal(equivalentJsonText(pretty,minified),true);
+  assert.equal(equivalentJsonText(pretty,changed),false);
+  assert.equal(equivalentJsonText(pretty,'not-json'),false);
+});
 
 test('the public build is isolated and the historical rewrite chain is legacy-only',()=>{
   const pkg=JSON.parse(read('package.json'));

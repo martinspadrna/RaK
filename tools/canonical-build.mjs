@@ -27,6 +27,34 @@ function run(command,args,options={}){
 function assert(condition,message){if(!condition)throw Error('[canonical-build] '+message);}
 function split0(value){return value.split('\0').filter(Boolean);}
 function hash(buffer){return crypto.createHash('sha256').update(buffer).digest('hex');}
+export function equivalentJsonText(left,right){
+  const normalize=value=>{
+    if(Array.isArray(value))return value.map(normalize);
+    if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(key=>[key,normalize(value[key])]));
+    return value;
+  };
+  try{return JSON.stringify(normalize(JSON.parse(left)))===JSON.stringify(normalize(JSON.parse(right)));}
+  catch{return false;}
+}
+function validateSourceTree(phase){
+  const changed=run('git',['diff','--name-only','HEAD','--']).trim();
+  if(!changed)return;
+  if(changed==='vercel.json'&&process.env.VERCEL==='1'){
+    const canonical=run('git',['show','HEAD:vercel.json']);
+    const working=fs.readFileSync(path.join(ROOT,'vercel.json'),'utf8');
+    assert(equivalentJsonText(canonical,working),'Vercel changed vercel.json semantics '+phase);
+    console.log('[canonical-build] accepted Vercel formatting-only vercel.json normalization '+phase);
+    return;
+  }
+  assert(false,'source tree is dirty '+phase+': '+changed);
+}
+function sourceFingerprint(){
+  const digest=crypto.createHash('sha256');
+  for(const relative of trackedFiles().sort()){
+    digest.update(relative);digest.update('\0');digest.update(fs.readFileSync(path.join(ROOT,relative)));digest.update('\0');
+  }
+  return digest.digest('hex');
+}
 function trackedFiles(){return split0(run('git',['ls-files','-z']));}
 function isStatic(relative){
   const p=relative.replaceAll('\\','/');
@@ -115,19 +143,15 @@ function compare(first,second){
 }
 export function build(){
   fs.mkdirSync(STATE,{recursive:true});
-  const before=run('git',['diff','--name-only','HEAD','--']).trim();
-  if(before==='vercel.json'){
-    const diagnostic=run('git',['diff','--no-ext-diff','--no-color','HEAD','--','vercel.json']).trim();
-    console.error('[canonical-build] vercel.json changed before build:\n'+diagnostic);
-  }
-  assert(!before,'source tree is dirty before build: '+before);
+  validateSourceTree('before build');
+  const beforeFingerprint=sourceFingerprint();
   prepareWork();prepareBackup();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
   run(process.platform==='win32'?'npm.cmd':'npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
   publish();
   applyMetadata(WORK,RELEASE,BUILD_ID,LEGACY_RELEASE,LEGACY_BUILD_ID);
-  const after=run('git',['diff','--name-only','HEAD','--']).trim();
-  assert(!after,'build modified canonical sources: '+after);
+  validateSourceTree('after build');
+  assert(sourceFingerprint()===beforeFingerprint,'build modified tracked source bytes');
   const result=manifest(),lastPath=path.join(STATE,'last.json');
   if(fs.existsSync(lastPath)){
     const previous=JSON.parse(fs.readFileSync(lastPath,'utf8'));
