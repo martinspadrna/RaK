@@ -79,7 +79,7 @@ function prepareBackup(){
   assert(inventoryRe.test(source),'backup inventory marker missing');
   source=source.replace(inventoryRe,'const RAK_COMPLETE_BACKUP_REPO_FILES = Object.freeze([\n'+inventory.map(file=>'    '+JSON.stringify(file)).join(',\n')+'\n  ]);');
   fs.writeFileSync(backupFile,source);
-  const archive=execFileSync('git',['archive','--format=zip','HEAD'],{cwd:ROOT,encoding:null,maxBuffer:128*1024*1024});
+  const archive=execFileSync('git',['archive','--format=zip','HEAD','--',...inventory],{cwd:ROOT,encoding:null,maxBuffer:128*1024*1024});
   assert(Buffer.isBuffer(archive)&&archive.length>100000,'source archive incomplete');
   fs.writeFileSync(path.join(WORK,'rak-complete-backup-source.zip'),archive);
 }
