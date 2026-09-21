@@ -302,7 +302,7 @@ function installPwaAndConnectivityHooks() {
     } catch (err) {}
   };
 
-  const getAppVersionTag = () => String(window.APP_VERSION || '').trim() || 'unknown';
+  const getAppVersionTag = () => String(window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION || '').trim() || 'unknown';
 
   const getStoredUpdateNoticeVersion = () => {
     try { return sessionStorage.getItem(SW_UPDATE_NOTICE_KEY) || ''; } catch (err) { return ''; }
@@ -364,7 +364,10 @@ function installPwaAndConnectivityHooks() {
   };
 
   const getExpectedServiceWorkerCacheVersion = () => {
+    const testVersion = String(window.RAK_TEST_DISPLAY_VERSION || '').trim();
+    if (/^\d+\.\d+\.\d+$/.test(testVersion)) return 'v' + testVersion;
     const raw = getAppVersionTag();
+    if (/^[0-9]+[.][0-9]+[.][0-9]+$/.test(raw)) return 'v' + raw;
     const m = /v\.(\d+)\.(\d+)\s*\((\d+)\)/i.exec(raw);
     if (m) return 'v' + m[1] + '.' + m[2] + '-' + m[3];
     return String(raw || '').replace(/^v\./i, 'v').replace(/\s*\((\d+)\)\s*$/, '-$1').replace(/\s+/g, '');

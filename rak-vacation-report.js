@@ -110,33 +110,61 @@
     return [];
   }
 
-  function nameFromCalendarSummary(summary) {
+  // RAK_VACATION_COMPLETE_ABSENCES_17016
+  // The calendar is an absence calendar, not a vacation-only D feed. Keep all
+  // documented reasons and distinguish the vacation count from other absences.
+  function absenceReason17016(raw) {
+    const value = String(raw || '').trim();
+    const direct = value.toLocaleUpperCase('cs-CZ').match(/^(NV|D|N|L|S|Š|§)(?=$|[\s,;:])/u);
+    if (direct) return direct[1];
+    const folded = value.toLocaleLowerCase('cs-CZ').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/dovol/.test(folded)) return 'D';
+    if (/nahrad|nahradni volno/.test(folded)) return 'NV';
+    if (/nemoc|neschop/.test(folded)) return 'N';
+    if (/skolen/.test(folded)) return 'Š';
+    if (/senior/.test(folded)) return 'S';
+    if (/lazn/.test(folded)) return 'L';
+    if (/paragraf|§/.test(folded)) return '§';
+    return '';
+  }
+
+  function calendarAbsenceSummary17016(summary) {
     const raw = decodeIcsText(summary);
-    if (!raw || !isVacation({ text: raw })) return '';
-    const names = knownNames();
-    const normalized = normalizeLookup(raw);
-    const exact = names.find((name) => normalized.startsWith(normalizeLookup(name)));
-    if (exact) return exact;
-    const firstPart = raw.split(/[,:;]/)[0].trim().split(/\s+/)[0];
-    return firstPart && firstPart.length < 80 ? firstPart : '';
+    if (!raw) return null;
+    const names = knownNames().sort((a, b) => b.length - a.length);
+    const lower = raw.toLocaleLowerCase('cs-CZ');
+    const known = names.find(name => {
+      const candidate = name.toLocaleLowerCase('cs-CZ');
+      return lower === candidate || [ ' ', ',', ';', ':' ].some(separator => lower.startsWith(candidate + separator));
+    });
+    const name = known || raw.split(/[,:;]/)[0].trim().split(/\s+/)[0];
+    const remainder = raw.slice(known ? known.length : name.length).replace(/^[\s,;:\-]+/, '').trim();
+    const code = absenceReason17016(remainder);
+    // A bare known surname is an absence with unspecified reason, never silently D.
+    // Unknown calendar titles are ignored unless they have an explicit absence reason.
+    if (!name || name.length >= 80 || (!known && !code)) return null;
+    return { name: known || name, code: code || '?', reason: code ? '' : remainder.slice(0, 60) };
   }
 
   function calendarVacationRows(text, monthKey) {
     const parsedMonth = typeof window.parseMonthKey === 'function' ? window.parseMonthKey(monthKey) : null;
     if (!parsedMonth) return [];
-    const wantedPrefix = String(parsedMonth.year) + '-' + String(parsedMonth.month).padStart(2, '0') + '-';
+    const prefix = String(parsedMonth.year) + '-' + String(parsedMonth.month).padStart(2, '0') + '-';
     const seen = new Set();
     const rows = [];
-    const events = String(text || '').match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
+    const unfolded = String(text || '').replace(/\r?\n[ \t]/g, '');
+    const events = unfolded.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
     events.forEach((event, index) => {
-      const name = nameFromCalendarSummary(icsProperty(event, 'SUMMARY').value);
-      if (!name) return;
-      icsDates(icsProperty(event, 'DTSTART'), icsProperty(event, 'DTEND')).forEach((date) => {
-        if (!date.startsWith(wantedPrefix)) return;
-        const key = name + '|' + date;
+      if (/^STATUS:CANCELLED\s*$/mi.test(event)) return;
+      const absence = calendarAbsenceSummary17016(icsProperty(event, 'SUMMARY').value);
+      if (!absence) return;
+      icsDates(icsProperty(event, 'DTSTART'), icsProperty(event, 'DTEND')).forEach(iso => {
+        if (!iso.startsWith(prefix)) return;
+        const key = normalizeLookup(absence.name) + '|' + iso;
         if (seen.has(key)) return;
         seen.add(key);
-        rows.push({ name, date: String(Number(date.slice(8, 10))) + '.' + String(Number(date.slice(5, 7))) + '.', shift: '', day: Number(date.slice(8, 10)), order: 0, noteIndex: index });
+        rows.push({ ...absence, iso, date: String(Number(iso.slice(8, 10))) + '.' + String(Number(iso.slice(5, 7))) + '.',
+          shift: '', day: Number(iso.slice(8, 10)), order: 0, noteIndex: index });
       });
     });
     return rows.sort((a, b) => a.name.localeCompare(b.name, 'cs') || a.day - b.day || a.noteIndex - b.noteIndex);
@@ -145,54 +173,101 @@
   function vacationRows(monthKey) {
     const month = window.app && app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null;
     const source = Array.isArray(month && month.notes) ? month.notes : [];
+    const parsedMonth = typeof window.parseMonthKey === 'function' ? window.parseMonthKey(monthKey) : null;
     const seen = new Set();
     return source.flatMap((note, noteIndex) => {
       const entry = typeof window.normalizeNoteEntry === 'function' ? window.normalizeNoteEntry(note) : note;
-      if (!entry || !entry.isAbsence || !isVacation(entry)) return [];
+      if (!entry || !entry.isAbsence) return [];
       const parsed = typeof window.parseDateToken === 'function' ? window.parseDateToken(entry.date) : null;
+      const fallback = String(entry.date || '').match(/(\d{1,2})\.(\d{1,2})\./);
+      const day = Number(parsed && parsed.day || fallback && fallback[1]);
+      const monthNumber = Number(parsed && parsed.month || fallback && fallback[2] || (parsedMonth && parsedMonth.month));
+      if (!parsedMonth || !(day >= 1 && day <= 31) || monthNumber !== Number(parsedMonth.month)) return [];
+      const iso = String(parsedMonth.year) + '-' + String(monthNumber).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      const date = String(day) + '.' + String(monthNumber) + '.';
       const shift = String(entry.shift || (parsed && parsed.shift) || '').trim();
-      const date = parsed ? (String(parsed.day) + '.' + String(parsed.month) + '.') : String(entry.date || '').replace(/\b(?:R8|N8|R|N)\b/gi, '').trim();
+      const code = absenceReason17016(entry.code) || absenceReason17016(entry.label) || '?';
       const people = Array.isArray(entry.people) && entry.people.length ? entry.people : [entry.person];
-      return people.map((person) => {
+      return people.map(person => {
         const name = String(person || '').trim();
-        const key = [name, date, shift].join('|');
-        if (!name || !date || seen.has(key)) return null;
+        const key = normalizeLookup(name) + '|' + iso + '|' + shift.toUpperCase();
+        if (!name || seen.has(key)) return null;
         seen.add(key);
-        return {
-          name,
-          date,
-          shift,
-          day: Number(parsed && parsed.day) || 99,
-          order: shift.toUpperCase().startsWith('R') ? 1 : (shift.toUpperCase().startsWith('N') ? 2 : 9),
-          noteIndex
-        };
+        return { name, iso, date, shift, code, reason: code === '?' ? String(entry.code || entry.label || '').slice(0, 60) : '',
+          day, order: shift.toUpperCase().startsWith('R') ? 1 : (shift.toUpperCase().startsWith('N') ? 2 : 9), noteIndex };
       }).filter(Boolean);
-    }).sort((a, b) => a.name.localeCompare(b.name, 'cs') || a.day - b.day || a.order - b.order || a.noteIndex - b.noteIndex);
+    }).sort((a,b) => a.name.localeCompare(b.name,'cs') || a.day - b.day || a.order - b.order || a.noteIndex - b.noteIndex);
   }
 
   function rowsForMonth(monthKey) {
-    return calendarRowsByMonth.has(monthKey) ? calendarRowsByMonth.get(monthKey) : vacationRows(monthKey);
+    const rosterRows = vacationRows(monthKey);
+    if (!calendarRowsByMonth.has(monthKey)) return rosterRows;
+    // A saved shift-specific absence takes priority on the same person/day.
+    // Calendar-only days are appended; no person/day is counted twice.
+    const rosterDays = new Set(rosterRows.map(row => normalizeLookup(row.name) + '|' + row.iso));
+    const calendarOnly = (calendarRowsByMonth.get(monthKey) || []).filter(row =>
+      !rosterDays.has(normalizeLookup(row.name) + '|' + row.iso));
+    return rosterRows.concat(calendarOnly).sort((a,b) => a.name.localeCompare(b.name,'cs') || a.day - b.day || a.order - b.order || a.noteIndex - b.noteIndex);
   }
 
   function reportSource(monthKey) {
-    return calendarRowsByMonth.has(monthKey) ? 'Google kalendář' : 'Absence v rozpisu';
+    if (!calendarRowsByMonth.has(monthKey)) return 'Absence v rozpisu';
+    return vacationRows(monthKey).length ? 'Google kalendář + Absence v rozpisu' : 'Google kalendář';
   }
 
   function reportText(monthKey) {
     const rows = rowsForMonth(monthKey);
-    const byName = new Map();
-    rows.forEach((row) => {
-      if (!byName.has(row.name)) byName.set(row.name, []);
-      byName.get(row.name).push([row.date, row.shift].filter(Boolean).join(' '));
-    });
-    const lines = ['RaK – report dovolených', 'Měsíc: ' + monthLabel(monthKey), 'Zdroj: ' + reportSource(monthKey), ''];
-    if (!byName.size) lines.push('Pro vybraný měsíc nejsou zapsané žádné dovolené.');
-    else {
-      lines.push('Dovolené:');
-      byName.forEach((dates, name) => lines.push('- ' + name + ': ' + dates.join(', ')));
-      lines.push('', 'Celkem: ' + String(rows.length) + ' záznamů · ' + String(byName.size) + ' osob');
+    const holidays = rows.filter(row => row.code === 'D');
+    const others = rows.filter(row => row.code !== 'D');
+    const names = new Set(rows.map(row => normalizeLookup(row.name)));
+    const lines = ['RaK – report dovolených a absencí', 'Měsíc: ' + monthLabel(monthKey), 'Zdroj: ' + reportSource(monthKey), ''];
+    const reasonLabel = { NV:'náhradní volno', N:'nemoc', L:'lázně', S:'senior', 'Š':'školení', '§':'paragraf' };
+    // RAK_VACATION_GROUP_REASON_17018
+    function appendGroup(title, source, withReason) {
+      if (!source.length) return;
+      lines.push(title);
+      const byName = new Map();
+      source.forEach(row => {
+        const name = String(row.name || '').trim();
+        if (!name) return;
+        if (!byName.has(name)) byName.set(name, withReason ? new Map() : []);
+        const date = [row.date, row.shift].filter(Boolean).join(' ');
+        if (!withReason) {
+          byName.get(name).push(date);
+          return;
+        }
+        const reason = row.code === '?' ? (row.reason || 'důvod neuveden')
+          : row.code + (reasonLabel[row.code] ? ' – ' + reasonLabel[row.code] : '');
+        const reasons = byName.get(name);
+        if (!reasons.has(reason)) reasons.set(reason, []);
+        reasons.get(reason).push(date);
+      });
+      byName.forEach((group, name) => {
+        if (!withReason) {
+          lines.push('- ' + name + ': ' + group.join(', '));
+          return;
+        }
+        if (group.size === 1) {
+          const [reason, dates] = group.entries().next().value;
+          // Preserve the familiar one-day layout, but never repeat one reason
+          // after each date when the same worker is absent for several days.
+          if (dates.length === 1) lines.push('- ' + name + ': ' + dates[0] + ' (' + reason + ')');
+          else lines.push('- ' + name + ' (' + reason + '): ' + dates.join(', '));
+          return;
+        }
+        // Different reasons for the same person must stay distinct, with
+        // each reason printed once before all of its dates.
+        lines.push('- ' + name + ':');
+        group.forEach((dates, reason) => lines.push('  ' + reason + ': ' + dates.join(', ')));
+      });
+      lines.push('');
     }
-    return lines.join('\n');
+    if (!rows.length) lines.push('Pro vybraný měsíc nejsou zapsané žádné dovolené ani jiné absence.', '');
+    appendGroup('Dovolené:', holidays, false);
+    appendGroup('Ostatní absence:', others, true);
+    lines.push('Celkem: ' + String(rows.length) + ' záznamů · ' + String(names.size) + ' osob'
+      + ' (dovolené ' + String(holidays.length) + ', ostatní ' + String(others.length) + ')');
+    return lines.join('\n').trim();
   }
 
   function setStatus(root, text) {
@@ -225,10 +300,10 @@
         if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
         calendarRowsByMonth.set(monthKey, calendarVacationRows(await response.text(), monthKey));
         renderPreview(root);
-        setStatus(root, 'Dovolené byly načtené z Google kalendáře.');
+        setStatus(root, 'Načteno z kalendáře a doplněno z rozpisu: ' + String(rowsForMonth(monthKey).length) + ' záznamů bez duplicit.');
       } catch (err) {
         renderPreview(root);
-        setStatus(root, 'Kalendář teď není dostupný – zobrazuji Absence z rozpisu.');
+        setStatus(root, calendarRowsByMonth.has(monthKey) ? 'Kalendář není dostupný – zůstává poslední načtení a Absence z rozpisu.' : 'Kalendář teď není dostupný – zobrazuji Absence z rozpisu.');
       } finally {
         calendarLoadByMonth.delete(monthKey);
       }
@@ -308,7 +383,7 @@
     ensureStyles();
     body.innerHTML = [
       '<div id="rakVacationReport" class="rakVacationReport">',
-      '<div><div class="appMenuSubTitle">Report dovolené</div><div class="smallText">Přehled dovolených z Google kalendáře; při nedostupném připojení bezpečně použije Absence ve zvoleném rozpisu.</div></div>',
+      '<div><div class="appMenuSubTitle">Report dovolené</div><div class="smallText">Úplný přehled: dovolené (D) i další důvody absencí. Spojí Google kalendář s uloženým rozpisem bez duplicit; dovolené a ostatní absence jsou zvlášť.</div></div>',
       '<label class="rakVacationReportContext">Měsíc<select class="rakVacationReportMonth">',
       months.map((key) => '<option value="' + escapeHtml(key) + '"' + (key === selected ? ' selected' : '') + '>' + escapeHtml(monthLabel(key)) + '</option>').join(''),
       '</select></label><section><div class="appMenuSubTitle">Náhled reportu</div><div class="rakVacationReportPreview"></div></section>',
@@ -380,7 +455,30 @@
 
   function observe() {
     bindBody(); injectAdminEntry();
-    new MutationObserver(() => { bindBody(); if (document.getElementById('appMenuBody')?.dataset.rakVacationReportOpen !== '1') injectAdminEntry(); }).observe(document.body, { childList: true, subtree: true });
+    let refreshScheduled = false;
+    const scheduleRefresh = () => {
+      if (refreshScheduled) return;
+      refreshScheduled = true;
+      const run = () => {
+        refreshScheduled = false;
+        bindBody();
+        if (document.getElementById('appMenuBody')?.dataset.rakVacationReportOpen !== '1') injectAdminEntry();
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+      else setTimeout(run, 0);
+    };
+    new MutationObserver((records) => {
+      const relevant = Array.from(records || []).some((record) => {
+        const target = record && record.target;
+        try {
+          if (target && target.nodeType === 1 && target.closest && target.closest('#appMenuBody')) return true;
+          return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+            node.id === 'appMenuBody' || !!(node.querySelector && node.querySelector('#appMenuBody'))
+          ));
+        } catch (err) { return false; }
+      });
+      if (relevant) scheduleRefresh();
+    }).observe(document.body, { childList: true, subtree: true });
   }
 
   window.RakVacationReport = { open: () => { const body = document.getElementById('appMenuBody'); if (body) { void ensureAdminAccess().then((allowed) => { if (allowed) { body.dataset.rakVacationReportOpen = '1'; build(); } }); } }, getText: reportText };

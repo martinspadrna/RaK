@@ -286,9 +286,27 @@
   installStyles();
   renderCalculatorUi();
   decorateAdmin();
-  const observer = new MutationObserver(() => {
-    renderCalculatorUi();
-    decorateAdmin();
+  let observerScheduled = false;
+  const observer = new MutationObserver((records) => {
+    const relevant = Array.from(records || []).some((record) => {
+      const target = record && record.target;
+      try {
+        if (target && target.nodeType === 1 && target.closest && target.closest('#korekce-brusy, #appMenuBody, .adminBrusFhbCalibration')) return true;
+        return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+          (node.matches && node.matches('#korekce-brusy, #appMenuBody, .adminBrusFhbCalibration, .brusFhbCalcRoot'))
+          || !!(node.querySelector && node.querySelector('#korekce-brusy, #appMenuBody, .adminBrusFhbCalibration, .brusFhbCalcRoot'))
+        ));
+      } catch (err) { return false; }
+    });
+    if (!relevant || observerScheduled) return;
+    observerScheduled = true;
+    const run = () => {
+      observerScheduled = false;
+      renderCalculatorUi();
+      decorateAdmin();
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else setTimeout(run, 0);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();

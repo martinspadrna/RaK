@@ -612,11 +612,29 @@ html body #korekce-brusy .brus157ChoiceGroup[data-brus157-select="index"] .brus1
   void probeDevelopmentUpdate('module-load');
   window.setTimeout(() => { void probeDevelopmentUpdate('after-boot'); }, 1400);
 
-  const observer = new MutationObserver(() => {
-    removeDevelopmentBadge();
-    removeAdminSideWarning();
-    upgradeAdminRoot();
-    cleanResultText();
+  let observerScheduled = false;
+  const observer = new MutationObserver((records) => {
+    const relevant = Array.from(records || []).some((record) => {
+      const target = record && record.target;
+      try {
+        if (target && target.nodeType === 1 && target.closest && target.closest('#kalkulacky, #korekce-brusy, #appMenuBody, .adminBrusFhbCalibration')) return true;
+        return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+          (node.matches && node.matches('#kalkulacky, #korekce-brusy, #appMenuBody, .adminBrusFhbCalibration, .calcTileText'))
+          || !!(node.querySelector && node.querySelector('#kalkulacky, #korekce-brusy, #appMenuBody, .adminBrusFhbCalibration, .calcTileText'))
+        ));
+      } catch (err) { return false; }
+    });
+    if (!relevant || observerScheduled) return;
+    observerScheduled = true;
+    const run = () => {
+      observerScheduled = false;
+      removeDevelopmentBadge();
+      removeAdminSideWarning();
+      upgradeAdminRoot();
+      cleanResultText();
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else setTimeout(run, 0);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();

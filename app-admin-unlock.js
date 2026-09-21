@@ -142,12 +142,13 @@ function rakAdminNormalizeSessionEntry(entry) {
 function rakAdminGetAccountsSettings() {
   if (typeof app !== 'undefined' && app && app.adminAuthVersion === 2 && Array.isArray(app.adminProfilesV2)) {
     const entries = app.adminProfilesV2
-      .filter((entry) => entry && String(entry.role || '') === 'admin')
+      .filter((entry) => entry && ['admin', 'deputy'].includes(String(entry.role || '')))
       .map((entry) => ({
         accountId: String(entry.account_id || entry.accountId || '').trim(),
         label: String(entry.display_name || entry.displayName || '').trim(),
         passwordHash: 'supabase-auth',
         passwordSalt: 'supabase-auth',
+        role: String(entry.role || 'admin'),
         enabled: entry.enabled !== false
       }))
       .filter((entry) => entry.accountId);
@@ -202,7 +203,7 @@ function rakAdminAccountRequiresPassword(accountId) {
   return profiles.some((entry) => (
     entry
     && entry.enabled !== false
-    && String(entry.role || '') === 'admin'
+    && ['admin', 'deputy'].includes(String(entry.role || ''))
     && String(entry.account_id || entry.accountId || '').trim() === id
   ));
 }
@@ -223,12 +224,13 @@ function rakAdminApplySecureContext(context, capabilities) {
   const safe = context && typeof context === 'object' ? context : {};
   const accountId = String(safe.account_id || safe.accountId || '').trim();
   const role = String(safe.role || '').trim();
-  if (!accountId || (role !== 'owner' && role !== 'admin')) return false;
+  if (!accountId || !['owner','admin','deputy'].includes(role)) return false;
   if (typeof app !== 'undefined' && app) {
     app.adminUnlocked = true;
     app.adminPin = '';
     app.adminAccountId = accountId;
     app.adminIsOwner = role === 'owner';
+    app.adminRole = role;
     app.adminAuthVersion = 2;
     app.contactTapCount = 0;
   }
@@ -265,12 +267,27 @@ async function rakAdminLoadSecureDirectory() {
   };
 }
 
+// RAK_CROSS_SHIFT_FIXES_17024
+// Registered RaK identities include both D rotation workers and workers outside the roster.
+// Keep machine/rotation membership completely separate from report authorization.
+function rakAdminAppIdentity17024(accountId) {
+  const id=String(accountId||'').trim();
+  if(!/^\d{4}$/.test(id))return null;
+  const roster=typeof getRakWorkerRosterSettings==='function'?getRakWorkerRosterSettings():null;
+  const rows=[].concat(Array.isArray(roster&&roster.workers)?roster.workers:[],
+    Array.isArray(roster&&roster.appAccounts)?roster.appAccounts:[]);
+  const found=rows.find(row=>String(row&&row.loginNumber||'').trim()===id);
+  return found?{id,name:String(found.name||'').trim(),outside:(roster.appAccounts||[]).includes(found)}:null;
+}
+
 function readAdminAccountsSecureDraftRowsFromDom(root) {
   const scope = root && root.querySelectorAll ? root : document;
   return Array.from(scope.querySelectorAll('tr[data-admin-account-row]')).map((row) => ({
     accountId: String(row.querySelector('[data-admin-account-id]')?.value || '').trim(),
-    displayName: String(row.querySelector('[data-admin-account-label]')?.value || '').trim(),
+    displayName: String(row.querySelector('[data-admin-account-label]')?.value || '').trim()
+      || String(rakAdminAppIdentity17024(row.querySelector('[data-admin-account-id]')?.value)?.name || '').trim(),
     password: String(row.querySelector('[data-admin-account-password]')?.value || ''),
+    role: String(row.querySelector('[data-admin-account-role]')?.value || 'admin'),
     enabled: !!(row.querySelector('[data-admin-account-enabled]') && row.querySelector('[data-admin-account-enabled]').checked)
   })).filter((entry) => entry.accountId || entry.displayName || entry.password);
 }
@@ -283,13 +300,37 @@ async function rakAdminSaveSecureAccounts(root) {
   const accessToken = bridge && typeof bridge.getAdminAccessToken === 'function' ? await bridge.getAdminAccessToken() : '';
   if (!accessToken) return { ok: false, reason: 'missing-session' };
   const desired = readAdminAccountsSecureDraftRowsFromDom(root);
+  // Existing app-only accounts are legitimate deputies. If roster settings have not
+  // loaded yet, resolve the same identity against RaK's login directory instead.
+  for(const entry of desired){
+    if(!entry.accountId || !/^\d{4}$/.test(entry.accountId))continue;
+    const local=rakAdminAppIdentity17024(entry.accountId);
+    if(local&&local.name){
+      if(!entry.displayName)entry.displayName=local.name;
+      continue;
+    }
+    if(typeof window.rakUserProfileLookup==='function'){
+      try{
+        const result=await window.rakUserProfileLookup(entry.accountId);
+        if(result&&result.ok&&String(result.accountNumber||'').trim()===entry.accountId){
+          if(!entry.displayName)entry.displayName=String(result.fullName||'').trim();
+          continue;
+        }
+      }catch(err){}
+    }
+    // A saved existing admin can still be disabled if the ordinary login was retired.
+    const existing=(Array.isArray(app.adminProfilesV2)?app.adminProfilesV2:[]).some(profile=>
+      String(profile&&profile.account_id||'')===entry.accountId);
+    if(!existing)return {ok:false,reason:'account-not-in-login-directory'};
+  }
   const duplicateIds = desired.map((entry) => entry.accountId).filter((id, index, all) => id && all.indexOf(id) !== index);
   if (duplicateIds.length) return { ok: false, reason: 'duplicate-account' };
   if (desired.some((entry) => !entry.accountId || !entry.displayName || entry.accountId === RAK_OWNER_ADMIN_ACCOUNT_ID)) {
     return { ok: false, reason: 'invalid-admin-profile' };
   }
+  if (desired.some((entry) => !['admin', 'deputy'].includes(entry.role))) return { ok:false, reason:'invalid-role' };
   const existing = (Array.isArray(app.adminProfilesV2) ? app.adminProfilesV2 : [])
-    .filter((entry) => entry && entry.role === 'admin');
+    .filter((entry) => entry && ['admin', 'deputy'].includes(entry.role));
   const desiredIds = new Set(desired.map((entry) => entry.accountId));
   const requests = desired.concat(existing
     .filter((entry) => !desiredIds.has(String(entry.account_id || '')))
@@ -297,6 +338,7 @@ async function rakAdminSaveSecureAccounts(root) {
       accountId: String(entry.account_id || ''),
       displayName: String(entry.display_name || entry.account_id || ''),
       password: '',
+      role: String(entry.role || 'admin'),
       enabled: false
     })));
   for (const entry of requests) {
@@ -457,6 +499,7 @@ function rakAdminLock(options) {
     app.adminPin = '';
     app.adminAccountId = '';
     app.adminIsOwner = false;
+    app.adminRole = '';
     app.adminAuthVersion = 0;
   }
   rakAdminClearSession(options && typeof options === 'object' ? options : {});
@@ -625,10 +668,10 @@ async function rakAdminPromptOnceForActiveAccount(reason) {
   return await rakAdminPromptUnlockForAccount(id);
 }
 
-function rakAdminScheduleStartupPrompt() {
+function rakAdminScheduleStartupRestore() {
   [0, 350, 1200].forEach((delay) => {
     try {
-      setTimeout(() => { void rakAdminLoadSettingsThenCheck('startup'); }, delay);
+      setTimeout(() => { void rakAdminRestoreSecureSessionForActiveAccount('startup'); }, delay);
     } catch (err) {}
   });
 }
@@ -676,9 +719,18 @@ async function rakAdminLoadSettingsThenCheck(reason) {
   }
 }
 
-function rakAdminCanOpenAdmin() {
+// RAK_REPORT_ONLY_DEPUTY_17019
+function rakAdminCanOpenShiftReport() {
   const activeId = rakAdminGetActiveAccountId();
-  return !!(activeId && typeof app !== 'undefined' && app && app.adminAuthVersion === 2 && app.adminUnlocked === true && String(app.adminAccountId || '') === activeId);
+  return !!(activeId && typeof app !== 'undefined' && app && app.adminAuthVersion === 2
+    && app.adminUnlocked === true && String(app.adminAccountId || '') === activeId
+    && ['owner', 'admin', 'deputy'].includes(String(app.adminRole || '')));
+}
+function rakAdminIsDeputy() {
+  return rakAdminCanOpenShiftReport() && app.adminRole === 'deputy';
+}
+function rakAdminCanOpenAdmin() {
+  return rakAdminCanOpenShiftReport() && (app.adminRole === 'owner' || app.adminRole === 'admin');
 }
 
 function rakAdminCanManageAdmins() {
@@ -722,9 +774,9 @@ function buildAdminAccountsRoleOverviewHtml(settings) {
     '    <small>Muze pridavat dalsi spravce, menit jejich hesla a zapinat nebo vypinat pristup.</small>',
     '  </div>',
     '  <div class="adminAccountsRoleCard">',
-    '    <span>Nizsi admini</span>',
+    '    <span>Správci a zástupci</span>',
     '    <b>' + String(enabledAdmins) + ' aktivni</b>',
-    '    <small>Muzou spravovat pracovni casti administrace a zmenit vlastni heslo, ale nemuzou menit dalsi adminy ani heslo hlavniho admina.</small>',
+    '    <small>Správce spravuje pracovní administraci. Zástupce může pouze připravit a odeslat Report směny.</small>',
     '  </div>',
     '  <div class="adminAccountsRoleCard isInfo">',
     '    <span>Prihlaseni</span>',
@@ -804,7 +856,7 @@ function buildAdminSessionDevicesHtml(source) {
           '  <td><b>' + escapeHtml(entry.label || 'Zařízení') + '</b><br><small>' + escapeHtml(isCurrent ? 'toto zařízení' : entry.deviceId) + '</small></td>',
           '  <td>' + escapeHtml(entry.accountId || '') + '</td>',
           '  <td>' + escapeHtml(adminSessionDateLabel(entry.lastSeenAt || entry.createdAt)) + '</td>',
-          '  <td>' + (isCurrent ? '<button type="button" class="appMenuTinyButton" data-admin-action="revoke-admin-session" data-admin-current-device="1" data-admin-device-id="' + escapeHtml(entry.deviceId || '') + '">Odhlásit toto</button>' : '<button type="button" class="appMenuTinyButton" data-admin-action="revoke-admin-session" data-admin-device-id="' + escapeHtml(entry.deviceId || '') + '">Odhlásit</button>') + '</td>',
+          '  <td>' + (isCurrent ? '<button type="button" class="appMenuTinyButton" data-admin-action="revoke-admin-session" data-admin-current-device="1" data-admin-device-id="' + escapeHtml(entry.deviceId || '') + '">Odhlásit toto zařízení</button>' : '<button type="button" class="appMenuTinyButton" data-admin-action="revoke-admin-session" data-admin-device-id="' + escapeHtml(entry.deviceId || '') + '">Odhlásit zařízení</button>') + '</td>',
           '</tr>'
         ].join('');
       }).join('')
@@ -812,7 +864,7 @@ function buildAdminSessionDevicesHtml(source) {
   return [
     '<div class="tableWrap appMenuTableWrap uMt8">',
     '  <div class="appMenuSubTitle">Přihlášená admin zařízení</div>',
-    '  <div class="smallText uMb10">Hlavní admin tady vidí zařízení, kde zůstala administrace odemčená. Odhlášení zařízení zruší jeho uloženou admin relaci.</div>',
+    '  <div class="smallText uMb10">Hlavní admin tady vidí zařízení, kde zůstala administrace odemčená. Odhlášení zařízení zruší všechny jeho admin relace, včetně dalších účtů v tomto prohlížeči. Nové přihlášení heslem je možné.</div>',
     '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
     '    <thead><tr><th>Zařízení</th><th>Účet</th><th>Naposledy</th><th>Akce</th></tr></thead>',
     '    <tbody>' + rows + '</tbody>',
@@ -931,24 +983,32 @@ function buildAdminAccountsSettingsHtml() {
   }
   const settings = rakAdminGetAccountsSettings();
   const rows = settings.admins.concat(Array.from({ length: 4 }, () => ({ accountId: '', label: '', passwordHash: '', enabled: true })));
+  const roster=typeof getRakWorkerRosterSettings==='function'?getRakWorkerRosterSettings():null;
+  const availableAccounts=[].concat(Array.isArray(roster&&roster.workers)?roster.workers:[],
+    Array.isArray(roster&&roster.appAccounts)?roster.appAccounts:[])
+    .filter(row=>row&&/^\d{4}$/.test(String(row.loginNumber||'')));
+  const accountOptions='<datalist id="rakAdminExistingAccounts17024">'+availableAccounts.map(row=>
+    '<option value="'+escapeHtml(row.loginNumber)+'" label="'+escapeHtml(row.name)+'"></option>').join('')+'</datalist>';
   const body = rows.map((entry) => [
     '<tr data-admin-account-row>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id value="' + escapeHtml(entry.accountId || '') + '" placeholder="os. c."></td>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(entry.accountId || '') + '" placeholder="os. c."></td>',
     '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(entry.label || '') + '" placeholder="jmeno / poznamka"></td>',
     '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" value="" placeholder="' + (entry.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
+    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (entry.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (entry.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
     '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (entry.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
     '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
     '</tr>'
   ].join('')).join('');
   return [
     buildAdminAccountsStatusHtml({ rows }),
+    accountOptions,
     buildAdminAccountsRoleOverviewHtml(settings),
     buildAdminAccountsSafetyHtml(settings),
     buildAdminSessionDevicesHtml(settings),
     '<div class="tableWrap appMenuTableWrap uMt8">',
-    '  <div class="smallText uMb10">Tady pridavas dalsi admin ucty, ktere po prihlaseni uvidi administraci. Heslo nech prazdne, pokud ho nechces menit. Pro odebrani spravce klikni na × u radku (nebo smaz ucet) a uloz. Hesla spravuje Supabase Auth a aplikace je neuklada ani je neumoznuje stahnout.</div>',
+    '  <div class="smallText uMb10">U každého účtu vyber roli: Správce spravuje pracovní části aplikace, Zástupce vidí pouze Report směny. Heslo nech prázdné, pokud ho nechceš měnit. Účet odeber nebo vypni a potvrď uložením. Hesla spravuje Supabase Auth.</div>',
     '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-    '    <thead><tr><th>Ucet</th><th>Popis</th><th>Heslo</th><th>Aktivni</th><th></th></tr></thead>',
+    '    <thead><tr><th>Ucet</th><th>Popis</th><th>Heslo</th><th>Role</th><th>Aktivni</th><th></th></tr></thead>',
     '    <tbody>' + body + '</tbody>',
     '  </table>',
     '</div>'
@@ -994,7 +1054,7 @@ async function rakAdminChangeOwnerPassword(root) {
   const currentPassword = String(scope.querySelector('[data-admin-owner-password="current"]')?.value || '');
   const newPassword = String(scope.querySelector('[data-admin-owner-password="new"]')?.value || '');
   const confirmation = String(scope.querySelector('[data-admin-owner-password="confirm"]')?.value || '');
-  if (!currentPassword || newPassword.length < 6) return { ok: false, reason: 'password-too-short' };
+  if (!currentPassword || newPassword.length < 12) return { ok: false, reason: 'password-too-short' };
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;
@@ -1030,7 +1090,7 @@ async function rakAdminChangeOwnPassword(root) {
   const currentPassword = String(scope.querySelector('[data-admin-own-password="current"]')?.value || '');
   const newPassword = String(scope.querySelector('[data-admin-own-password="new"]')?.value || '');
   const confirmation = String(scope.querySelector('[data-admin-own-password="confirm"]')?.value || '');
-  if (!accountId || !currentPassword || newPassword.length < 6) return { ok: false, reason: 'password-too-short' };
+  if (!accountId || !currentPassword || newPassword.length < 12) return { ok: false, reason: 'password-too-short' };
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;
@@ -1112,6 +1172,8 @@ function rakAdminClearAccountRow(target) {
   if (idInput) idInput.value = '';
   if (labelInput) labelInput.value = '';
   if (passwordInput) { passwordInput.value = ''; passwordInput.placeholder = 'heslo'; }
+  const roleInput = row.querySelector('[data-admin-account-role]');
+  if (roleInput) roleInput.value = 'admin';
   if (enabledInput) enabledInput.checked = true;
   try { adminAccountsRefreshStatus(document.getElementById('appMenuBody') || document); } catch (err) {}
   const status = document.getElementById('adminOnlineSaveStatus');
@@ -1148,9 +1210,9 @@ function bindAdminAccountUnlock() {
   try { localStorage.removeItem('adminUnlocked'); } catch (err) {}
   if (document.documentElement.dataset.adminAccountUnlockBound === '1') return true;
   document.documentElement.dataset.adminAccountUnlockBound = '1';
-  rakAdminScheduleStartupPrompt();
+  rakAdminScheduleStartupRestore();
   try {
-    rakAdminLoadSettingsThenCheck('settings-loaded');
+    void rakAdminRestoreSecureSessionForActiveAccount('settings-loaded');
   } catch (err) {}
   return true;
 }
@@ -1170,6 +1232,8 @@ try {
   window.rakAdminRevokePersistentSession = rakAdminRevokePersistentSession;
   window.rakAdminLock = rakAdminLock;
   window.rakAdminCanOpenAdmin = rakAdminCanOpenAdmin;
+  window.rakAdminCanOpenShiftReport = rakAdminCanOpenShiftReport;
+  window.rakAdminIsDeputy = rakAdminIsDeputy;
   window.rakAdminLoadAccountsDirectoryForViewer = rakAdminLoadAccountsDirectoryForViewer;
   window.rakAdminChangeOwnPassword = rakAdminChangeOwnPassword;
   window.rakAdminCanManageAdmins = rakAdminCanManageAdmins;

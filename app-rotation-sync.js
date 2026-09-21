@@ -23,6 +23,23 @@ function applyRakRotationState(payload, options) {
   return next;
 }
 
+// RAK_17057_BADGE_GUARD: update only the status node after async sync settles.
+function rakRefreshSyncBadgeTruth() {
+  try {
+    const badge = document.getElementById('dashboardSyncBadge');
+    if (!badge || typeof window.getSupabaseSyncStatus !== 'function') return;
+    const status = window.getSupabaseSyncStatus();
+    if (!status || !['online', 'pending', 'offline', 'error'].includes(status.kind)) return;
+    badge.className = 'dashboardSyncBadge dashboardSyncBadge--' + status.kind;
+    badge.textContent = String(status.label || 'Stav synchronizace neznámý');
+    badge.title = String(status.detail || 'Stav synchronizace RaK');
+  } catch (_) {}
+}
+window.__rakRefreshSyncBadgeTruth = rakRefreshSyncBadgeTruth;
+window.addEventListener('online', rakRefreshSyncBadgeTruth);
+window.addEventListener('offline', rakRefreshSyncBadgeTruth);
+window.addEventListener('pageshow', rakRefreshSyncBadgeTruth);
+
 function refreshRakMachineSettingsInBackground(bridge) {
   if (!bridge || typeof bridge.loadMachineSettings !== 'function' || typeof app === 'undefined') return;
   void bridge.loadMachineSettings()
@@ -32,22 +49,53 @@ function refreshRakMachineSettingsInBackground(bridge) {
     .catch((settingsErr) => console.warn('Machine settings sync failed', settingsErr));
 }
 
+// RAK_17068_SYNC_EPOCH: a newer request invalidates every older response.
+let rakRotationSyncEpoch=0;
+// RAK_17069_INVALIDATE_DISCARDED_REQUESTS: prevent earlier in-flight reads overwriting a user-confirmed cleanup.
+function rakInvalidateRotationSyncForDraftCleanup(){rakRotationSyncEpoch+=1;}
+// Ephemeral fingerprint: never saved, transmitted, logged or exported.
+function rakRotationEditorFingerprint(editor){
+  if(!editor || typeof editor.querySelectorAll!=='function') return null;
+  try {
+    return JSON.stringify(Array.from(editor.querySelectorAll('input,textarea,select'),field=>
+      [field.tagName,field.name,field.value,!!field.checked]));
+  } catch(_){return null;}
+}
 async function syncRotationFromSupabase(force) {
   const bridge = window.RotationSupabaseBridge;
   if (!bridge || typeof bridge.loadRotationState !== 'function') return null;
   if (force !== 'discard-draft' && typeof app !== 'undefined' && app && app.adminRotationDirty === true && document.getElementById('adminRotationEditor')) return null;
+  // RAK_17068_REQUEST_SNAPSHOT: capture the editor AFTER explicit discard consent and BEFORE network awaits.
+  const requestId=++rakRotationSyncEpoch;
+  const editor=typeof document==='undefined'?null:document.getElementById('adminRotationEditor');
+  const fingerprint=editor?rakRotationEditorFingerprint(editor):null;
+  if(editor && fingerprint===null) return null;
   try {
-    if (typeof bridge.loadCachedRotationState === 'function') {
+    // RAK_17067_SKIP_CACHE_ON_FORCE: manual online reload MUST NOT replace a draft with stale offline cache.
+    if (force !== 'discard-draft' && typeof bridge.loadCachedRotationState === 'function') {
       const cached = bridge.loadCachedRotationState();
       if (cached && cached.payload) applyRakRotationState(cached.payload, { force: false });
     }
     refreshRakMachineSettingsInBackground(bridge);
     const remote = await bridge.loadRotationState();
     if (!remote || !remote.payload) return null;
+    // RAK_17068_FINAL_DRAFT_BARRIER: never overwrite edits made during the request.
+    if (requestId!==rakRotationSyncEpoch) return null;
+    const currentEditor=typeof document==='undefined'?null:document.getElementById('adminRotationEditor');
+    if (editor) {
+      if (currentEditor!==editor) return null;
+      const latest=rakRotationEditorFingerprint(editor);
+      if (latest===null || latest!==fingerprint || (typeof app!=='undefined' && app && app.adminRotationDirty===true)) {
+        if (typeof app!=='undefined' && app && latest!==fingerprint) app.adminRotationDirty=true;
+        return null;
+      }
+    } else if (currentEditor && typeof app!=='undefined' && app && app.adminRotationDirty===true) return null;
     return applyRakRotationState(remote.payload, { force: !!force });
   } catch (err) {
     console.warn('Supabase rotation sync failed', err);
     return null;
+  } finally {
+    rakRefreshSyncBadgeTruth();
   }
 }
 

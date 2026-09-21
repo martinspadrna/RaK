@@ -1,6 +1,7 @@
 /* RaK v1.5.63 – proven theme/background legacy dedupe.
    Cleanup je omezený na :root/html/body a jejich stavové varianty.
    Dashboard, Rotace, menu, admin, karty a další komponenty jsou záměrně mimo scope. */
+/* RaK 1.6.16 CSS cleanup: Rotace legacy owner layers consolidated; visual contract unchanged. */
 /* RaK v1.5.62 – proven Rotace legacy dedupe + inventory.
    Cleanup je omezený na uživatelskou Rotaci (#rotace/#rotaceNamesPanel/#namesGrid/.rotace*/.rotation*).
    Admin Rozpisy jsou záměrně vyloučené. Deklarace se mažou jen při přesném selectoru,
@@ -59,10 +60,6 @@
 
 
 
-#rotaceNamesPanel .listItem{font-size:11px !important;
-    min-height:30px !important;
-    padding:4px 6px !important;
-    line-height:1.05 !important;}
 #statsNameGrid .listItem, #statsNameGrid .statsNameTile, #statsMachineGrid .listItem, #statsMachineGrid .statsMachineTile{min-height:42px !important;
     padding:6px 4px !important;}
 #statsNameGrid .statsTileMain, #statsMachineGrid .statsTileMain{align-items:center !important;

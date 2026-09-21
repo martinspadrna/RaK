@@ -121,7 +121,26 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan, { once: true });
   else scan();
-  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  let scanScheduled = false;
+  const scheduleScan = () => {
+    if (scanScheduled) return;
+    scanScheduled = true;
+    const run = () => { scanScheduled = false; scan(); };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else setTimeout(run, 0);
+  };
+  new MutationObserver((records) => {
+    const relevant = Array.from(records || []).some((record) => {
+      const target = record && record.target;
+      try {
+        if (target && target.nodeType === 1 && target.closest && target.closest('#appMenuBody')) return true;
+        return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+          node.id === 'appMenuBody' || !!(node.querySelector && node.querySelector('#appMenuBody'))
+        ));
+      } catch (err) { return false; }
+    });
+    if (relevant) scheduleScan();
+  }).observe(document.body, { childList: true, subtree: true });
 })();
 
 // RaK DEV – finální mobilní doladění Reportu směny.
@@ -339,6 +358,672 @@
   }
 
   window.rakShiftReportPolishUi = polish;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
+})();
+
+// RaK 1.7 – PNG export Reportu směny s přesným login RaK vodoznakem.
+(function setupShiftReportImageExport170() {
+  'use strict';
+  if (window.__rakShiftReportImageExport170Installed) return;
+  window.__rakShiftReportImageExport170Installed = true;
+
+  const WATERMARK_SRC = './assets/rak-login-crab.png';
+  const CANVAS_WIDTH = 1080;
+  const MIN_CANVAS_HEIGHT = 1920;
+  const MAX_CANVAS_HEIGHT = 8192;
+  const OUTER = 50;
+  const STYLE_ID = 'rak-shift-report-image-export-170-style';
+  const SECTION_DEFS = [
+    { id: 'mo', label: 'MO', totalNok: true },
+    { id: 'to', label: 'TO' },
+    { id: 'r01', label: 'TBKR01' },
+    { id: 'r07', label: 'TBKR07' }
+  ];
+// RAK_REPORT_ACCENT_PALETTE_17004
+// RAK_REPORT_COMPACT_PAIRS_17005
+  const TONES = {
+    AF: { text: '#005f8f', fill: 'rgba(45,156,255,.26)', stroke: 'rgba(17,120,200,.82)', chip: '#2d9cff', chipText: '#ffffff' },
+    AD: { text: '#005f8f', fill: 'rgba(45,156,255,.26)', stroke: 'rgba(17,120,200,.82)', chip: '#2d9cff', chipText: '#ffffff' },
+    AG: { text: '#0a6d3d', fill: 'rgba(139,228,88,.27)', stroke: 'rgba(78,164,47,.82)', chip: '#8be458', chipText: '#173b18' },
+    AE: { text: '#0a6d3d', fill: 'rgba(139,228,88,.27)', stroke: 'rgba(78,164,47,.82)', chip: '#8be458', chipText: '#173b18' },
+    AH: { text: '#984800', fill: 'rgba(255,179,63,.28)', stroke: 'rgba(213,120,10,.84)', chip: '#ffb33f', chipText: '#4a2800' }
+  };
+  const DEFAULT_TONE = { text: '#2a4655', fill: 'rgba(75,102,116,.05)', stroke: 'rgba(52,81,96,.24)', chip: '#dce6ea', chipText: '#28414e' };
+  const PAIR_GAP = 28;
+  const ROW_HEIGHT = 104;
+  const ROW_STEP = 116;
+
+  const imageCache = new WeakMap();
+  const prepareTimers = new WeakMap();
+  let watermarkImage = null;
+  let watermarkPromise = null;
+
+  function status(root, text) {
+    const el = root && root.querySelector('.rakShiftStatus');
+    if (el) el.textContent = text;
+  }
+
+  function safeValue(root, selector) {
+    const el = root && root.querySelector(selector);
+    return String(el && el.value != null ? el.value : '').trim();
+  }
+
+  function collectModel(root) {
+    const sections = SECTION_DEFS.map((def) => ({
+      id: def.id,
+      label: def.label,
+      totalNok: def.totalNok ? safeValue(root, '.rakShiftTotalNok') : '',
+      rows: Array.from(root.querySelectorAll('.rakShiftProdRow[data-section="' + def.id + '"]'))
+        .map((row) => ({
+          index: String(row.querySelector('.rakShiftIndex')?.value || '').trim().toUpperCase(),
+          qty: String(row.querySelector('.rakShiftQty')?.value || '').trim(),
+          free: String(row.querySelector('.rakShiftFree')?.value || '').trim(),
+          nok: String(row.querySelector('.rakShiftNok')?.value || '').trim()
+        }))
+        .filter((row) => row.qty || row.free || row.nok)
+    }));
+    const problems = Array.from(root.querySelectorAll('.rakShiftProblemRow'))
+      .map((row) => ({
+        machine: String(row.querySelector('.rakShiftMachine')?.value || '').trim(),
+        from: String(row.querySelector('.rakShiftFrom')?.value || '').trim(),
+        to: String(row.querySelector('.rakShiftTo')?.value || '').trim(),
+        text: String(row.querySelector('.rakShiftProblemText')?.value || '').trim()
+      }))
+      .filter((row) => row.machine || row.from || row.to || row.text);
+    return {
+      date: safeValue(root, '.rakShiftDate'),
+      shift: safeValue(root, '.rakShiftShift'),
+      sections,
+      problems
+    };
+  }
+
+  function signature(model) {
+    return JSON.stringify(model);
+  }
+
+  function formatDate(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return new Date().toLocaleDateString('cs-CZ');
+    return Number(match[3]) + '. ' + Number(match[2]) + '. ' + match[1];
+  }
+
+  function shiftLabel(value) {
+    return ({ N: 'Noční', R: 'Ranní', N8: 'Noční 8 h', R8: 'Ranní 8 h' })[String(value || '')] || String(value || '—');
+  }
+
+  function problemMinutes(from, to) {
+    const parse = (value) => {
+      const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const h = Number(match[1]);
+      const m = Number(match[2]);
+      return h >= 0 && h < 24 && m >= 0 && m < 60 ? h * 60 + m : null;
+    };
+    const start = parse(from);
+    let end = parse(to);
+    if (start == null || end == null) return null;
+    if (end < start) end += 24 * 60;
+    return end - start;
+  }
+
+  function durationLabel(minutes) {
+    if (!Number.isFinite(minutes)) return '';
+    if (minutes < 60) return minutes + ' min';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h + ' h' + (m ? ' ' + m + ' min' : '');
+  }
+
+  // RAK_SHIFT_REPORT_GLASS_17009
+  // RAK_MOBILE_REPORT_LINES_17013
+  const MOBILE_LINE_STEP = 78;
+  function quantityNumber17013(value) {
+    const text = String(value ?? '').trim().replace(',','.');
+    return /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : NaN;
+  }
+  function quantityText17013(value) { return new Intl.NumberFormat('cs-CZ',{maximumFractionDigits:2}).format(value); }
+  // RAK_REPORT_NOK_TOTALS_ZERO_17014
+  function positiveQuantity17014(value) {
+    const amount = quantityNumber17013(value);
+    return Number.isFinite(amount) && amount > 0 ? amount : 0;
+  }
+  function formattedQuantity17014(value) {
+    return quantityText17013(positiveQuantity17014(value));
+  }
+  function nokSuffix17014(value) {
+    const nok = positiveQuantity17014(value);
+    return nok ? ' (z toho ' + quantityText17013(nok) + ' NOK)' : '';
+  }
+  // RAK_REPORT_INDEX_GRID_TEXT_17015
+  function sectionLines17013(section) {
+    const rows = section && Array.isArray(section.rows) ? section.rows : [];
+    const lines = [];
+    const kind = section && section.id || '';
+    // RAK_REPORT_SMART_TOTALS_17017
+    const productionLineCount17017 = rows.reduce((sum, row) =>
+      sum + (positiveQuantity17014(row.qty) > 0 ? 1 : 0)
+          + (positiveQuantity17014(row.free) > 0 ? 1 : 0), 0);
+    if (kind === 'mo' || kind === 'to') {
+      const totals = new Map();
+      rows.forEach(row => {
+        const index = row.index || '—';
+        const regular = positiveQuantity17014(row.qty);
+        const free = positiveQuantity17014(row.free);
+        const nok = positiveQuantity17014(row.nok);
+        if (regular) lines.push({
+          text: kind === 'mo' ? quantityText17013(regular) + ' ' + index : index + ' ' + quantityText17013(regular) + ' ks',
+          kind: 'normal', index
+        });
+        if (free) lines.push({text: quantityText17013(free) + ' ' + index + ' volné', kind: 'free', index});
+        if (nok) lines.push({text: index + ' NOK ' + quantityText17013(nok), kind: 'nok', index});
+        if (regular + free) totals.set(index, (totals.get(index) || 0) + regular + free);
+      });
+      if (totals.size && productionLineCount17017 > 1) {
+        const all = Array.from(totals.values()).reduce((sum, count) => sum + count, 0);
+        lines.push({
+          text: kind === 'mo'
+            ? 'Celkově ' + Array.from(totals, ([index, count]) => quantityText17013(count) + ' ' + index).join(', ') + ' (' + quantityText17013(all) + ' ks)'
+            : 'Celkově ' + quantityText17013(all) + ' ks',
+          kind: 'total'
+        });
+      }
+    } else if (kind === 'r01' || kind === 'r07') {
+      const totals = new Map();
+      rows.forEach(row => {
+        const regular = positiveQuantity17014(row.qty);
+        const free = positiveQuantity17014(row.free);
+        const nok = positiveQuantity17014(row.nok);
+        const index = row.index || '—';
+        if (regular) lines.push({
+          text: quantityText17013(regular) + ' ' + index + ' ks' + nokSuffix17014(row.nok),
+          kind: 'normal', index
+        });
+        if (free) lines.push({
+          text: quantityText17013(free) + ' ' + index + ' volné' + (regular ? '' : nokSuffix17014(row.nok)),
+          kind: 'free', index
+        });
+        if (nok && !regular && !free) lines.push({
+          text: index + ' NOK ' + quantityText17013(nok), kind: 'nok', index
+        });
+        // NOK is already included in regular/free output, not an extra produced piece.
+        if (regular + free) totals.set(index, (totals.get(index) || 0) + regular + free);
+      });
+      if (totals.size && productionLineCount17017 > 1) {
+        const total = Array.from(totals.values()).reduce((sum, count) => sum + count, 0);
+        lines.push({
+          text: 'Celkově ' + quantityText17013(total) + ' ks (' + Array.from(totals, ([index, count]) => quantityText17013(count) + ' ' + index).join(', ') + ')',
+          kind: 'total'
+        });
+      }
+    } else {
+      rows.forEach(row => {
+        const index = row.index || '—';
+        if (positiveQuantity17014(row.qty)) lines.push({text:index+' '+formattedQuantity17014(row.qty)+' ks',kind:'normal',index});
+        if (positiveQuantity17014(row.free)) lines.push({text:index+' '+formattedQuantity17014(row.free)+' volné',kind:'free',index});
+        if (positiveQuantity17014(row.nok)) lines.push({text:'NOK '+formattedQuantity17014(row.nok),kind:'nok',index});
+      });
+    }
+    if (!lines.length) lines.push({ text: 'Bez záznamu', kind: 'empty' });
+    return lines;
+  }
+  function wrappedSectionLines17013(ctx,section,maxWidth) {
+    const lines=[];
+    ctx.font = '800 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    sectionLines17013(section).forEach(item => wrapLines(ctx,item.text,maxWidth).forEach(text=>lines.push({...item,text})));
+    return lines;
+  }
+  function sectionLayout17015(ctx, section, width) {
+    const all = sectionLines17013(section);
+    const footer = all.filter(line => line.kind === 'total');
+    const content = all.filter(line => line.kind !== 'total');
+    const isProduction = section.id === 'mo' || section.id === 'to';
+    const names = Array.from(new Set(content.filter(line => line.kind !== 'empty').map(line => line.index)));
+    const twoColumns = isProduction && names.length > 1;
+    const gap = 16;
+    const cellWidth = twoColumns ? (width - 40 - gap) / 2 : width - 40;
+    const fullWidth = width - 40;
+    ctx.font = '850 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const wrapped = (list, w) => list.flatMap(line => wrapLines(ctx, line.text, w - 46).map(text => ({...line, text})));
+    const groups = [];
+    let contentSteps = 0;
+    if (twoColumns) {
+      const byIndex = new Map();
+      content.forEach(line => {
+        if (!byIndex.has(line.index)) byIndex.set(line.index, []);
+        byIndex.get(line.index).push(line);
+      });
+      const indexed = Array.from(byIndex.values());
+      for (let i = 0; i < indexed.length; i += 2) {
+        const left = wrapped(indexed[i], cellWidth);
+        const right = indexed[i + 1] ? wrapped(indexed[i + 1], cellWidth) : [];
+        const steps = Math.max(left.length, right.length);
+        groups.push({left, right, steps});
+        contentSteps += steps;
+      }
+    } else {
+      const full = wrapped(content, cellWidth);
+      groups.push({left:full,right:[],steps:full.length});
+      contentSteps = full.length;
+    }
+    const totals = wrapped(footer, fullWidth);
+    const height = 98 + (contentSteps + totals.length) * MOBILE_LINE_STEP
+      + (positiveQuantity17014(section.totalNok) ? 58 : 0) + 16;
+    return { twoColumns, cellWidth, gap, groups, totals, height };
+  }
+  function sectionHeight17013(ctx,section) {
+    return sectionLayout17015(ctx, section, CANVAS_WIDTH - OUTER * 2).height;
+  }
+  function problemHeight17013(ctx,problems) {
+    if(!problems.length) return 0;
+    ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    return 88+problems.reduce((sum,item)=>sum+148+wrapLines(ctx,item.text||'bez popisu',CANVAS_WIDTH-OUTER*2-110).length*50,0)+20;
+  }
+  function estimateHeight(model) {
+    const ctx=document.createElement('canvas').getContext('2d');
+    if(!ctx) throw Error('Canvas 2D není dostupný.');
+    let height=396;
+    model.sections.forEach(section=>{height+=sectionHeight17013(ctx,section)+22;});
+    height+=problemHeight17013(ctx,model.problems||[])+(model.problems.length?24:0);
+    return Math.max(MIN_CANVAS_HEIGHT,Math.min(MAX_CANVAS_HEIGHT,Math.ceil(height/16)*16));
+  }
+
+  function roundedPath(ctx, x, y, w, h, r) {
+    const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+
+  function fillRounded(ctx, x, y, w, h, r, fill, stroke) {
+    roundedPath(ctx, x, y, w, h, r);
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  function wrapLines(ctx, text, maxWidth) {
+    const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return [''];
+    const lines = [];
+    let line = words.shift();
+    words.forEach((word) => {
+      const probe = line + ' ' + word;
+      if (ctx.measureText(probe).width <= maxWidth) line = probe;
+      else {
+        lines.push(line);
+        line = word;
+      }
+    });
+    lines.push(line);
+    return lines;
+  }
+
+  function preloadWatermark() {
+    if (watermarkImage) return Promise.resolve(watermarkImage);
+    if (watermarkPromise) return watermarkPromise;
+    watermarkPromise = new Promise((resolve, reject) => {
+      const image = new Image();
+      image.decoding = 'async';
+      image.onload = () => {
+        watermarkImage = image;
+        resolve(image);
+      };
+      image.onerror = () => reject(new Error('RaK watermark asset failed to load'));
+      image.src = new URL(WATERMARK_SRC, document.baseURI).href;
+    }).catch((err) => {
+      watermarkPromise = null;
+      throw err;
+    });
+    return watermarkPromise;
+  }
+
+// RAK_REPORT_LIGHT_THEME_17003
+  function drawBackground(ctx, width, height, watermark) {
+    const base = ctx.createLinearGradient(0, 0, 0, height);
+    base.addColorStop(0, '#f8fafb');
+    base.addColorStop(.5, '#eff3f5');
+    base.addColorStop(1, '#e8edf0');
+    ctx.fillStyle = base;
+    ctx.fillRect(0, 0, width, height);
+
+    if (watermark && watermark.naturalWidth && watermark.naturalHeight) {
+      const scale = Math.min((width * 1.15) / watermark.naturalWidth, (height * .85) / watermark.naturalHeight);
+      const drawW = watermark.naturalWidth * scale;
+      const drawH = watermark.naturalHeight * scale;
+      ctx.save();
+      ctx.globalAlpha = .16;
+      ctx.drawImage(watermark, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
+      ctx.restore();
+    }
+  }
+
+  function drawHeader(ctx,model) {
+    ctx.textBaseline='alphabetic'; ctx.textAlign='left'; ctx.fillStyle='#1c3543';
+    ctx.font='850 74px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('REPORT SMĚNY',OUTER,127);
+    ctx.font='700 35px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('DIFERENCIÁLY',OUTER,186);
+    ctx.fillStyle='#315567';ctx.font='650 37px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    // RAK_EXTERNAL_SHIFT_TEAMS_17020
+    ctx.fillText(formatDate(model.date) + '  •  Směna ' + (typeof getRakActiveAccountShiftTeam==='function'?getRakActiveAccountShiftTeam():'D') + '  •  ' + shiftLabel(model.shift), OUTER, 218);
+    ctx.fillStyle='rgba(20,119,177,.45)';ctx.fillRect(OUTER,278,CANVAS_WIDTH-OUTER*2,4);
+  }
+
+  // RAK_SHIFT_REPORT_FREE_PRIMARY_17008
+  // RAK_SHIFT_REPORT_FREE_ONLY_GRINDER_17010
+  function drawProductionRow(ctx,line,x,y,w) {
+    const tone=TONES[line.index]||DEFAULT_TONE;
+    const fill=line.kind==='total'?'rgba(40,134,174,.26)':line.kind==='empty'?'rgba(75,102,116,.045)':tone.fill;
+    fillRounded(ctx,x,y,w,68,16,fill,line.kind==='total'?'rgba(17,120,200,.68)':tone.stroke);
+    ctx.textAlign='left';ctx.fillStyle=line.kind==='total'?'#123d5b':({AF:'#004e83',AD:'#004e83',AG:'#0b632e',AE:'#0b632e',AH:'#8b4300'}[line.index]||'#244554');
+    ctx.font='850 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(line.text,x+23,y+49,w-46);
+  }
+  function drawSection(ctx,section,x,y,w) {
+    const layout = sectionLayout17015(ctx,section,w);
+    fillRounded(ctx,x,y,w,layout.height,28,'rgba(255,255,255,.36)','rgba(36,65,78,.17)');
+    ctx.textAlign='left';ctx.fillStyle='#183c50';
+    ctx.font='850 46px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(section.label,x+30,y+61);
+    let rowY = y + 80;
+    layout.groups.forEach(group => {
+      group.left.forEach((line,i) => drawProductionRow(ctx,line,x+20,rowY+i*MOBILE_LINE_STEP,layout.cellWidth));
+      if (layout.twoColumns) group.right.forEach((line,i) => {
+        drawProductionRow(ctx,line,x+20+layout.cellWidth+layout.gap,rowY+i*MOBILE_LINE_STEP,layout.cellWidth);
+      });
+      rowY += group.steps*MOBILE_LINE_STEP;
+    });
+    // Index-specific columns end here: both MO and TO totals always occupy the full width.
+    layout.totals.forEach(line => {
+      drawProductionRow(ctx,line,x+20,rowY,w-40);
+      rowY += MOBILE_LINE_STEP;
+    });
+    if (positiveQuantity17014(section.totalNok)) {
+      ctx.fillStyle='#365363';
+      ctx.font='700 39px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText('NOK: '+section.totalNok,x+29,rowY+43);
+    }
+    return y+layout.height+22;
+  }
+  function drawProblems(ctx,problems,y) {
+    if(!problems.length) return y;
+    const x=OUTER,w=CANVAS_WIDTH-OUTER*2;
+    ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const measured=problems.map(item=>wrapLines(ctx,item.text||'bez popisu',w-110));
+    const h=88+measured.reduce((sum,lines)=>sum+148+lines.length*50,0)+20;
+    fillRounded(ctx,x,y,w,h,28,'rgba(255,255,255,.38)','rgba(36,65,78,.17)');
+    ctx.fillStyle='#183c50';ctx.font='850 43px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('PROBLÉMY / ODSTÁVKY',x+30,y+56);
+    let cursor=y+86;
+    problems.forEach((problem,idx)=>{
+      const boxH=134+measured[idx].length*50;
+      fillRounded(ctx,x+22,cursor,w-44,boxH,18,'rgba(235,242,245,.44)','rgba(44,75,88,.12)');
+      ctx.fillStyle='#183c50';ctx.font='800 41px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(problem.machine||'Stroj',x+46,cursor+47);
+      const duration=durationLabel(problemMinutes(problem.from,problem.to));
+      ctx.fillStyle='#146a90';ctx.font='650 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText((problem.from||'??:??')+'–'+(problem.to||'??:??')+(duration?'  ('+duration+')':''),x+46,cursor+92,w-88);
+      ctx.fillStyle='#284453';ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      measured[idx].forEach((line,i)=>ctx.fillText(line,x+46,cursor+145+i*50,w-88));
+      cursor+=148+measured[idx].length*50;
+    });
+    return y+h+24;
+  }
+
+  function renderCanvas(model, watermark) {
+    const height = estimateHeight(model);
+    const canvas = document.createElement('canvas');
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) throw new Error('Canvas 2D není dostupný.');
+    drawBackground(ctx, CANVAS_WIDTH, height, watermark);
+    drawHeader(ctx, model);
+
+    let y = 306;
+    model.sections.forEach((section) => {
+      y = drawSection(ctx, section, OUTER, y, CANVAS_WIDTH - OUTER * 2);
+    });
+    y = drawProblems(ctx, model.problems, y);
+
+    ctx.fillStyle = 'rgba(38,59,71,.51)';
+    ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('RaK', CANVAS_WIDTH - OUTER, Math.min(height - 46, y + 26));
+    ctx.textAlign = 'left';
+    return canvas;
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('PNG se nepodařilo vytvořit.'));
+      }, 'image/png');
+    });
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    const parts = String(dataUrl || '').split(',');
+    const bytes = atob(parts[1] || '');
+    const out = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i += 1) out[i] = bytes.charCodeAt(i);
+    return new Blob([out], { type: 'image/png' });
+  }
+
+  function fileName(model) {
+    const date = String(model.date || '').replace(/[^0-9-]/g, '') || 'report';
+    const shift = String(model.shift || '').replace(/[^A-Za-z0-9_-]/g, '') || 'smena';
+    return 'RaK_report_smeny_' + date + '_' + shift + '.png';
+  }
+
+  async function buildBlob(root) {
+    const model = collectModel(root);
+    const sig = signature(model);
+    const cached = imageCache.get(root);
+    if (cached && cached.signature === sig && cached.blob) return cached;
+    const watermark = await preloadWatermark();
+    const canvas = renderCanvas(model, watermark);
+    const blob = await canvasToBlob(canvas);
+    const entry = { signature: sig, blob, name: fileName(model) };
+    imageCache.set(root, entry);
+    return entry;
+  }
+
+  function buildBlobSync(root) {
+    const model = collectModel(root);
+    const sig = signature(model);
+    const cached = imageCache.get(root);
+    if (cached && cached.signature === sig && cached.blob) return cached;
+    if (!watermarkImage) return null;
+    const canvas = renderCanvas(model, watermarkImage);
+    const blob = dataUrlToBlob(canvas.toDataURL('image/png'));
+    const entry = { signature: sig, blob, name: fileName(model) };
+    imageCache.set(root, entry);
+    return entry;
+  }
+
+  function downloadEntry(entry) {
+    const url = URL.createObjectURL(entry.blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = entry.name;
+    link.rel = 'noopener';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function savePng(root) {
+    try {
+      status(root, 'Vytvářím PNG…');
+      const entry = await buildBlob(root);
+      downloadEntry(entry);
+      status(root, 'PNG report je připravený.');
+    } catch (err) {
+      status(root, 'PNG se nepodařilo vytvořit.');
+    }
+  }
+
+  function canShareFile(file) {
+    if (!navigator.share) return false;
+    if (typeof navigator.canShare !== 'function') return true;
+    try { return navigator.canShare({ files: [file] }); }
+    catch (err) { return false; }
+  }
+
+  function shareImageFromEntry(root, entry) {
+    if (typeof File !== 'function') {
+      downloadEntry(entry);
+      status(root, 'PNG bylo vytvořené; tento prohlížeč neumí sdílet soubor přímo.');
+      return;
+    }
+    const file = new File([entry.blob], entry.name, { type: 'image/png', lastModified: Date.now() });
+    if (!canShareFile(file)) {
+      downloadEntry(entry);
+      status(root, 'PNG bylo vytvořené; pro WhatsApp ho vyber ze stažených souborů.');
+      return;
+    }
+    status(root, 'Otevírám sdílení obrázku – vyber WhatsApp.');
+    let sharePromise;
+    try {
+      sharePromise = navigator.share({ title: 'RaK – Report směny diferenciály', files: [file] });
+    } catch (err) {
+      downloadEntry(entry);
+      status(root, 'Sdílení obrázku není dostupné; PNG bylo uložené.');
+      return;
+    }
+    Promise.resolve(sharePromise)
+      .then(() => status(root, 'Obrázek byl předaný ke sdílení.'))
+      .catch((err) => {
+        if (err && err.name === 'AbortError') status(root, 'Sdílení bylo zrušeno.');
+        else status(root, 'Sdílení obrázku se nepovedlo.');
+      });
+  }
+
+  function shareWhatsappImage(root) {
+    const immediate = buildBlobSync(root);
+    if (immediate) {
+      shareImageFromEntry(root, immediate);
+      return;
+    }
+    status(root, 'Připravuji vodoznak pro PNG…');
+    void buildBlob(root)
+      .then(() => status(root, 'Obrázek je připravený. Klepni na WhatsApp ještě jednou.'))
+      .catch(() => status(root, 'PNG se nepodařilo připravit.'));
+  }
+
+  function ensureStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = [
+      '#rakShiftReport .rakShiftActions [data-rak-image-action="save"]{grid-column:1/-1!important;order:1!important;background:linear-gradient(135deg,rgba(31,139,194,.28),rgba(36,176,134,.22))!important;border-color:rgba(105,211,231,.25)!important}',
+      '#rakShiftReport .rakShiftActions [data-rak-share-action="copy"]{order:2!important}',
+      '#rakShiftReport .rakShiftActions [data-shift-action="send"]{order:3!important}',
+      '#rakShiftReport .rakShiftActions [data-rak-share-action="whatsapp"]{order:4!important}',
+      '#rakShiftReport .rakShiftActions [data-shift-action="preview"]{order:5!important}',
+      '#rakShiftReport .rakShiftActions [data-shift-action="clear"]{grid-column:1/-1!important;order:6!important;opacity:.72}',
+      '#rakShiftReport .rakShiftActions [data-shift-action="close"]{order:7!important}'
+    ].join('\n');
+    document.head.appendChild(style);
+  }
+
+  function schedulePrepare(root) {
+    if (!root) return;
+    const old = prepareTimers.get(root);
+    if (old) clearTimeout(old);
+    const timer = setTimeout(() => {
+      prepareTimers.delete(root);
+      void buildBlob(root).catch(() => {});
+    }, 280);
+    prepareTimers.set(root, timer);
+  }
+
+  function install(root) {
+    if (!root || root.dataset.rakImageExportInstalled === '1') return;
+    const actions = root.querySelector('.rakShiftActions');
+    if (!actions) return;
+    ensureStyles();
+
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'appMenuAction';
+    saveButton.dataset.rakImageAction = 'save';
+    saveButton.textContent = 'Uložit PNG';
+    actions.insertBefore(saveButton, actions.firstChild);
+
+    root.dataset.rakImageExportInstalled = '1';
+    void preloadWatermark().then(() => schedulePrepare(root)).catch(() => {});
+  }
+
+  function scan() {
+    const root = document.getElementById('rakShiftReport');
+    if (root) install(root);
+  }
+
+  function boot() {
+    ensureStyles();
+    void preloadWatermark().catch(() => {});
+    scan();
+    const reportApi = window.RakShiftReport;
+    if (reportApi && typeof reportApi.open === 'function' && !reportApi.__rakImageExportWrapped) {
+      const originalOpen = reportApi.open;
+      reportApi.open = function rakShiftReportOpenWithImageExport(...args) {
+        const result = originalOpen.apply(this, args);
+        setTimeout(scan, 0);
+        return result;
+      };
+      reportApi.__rakImageExportWrapped = true;
+    }
+    document.addEventListener('click', (event) => {
+      const trigger = event.target && event.target.closest ? event.target.closest('[data-admin-action=\"shift-report\"]') : null;
+      if (trigger) setTimeout(scan, 0);
+    }, true);
+
+    document.addEventListener('input', (event) => {
+      const root = event.target && event.target.closest ? event.target.closest('#rakShiftReport') : null;
+      if (root) schedulePrepare(root);
+    }, true);
+    document.addEventListener('change', (event) => {
+      const root = event.target && event.target.closest ? event.target.closest('#rakShiftReport') : null;
+      if (root) schedulePrepare(root);
+    }, true);
+
+    document.addEventListener('click', (event) => {
+      const target = event.target && event.target.closest ? event.target.closest('#rakShiftReport [data-rak-image-action="save"], #rakShiftReport [data-rak-share-action="whatsapp"]') : null;
+      if (!target) return;
+      const root = target.closest('#rakShiftReport');
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (target.dataset.rakImageAction === 'save') {
+        void savePng(root);
+        return;
+      }
+      shareWhatsappImage(root);
+    }, true);
+  }
+
+  window.rakShiftReportBuildPng = async function rakShiftReportBuildPng() {
+    const root = document.getElementById('rakShiftReport');
+    if (!root) throw new Error('Report směny není otevřený.');
+    return buildBlob(root);
+  };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
 })();

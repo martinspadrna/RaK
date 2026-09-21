@@ -99,6 +99,27 @@
   const boot=()=>{ensureStyle();mount()};
   window.rakInstallLoginLife=boot;
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-  const start=()=>{if(document.body)new MutationObserver(()=>mount()).observe(document.body,{childList:true,subtree:true})};
+  const start=()=>{
+    if(!document.body)return;
+    let scheduled=false;
+    const relevant=(node)=>{
+      if(!node||node.nodeType!==1)return false;
+      try{return !!((node.matches&&node.matches('#rakUserLoginOverlay,#rakSplashBrand'))||(node.querySelector&&node.querySelector('#rakUserLoginOverlay,#rakSplashBrand')))}catch(err){return false}
+    };
+    const observer=new MutationObserver((records)=>{
+      const needed=Array.from(records||[]).some((record)=>{
+        const target=record&&record.target;
+        try{
+          if(target&&target.nodeType===1&&target.closest&&target.closest('#rakUserLoginOverlay,#rakSplashBrand'))return true;
+          return Array.from(record&&record.addedNodes||[]).some(relevant);
+        }catch(err){return false}
+      });
+      if(!needed||scheduled)return;
+      scheduled=true;
+      const run=()=>{scheduled=false;mount()};
+      if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+  };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

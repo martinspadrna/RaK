@@ -245,6 +245,8 @@ function showFoodSchedule(which) {
 
 
 function showPage(id) {
+  // RAK_EXTERNAL_SHIFT_TEAMS_17020
+  if((id==='rotace'||id==='statistiky')&&!rakCanAccessRotations()) id='home';
   const currentPage = typeof document !== 'undefined' ? document.querySelector('.page.active')?.id || '' : '';
   const isSamePageRefresh = currentPage === id;
   const shouldClosePageModals = id !== 'home' || !isSamePageRefresh;
@@ -390,6 +392,7 @@ function showPage(id) {
 }
 
 function openRotaceNames() {
+  if(!rakCanAccessRotations()){showPage('home');return;}
 
   if (typeof app !== 'undefined') {
     app.selectedName = null;
@@ -402,12 +405,14 @@ function openRotaceNames() {
 }
 
 function openRotaceMonths() {
+  if(!rakCanAccessRotations()){showPage('home');return;}
   showPage('rotace');
   setRotaceView('months');
   setBottomNavActive('rotace');
 }
 
 function openRotaceStats() {
+  if(!rakCanAccessRotations()){showPage('home');return;}
   showPage('rotace');
   setRotaceView('stats');
   setBottomNavActive('rotace');

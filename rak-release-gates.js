@@ -232,16 +232,6 @@
     ));
 
     gates.push(makeGate(
-      'online-game-contracts',
-      'Online hry create/accept/save closure',
-      signals.onlineGameContractClosure && signals.onlineGameContractClosure.ok ? 'ok' : 'warning',
-      'warning',
-      signals.onlineGameContractClosure ? ('fáze ' + String(signals.onlineGameContractClosure.phasePercent || 0) + '%, policies ' + (signals.onlineGameContractClosure.policyChangeAllowedNow ? 'lze zvažovat' : 'neutahovat')) : 'closure chybí',
-      'Supabase policies neutahovat bez reálného dvoumobilového smoke testu Piškvorek i Lodí.',
-      'rak-supabase-client-audit'
-    ));
-
-    gates.push(makeGate(
       'food-sunday-overtime',
       'Kantýna/jídelna neděle',
       signals.foodSundayGuard && signals.foodSundayGuard.ok ? 'ok' : 'warning',
@@ -281,102 +271,6 @@
       'rak-release-ops-audit'
     ));
 
-
-    gates.push(makeGate(
-      'games-profile-dom-hardening',
-      'Hry profily/achievementy DOM hardening',
-      signals.gamesProfileDomHardening && signals.gamesProfileDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesProfileDomHardening ? ('escapovaná pole ' + String((signals.gamesProfileDomHardening.escapedFields || []).length || 0) + ', číselná pole ' + String((signals.gamesProfileDomHardening.numericFields || []).length || 0)) : 'guard chybí',
-      'Profily, statistiky a achievementy musí escapovat jména/texty a normalizovat čísla bez čtení uložených hodnot.',
-      'games-arcade.js'
-    ));
-
-    gates.push(makeGate(
-      'games-hud-message-dom-hardening',
-      'Hry HUD/hlášky DOM hardening',
-      signals.gamesHudMessageDomHardening && signals.gamesHudMessageDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesHudMessageDomHardening ? ('escapovaná pole ' + String((signals.gamesHudMessageDomHardening.escapedFields || []).length || 0) + ', sinky ' + String((signals.gamesHudMessageDomHardening.sinks || []).length || 0)) : 'guard chybí',
-      'Herní HUD řádky a fallback chybové hlášky musí zkracovat a escapovat texty bez čtení uložených hodnot.',
-      'games-arcade.js'
-    ));
-
-    gates.push(makeGate(
-      'games-top-score-dom-hardening',
-      'Hry Top score DOM hardening',
-      signals.gamesTopScoreDomHardening && signals.gamesTopScoreDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesTopScoreDomHardening ? ('escapovaná pole ' + String((signals.gamesTopScoreDomHardening.escapedFields || []).length || 0)) : 'guard chybí',
-      'Top score renderer musí escapovat jména, jednotky, hodnoty i čas bez čtení uložených hodnot.',
-      'games-arcade.js'
-    ));
-
-
-    gates.push(makeGate(
-      'games-top-score-seconds',
-      'Top score čas ve vteřinách',
-      signals.gamesTopScoreSeconds && signals.gamesTopScoreSeconds.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesTopScoreSeconds ? String(signals.gamesTopScoreSeconds.probe || '—') : 'guard chybí',
-      'Reaction Top score nemá ukazovat ms, ale vteřiny.',
-      'games-arcade.js'
-    ));
-
-    gates.push(makeGate(
-      'games-ships-menu-dom-hardening',
-      'Lodě menu/zápasy DOM hardening',
-      signals.gamesShipsMenuDomHardening && signals.gamesShipsMenuDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesShipsMenuDomHardening ? ('escapovaná pole ' + String((signals.gamesShipsMenuDomHardening.escapedFields || []).length || 0) + ', sinky ' + String((signals.gamesShipsMenuDomHardening.sinks || []).length || 0)) : 'guard chybí',
-      'Menu Lodí, pozvánka a uložené vzájemné zápasy musí escapovat texty bez zásahu do online flow.',
-      'games-arcade.js'
-    ));
-
-
-    gates.push(makeGate(
-      'games-daily-challenge-dom-hardening',
-      'Denní challenge DOM hardening',
-      signals.gamesDailyChallengeDomHardening && signals.gamesDailyChallengeDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesDailyChallengeDomHardening ? ('escapovaná pole ' + String((signals.gamesDailyChallengeDomHardening.escapedFields || []).length || 0) + ', sinky ' + String((signals.gamesDailyChallengeDomHardening.sinks || []).length || 0)) : 'guard chybí',
-      'Denní challenge musí escapovat úvodní texty, HUD labely a Top score nadpis bez zásahu do flow her.',
-      'games-arcade.js'
-    ));
-
-
-    gates.push(makeGate(
-      'games-post-fix-score-flow',
-      'Reaction/Denní challenge score flow',
-      signals.gamesPostFixScoreFlow && signals.gamesPostFixScoreFlow.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesPostFixScoreFlow ? ('reaction ' + (signals.gamesPostFixScoreFlow.checks && signals.gamesPostFixScoreFlow.checks.reactionTopScoreVisible ? 'OK' : 'kontrola') + ', daily bridge ' + (signals.gamesPostFixScoreFlow.checks && signals.gamesPostFixScoreFlow.checks.dailyChallengeBridge ? 'OK' : 'kontrola')) : 'guard chybí',
-      'Po opravě z v923 musí být Reaction Top score viditelné a Denní challenge musí zapisovat vlastní leaderboard.',
-      'games-arcade.js'
-    ));
-
-
-
-    gates.push(makeGate(
-      'games-action-text-dom-hardening',
-      'Hry akční texty DOM hardening',
-      signals.gamesActionTextDomHardening && signals.gamesActionTextDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesActionTextDomHardening ? ('escapovaná pole ' + String((signals.gamesActionTextDomHardening.escapedFields || []).length || 0) + ', sinky ' + String((signals.gamesActionTextDomHardening.sinks || []).length || 0)) : 'guard chybí',
-      'Herní tlačítka, akční popisky a toast/stavové texty musí normalizovat a escapovat text bez zásahu do gameplaye.',
-      'games-arcade.js'
-    ));
-
-
-    gates.push(makeGate(
-      'games-overlay-result-dom-hardening',
-      'Hry modaly/výsledky DOM hardening',
-      signals.gamesOverlayResultDomHardening && signals.gamesOverlayResultDomHardening.ok ? 'ok' : 'warning',
-      'warning',
-      signals.gamesOverlayResultDomHardening ? ('escapovaná pole ' + String((signals.gamesOverlayResultDomHardening.escapedFields || []).length || 0) + ', sinky ' + String((signals.gamesOverlayResultDomHardening.sinks || []).length || 0)) : 'guard chybí',
-      'Herní modaly, overlaye a výsledkové texty musí normalizovat a escapovat text bez zásahu do gameplaye.',
-      'games-arcade.js'
-    ));
 
     gates.push(makeGate(
       'dom-security-hardening',
@@ -424,11 +318,11 @@
 
     gates.push(makeGate(
       'playwright-dom-smoke-draft',
-      'Playwright/DOM smoke návrh',
+      'Browser/DOM smoke kontrola',
       signals.playwrightDomSmokeDraft && signals.playwrightDomSmokeDraft.ok ? 'ok' : 'warning',
       'warning',
       signals.playwrightDomSmokeDraft ? ('stav ' + String(signals.playwrightDomSmokeDraft.implementationStatus || 'draft')) : 'Playwright draft helper chybí',
-      'První test spustit mimo produkční DB; zatím nezavádět jako povinnou závislost do hotfix buildu.',
+      'Spouštět npm run test:browser-smoke nad bezpečným lokálním snapshotem; nejde o produkční DB test.',
       'rak-mobile-smoke-audit'
     ));
 
@@ -448,7 +342,7 @@
       signals.promptComplianceClosure && signals.promptComplianceClosure.documentaryComplete ? 'ok' : 'warning',
       'warning',
       signals.promptComplianceClosure ? ('dokumentačně ' + String(signals.promptComplianceClosure.percentComplete || 0) + ' %, dokumentů ' + String(signals.promptComplianceClosure.documentCount || 0)) : 'prompt compliance helper chybí',
-      'Dokumenty v924 musí existovat v assets/docs a být v export manifestu; mobilní a Playwright validace zůstává ruční gate.',
+      'Dokumenty v924 musí existovat v assets/docs a být v export manifestu; mobilní a browser validace zůstává ruční gate.',
       'rak-due-diligence-progress'
     ));
 
@@ -457,8 +351,8 @@
       'Prompt compliance ruční validace',
       'manual',
       'manual',
-      signals.promptComplianceClosure ? ('manual gate ' + String(signals.promptComplianceClosure.manualGateCount || 0) + ': mobil + Playwright') : 'staticky nelze potvrdit',
-      'Po nahrání ověřit mobil/browser smoke a skutečný Playwright běh; nevydávat za hotové bez reálného testu.',
+      signals.promptComplianceClosure ? ('manual gate ' + String(signals.promptComplianceClosure.manualGateCount || 0) + ': mobil + browser smoke') : 'staticky nelze potvrdit',
+      'Po nahrání ověřit mobilní a browser smoke; nevydávat za hotové bez reálného testu.',
       'manual'
     ));
 
@@ -474,16 +368,6 @@
     ));
 
 
-
-    gates.push(makeGate(
-      'v928-games-achievement-rewards',
-      'Achievementy a D-směnové odměny her',
-      signals.gamesAchievementRewards && signals.gamesAchievementRewards.gamesCovered >= 18 ? 'ok' : 'warning',
-      'warning',
-      signals.gamesAchievementRewards ? ('her ' + String(signals.gamesAchievementRewards.gamesCovered || 0) + ', achievementů ' + String(signals.gamesAchievementRewards.totalAchievementDefs || 0) + ', D odměn ' + String(signals.gamesAchievementRewards.shiftDRewards || 0)) : 'achievement reward helper chybí',
-      'Každá hra má mít vlastní achievementy i D-směnové odměny; skutečné odemčení záleží na profilu a odehraných hrách.',
-      'games-arcade'
-    ));
 
     gates.push(makeGate(
       'v928-profile-appearance-rewards',

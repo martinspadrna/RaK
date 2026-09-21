@@ -65,10 +65,6 @@ function installDelegatedAppActions() {
       const results = resultRaw.split(',').map((s) => s.trim()).filter(Boolean);
       if (fields.length || results.length) resetFields(fields, results);
     },
-    'open-game': (el) => {
-      const gameId = String(el.dataset.game || '').trim();
-      if (gameId) openGameShell(gameId);
-    },
     'calendar-open': () => openCalendarInRak()
   };
 

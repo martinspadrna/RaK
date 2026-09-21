@@ -1,5 +1,6 @@
 /* RaK 1.2 (1.146) – Administrace/Rozpisy polish oddělený ze styles-overrides.css.
    Bez změny logiky, Supabase ani spodní lišty. */
+/* RaK 1.6.17 CSS cleanup: Menu/Admin proven dead owner layers consolidated; visual contract unchanged. */
 
 /* v.1.5 (988) – Administrace / Rozpisy: užší sloupce pro tvrdotu, měkotu a absence. */
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable{
@@ -8,12 +9,6 @@
   table-layout:fixed !important;
   border-collapse:separate !important;
   border-spacing:0 !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:first-child{
-  width:42px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:not(:first-child){
-  width:48px !important;
 }
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap:nth-of-type(1) .appMenuAdminTable,
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap:nth-of-type(2) .appMenuAdminTable{
@@ -58,15 +53,6 @@
   border-collapse:separate !important;
   border-spacing:0 !important;
 }
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(1){
-  width:50px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(2){
-  width:118px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(3){
-  width:34px !important;
-}
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable th,
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable td{
   width:auto !important;
@@ -109,56 +95,17 @@
 
 
 /* v.1.5 (998) – Administrace / Rozpisy: doladěné šířky, čitelnější mini přehled a Odebrat přímo u jména. */
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:first-child{
-  width:53px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:not(:first-child){
-  width:50px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap:nth-of-type(1) .appMenuAdminTable,
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap:nth-of-type(2) .appMenuAdminTable{
-  width:auto !important;
-  min-width:296px !important;
-  max-width:none !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable input[data-rot-field="date"]{
-  width:51px !important;
-  min-width:51px !important;
-  max-width:51px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable input[data-rot-field^="cell-"]{
-  width:48px !important;
-  min-width:48px !important;
-  max-width:48px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable{
-  min-width:201px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(1){
-  width:63px !important;
-}
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(2){
   width:96px !important;
 }
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(3){
   width:32px !important;
 }
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="date"]{
-  width:61px !important;
-  min-width:61px !important;
-  max-width:61px !important;
-}
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="person"]{
   width:94px !important;
   min-width:94px !important;
   max-width:94px !important;
   padding-right:1px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="code"]{
-  width:28px !important;
-  min-width:28px !important;
-  max-width:28px !important;
-  margin-left:-5px !important;
 }
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adminRotationMiniTable th,
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adminRotationMiniTable td{
@@ -191,10 +138,6 @@
   z-index:2147483646 !important;
   pointer-events:auto !important;
 }
-.adminRotationQuickRemove.isVisible{
-  opacity:1 !important;
-  transform:translateY(0) !important;
-}
 
 /* v.1.5 (998) – Administrace / Rozpisy: datumy ještě širší podle mobilního testu. */
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:first-child{
@@ -204,10 +147,6 @@
   width:59px !important;
   min-width:59px !important;
   max-width:59px !important;
-}
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap:nth-of-type(1) .appMenuAdminTable,
-#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap:nth-of-type(2) .appMenuAdminTable{
-  min-width:304px !important;
 }
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable{
   min-width:210px !important;
@@ -2425,4 +2364,49 @@
   .adminSettingsMapActions{
     grid-template-columns:1fr !important;
   }
+}
+
+/* // RAK_ADMIN_COMPACT_17022: four quick actions and one compact accordion; inherited theme colors. */
+#appMenuBody[data-admin-view="home"] .adminCompactQuickGrid {
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:8px !important;
+  margin:8px 0 16px !important;
+}
+#appMenuBody[data-admin-view="home"] .adminCompactQuickGrid > .appMenuAction {
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  min-height:46px !important;
+  margin:0 !important;
+  padding:10px 7px !important;
+  white-space:normal !important;
+  text-align:center !important;
+}
+#appMenuBody[data-admin-view="home"] .adminCompactHome .adminMenuSections {
+  margin-top:8px !important;
+}
+
+/* // RAK_CROSS_SHIFT_FIXES_17024: A/B/C only. Three available buttons consume three equal slots. */
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll {
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  justify-content:stretch !important;
+  justify-items:stretch !important;
+  width:100% !important;
+  gap:4px !important;
+  overflow:visible !important;
+  scroll-snap-type:none !important;
+}
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button.bottomNavBtn:not([hidden]) {
+  grid-column:auto !important;
+  justify-self:stretch !important;
+  align-self:center !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  margin:0 !important;
+}
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="rotace"] {
+  display:none !important;
 }

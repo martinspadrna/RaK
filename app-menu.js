@@ -1,3 +1,4 @@
+// RAK_NO_RETIRED_GAMES_17021
 // RaK 1.2 (1.155) – Více/menu shell a router; admin implementace je v samostatných modulech.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-menu.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
@@ -113,14 +114,14 @@ function rakAdminMenuResolveActiveAccountId() {
 function appMenuShouldShowAdminEntry() {
   const activeId = rakAdminMenuResolveActiveAccountId();
   if (!activeId) return false;
-  if (typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin()) return true;
+  if (typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport()) return true;
   if (typeof rakAdminAccountRequiresPassword === 'function' && rakAdminAccountRequiresPassword(activeId)) return true;
   if (activeId === '9811') return true;
   return appMenuPersistentAdminSessionMatches(activeId);
 }
 
 async function appMenuEnsureAdminAccessFromMenu() {
-  const canOpen = () => !!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin());
+  const canOpen = () => !!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport());
   if (canOpen()) return true;
   const activeId = typeof rakAdminGetActiveAccountId === 'function' ? String(rakAdminGetActiveAccountId() || '').trim() : '';
   if (!activeId) return false;
@@ -289,6 +290,8 @@ function bindAppMenuHandlers(body) {
       }
 
       if (menuBack) {
+        // RAK_17066_MENU_NAVIGATION_GUARD
+        if(typeof rakGuardAdminRotationDiscard==='function' && !rakGuardAdminRotationDiscard()) return;
         openAppMenu('menu');
         return;
       }
@@ -311,6 +314,11 @@ function bindAppMenuHandlers(body) {
 
       if (menuAction === 'import' || adminAction === 'import' || adminAction === 'excel-pick') {
         startMenuImport();
+        return;
+      }
+      if (adminAction === 'run-live-auth-check') {
+        event.preventDefault();
+        if (currentView === 'service' && typeof rakRunLiveAuthDiagnostic === 'function') await rakRunLiveAuthDiagnostic();
         return;
       }
       if (adminAction === 'excel-import') {
@@ -387,6 +395,7 @@ function bindAppMenuHandlers(body) {
         return;
       }
       if (menuAction === 'admin') {
+        if (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy()) { openAppMenu('menu'); return; }
         const adminReady = await appMenuEnsureAdminAccessFromMenu();
         if (!adminReady) {
           openAppMenu('menu');
@@ -404,6 +413,8 @@ function bindAppMenuHandlers(body) {
         return;
       }
       if (adminYearKey) {
+        // RAK_17066_YEAR_SWITCH_GUARD: snapshot before replacing DOM.
+        if(typeof rakGuardAdminRotationDiscard==='function' && !rakGuardAdminRotationDiscard()) return;
         const parsedYear = parseInt(adminYearKey, 10);
         if (Number.isFinite(parsedYear)) {
           app.selectedYear = parsedYear;
@@ -416,6 +427,8 @@ function bindAppMenuHandlers(body) {
         return;
       }
       if (adminMonthKey) {
+        // RAK_17066_MONTH_SWITCH_GUARD: snapshot before mutating selection.
+        if(typeof rakGuardAdminRotationDiscard==='function' && !rakGuardAdminRotationDiscard()) return;
         if (select) select.value = adminMonthKey;
         app.selectedMonth = adminMonthKey;
         const parsedMonth = typeof parseMonthKey === 'function' ? parseMonthKey(adminMonthKey) : null;
@@ -723,7 +736,7 @@ function bindAppMenuHandlers(body) {
           ...pwaDiag,
           ...dataOptDiag,
           ...supabaseDiag
-        ].join('\n');
+        ].filter(line => !/(?:herní|herni|piškvorky|lodě|online hry|top.?score|leaderboard|game[_ -]|gameengine|battleship|ttt|herních profilů|session\/pozvánky|RPC pokrytí|herní cache)/i.test(String(line))).join('\n');
         body.innerHTML = [
           '<div class="appMenuCard appMenuDiagnosticsCard">',
           '  <div class="appMenuCardTitle">Diagnostika</div>',
@@ -784,6 +797,7 @@ function bindAppMenuHandlers(body) {
       }
 
       if (adminAction === 'back-admin') {
+        if(typeof rakGuardAdminRotationDiscard==='function' && !rakGuardAdminRotationDiscard()) return;
         openAppMenu('admin');
         return;
       }
@@ -986,8 +1000,64 @@ function bindAppMenuHandlers(body) {
         }
         return;
       }
+      // RAK_17069_EXPLICIT_DRAFT_DISCARD: all local, online read-only preflight, never server overwrite.
+      if(adminAction==='discard-local-rotation-drafts'){
+        if(body.dataset.adminView!=='rotation'||!app||app.adminUnlocked!==true)throw Error('Administrace rozpisů není odemčená.');
+        if(window.__rakLocalDraftCleanupRunning)return;
+        const bridge=window.RotationSupabaseBridge;
+        if(!bridge||typeof bridge.loadRotationState!=='function'||typeof window.rakLocalRotationDraftCleanupPreview!=='function'
+          ||typeof window.rakDiscardLocalRotationDrafts!=='function')throw Error('Čištění místních návrhů není připravené.');
+        const before=window.rakLocalRotationDraftCleanupPreview();
+        if(!before.ok)throw Error('Místní návrhy nebo frontu nelze bezpečně ověřit. Nic nebylo smazáno.');
+        const editor=document.getElementById('adminRotationEditor');
+        const fingerprint=editor&&typeof rakRotationEditorFingerprint==='function'?rakRotationEditorFingerprint(editor):null;
+        if(editor&&fingerprint===null)throw Error('Editor se nepodařilo ověřit. Nic nebylo smazáno.');
+        const month=String(app.selectedMonth||'');
+        const rotationBefore=JSON.stringify(app.rotation);
+        if(!before.drafts&&!before.rotationQueued&&!app.adminRotationDirty){
+          const status=document.getElementById('rakAdminLocalDraftCleanupStatus');
+          if(status)status.textContent='Žádné neuložené návrhy rozpisů tu nejsou.';
+          return;
+        }
+        if(!confirm('Opravdu nevratně smazat '+before.drafts+' místních záloh a '+before.rotationQueued
+          +' čekajících změn rozpisů v tomto zařízení (včetně jiných měsíců a případně jiných administrátorských účtů)?'
+          +' Aktuálně rozepsané změny se zahodí a načte se jen ověřený online rozpis. Online data ani jiná fronta se nemažou.'))return;
+        window.__rakLocalDraftCleanupRunning=true;
+        target.disabled=true;
+        try{
+          const status=document.getElementById('rakAdminLocalDraftCleanupStatus');
+          if(status)status.textContent='Ověřuji aktuální online rozpis; místní návrhy zatím zůstávají…';
+          if(typeof navigator!=='undefined'&&navigator.onLine===false)throw Error('Bez internetu nelze ověřit online rozpis. Nic nebylo smazáno.');
+          const online=await bridge.loadRotationState();
+          const state=typeof bridge.getState==='function'?bridge.getState():null;
+          const source=String(state&&state.rotationSync&&state.rotationSync.lastSource||'');
+          if(!online||!online.payload||!online.payload.months||online.meta&&online.meta.source==='local-cache'
+            ||!['remote','tables'].includes(source)||state.rotationSync.lastError)
+            throw Error('Nepodařilo se ověřit skutečný online rozpis. Místní návrhy zůstaly zachovány.');
+          if(document.getElementById('adminRotationEditor')!==editor||String(app.selectedMonth||'')!==month
+            ||JSON.stringify(app.rotation)!==rotationBefore
+            ||editor&&rakRotationEditorFingerprint(editor)!==fingerprint)
+            throw Error('Během načítání vznikly nové úpravy. Nic nebylo smazáno.');
+          const current=window.rakLocalRotationDraftCleanupPreview();
+          if(!current.ok||current.signature!==before.signature)throw Error('Místní návrhy se mezitím změnily. Nic nebylo smazáno.');
+          const erased=window.rakDiscardLocalRotationDrafts(before.signature);
+          if(!erased||!erased.ok)throw Error('Bezpečné smazání selhalo. Zkontroluj úložiště; změny nepřepisuj.');
+          if(typeof rakInvalidateRotationSyncForDraftCleanup==='function')rakInvalidateRotationSyncForDraftCleanup();
+          app.adminRotationDirty=false;
+          if(typeof applyRakRotationState==='function')applyRakRotationState(online.payload,{force:true});
+          renderAdminMenuBody(body,currentView);
+          const nextStatus=document.getElementById('rakAdminLocalDraftCleanupStatus');
+          if(nextStatus)nextStatus.textContent='Odstraněno místně: '+erased.drafts+' návrhů a '+erased.rotationQueued
+            +' čekajících rozpisů. Online rozpis byl znovu načten.'
+            +(erased.otherConflicts?' Pozor: '+erased.otherConflicts+' jiných konfliktů zůstává.':'');
+          if(typeof window.__rakRefreshSyncBadgeTruth==='function')window.__rakRefreshSyncBadgeTruth();
+        }finally{window.__rakLocalDraftCleanupRunning=false;target.disabled=false;}
+        return;
+      }
       if (adminAction === 'load-online') {
-        await loadAdminRotationFromSupabase();
+        // RAK_17067_ONLINE_RELOAD_RERENDER_GUARD: canceled or failed read never destroys the DOM draft.
+        const loaded = await loadAdminRotationFromSupabase();
+        if (!loaded) return;
         renderAdminMenuBody(body, currentView);
         return;
       }
@@ -1254,17 +1324,14 @@ function bindAppMenuHandlers(body) {
           const result = await window.RotationSupabaseBridge.saveMachineSettings(rows);
           if (result && result.ok === false) throw (result.error || new Error('Uložení pracovníků selhalo.'));
           app.machineSettingsRows = rows;
+          // RAK_EXTERNAL_SHIFT_TEAMS_17020
+          if(typeof rakApplyShiftAccess==='function') rakApplyShiftAccess();
+          if(typeof updateDashboard==='function') updateDashboard();
           try { if (typeof renderStatsPanel === 'function') renderStatsPanel(); } catch (err) {}
           renderAdminMenuBody(body, 'workers');
           const statusEl = document.getElementById('adminOnlineSaveStatus');
-          let newProfilesText = appAccounts.length ? (' · účty aplikace: ' + String(appAccounts.length)) : '';
-          if (!result.queued && typeof ensureGameAccountsExistForWorkers === 'function') {
-            try {
-              const ensured = await ensureGameAccountsExistForWorkers(workerSettings.workers);
-              const createdCount = ensured.filter((r) => r && r.created).length;
-              if (createdCount) newProfilesText = ' · nových herních profilů: ' + createdCount;
-            } catch (err) { console.warn('ensureGameAccountsExistForWorkers failed', err); }
-          }
+          // RAK_17065_NO_GAME_PROVISIONING_GUARD: saving workers must not create game profiles.
+          const newProfilesText = appAccounts.length ? (' · účty aplikace: ' + String(appAccounts.length)) : '';
           if (statusEl) statusEl.textContent = (result && result.queued)
             ? 'Pracovníci uložení lokálně ✓ · po připojení se synchronizují'
             : ('Pracovníci uložení online ✓' + newProfilesText);
@@ -1292,7 +1359,10 @@ function bindAppMenuHandlers(body) {
         if (!(typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins())) return;
         if (typeof app !== 'undefined' && app && app.adminAuthVersion === 2 && typeof rakAdminSaveSecureAccounts === 'function') {
           const secureResult = await rakAdminSaveSecureAccounts(body);
-          if (!secureResult.ok) throw (secureResult.error || new Error('Uložení správců selhalo: ' + String(secureResult.reason || 'neznámá chyba')));
+          // RAK_CROSS_SHIFT_FIXES_17024
+          if (!secureResult.ok) throw (secureResult.error || new Error(secureResult.reason === 'account-not-in-login-directory'
+            ? 'Osobní číslo není v přihlašovacích účtech RaK. Ulož pracovníka v Účty aplikace a znovu načti správce.'
+            : 'Uložení správců selhalo: ' + String(secureResult.reason || 'neznámá chyba')));
           renderAdminMenuBody(body, 'admin-accounts');
           const secureStatus = document.getElementById('adminOnlineSaveStatus');
           if (secureStatus) secureStatus.textContent = 'Správci uloženi bezpečně online ✓';
@@ -1337,7 +1407,7 @@ function bindAppMenuHandlers(body) {
           : { ok: false, reason: 'missing-handler' };
         if (!result || result.ok === false) {
           const messages = {
-            'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.',
+            'password-too-short': 'Nové heslo musí mít alespoň 12 znaků a současné nesmí být prázdné.',
             'password-mismatch': 'Nová hesla se neshodují.',
             'password-unchanged': 'Nové heslo je stejné jako současné.',
             'invalid_current_password': 'Současné heslo není správné.'
@@ -1355,7 +1425,7 @@ function bindAppMenuHandlers(body) {
         if (statusEl) statusEl.textContent = 'Měním moje heslo…';
         const result = typeof rakAdminChangeOwnPassword === 'function' ? await rakAdminChangeOwnPassword(body) : { ok: false, reason: 'missing-handler' };
         if (!result || result.ok === false) {
-          const messages = { 'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.', 'password-mismatch': 'Nová hesla se neshodují.', 'password-unchanged': 'Nové heslo je stejné jako současné.', 'invalid_current_password': 'Současné heslo není správné.' };
+          const messages = { 'password-too-short': 'Nové heslo musí mít alespoň 12 znaků a současné nesmí být prázdné.', 'password-mismatch': 'Nová hesla se neshodují.', 'password-unchanged': 'Nové heslo je stejné jako současné.', 'invalid_current_password': 'Současné heslo není správné.' };
           throw (result && result.error ? result.error : new Error(messages[result && result.reason] || 'Změna hesla selhala.'));
         }
         renderAdminMenuBody(body, 'admin-accounts');
@@ -1442,6 +1512,12 @@ function bindAppMenuHandlers(body) {
       if (adminAction && adminAction.indexOf('generator-') === 0) {
         if (typeof adminHandleRotationGeneratorWizardAction === 'function' && adminHandleRotationGeneratorWizardAction(adminAction, target, body)) return;
       }
+      if (adminAction === 'download-unsynced-draft') {
+        if (typeof rakDownloadPreservedAdminMonthDraft !== 'function'
+          || !rakDownloadPreservedAdminMonthDraft(String(target.getAttribute('data-draft-key')||'')))
+          throw new Error('Soukromý návrh se nepodařilo stáhnout. Původní data zůstávají beze změny.');
+        return;
+      }
       if (adminAction === 'save-rotation') {
         const manualMonth = readAdminRotationFromDom(monthKey);
         const overrideState = adminRotationBuildManualRuleOverrideState(monthKey, manualMonth);
@@ -1470,7 +1546,7 @@ function bindAppMenuHandlers(body) {
           ? result.ruleCheck.issues.filter((issue) => issue && issue.severity === 'warn')
           : [];
         const manualOverrideIssues = result && Array.isArray(result.manualOverrideIssues) ? result.manualOverrideIssues : [];
-        const baseText = saveResult && saveResult.ok === true
+        const baseText = saveResult && saveResult.ok === true && saveResult.queued !== true
           ? (saveResult.queued
               ? 'Rozpis uložený lokálně ✓ · po připojení se synchronizuje'
               : ('Rozpis uložený online ✓ · měsíců: ' + String(saveResult.months || 0) + ' · řádků: ' + String(saveResult.entries || 0)))
@@ -1480,11 +1556,17 @@ function bindAppMenuHandlers(body) {
           : (ruleWarnings.length && typeof adminRotationFormatRuleIssues === 'function'
               ? baseText + ' · Kontrola: ' + adminRotationFormatRuleIssues(ruleWarnings)
               : baseText);
-        if (saveResult && saveResult.ok === true) renderAdminMenuBody(body, currentView);
+        if (saveResult && saveResult.ok === true && saveResult.queued !== true) renderAdminMenuBody(body, currentView);
         const statusEl = document.getElementById('adminOnlineSaveStatus');
-        if (statusEl) statusEl.textContent = saveResult && saveResult.ok === true
+        if (statusEl) statusEl.textContent = saveResult && saveResult.ok === true && saveResult.queued !== true
           ? statusText
-          : 'Rozpis se nepodařilo uložit online. Rozepsané změny zůstaly v editoru.';
+          : ((saveResult && saveResult.reason === 'draft-storage-failed')
+              ? 'Uložení zastaveno: nelze ověřit místní zálohu. Neobnovuj stránku; stáhni návrh.'
+              : 'Rozpis se nepodařilo potvrdit online. Návrh zůstal zachován; neobnovuj bez zálohy.');
+        if (!(saveResult && saveResult.ok === true && saveResult.queued !== true)
+          && result && result.draft && typeof rakShowAdminDraftExport === 'function') {
+          rakShowAdminDraftExport(result.draft,statusEl||document.getElementById('adminRotationDraftStatus'));
+        }
         return;
       }
       if (adminAction === 'load-food-schedule') {
@@ -1719,6 +1801,11 @@ function bindAppMenuHandlers(body) {
 }
 
 function openAppMenu(view) {
+  // RAK_17067_CENTRAL_MENU_DRAFT_GUARD: protect other navigation paths, too.
+  const currentBody = typeof document !== 'undefined' ? document.getElementById('appMenuBody') : null;
+  if (currentBody && currentBody.dataset.adminView === 'rotation' && typeof app !== 'undefined' && app && app.adminRotationDirty === true) {
+    if (typeof rakGuardAdminRotationDiscard !== 'function' || !rakGuardAdminRotationDiscard()) return false;
+  }
   const page = ensureAppMenuOverlay();
   page.classList.add('active');
   const body = page.querySelector('#appMenuBody');
@@ -2037,10 +2124,10 @@ function openAppMenu(view) {
         '</div>',
         (appMenuShouldShowAdminEntry() ?
           '<section class="appMenuAdminQuickLinks" aria-label="Správce">' +
-            '<div class="appMenuAdminQuickLinksTitle">Správce</div>' +
+            '<div class="appMenuAdminQuickLinksTitle">' + (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy() ? 'Zástupce' : 'Správce') + '</div>' +
             '<div class="appMenuGrid">' +
-              '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button>' +
-              '<button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>' +
+              // RAK_REPORT_ONLY_DEPUTY_17019
+              (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy() ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
               '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>' +
             '</div>' +
           '</section>' : '')

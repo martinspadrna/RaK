@@ -1,3 +1,4 @@
+// RAK_NO_GAME_AUDIT_REQUIREMENTS_17021
 // RaK 1.2 (1.155) – health/audit helpery oddělené z app.js.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-health-audits.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
@@ -34,8 +35,7 @@ function runPhaseOneFinalAudit() {
     '#rotaceStatsPanel',
     '.bottomNav',
     '#dashKantyna',
-    '#dashJidelna',
-    '#games'
+    '#dashJidelna'
   ];
 
   requiredDom.forEach((selector) => {
@@ -49,7 +49,6 @@ function runPhaseOneFinalAudit() {
     'styles.css',
     'styles-inline-legacy.css',
     'styles-calc-panels.css',
-    'styles-games.css',
     'styles-overrides-legacy-early.css',
     'styles-overrides-legacy-mid.css',
     'styles-overrides-legacy-late.css',
@@ -258,7 +257,7 @@ function runPhaseFourCleanupManagerAudit() {
 
     const bottomNav = document.querySelector('.bottomNav');
     report.bottomNav.exists = !!bottomNav;
-    const requiredNavActions = ['home', 'rotace', 'kalkulacky', 'games', 'menu'];
+    const requiredNavActions = ['home', 'rotace', 'kalkulacky', 'menu'];
     if (bottomNav) {
       requiredNavActions.forEach((action) => {
         if (!bottomNav.querySelector('[data-action="' + action + '"]')) report.bottomNav.missingButtons.push(action);
@@ -730,9 +729,9 @@ function getPhaseTenNavigationHealth() {
     health.bound = !!nav.__rotaceBound;
     if (!health.bound) health.missing.push('bottom nav binding');
 
-    const allowedActions = new Set(['home', 'rotace', 'kalkulacky', 'games', 'menu']);
-    const allowedPages = new Set(['home', 'rotace', 'kalkulacky', 'games', 'menu']);
-    const requiredActions = ['home', 'rotace', 'kalkulacky', 'games', 'menu'];
+    const allowedActions = new Set(['home', 'rotace', 'kalkulacky', 'menu']);
+    const allowedPages = new Set(['home', 'rotace', 'kalkulacky', 'menu']);
+    const requiredActions = ['home', 'rotace', 'kalkulacky', 'menu'];
     const seenActions = new Set();
     const buttons = Array.from(nav.querySelectorAll('.bottomNavBtn[data-action]'));
     health.buttonCount = buttons.length;
@@ -756,7 +755,6 @@ function getPhaseTenNavigationHealth() {
     if (!document.getElementById('home')) health.missing.push('DOM #home');
     if (!document.getElementById('rotace')) health.missing.push('DOM #rotace');
     if (!document.getElementById('kalkulacky')) health.missing.push('DOM #kalkulacky');
-    if (!document.getElementById('games')) health.missing.push('DOM #games');
     if (health.activePageId && !document.getElementById(health.activePageId)) health.missing.push('active page missing: ' + health.activePageId);
 
     health.missing = Array.from(new Set(health.missing)).slice(0, 18);
@@ -788,7 +786,6 @@ function getPhaseTenPageShellHealth() {
 
     const requiredPages = [
       'home',
-      'games',
       'kalkulacky',
       'rotace',
       'soustruhy',
@@ -809,7 +806,6 @@ function getPhaseTenPageShellHealth() {
       'dashJidelna',
       'dashFoodLink',
       'dashEportalLink',
-      'gamesGrid',
       'rotaceNamesPanel',
       'rotaceStatsPanel',
       'rotaceMonthsPanel',
@@ -858,7 +854,7 @@ function getPhaseTenActionHealth() {
   try {
     const delegatedAllowed = new Set(Array.isArray(window.__rakDelegatedAllowedActions) ? window.__rakDelegatedAllowedActions : []);
     const changeAllowed = new Set(Array.isArray(window.__rakDelegatedChangeActions) ? window.__rakDelegatedChangeActions : ['month-select']);
-    const navAllowed = new Set(['home', 'rotace', 'kalkulacky', 'rozpisy', 'statistiky', 'games', 'menu']);
+    const navAllowed = new Set(['home', 'rotace', 'kalkulacky', 'rozpisy', 'statistiky', 'menu']);
     const requiredDelegated = [
       'show-food-kantyna',
       'show-food-jidelna',
@@ -886,7 +882,6 @@ function getPhaseTenActionHealth() {
       'calc-p',
       'calc-p-finish',
       'reset-fields',
-      'open-game',
       'calendar-open'
     ];
     const seen = new Set();
@@ -913,7 +908,6 @@ function getPhaseTenActionHealth() {
         if (!String(node.getAttribute('data-fhb-right') || '').trim()) health.missingTargets.push('set-fhb-target-preset data-fhb-right');
       }
       if (action === 'open-frezky-correction-help' && !String(node.getAttribute('data-help-type') || '').trim()) health.missingTargets.push('open-frezky-correction-help data-help-type');
-      if (action === 'open-game' && !String(node.getAttribute('data-game') || '').trim()) health.missingTargets.push('open-game data-game');
       if (action === 'reset-fields' && !String(node.getAttribute('data-reset-fields') || '').trim()) health.missingTargets.push('reset-fields data-reset-fields');
       if (action === 'soustruh-mode' && !String(node.getAttribute('data-soustruh-mode') || '').trim()) health.missingTargets.push('soustruh-mode data-soustruh-mode');
       if (action === 'soustruh-combo-first' && !String(node.getAttribute('data-combo-first') || '').trim()) health.missingTargets.push('soustruh-combo-first data-combo-first');
@@ -1162,9 +1156,7 @@ function getLadaPerformanceHealth() {
     '.appMenuCard',
     '.calcTile',
     '.tile',
-    '#games .gamesStage',
-    '#games .gameBoard',
-    '#games .arcadePanel'
+    '.appMenuSettingBtn'
   ];
 
   try {

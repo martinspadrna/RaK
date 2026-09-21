@@ -1214,7 +1214,6 @@ body.lowEndDevice #rotace.page.active #rotaceNamesPanel.active #namesGrid{
 /* v.1.5 (928) – Rotace: stabilní adaptivní dock jmen bez cuknutí při přepnutí. */
 :root{
   --rak-rotace-names-dock-gap:10px;
-  --rak-rotace-names-dock-max-height:min(34dvh, 136px);
 }
 #rotace #rotaceNamesPanel.active{
   padding-bottom:var(--rak-rotace-names-content-bottom) !important;
@@ -1251,11 +1250,6 @@ body.lowEndDevice #rotace.page.active #rotaceNamesPanel.active #namesGrid{
   visibility:hidden !important;
   pointer-events:none !important;
 }
-#rotace.page.active #rotaceNamesPanel.active #namesGrid .listItem,
-#rotace.page.active #rotaceNamesPanel.active #namesGrid .rotaceNameTile{
-  transition:none !important;
-  animation:none !important;
-}
 #rotace.page.active #rotaceNamesPanel.active #namesGrid .listItem.activeChoice,
 #rotace.page.active #rotaceNamesPanel.active #namesGrid .rotaceNameTile.activeChoice{
   transform:none !important;
@@ -1265,20 +1259,8 @@ body.lowEndDevice #rotace.page.active #rotaceNamesPanel.active #namesGrid{
 @media (max-width:430px), (max-height:700px){
   :root{
     --rak-rotace-names-dock-gap:8px;
-    --rak-rotace-names-dock-max-height:min(30dvh, 112px);
-  }
-  #rotace #rotaceNamesPanel.active #namesGrid{
-    padding:8px 4px 5px !important;
-    gap:5px !important;
-    border-radius:15px !important;
-  }
-  #rotace.page.active #rotaceNamesPanel.active #namesGrid .listItem,
-  #rotace.page.active #rotaceNamesPanel.active #namesGrid .rotaceNameTile{
-    min-height:32px !important;
-    padding:4px 2px !important;
   }
   #rotaceNamesPanel .rotaceTileTitle{
-    font-size:10.5px !important;
     line-height:1.05 !important;
   }
 }
@@ -3255,11 +3237,7 @@ html body nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMen
   top:calc(50% - 11px) !important;
 }
 
-#menu .adminUsageList{
-  min-height:0 !important;
-}
 #menu .adminUsageItem[open] .adminUsageBody{
-  overscroll-behavior:contain !important;
   padding-bottom:12px !important;
 }
 

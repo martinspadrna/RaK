@@ -13,6 +13,19 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/app-icons/icon-192.png?v=1.5.1">
 
 <title>Rotace a Kalkulačky</title>
+<!-- RAK_DEV_17001_UPDATE_PROMPT_RESET -->
+<script id="rak-dev-17001-update-unblock">
+(function(){
+  try {
+    var build='v1.7.70-canonical-source1';
+    if(localStorage.getItem('rak_dev_update_unblock_build')===build) return;
+    sessionStorage.removeItem('rotace_sw_update_notice_v1');
+    sessionStorage.removeItem('rotace_sw_update_pending_v1');
+    localStorage.removeItem('rotace_sw_update_suppress_v1');
+    localStorage.setItem('rak_dev_update_unblock_build',build);
+  } catch (_) {}
+})();
+</script>
 
 <link rel="icon" type="image/png" href="assets/app-icons/icon-192.png">
 <script>
@@ -75,25 +88,10 @@ window.rakNoteExternalDependency = function(name, status, src) {
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet" onload="rakNoteExternalDependency('googleFonts','loaded',this.href)" onerror="rakNoteExternalDependency('googleFonts','failed',this.href)">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous" onload="rakNoteExternalDependency('xlsx','loaded',this.src)" onerror="rakNoteExternalDependency('xlsx','failed',this.src)"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous" onload="rakNoteExternalDependency('jszip','loaded',this.src)" onerror="rakNoteExternalDependency('jszip','failed',this.src)"></script>
 <script src="data.js"></script>
 <script src="module-readiness.js"></script>
 <script src="rak-namespace.js"></script>
-<script src="rak-audit-baseline.js"></script>
-<script src="rak-runtime-health.js"></script>
-<script src="rak-storage-sync-audit.js"></script>
-<script src="rak-boot-sequence-audit.js"></script>
-<script src="rak-export-release-audit.js"></script>
-<script src="rak-dom-action-audit.js"></script>
-<script src="rak-supabase-client-audit.js"></script>
-<script src="rak-release-ops-audit.js"></script>
-<script src="rak-appsec-privacy-audit.js"></script>
-<script src="rak-release-gates.js"></script>
 <script src="rak-dom-security-hardening.js"></script>
-<script src="rak-due-diligence-progress.js"></script>
-<script src="rak-performance-ci-audit.js"></script>
-<script src="rak-mobile-smoke-audit.js"></script>
 
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-inline-legacy.css">
@@ -186,6 +184,74 @@ window.rakNoteExternalDependency = function(name, status, src) {
     </div>
   </div>
 </div>
+
+<script id="rak-home-warm-snapshot">
+(function(){
+  var KEY='rak_home_warm_snapshot_v1';
+  var MAX_AGE=6*60*60*1000;
+  var selectors=[
+    '.dashboardHeroLine1Text',
+    '.dashboardHeroLine2',
+    '.dashboardHeroLine3Pill',
+    '#dashCalendar .dashboardValue',
+    '#dashCalendar .dashboardMeta',
+    '#dashCountdown .dashboardValue',
+    '#dashCountdown .dashboardMeta',
+    '#dashKantyna .dashboardValue',
+    '#dashKantyna .dashboardMeta',
+    '#dashJidelna .dashboardValue',
+    '#dashJidelna .dashboardMeta',
+    '#dashVyplata .dashboardValue',
+    '#dashVyplata .dashboardMeta',
+    '#dashCzd .dashboardValue',
+    '#dashCzd .dashboardMeta'
+  ];
+  function validText(text){
+    text=String(text||'').trim();
+    return !!text && text!=='--' && text.indexOf('Načítám')<0;
+  }
+  function restore(){
+    try{
+      var raw=localStorage.getItem(KEY);
+      if(!raw)return false;
+      var snap=JSON.parse(raw);
+      if(!snap||!snap.values||!snap.at||Date.now()-Number(snap.at)>MAX_AGE)return false;
+      var count=0;
+      selectors.forEach(function(sel){
+        var value=snap.values[sel];
+        if(!validText(value))return;
+        var el=document.querySelector(sel);
+        if(!el)return;
+        el.textContent=String(value);
+        count++;
+      });
+      window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:Math.max(0,Date.now()-Number(snap.at)),at:Date.now()};
+      return count>0;
+    }catch(err){return false;}
+  }
+  function save(){
+    try{
+      var values={};
+      var count=0;
+      selectors.forEach(function(sel){
+        var el=document.querySelector(sel);
+        if(!el)return;
+        var text=String(el.textContent||'').trim();
+        if(!validText(text))return;
+        values[sel]=text;
+        count++;
+      });
+      if(count<4)return false;
+      localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values}));
+      window.__rak1603HomeWarmSnapshot=Object.assign({},window.__rak1603HomeWarmSnapshot||{},{saved:true,savedCount:count,savedAt:Date.now()});
+      return true;
+    }catch(err){return false;}
+  }
+  restore();
+  window.addEventListener('pagehide',save,{capture:true});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save();});
+})();
+</script>
 
 <div id="kalkulacky" class="page">
   <div class="headerBar">
@@ -809,7 +875,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.js" integrity="sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD" crossorigin="anonymous" onload="rakNoteExternalDependency('supabase','loaded',this.src)" onerror="rakNoteExternalDependency('supabase','failed',this.src)"></script>
-<script src="app.js?v=1.5.1"></script>
+<script src="app.js?v=1.7.0"></script>
 <nav class="bottomNav" aria-label="Spodní navigace">
   <div class="bottomNavScroll" id="bottomNavScroll">
     <button class="bottomNavBtn active" data-page="home" data-action="home"><span class="bottomNavIcon" aria-hidden="true"><img class="bottomNavIconImg bottomNavIconImg--off" src="assets/nav-icons/home-gray.png" alt="" decoding="async" loading="eager"><img class="bottomNavIconImg bottomNavIconImg--on" src="assets/nav-icons/home-green.png" alt="" decoding="async" loading="eager"></span><div class="bottomNavLabel">Home</div></button>

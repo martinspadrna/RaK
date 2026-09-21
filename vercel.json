@@ -70,5 +70,6 @@
     "deploymentEnabled": {
       "development": false
     }
-  }
+  },
+  "outputDirectory": ".rak-dist"
 }

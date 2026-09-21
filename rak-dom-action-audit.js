@@ -9,7 +9,7 @@
     }
   } catch (err) {}
 
-  const REQUIRED_NAV_ACTIONS = ['home', 'rotace', 'kalkulacky', 'games', 'menu'];
+  const REQUIRED_NAV_ACTIONS = ['home', 'rotace', 'kalkulacky', 'menu'];
   const REQUIRED_CORE_ACTIONS = [
     'show-food-kantyna',
     'show-food-jidelna',
@@ -33,7 +33,6 @@
     'calc-p',
     'calc-p-finish',
     'reset-fields',
-    'open-game',
     'calendar-open'
   ];
   const REQUIRED_CHANGE_ACTIONS = ['month-select'];

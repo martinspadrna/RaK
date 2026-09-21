@@ -1,10 +1,10 @@
-// RaK 1.6.0 – Boot v2 + PWA warm-start + indexed Brusy calibration + concise About history.
+// RaK 1.7 – stabilní release po dokončení 1.6 optimalizací, auditu a úplné zálohy.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app.js', 'loaded', { source: 'index' }); } catch (err) {}
 
 (async () => {
-  const RAK_MODULE_CACHE_VERSION = "1.6.0";
-  const RAK_DEV_UPDATE_BUILD = "v1.6.0";
-  window.RAK_RELEASE_VERSION = "1.6";
+  const RAK_MODULE_CACHE_VERSION = "1.7.0";
+  const RAK_DEV_UPDATE_BUILD = "v1.7.70-canonical-source1";
+  window.RAK_RELEASE_VERSION = "1.7.70";
   const RAK_BOOT_V2_ENABLED = true;
   window.RAK_PWA_BUILD = RAK_DEV_UPDATE_BUILD;
   window.RAK_BOOT_V2_ENABLED = RAK_BOOT_V2_ENABLED;
@@ -39,7 +39,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-pwa-connectivity.js",
     "app-home-boot.js",
     "rak-runtime-stability.js",
-    "rak-mobile-layout-guard.js",
     "rak-feature-routing.js"
   ];
 
@@ -99,7 +98,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-menu-admin-renderer.js",
     "export.js",
     "app-excel-import.js",
-    "rak-lazy-external-libs.js"
+    "rak-lazy-external-libs.js",
+    "rak-complete-backup.js"
   ];
 
   const deferredFiles = [
@@ -150,6 +150,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-rotation-sync.js",
     "app-excel-import.js",
     "rak-lazy-external-libs.js",
+    "rak-complete-backup.js",
     "app-rotation-controls.js",
     "app-admin-unlock.js",
     "app-home-boot.js",
@@ -161,6 +162,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-runtime-stability.js",
     "rak-mobile-layout-guard.js",
     "rak-feature-routing.js"
+  ];
+
+  const idleFoundationFiles = [
+    "rak-audit-baseline.js",
+    "rak-runtime-health.js",
+    "rak-mobile-layout-guard.js"
   ];
 
   const idleAuditFiles = [
@@ -349,6 +356,32 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   window.rakEnsureFeature = ensureFeature;
+  if (!window.__rakProfileAppearanceSyncListener) {
+    window.__rakProfileAppearanceSyncListener = true;
+    let appearanceSyncPromise = null;
+    let appearanceSyncLastAt = 0;
+    const syncActiveAppearance = (source) => {
+      const now = Date.now();
+      if (appearanceSyncPromise) return appearanceSyncPromise;
+      if (source !== 'startup' && source !== 'profile-ready' && now - appearanceSyncLastAt < 1500) return Promise.resolve(false);
+      appearanceSyncLastAt = now;
+      appearanceSyncPromise = ensureFeature('sync').then(() => {
+        try {
+          if (typeof applyProfileUiPreferencesForActiveAccount === 'function') {
+            return applyProfileUiPreferencesForActiveAccount({ loadRemote: true, source: source || 'active-device-sync' });
+          }
+        } catch (err) { console.warn('Profile UI active-device sync failed', err); }
+        return false;
+      }).catch((err) => { console.warn('Profile UI active-device sync load failed', err); return false; })
+        .finally(() => { appearanceSyncPromise = null; });
+      return appearanceSyncPromise;
+    };
+    window.__rakSyncActiveAppearance = syncActiveAppearance;
+    window.addEventListener('rak:user-profile-ready', () => { void syncActiveAppearance('profile-ready'); });
+    window.addEventListener('pageshow', () => { void syncActiveAppearance('pageshow'); });
+    window.addEventListener('focus', () => { void syncActiveAppearance('focus'); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) void syncActiveAppearance('visibility'); });
+  }
   window.rakIsFeatureReady = isFeatureReady;
   window.rakFeatureForPage = featureForPage;
   window.rakEnsureFeatureForPage = function rakEnsureFeatureForPage(pageId) {
@@ -377,7 +410,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   try {
     if (window.__rakModuleReadinessRegistry) {
-      window.__rakModuleReadinessRegistry.expected = ['module-readiness.js', 'rak-namespace.js', 'rak-audit-baseline.js', 'rak-runtime-health.js', 'rak-dom-security-hardening.js', 'app.js', 'data.js']
+      window.__rakModuleReadinessRegistry.expected = ['module-readiness.js', 'rak-namespace.js', 'rak-dom-security-hardening.js', 'app.js', 'data.js']
         .concat(criticalFiles, startupFiles);
       if (typeof initialRotationData !== 'undefined' && typeof window.rakMarkModuleReady === 'function') {
         window.rakMarkModuleReady('data.js', 'loaded', { source: 'index-preload' });
@@ -409,6 +442,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (storedProfile && typeof window.rakUserProfileApplyToRuntime === 'function') window.rakUserProfileApplyToRuntime(storedProfile);
     if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu();
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
+  try { if (typeof window.__rakSyncActiveAppearance === 'function') void window.__rakSyncActiveAppearance('startup'); } catch (err) {}
 
   const startupReadyAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   window.__rakBootV2StartupReady = true;
@@ -442,7 +476,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   else setTimeout(startSync, 450);
 
   const runIdleAudits = () => {
-    Promise.all(idleAuditFiles.map(loadScript)).then(() => {
+    loadFiles(idleFoundationFiles).then(() => Promise.all(idleAuditFiles.map(loadScript))).then(() => {
       try { window.__rakIdleAuditsReady = true; } catch (err) {}
     }).catch((err) => {
       console.warn('Idle audit moduly se nepodařilo načíst', err);

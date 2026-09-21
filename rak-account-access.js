@@ -27,13 +27,18 @@
   }
 
   async function loadDirectory(force) {
+    // RAK_ADMIN_DIRECTORY_RPC_17027: cached names are never returned after admin sign-out.
+    const bridge = window.RotationSupabaseBridge;
+    if (!bridge || typeof bridge.getAdminAccessToken !== 'function' || !(await bridge.getAdminAccessToken())) {
+      directoryRows = [];
+      throw new Error('admin-auth-required');
+    }
     if (directoryRows.length && !force) return directoryRows.slice();
     if (directoryPromise && !force) return directoryPromise;
     directoryPromise = (async () => {
-      const client = supabaseClient();
-      if (!client) throw new Error('directory-not-ready');
-      const { data, error } = await client.from('game_accounts').select('account_number,full_name').order('full_name', { ascending: true });
-      if (error) throw error;
+      const result = await bridge.listApplicationAccountsSecure();
+      if (!result || !result.ok) throw (result && result.error || new Error('admin-directory-unavailable'));
+      const data = result.rows;
       directoryRows = (Array.isArray(data) ? data : []).map((row) => ({
         accountNumber: String(row && row.account_number || '').trim(),
         fullName: String(row && row.full_name || '').trim()
@@ -196,12 +201,14 @@
       if (typeof window.rakUserProfileLookup !== 'function') throw new Error('profile-lookup-unavailable');
       const result = await window.rakUserProfileLookup(last4);
       if (!result || !result.ok) {
-        rejectLogin(result && result.reason === 'not-found' ? 'Účet nebyl nalezen.' : result && result.reason === 'ambiguous' ? 'Číslo není jednoznačné. Obrať se na správce.' : 'Ověření se nepodařilo. Zkus to znovu.');
+        rejectLogin(result && result.reason === 'not-found' ? 'Účet nebyl nalezen.' : result && result.reason === 'ambiguous' ? 'Číslo není jednoznačné. Obrať se na správce.' : result && result.reason === 'rate-limited' ? 'Příliš mnoho pokusů. Zkus to později.' : 'Ověření se nepodařilo. Zkus to znovu.');
         return;
       }
       const profile = { accountNumber: String(result.accountNumber || '').trim(), fullName: String(result.fullName || '').trim() };
       if (status) status.textContent = 'Kontroluji oprávnění…';
-      const needsPassword = await accountNeedsAdminPassword(profile.accountNumber);
+      // RAK_LOGIN_GATE_SINGLE_LOOKUP_17045: old test clients retain the bounded fallback.
+      const needsPassword = typeof result.requiresAdminAuth === 'boolean'
+        ? result.requiresAdminAuth : await accountNeedsAdminPassword(profile.accountNumber);
       if (needsPassword) {
         const ok = await showAdminPasswordGate(profile, button);
         if (!ok) return;
@@ -254,7 +261,7 @@
     const scope = root && root.querySelectorAll ? root : document;
     const rows = Array.from(scope.querySelectorAll('tr[data-admin-account-row]'));
     if (!rows.length) return;
-    try { await loadDirectory(false); } catch (err) {}
+    try { await loadDirectory(false); } catch (err) { return; }
     const table = rows[0].closest('table');
     if (table && table.dataset.rakDirectoryAdminEnhanced !== '1') {
       table.dataset.rakDirectoryAdminEnhanced = '1';
@@ -301,7 +308,7 @@
     if (!card || card.querySelector('#rakAccountDirectoryBlock')) return;
     let rows = [];
     try { rows = await loadDirectory(false); } catch (err) {}
-    if (!card.isConnected || card.querySelector('#rakAccountDirectoryBlock')) return;
+    if (!card.isConnected || card.querySelector('#rakAccountDirectoryBlock') || !rows.length) return;
     const actions = card.querySelector('.appMenuActionRow');
     const holder = document.createElement('div');
     holder.innerHTML = buildDirectoryHtml(rows);
@@ -319,10 +326,29 @@
 
   function boot() {
     ensureStyles();
-    void loadDirectory(false).catch(() => []);
+    // Admin directory loads only when its admin page is opened, not on anonymous startup.
     refreshEnhancements();
     try {
-      const observer = new MutationObserver(() => refreshEnhancements());
+      let refreshScheduled = false;
+      const scheduleRefresh = () => {
+        if (refreshScheduled) return;
+        refreshScheduled = true;
+        const run = () => { refreshScheduled = false; refreshEnhancements(); };
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+        else setTimeout(run, 0);
+      };
+      const observer = new MutationObserver((records) => {
+        const relevant = Array.from(records || []).some((record) => {
+          const target = record && record.target;
+          try {
+            if (target && target.nodeType === 1 && target.closest && target.closest('#appMenuBody')) return true;
+            return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+              node.id === 'appMenuBody' || !!(node.querySelector && node.querySelector('#appMenuBody'))
+            ));
+          } catch (err) { return false; }
+        });
+        if (relevant) scheduleRefresh();
+      });
       observer.observe(document.body, { childList: true, subtree: true });
       window.__rakAccountAccessObserver = observer;
     } catch (err) {}

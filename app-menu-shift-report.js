@@ -77,14 +77,14 @@ async function appMenuOpenShiftReport() {
   appMenuShiftReportOpening = true;
   try {
     let ready = false;
-    try { ready = typeof window.rakAdminCanOpenAdmin === 'function' && window.rakAdminCanOpenAdmin(); } catch (err) {}
+    try { ready = typeof window.rakAdminCanOpenShiftReport === 'function' && window.rakAdminCanOpenShiftReport(); } catch (err) {}
     if (!ready && typeof window.appMenuEnsureAdminAccessFromMenu === 'function') {
       try { await window.appMenuEnsureAdminAccessFromMenu(); } catch (err) {}
-      try { ready = typeof window.rakAdminCanOpenAdmin === 'function' && window.rakAdminCanOpenAdmin(); } catch (err) {}
+      try { ready = typeof window.rakAdminCanOpenShiftReport === 'function' && window.rakAdminCanOpenShiftReport(); } catch (err) {}
     }
     if (!ready && typeof window.rakAdminLoadSettingsThenCheckOnce === 'function') {
       try { await window.rakAdminLoadSettingsThenCheckOnce('shift-report'); } catch (err) {}
-      try { ready = typeof window.rakAdminCanOpenAdmin === 'function' && window.rakAdminCanOpenAdmin(); } catch (err) {}
+      try { ready = typeof window.rakAdminCanOpenShiftReport === 'function' && window.rakAdminCanOpenShiftReport(); } catch (err) {}
     }
     if (!ready) return false;
     const body = document.getElementById('appMenuBody');

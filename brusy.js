@@ -231,9 +231,11 @@ function normalizeNoteEntry(note) {
 }
 
 
+// RAK_ROTATION_NAMES_ACTIVE_ROSTER_17007
 function buildNameIndex(rotation) {
   const map = new Map();
   const knownNames = getKnownStatNames();
+  knownNames.forEach((name) => { if (name) map.set(name, []); });
   Object.entries(rotation.months || {}).forEach(([monthKey, month]) => {
     ["hard", "soft"].forEach(section => {
       const sec = month[section];

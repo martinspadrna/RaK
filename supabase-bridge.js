@@ -1,6 +1,7 @@
 // RaK 1.2 (1.155) – Supabase bridge a online synchronizace.
 (function () {
   const SUPABASE_CONFIG = window.SUPABASE_CONFIG || {};
+  const RAK_ACTIVE_WRITE_PATHS_RPC_ONLY = '1.6.14-sec1';
   const state = {
     client: null,
     ready: false,
@@ -451,7 +452,7 @@
     { table: 'game_sessions', realtime: true, queueType: 'game_session', access: 'anon SELECT/INSERT/UPDATE', note: 'online herní session' },
     { table: 'game_stats', realtime: true, queueType: 'game_stat', access: 'anon SELECT/INSERT/UPDATE', note: 'skóre a žebříčky' },
     { table: 'game_ui_settings', realtime: false, queueType: 'game_ui_settings', access: 'anon SELECT/INSERT/UPDATE', note: 'profilové nastavení vzhledu' },
-    { table: 'app_keepalive', realtime: false, queueType: '', access: 'RPC rak_app_keepalive + app_keepalive-only RLS', note: 'bezpečný heartbeat proti pauze free projektu, mimo herní data; klient používá RPC, tabulka má jen úzké heartbeat RLS' },
+    { table: 'app_keepalive', realtime: false, queueType: '', access: 'RPC rak_app_keepalive only', note: 'heartbeat proti pauze free projektu; klient používá RPC a veřejné tabulkové granty/policies jsou odebrané' },
     { table: 'bug_reports', realtime: false, queueType: 'bug_report', access: 'anon INSERT only', note: 'uživatelské reporty chyb / nápadů' },
     { table: 'gomoku_wins', realtime: true, queueType: 'gomoku_win', access: 'anon SELECT/INSERT/UPDATE', note: 'výhry piškvorek / legacy leaderboard' }
   ];
@@ -1274,25 +1275,8 @@
     ];
   }
 
-  async function softDeactivateDashboardAnnouncements(client) {
-    const attempts = [
-      { name: 'is_active-updated', row: { is_active: false, updated_at: new Date().toISOString() } },
-      { name: 'is_active', row: { is_active: false } }
-    ];
-    let lastErr = null;
-    for (const attempt of attempts) {
-      try {
-        const res = await runSupabaseOperation('announcements.deactivate:' + attempt.name, () => client
-          .from('announcements')
-          .update(attempt.row)
-          .eq('is_active', true), { mode: 'write', timeoutMs: 6500, attempts: 1 });
-        if (!res || !res.error) return { ok: true, shape: attempt.name };
-        lastErr = res.error;
-      } catch (err) {
-        lastErr = err;
-      }
-    }
-    return { ok: false, error: lastErr, message: supabaseErrorText(lastErr) };
+  async function softDeactivateDashboardAnnouncements() {
+    return { ok: false, reason: 'rpc-only', message: 'Direct announcement table fallback is disabled.' };
   }
 
   function normalizeRpcAnnouncementRow(data, fallback) {
@@ -1314,48 +1298,31 @@
 
   async function saveDashboardAnnouncementViaRpc(client, safe, nowIso) {
     try {
-      const secure = hasSecureAdminContext();
-      const res = await runSupabaseOperation('announcements.rpc-save', () => secure
-        ? client.rpc('rak_admin_save_announcement_v2', {
-            p_title: safe.title || null,
-            p_message: safe.message,
-            p_is_active: safe.is_active,
-            p_starts_at: safe.starts_at,
-            p_ends_at: safe.ends_at,
-            p_marquee: safe.marquee,
-            p_app_version: String(window.APP_VERSION || '1.5')
-          })
-        : client.rpc('rak_save_dashboard_announcement', {
-            p_title: safe.title || null,
-            p_message: safe.message,
-            p_is_active: safe.is_active,
-            p_starts_at: safe.starts_at,
-            p_ends_at: safe.ends_at,
-            p_marquee: safe.marquee,
-            p_updated_by: 'rak-admin-ui',
-            p_app_version: String(window.APP_VERSION || '1.5'),
-            p_priority: 0
-          }), { mode: 'write', timeoutMs: 8000, attempts: 1 });
-      if (res && res.error) return { ok: false, error: res.error, shape: 'rpc-save' };
-      return { ok: true, row: normalizeRpcAnnouncementRow(res && res.data, safe), shape: 'rpc-save' };
+      if (!hasSecureAdminContext()) return { ok: false, reason: 'admin-auth-required', shape: 'rpc-save-v2' };
+      const res = await runSupabaseOperation('announcements.rpc-save-v2', () => client.rpc('rak_admin_save_announcement_v2', {
+        p_title: safe.title || null,
+        p_message: safe.message,
+        p_is_active: safe.is_active,
+        p_starts_at: safe.starts_at,
+        p_ends_at: safe.ends_at,
+        p_marquee: safe.marquee,
+        p_app_version: String(window.APP_VERSION || '1.6')
+      }), { mode: 'write', timeoutMs: 8000, attempts: 1 });
+      if (res && res.error) return { ok: false, error: res.error, shape: 'rpc-save-v2' };
+      return { ok: true, row: normalizeRpcAnnouncementRow(res && res.data, safe), shape: 'rpc-save-v2' };
     } catch (err) {
-      return { ok: false, error: err, shape: 'rpc-save' };
+      return { ok: false, error: err, shape: 'rpc-save-v2' };
     }
   }
 
   async function clearDashboardAnnouncementViaRpc(client, nowIso) {
     try {
-      const secure = hasSecureAdminContext();
-      const res = await runSupabaseOperation('announcements.rpc-clear', () => secure
-        ? client.rpc('rak_admin_clear_announcement_v2')
-        : client.rpc('rak_clear_dashboard_announcement', {
-            p_updated_by: 'rak-admin-ui',
-            p_app_version: String(window.APP_VERSION || '1.5')
-          }), { mode: 'write', timeoutMs: 8000, attempts: 1 });
-      if (res && res.error) return { ok: false, error: res.error, shape: 'rpc-clear' };
-      return { ok: true, cleared: true, count: Number(res && res.data || 0), shape: 'rpc-clear' };
+      if (!hasSecureAdminContext()) return { ok: false, reason: 'admin-auth-required', shape: 'rpc-clear-v2' };
+      const res = await runSupabaseOperation('announcements.rpc-clear-v2', () => client.rpc('rak_admin_clear_announcement_v2'), { mode: 'write', timeoutMs: 8000, attempts: 1 });
+      if (res && res.error) return { ok: false, error: res.error, shape: 'rpc-clear-v2' };
+      return { ok: true, cleared: true, count: Number(res && res.data && res.data.count || 0), shape: 'rpc-clear-v2' };
     } catch (err) {
-      return { ok: false, error: err, shape: 'rpc-clear' };
+      return { ok: false, error: err, shape: 'rpc-clear-v2' };
     }
   }
 
@@ -1372,6 +1339,10 @@
       const status = rememberDashboardAnnouncementOnlineStatus({ lastErrorAt: nowIso, lastErrorMessage: 'offline-or-missing-client', lastErrorCode: 'RAK_ANNOUNCEMENT_OFFLINE', fallback: 'local-only' });
       return { ok: false, reason: 'offline-or-missing-client', status };
     }
+    if (!hasSecureAdminContext()) {
+      const status = rememberDashboardAnnouncementOnlineStatus({ lastErrorAt: nowIso, lastErrorMessage: 'admin-auth-required', lastErrorCode: 'RAK_ANNOUNCEMENT_ADMIN_AUTH', fallback: '' });
+      return { ok: false, reason: 'admin-auth-required', status };
+    }
 
     const rpc = await saveDashboardAnnouncementViaRpc(client, safe, nowIso);
     if (rpc && rpc.ok) {
@@ -1379,72 +1350,29 @@
       state.announcements = [row].concat((state.announcements || []).filter(item => item && item.is_active === false).slice(0, 4));
       safeWriteJson(LOCAL_ANNOUNCEMENTS_KEY, state.announcements);
       state.lastError = null;
-      try { requestRealtimeRefresh({ table: 'announcements', eventType: 'client-rpc-save' }); } catch (err) {}
+      try { requestRealtimeRefresh({ table: 'announcements', eventType: 'client-rpc-save-v2' }); } catch (err) {}
       const status = rememberDashboardAnnouncementOnlineStatus({
         lastSuccessAt: nowIso,
         lastWriteOk: true,
         lastClearOk: false,
-        lastAttemptShape: rpc.shape || 'rpc-save',
+        lastAttemptShape: rpc.shape || 'rpc-save-v2',
         lastErrorMessage: '',
         lastErrorCode: '',
         fallback: ''
       });
-      return { ok: true, row, shape: rpc.shape || 'rpc-save', status };
+      return { ok: true, row, shape: rpc.shape || 'rpc-save-v2', status };
     }
 
-    if (hasSecureAdminContext() && state.adminAuth.capabilities && state.adminAuth.capabilities.enforced === true) {
-      const status = rememberDashboardAnnouncementOnlineStatus({
-        lastErrorAt: nowIso,
-        lastErrorMessage: supabaseErrorText(rpc && rpc.error),
-        lastErrorCode: 'RAK_ANNOUNCEMENT_SECURE_RPC',
-        fallback: ''
-      });
-      return { ok: false, reason: 'secure-rpc-failed', error: rpc && rpc.error, status };
-    }
-
-    const deactivate = await softDeactivateDashboardAnnouncements(client);
-    const attempts = buildAnnouncementInsertAttempts(safe, nowIso);
-    let lastErr = rpc && rpc.error ? rpc.error : (deactivate && deactivate.ok ? null : deactivate.error);
-    for (const attempt of attempts) {
-      try {
-        const res = await runSupabaseOperation('announcements.insert:' + attempt.name, () => client
-          .from('announcements')
-          .insert(attempt.row)
-          .select('*')
-          .limit(1)
-          .maybeSingle(), { mode: 'write', timeoutMs: 7000, attempts: 1 });
-        if (!res || !res.error) {
-          const row = res && res.data ? res.data : Object.assign({}, attempt.row, { updated_at: nowIso });
-          state.announcements = [row].concat((state.announcements || []).filter(item => item && item.is_active === false).slice(0, 4));
-          safeWriteJson(LOCAL_ANNOUNCEMENTS_KEY, state.announcements);
-          state.lastError = null;
-          try { requestRealtimeRefresh({ table: 'announcements', eventType: 'client-save' }); } catch (err) {}
-          const status = rememberDashboardAnnouncementOnlineStatus({
-            lastSuccessAt: nowIso,
-            lastWriteOk: true,
-            lastClearOk: false,
-            lastAttemptShape: attempt.name,
-            lastErrorMessage: deactivate && deactivate.ok ? '' : ('starší aktivní oznámení možná nešlo deaktivovat: ' + supabaseErrorText(deactivate && deactivate.error)),
-            lastErrorCode: '',
-            fallback: deactivate && deactivate.ok ? '' : 'inserted-latest-active-but-deactivate-failed'
-          });
-          return { ok: true, row, shape: attempt.name, deactivate, status };
-        }
-        lastErr = res.error;
-      } catch (err) {
-        lastErr = err;
-      }
-    }
-    state.lastError = lastErr;
+    state.lastError = rpc && rpc.error ? rpc.error : state.lastError;
     const status = rememberDashboardAnnouncementOnlineStatus({
       lastErrorAt: nowIso,
       lastWriteOk: false,
-      lastAttemptShape: attempts[attempts.length - 1].name,
-      lastErrorMessage: supabaseErrorText(lastErr),
-      lastErrorCode: String(lastErr && (lastErr.code || lastErr.status || '') || '').slice(0, 80),
-      fallback: 'local-only'
+      lastAttemptShape: 'rpc-save-v2',
+      lastErrorMessage: supabaseErrorText(rpc && rpc.error),
+      lastErrorCode: String(rpc && rpc.error && (rpc.error.code || rpc.error.status || '') || '').slice(0, 80),
+      fallback: ''
     });
-    return { ok: false, reason: 'supabase-write-failed', error: lastErr, status };
+    return { ok: false, reason: 'secure-rpc-failed', error: rpc && rpc.error, status };
   }
 
   async function clearDashboardAnnouncementOnline() {
@@ -1455,24 +1383,26 @@
       const status = rememberDashboardAnnouncementOnlineStatus({ lastErrorAt: nowIso, lastErrorMessage: 'offline-or-missing-client', lastErrorCode: 'RAK_ANNOUNCEMENT_OFFLINE', fallback: 'local-only' });
       return { ok: false, reason: 'offline-or-missing-client', status };
     }
-    const rpc = await clearDashboardAnnouncementViaRpc(client, nowIso);
-    const secureEnforced = hasSecureAdminContext() && state.adminAuth.capabilities && state.adminAuth.capabilities.enforced === true;
-    const result = rpc && rpc.ok ? rpc : (secureEnforced ? rpc : await softDeactivateDashboardAnnouncements(client));
-    if (result.ok) {
+    if (!hasSecureAdminContext()) {
+      const status = rememberDashboardAnnouncementOnlineStatus({ lastErrorAt: nowIso, lastErrorMessage: 'admin-auth-required', lastErrorCode: 'RAK_ANNOUNCEMENT_ADMIN_AUTH', fallback: '' });
+      return { ok: false, reason: 'admin-auth-required', status };
+    }
+    const result = await clearDashboardAnnouncementViaRpc(client, nowIso);
+    if (result && result.ok) {
       state.announcements = [];
       safeWriteJson(LOCAL_ANNOUNCEMENTS_KEY, state.announcements);
-      try { requestRealtimeRefresh({ table: 'announcements', eventType: rpc && rpc.ok ? 'client-rpc-clear' : 'client-clear' }); } catch (err) {}
-      const status = rememberDashboardAnnouncementOnlineStatus({ lastSuccessAt: nowIso, lastClearOk: true, lastWriteOk: false, lastErrorMessage: '', lastErrorCode: '', lastAttemptShape: result.shape || '' });
+      try { requestRealtimeRefresh({ table: 'announcements', eventType: 'client-rpc-clear-v2' }); } catch (err) {}
+      const status = rememberDashboardAnnouncementOnlineStatus({ lastSuccessAt: nowIso, lastClearOk: true, lastWriteOk: false, lastErrorMessage: '', lastErrorCode: '', lastAttemptShape: result.shape || 'rpc-clear-v2', fallback: '' });
       return { ok: true, cleared: true, status };
     }
-    state.lastError = result.error || state.lastError;
+    state.lastError = result && result.error ? result.error : state.lastError;
     const status = rememberDashboardAnnouncementOnlineStatus({
       lastErrorAt: nowIso,
-      lastErrorMessage: result.message || supabaseErrorText(result.error),
-      lastErrorCode: String(result.error && (result.error.code || result.error.status || '') || '').slice(0, 80),
-      fallback: 'local-clear-only'
+      lastErrorMessage: supabaseErrorText(result && result.error),
+      lastErrorCode: String(result && result.error && (result.error.code || result.error.status || '') || '').slice(0, 80),
+      fallback: ''
     });
-    return { ok: false, reason: 'supabase-clear-failed', error: result.error, status };
+    return { ok: false, reason: 'secure-rpc-failed', error: result && result.error, status };
   }
 
   function getDashboardAnnouncementOnlineStatus() {
@@ -1485,7 +1415,7 @@
       table: 'announcements',
       realtimeChannel: 'rak-public-live-v1-5',
       readMode: 'public SELECT + realtime refresh + local cache fallback',
-      writeMode: 'RPC security definer save/clear; direct table fallback only if RPC unavailable'
+      writeMode: 'authenticated admin RPC save/clear only; active direct table fallbacks removed in 1.6.14-sec1'
     });
   }
 
@@ -1979,17 +1909,20 @@
     }
   }
 
-  function normalizeQueueTask(task) {
+  // RAK_17059_QUEUE_PRESERVE_GUARD: never drop an already stored task during normalization.
+  function normalizeQueueTask(task, historical) {
     if (!task || typeof task !== 'object') return null;
     const type = String(task.type || '').trim();
-    if (!SUPPORTED_QUEUE_TYPES.has(type)) {
+    if (!SUPPORTED_QUEUE_TYPES.has(type) && !historical) {
       state.queueGuard.rejected += 1;
       return null;
     }
     const next = Object.assign({}, task, { type });
+    if (historical && !SUPPORTED_QUEUE_TYPES.has(type)) next.conflict = 'unsupported-task';
     if (!next.id) next.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     if (!next.queuedAt) next.queuedAt = new Date().toISOString();
     if (estimateJsonBytes(next) > SUPABASE_QUEUE_MAX_BYTES) {
+      if (historical) return Object.assign({}, next, { conflict: 'oversize-task' });
       state.queueGuard.oversized += 1;
       return null;
     }
@@ -1997,6 +1930,8 @@
   }
 
   function isGameProgressQueueTaskBeforeReset(task) {
+    // RAK_17059_HELD_RESET_GUARD: quarantine always survives compaction.
+    if (task && task.conflict) return false;
     const type = String(task && task.type || '').trim();
     if (type !== 'game_stat' && type !== 'game_session' && type !== 'gomoku_win') return false;
     const queuedAt = Date.parse(String(task && (task.queuedAt || task.createdAt || task.created_at) || ''));
@@ -2008,12 +1943,13 @@
     const keyed = new Map();
     const passthrough = [];
     source.forEach((item) => {
-      const normalized = normalizeQueueTask(item);
+      const normalized = normalizeQueueTask(item, true);
       if (!normalized) return;
       if (isGameProgressQueueTaskBeforeReset(normalized)) {
         state.queueGuard.trimmed += 1;
         return;
       }
+      if (normalized.conflict) { passthrough.push(normalized); return; }
       const key = queueTaskKey(normalized);
       if (key && (normalized.type === 'rotation_state' || normalized.type === 'machine_settings' || normalized.type === 'rotation_month_entries' || normalized.type === 'game_ui_settings' || normalized.type === 'game_session')) {
         if (keyed.has(key)) state.queueGuard.deduped += 1;
@@ -2024,34 +1960,63 @@
     });
     let next = [...keyed.values(), ...passthrough];
     if (next.length > SUPABASE_QUEUE_MAX_ITEMS) {
-      const removed = next.length - SUPABASE_QUEUE_MAX_ITEMS;
-      state.queueGuard.trimmed += removed;
-      state.queueGuard.lastTrimAt = Date.now();
-      next = next.slice(-SUPABASE_QUEUE_MAX_ITEMS);
-    }
+      // A legacy queue may already exceed the limit. Do not delete its contents.
+      state.queueGuard.overCapacity = next.length;
+    } else state.queueGuard.overCapacity = 0;
     return next;
   }
 
+  // RAK_17060_DURABLE_QUEUE_GUARD: invalid JSON is never rewritten as an empty queue.
+  // Read localStorage directly: cached JSON can be stale across tabs and app restarts.
   function readQueue() {
-    const queue = safeReadJson(LOCAL_QUEUE_KEY, []);
-    const compacted = compactQueue(Array.isArray(queue) ? queue : []);
-    if (!Array.isArray(queue) || compacted.length !== queue.length) writeQueue(compacted);
+    let raw;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); }
+    catch (_) { state.queueGuard.storageError = 'unavailable'; return []; }
+    if (raw === null) {
+      if (state.queueGuard.storageError !== 'write-failed') state.queueGuard.storageError = '';
+      return [];
+    }
+    let queue;
+    try { queue = JSON.parse(raw); }
+    catch (_) { state.queueGuard.storageError = 'corrupt'; return []; }
+    if (!Array.isArray(queue)) { state.queueGuard.storageError = 'corrupt'; return []; }
+    // RAK_17062_LOSSLESS_AMBIGUITY_GUARD: normalization may discard old duplicate/malformed entries.
+    // Never silently rewrite their original bytes; require private backup and review.
+    const compacted = compactQueue(queue);
+    if (compacted.length !== queue.length) { state.queueGuard.storageError = 'ambiguous'; return []; }
+    if (['corrupt','unavailable','ambiguous'].includes(state.queueGuard.storageError)) state.queueGuard.storageError = '';
     return compacted;
   }
 
   function writeQueue(queue) {
-    safeWriteJson(LOCAL_QUEUE_KEY, compactQueue(Array.isArray(queue) ? queue : []));
+    if (['corrupt','unavailable','ambiguous'].includes(state.queueGuard.storageError)) return false;
+    try {
+      const incoming = Array.isArray(queue) ? queue : [];
+      const compacted = compactQueue(incoming);
+      if (compacted.length !== incoming.length) { state.queueGuard.storageError = 'ambiguous'; return false; }
+      const payload = JSON.stringify(compacted);
+      localStorage.setItem(LOCAL_QUEUE_KEY, payload);
+      if (localStorage.getItem(LOCAL_QUEUE_KEY) !== payload) throw new Error('queue-not-verified');
+      state.queueGuard.storageError = '';
+      return true;
+    } catch (_) {
+      state.queueGuard.storageError = 'write-failed';
+      return false;
+    }
   }
 
   function enqueueTask(task) {
     const queue = readQueue();
-    const normalized = normalizeQueueTask(Object.assign({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, queuedAt: new Date().toISOString() }, task || {}));
+    if (state.queueGuard.storageError) return null;
+    const normalized = normalizeQueueTask(Object.assign({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 8), queuedAt: new Date().toISOString() }, task || {}));
     if (!normalized) return null;
+    if (queue.length >= SUPABASE_QUEUE_MAX_ITEMS) { state.queueGuard.rejected += 1; return null; }
     queue.push(normalized);
-    writeQueue(queue);
+    if (!writeQueue(queue)) return null;
     const nextQueue = readQueue();
+    if (state.queueGuard.storageError) return null;
     const key = queueTaskKey(normalized);
-    return nextQueue.slice().reverse().find(item => queueTaskKey(item) === key) || normalized;
+    return nextQueue.slice().reverse().find(item => queueTaskKey(item) === key) || null;
   }
 
   function isLikelyOfflineError(err) {
@@ -2313,7 +2278,11 @@
       || storedCategory === 'admin_accounts_settings'
       || storedCategory === 'admin_full_settings_backup'
       || storedKey === 'ADMIN_ACCOUNTS_SETTINGS'
-      || storedKey.indexOf('ADMIN_FULL_SETTINGS_BACKUP_') === 0;
+      || storedKey.indexOf('ADMIN_FULL_SETTINGS_BACKUP_') === 0
+      || category === 'rotation_save_backup'
+      || key.indexOf('ROTATION_SAVE_BACKUP_') === 0
+      || storedCategory === 'rotation_save_backup'
+      || storedKey.indexOf('ROTATION_SAVE_BACKUP_') === 0;
   }
 
   function makeMachineSettingsRpcPayload(payload) {
@@ -2370,16 +2339,12 @@
     if (!client || typeof client.rpc !== 'function' || !row) return null;
     try {
       if (!hasSecureAdminContext()) throw new Error('admin authentication required');
-      if (state.rotationRevision === null || state.rotationRevision === undefined || !Number.isFinite(Number(state.rotationRevision))) {
-        const { data: current, error: revisionError } = await client
-          .from('rotation_state')
-          .select('revision')
-          .eq('key', row.key || 'main')
-          .maybeSingle();
-        if (revisionError) throw revisionError;
-        state.rotationRevision = current && Number.isFinite(Number(current.revision))
-          ? Number(current.revision)
-          : 0;
+      // RAK_17063_UNKNOWN_BASELINE_GUARD: a fresh revision fetched during save is NOT
+      // evidence that the edited content derives from it. Reject before any RPC/read.
+      if (!Number.isSafeInteger(state.rotationRevision) || state.rotationRevision < 0) {
+        const missing = new Error('Revize rozpisu není ověřena. Načti aktuální online rozpis před úpravami.');
+        missing.code = 'RAK_ROTATION_REVISION_UNVERIFIED';
+        throw missing;
       }
       const { data, error } = await client.rpc('rak_admin_save_rotation_v2', {
         p_key: row.key || 'main',
@@ -2437,50 +2402,23 @@
   }
 
   async function upsertRotationMonthEntriesDirect(client, monthStart, label, rows) {
-    if (hasSecureAdminContext()) {
-      const payloadRows = (Array.isArray(rows) ? rows : []).map((row, idx) => ({
-        employee_name: String(row && row.employee_name ? row.employee_name : '').trim(),
-        target_machine: String(row && row.target_machine ? row.target_machine : '').trim() || null,
-        assignment_type: String(row && row.assignment_type ? row.assignment_type : 'work').trim(),
-        shift_code: String(row && row.shift_code ? row.shift_code : '').trim() || null,
-        note: String(row && row.note ? row.note : '').trim() || null,
-        row_order: Number.isFinite(Number(row && row.row_order)) ? Number(row.row_order) : idx
-      }));
-      const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v2', {
-        p_month_start: monthStart,
-        p_label: String(label || '').trim() || null,
-        p_rows: payloadRows
-      });
-      if (error) throw error;
-      return Number(data && data.inserted || payloadRows.length) || 0;
-    }
-    const monthRow = {
-      month_start: monthStart,
-      label: String(label || '').trim() || null,
-      updated_at: new Date().toISOString()
-    };
-    const { error: monthErr } = await client.from('rotation_months').upsert([monthRow], { onConflict: 'month_start' });
-    if (monthErr) throw monthErr;
-
-    const { error: deleteErr } = await client.from('rotation_entries').delete().eq('month_start', monthStart);
-    if (deleteErr) throw deleteErr;
-
+    // RAK_17063_MONTH_RPC_ONLY_GUARD: authenticated RPC, never direct table DELETE/INSERT.
+    if (!hasSecureAdminContext()) throw new Error('Měsíční rozpis lze uložit pouze ověřeným administrátorem přes RPC.');
     const payloadRows = (Array.isArray(rows) ? rows : []).map((row, idx) => ({
-      month_start: monthStart,
       employee_name: String(row && row.employee_name ? row.employee_name : '').trim(),
       target_machine: String(row && row.target_machine ? row.target_machine : '').trim() || null,
       assignment_type: String(row && row.assignment_type ? row.assignment_type : 'work').trim(),
       shift_code: String(row && row.shift_code ? row.shift_code : '').trim() || null,
       note: String(row && row.note ? row.note : '').trim() || null,
       row_order: Number.isFinite(Number(row && row.row_order)) ? Number(row.row_order) : idx
-    })).filter(row => row.employee_name || row.target_machine || row.shift_code || row.note || row.assignment_type !== 'work');
-    let inserted = 0;
-    if (payloadRows.length) {
-      const { error: insertErr } = await client.from('rotation_entries').insert(payloadRows);
-      if (insertErr) throw insertErr;
-      inserted = payloadRows.length;
-    }
-    return { months: 1, entries: inserted };
+    }));
+    const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v2', {
+      p_month_start: monthStart,
+      p_label: String(label || '').trim() || null,
+      p_rows: payloadRows
+    });
+    if (error) throw error;
+    return { months: 1, entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length };
   }
 
   async function upsertGomokuWinDirect(client, entry) {
@@ -2553,6 +2491,7 @@
 
   async function saveBugReportDirect(client, entry) {
     const row = normalizeBugReportPayload(entry);
+    if (!client || typeof client.rpc !== 'function') throw new Error('bug report RPC unavailable');
     const { data: rpcData, error: rpcError } = await runSupabaseOperation('bug_reports.rpc_insert_v2', () => client.rpc('rak_submit_bug_report_v2', {
       p_account_number: row.account_number,
       p_player_name: row.player_name,
@@ -2563,12 +2502,8 @@
       p_user_agent: row.user_agent,
       p_device_info: row.device_info
     }), { mode: 'write', attempts: 1 });
-    if (!rpcError) return Object.assign({ ok: true, row }, rpcData || {});
-    if (state.adminAuth.capabilities && state.adminAuth.capabilities.enforced === true) throw rpcError;
-    if (!row.message || row.message.length < 3) throw new Error('Report je moc krátký.');
-    const { error } = await runSupabaseOperation('bug_reports.insert', () => client.from('bug_reports').insert([row]), { mode: 'write', attempts: 1 });
-    if (error) throw error;
-    return { ok: true, row };
+    if (rpcError) throw rpcError;
+    return Object.assign({ ok: true, row }, rpcData || {});
   }
 
   function isBugReportUuid(value) {
@@ -2584,23 +2519,13 @@
   }
 
   async function loadBugReportsDirect(client, options = {}) {
+    if (!hasSecureAdminContext()) throw new Error('admin authentication required');
     const limit = Math.max(1, Math.min(80, Number(options.limit || 40) || 40));
     const status = String(options.status || '').trim();
-    if (hasSecureAdminContext()) {
-      const { data, error } = await runSupabaseOperation('bug_reports.rpc_list_v2', () => client.rpc('rak_admin_list_bug_reports_v2', {
-        p_status: status && status !== 'all' ? normalizeBugReportStatus(status) : 'all',
-        p_limit: limit
-      }), { mode: 'read', attempts: 1 });
-      if (error) throw error;
-      return { ok: true, rows: Array.isArray(data) ? data : [] };
-    }
-    let query = client.from('bug_reports')
-      .select('id, account_number, player_name, report_type, message, app_version, route, user_agent, device_info, status, created_at, handled_at, handled_note')
-      .or('handled_note.is.null,handled_note.neq.' + BUG_REPORT_DELETED_NOTE)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (status && status !== 'all') query = query.eq('status', normalizeBugReportStatus(status));
-    const { data, error } = await runSupabaseOperation('bug_reports.select', () => query, { mode: 'read', attempts: 1 });
+    const { data, error } = await runSupabaseOperation('bug_reports.rpc_list_v2', () => client.rpc('rak_admin_list_bug_reports_v2', {
+      p_status: status && status !== 'all' ? normalizeBugReportStatus(status) : 'all',
+      p_limit: limit
+    }), { mode: 'read', attempts: 1 });
     if (error) throw error;
     return { ok: true, rows: Array.isArray(data) ? data : [] };
   }
@@ -2609,24 +2534,15 @@
     const reportId = String(id || '').trim();
     if (!reportId) throw new Error('Chybí ID reportu.');
     if (!isBugReportUuid(reportId)) return { ok: false, reason: 'non-uuid-report-id', localOnly: true };
+    if (!hasSecureAdminContext()) throw new Error('admin authentication required');
     const nextStatus = normalizeBugReportStatus(status);
-    if (hasSecureAdminContext()) {
-      const { data, error } = await runSupabaseOperation('bug_reports.rpc_update_v2', () => client.rpc('rak_admin_update_bug_report_v2', {
-        p_id: reportId,
-        p_status: nextStatus,
-        p_note: String(note || '').slice(0, 600) || null
-      }), { mode: 'write', attempts: 1 });
-      if (error) throw error;
-      return data || { ok: true };
-    }
-    const patch = {
-      status: nextStatus,
-      handled_at: nextStatus === 'new' ? null : new Date().toISOString(),
-      handled_note: String(note || '').slice(0, 600) || null
-    };
-    const { data, error } = await runSupabaseOperation('bug_reports.update', () => client.from('bug_reports').update(patch).eq('id', reportId).select('id, status, handled_at, handled_note').maybeSingle(), { mode: 'write', attempts: 1 });
+    const { data, error } = await runSupabaseOperation('bug_reports.rpc_update_v2', () => client.rpc('rak_admin_update_bug_report_v2', {
+      p_id: reportId,
+      p_status: nextStatus,
+      p_note: String(note || '').slice(0, 600) || null
+    }), { mode: 'write', attempts: 1 });
     if (error) throw error;
-    return { ok: true, row: data || patch };
+    return data || { ok: true };
   }
 
 
@@ -2636,22 +2552,12 @@
     const reportId = String(id || '').trim();
     if (!reportId) throw new Error('Chybí ID reportu.');
     if (!isBugReportUuid(reportId)) return { ok: false, reason: 'non-uuid-report-id', localOnly: true };
-    if (hasSecureAdminContext()) {
-      const { data, error } = await runSupabaseOperation('bug_reports.rpc_delete_v2', () => client.rpc('rak_admin_delete_bug_report_v2', {
-        p_id: reportId
-      }), { mode: 'write', attempts: 1 });
-      if (error) throw error;
-      return data || { ok: true, id: reportId, softDeleted: true };
-    }
-    // DB nemá DELETE policy. Mažeme bezpečně přes existující UPDATE cestu: report schováme jako ignorovaný se speciální poznámkou.
-    const patch = {
-      status: 'ignored',
-      handled_at: new Date().toISOString(),
-      handled_note: BUG_REPORT_DELETED_NOTE
-    };
-    const { data, error } = await runSupabaseOperation('bug_reports.soft_delete', () => client.from('bug_reports').update(patch).eq('id', reportId).select('id, status, handled_at, handled_note').maybeSingle(), { mode: 'write', attempts: 1 });
+    if (!hasSecureAdminContext()) throw new Error('admin authentication required');
+    const { data, error } = await runSupabaseOperation('bug_reports.rpc_delete_v2', () => client.rpc('rak_admin_delete_bug_report_v2', {
+      p_id: reportId
+    }), { mode: 'write', attempts: 1 });
     if (error) throw error;
-    return { ok: true, id: reportId, softDeleted: true, row: data || patch };
+    return data || { ok: true, id: reportId, softDeleted: true };
   }
 
 
@@ -3243,11 +3149,14 @@
 
   async function flushPendingWrites() {
     if (flushPromise) return flushPromise;
+    // RAK_17058_QUEUE_RETRY_GUARD: schedule after clearing the active promise.
+    let queueRetryDelay = null;
     flushPromise = (async () => {
       const client = getClient();
       if (!client || !navigator.onLine) return { ok: false, reason: 'offline-or-missing-client', remaining: readQueue().length };
 
       const queue = readQueue();
+      if (state.queueGuard.storageError) return { ok: false, reason: 'queue-storage-failed', remaining: queue.length };
       const initialHealth = rememberQueueHealth(queue);
       if (!queue.length) return { ok: true, flushed: 0, remaining: 0, health: initialHealth };
 
@@ -3274,6 +3183,7 @@
           break;
         }
         const originalTask = queue[i];
+        if (originalTask && originalTask.conflict) { remaining.push(originalTask); continue; }
         if (shouldSkipQueuedTaskForBackoff(originalTask)) {
           remaining.push(originalTask);
           continue;
@@ -3281,15 +3191,11 @@
         const task = markQueuedTaskAttempt(originalTask);
         attempted += 1;
         try {
-          if (task.type === 'rotation_state') {
-            dropped += 1;
-            state.syncGuard.queueDroppedInvalid += 1;
-          } else if (task.type === 'machine_settings') {
-            dropped += 1;
-            state.syncGuard.queueDroppedInvalid += 1;
-          } else if (task.type === 'rotation_month_entries') {
-            dropped += 1;
-            state.syncGuard.queueDroppedInvalid += 1;
+          if (task.type === 'rotation_state' || task.type === 'machine_settings' || task.type === 'rotation_month_entries') {
+            // Legacy admin writes cannot be replayed without a fresh signed Auth session
+            // and revision validation. Preserve them for explicit admin reconciliation.
+            remaining.push(Object.assign({}, task, { conflict: 'admin-review-required' }));
+            state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
           } else if (task.type === 'gomoku_win') {
             await runSupabaseOperation('queue.gomoku_win', () => upsertGomokuWinDirect(client, task.entry), { mode: 'write' });
             flushed += 1;
@@ -3297,32 +3203,58 @@
             await saveGameStatDirect(client, task.entry);
             flushed += 1;
           } else if (task.type === 'game_ui_settings') {
+            const entry = task.entry || {};
+            const account = String(entry.account_number || entry.accountNumber || '').trim();
+            const queuedAt = Date.parse(String(task.queuedAt || ''));
+            if (!account || !Number.isFinite(queuedAt)) {
+              remaining.push(Object.assign({}, task, { conflict: 'unverified-local-version' }));
+              state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
+              continue;
+            }
+            const profile = await runSupabaseOperation('queue.game_ui.version', () => client.from('game_stats').select('updated_at').eq('account_number', account).eq('game_type', GAME_UI_SETTINGS_TYPE).order('updated_at', { ascending: false }).limit(1), { mode: 'read', attempts: 1 });
+            if (profile.error) throw profile.error;
+            const remoteAt = Date.parse(String(profile.data && profile.data[0] && profile.data[0].updated_at || ''));
+            if (Number.isFinite(remoteAt) && remoteAt > queuedAt) {
+              remaining.push(Object.assign({}, task, { conflict: 'newer-online-state' }));
+              state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
+              continue;
+            }
             await saveGameAccountUiSettingsDirect(client, task.entry);
             flushed += 1;
           } else if (task.type === 'game_session') {
-            await saveGameSessionByInviteCodeDirect(client, task.inviteCode || task.code, task.payload);
+            const code = task.inviteCode || task.code;
+            const queuedAt = Date.parse(String(task.queuedAt || ''));
+            if (!code || !Number.isFinite(queuedAt)) {
+              remaining.push(Object.assign({}, task, { conflict: 'unverified-local-version' }));
+              state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
+              continue;
+            }
+            const current = await loadGameSessionByInviteCodeDirect(client, code);
+            if (!current || current.ok !== true) throw new Error('Před odesláním hry se nepodařilo ověřit online stav.');
+            const remoteAt = Date.parse(String(current.session && current.session.updated_at || ''));
+            if (Number.isFinite(remoteAt) && remoteAt > queuedAt) {
+              remaining.push(Object.assign({}, task, { conflict: 'newer-online-state' }));
+              state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
+              continue;
+            }
+            await saveGameSessionByInviteCodeDirect(client, code, task.payload);
             flushed += 1;
           } else if (task.type === 'bug_report') {
             await saveBugReportDirect(client, task.entry);
             flushed += 1;
           } else {
             const failedUnknown = markQueuedTaskFailure(task, new Error('Neznámý typ úlohy ve frontě: ' + String(task.type || '')));
-            if (shouldDropInvalidQueuedTask(failedUnknown, new Error('invalid queue task'))) {
-              dropped += 1;
-              state.syncGuard.queueDroppedInvalid += 1;
-            } else {
-              remaining.push(failedUnknown);
-            }
+            remaining.push(Object.assign({}, failedUnknown, { conflict: 'unknown-task' }));
+            state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
           }
         } catch (err) {
           const failedTask = markQueuedTaskFailure(task, err);
           state.syncGuard.queueFlushErrors += 1;
           state.syncGuard.lastQueueErrorAt = Date.now();
-          if (shouldDropInvalidQueuedTask(failedTask, err)) {
-            dropped += 1;
-            state.syncGuard.queueDroppedInvalid += 1;
-            console.warn('Supabase queued sync dropped invalid task', err);
-            continue;
+          if (isLikelyPermanentQueueError(err)) {
+            remaining.push(Object.assign({}, failedTask, { conflict: 'write-rejected' }), ...queue.slice(i + 1));
+            state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
+            break;
           }
           if (isLikelyOfflineError(err)) {
             remaining.push(failedTask, ...queue.slice(i + 1));
@@ -3333,23 +3265,40 @@
           break;
         }
       }
-      writeQueue(remaining);
-      const finalHealth = rememberQueueHealth(remaining);
-      const nextRetryAt = getNextQueueRetryAt(remaining);
+      // Preserve tasks queued while a network call was in progress.
+      const initialIds = new Set(queue.map(task => String(task && task.id || '')).filter(Boolean));
+      // RAK_17060_SAME_ID_RACE_GUARD: a later edit with the same task id wins locally.
+      const currentQueue = readQueue();
+      if (state.queueGuard.storageError) return {ok:false,reason:'queue-storage-failed',remaining:currentQueue.length};
+      const initialById = new Map(queue.map(task => [String(task && task.id || ''), JSON.stringify(task)]));
+      const modifiedDuringFlush = currentQueue.filter(task => {
+        const id = String(task && task.id || '');
+        return initialIds.has(id) && JSON.stringify(task) !== initialById.get(id);
+      });
+      const modifiedIds = new Set(modifiedDuringFlush.map(task => String(task && task.id || '')));
+      const addedDuringFlush = currentQueue.filter(task => !initialIds.has(String(task && task.id || '')));
+      const finalQueue = remaining.filter(task => !modifiedIds.has(String(task && task.id || '')))
+        .concat(modifiedDuringFlush, addedDuringFlush);
+      if (!writeQueue(finalQueue)) return {ok:false,reason:'queue-storage-failed',remaining:currentQueue.length};
+      const finalHealth = rememberQueueHealth(finalQueue);
+      const retryable = finalQueue.filter(task => !(task && task.conflict));
+      const held = finalQueue.length - retryable.length;
+      const nextRetryAt = getNextQueueRetryAt(retryable);
       state.syncGuard.queueNextRetryAt = nextRetryAt;
-      if (!attempted && remaining.length) state.syncGuard.queueFlushEmptyRuns += 1;
-      if (flushed > 0) {
-        state.syncGuard.queueFlushSuccesses += 1;
-        state.syncGuard.lastQueueSuccessAt = Date.now();
+      if (!attempted && finalQueue.length) state.syncGuard.queueFlushEmptyRuns += 1;
+      if (flushed > 0) { state.syncGuard.queueFlushSuccesses += 1; state.syncGuard.lastQueueSuccessAt = Date.now(); }
+      if (finalQueue.length === 0) state.lastError = null;
+      else if (navigator.onLine && retryable.length) {
+        queueRetryDelay = nextRetryAt ? Math.max(SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS, nextRetryAt - Date.now()) : SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS;
       }
-      if (remaining.length === 0) state.lastError = null;
-      else if (navigator.onLine && (batchStopped || flushed > 0 || dropped > 0 || (!attempted && nextRetryAt))) {
-        const delay = nextRetryAt ? Math.max(SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS, nextRetryAt - Date.now()) : SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS;
-        scheduleSupabaseQueueFlush('remaining-queue', delay);
-      }
-      return { ok: true, flushed, dropped, remaining: remaining.length, nextRetryAt, batchStopped, health: finalHealth };
+      const result = {ok:finalQueue.length===0,flushed,dropped,remaining:finalQueue.length,
+        held,nextRetryAt,batchStopped,health:finalHealth,
+        reason:held?'manual-review-required':(finalQueue.length?'retry-pending':'synced')};
+      if(typeof window.__rakRefreshSyncBadgeTruth==='function')window.__rakRefreshSyncBadgeTruth();
+      return result;
     })().finally(() => {
       flushPromise = null;
+      if(queueRetryDelay!==null && navigator.onLine) scheduleSupabaseQueueFlush('remaining-queue',queueRetryDelay);
     });
     return flushPromise;
   }
@@ -3690,10 +3639,9 @@
       return cache.rows;
     }
     try {
-      const { data, error } = await runSharedSupabaseRead('game_accounts.load', () => runSupabaseOperation('game_accounts.load', () => client
-        .from('game_accounts')
-        .select('account_number, full_name, updated_at')
-        .order('account_number', { ascending: true }), { mode: 'read' }));
+      // Retired game-directory API must never fall back to anonymous bulk table reads.
+      if (!hasSecureAdminContext()) return [];
+      const { data, error } = await runSharedSupabaseRead('game_accounts.load', () => runSupabaseOperation('game_accounts.load', () => client.rpc('rak_admin_list_application_accounts_v1'), { mode: 'read' }));
       if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
       writeTimedCache(LOCAL_GAME_ACCOUNTS_KEY, rows, 'accounts');
@@ -4450,10 +4398,13 @@
   }
 
   async function loadRotationState() {
+    // RAK_17057_SYNC_TRUTH_GUARD: prove Supabase read before declaring online.
     const client = getClient();
+    state.rotationSync.lastAttemptAt = new Date().toISOString();
+    state.rotationSync.lastSource = 'checking';
     try {
       if (client && navigator.onLine) {
-        const { data, error } = await runSharedSupabaseRead('rotation_state.load:main', () => runSupabaseOperation('rotation_state.load', () => client.from('rotation_state').select('*').eq('key', 'main').maybeSingle(), { mode: 'read' }));
+        const { data, error } = await runSharedSupabaseRead('rotation_state.load:main', () => runSupabaseOperation('rotation_state.load', () => client.from('rotation_state').select('id,key,payload,meta,revision,updated_at').eq('key', 'main').maybeSingle(), { mode: 'read' }));
         if (error) throw error;
 
         const row = data || null;
@@ -4462,6 +4413,7 @@
           state.rotationSnapshot = payload;
           state.rotationRevision = Number.isFinite(Number(row.revision)) ? Number(row.revision) : 0;
           state.rotationSync.lastReadAt = new Date().toISOString();
+          state.rotationSync.lastSource = 'remote';
           state.rotationSync.lastError = null;
           state.lastError = null;
           saveLocalSnapshot(payload, state.machineSettingsSnapshot || []);
@@ -4478,6 +4430,9 @@
           const rebuilt = await loadRotationFromTables();
           if (rebuilt && rebuilt.months && Object.keys(rebuilt.months).length) {
             state.rotationSnapshot = rebuilt;
+            state.rotationSync.lastReadAt = new Date().toISOString();
+            state.rotationSync.lastSource = 'tables';
+            state.rotationSync.lastError = null;
             state.lastError = null;
             saveLocalSnapshot(rebuilt, state.machineSettingsSnapshot || []);
             return {
@@ -4488,17 +4443,27 @@
             };
           }
         }
+        const missing = new Error('Online rozpis neobsahuje platná data.');
+        missing.code = 'RAK_ROTATION_EMPTY';
+        throw missing;
+      }
+      if (navigator.onLine && !client) {
+        const missingClient = new Error('Supabase klient není dostupný.');
+        missingClient.code = 'RAK_SUPABASE_CLIENT_MISSING';
+        throw missingClient;
       }
     } catch (err) {
       state.lastError = err;
       state.rotationSync.lastError = err;
+      state.rotationSync.lastSource = 'failed';
       console.warn('Supabase rotation load failed', err);
     }
 
     const snapshot = readLocalSnapshot();
     if (snapshot && snapshot.rotation) {
       state.rotationSnapshot = snapshot.rotation;
-      state.lastError = null;
+      state.rotationSync.lastSource = 'cache';
+      // Never erase an online read error merely because a local copy exists.
       return {
         id: 'main',
         payload: snapshot.rotation,
@@ -4891,82 +4856,71 @@
     };
   }
 
+  // RAK_17058_QUEUE_DIAGNOSTIC_GUARD: fixed descriptions only; never show payloads or raw errors.
+  function summarizeQueuedSyncTask(task) {
+    const type=String(task&&task.type||'unknown');
+    const labels={rotation_state:'starší rozpis',machine_settings:'nastavení strojů',rotation_month_entries:'měsíční rozpis',gomoku_win:'výsledek hry',game_stat:'herní statistika',game_ui_settings:'vzhled profilu',game_session:'rozehraná hra',bug_report:'hlášení chyby'};
+    const reason=String(task&&task.lastErrorMessage||'').toLowerCase();
+    const failure=/permission|unauthoriz|forbidden|row-level|401|403|auth/.test(reason)?'oprávnění':/timeout|timed out|vypršel/.test(reason)?'časový limit':/network|offline|fetch|connection/.test(reason)?'připojení':/rate limit|429/.test(reason)?'omezení serveru':'nepotvrzené uložení';
+    return {type:Object.prototype.hasOwnProperty.call(labels,type)?type:'unknown',label:labels[type]||'neznámá položka',retries:Math.max(0,Number(task&&task.retryCount||0)),conflict:!!(task&&task.conflict),failure};
+  }
+
   function getSyncUiStatus() {
+    // RAK_17057_STATUS_GUARD: only a fresh, successful Supabase read warrants green.
     const cached = readLocalSnapshot();
     const hasCache = !!(cached && (cached.rotation || (Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length)));
-    const queueLength = readQueue().length;
-    const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const queue = readQueue();
+    const queueLength = queue.length;
+    const storageIssue = String(state.queueGuard && state.queueGuard.storageError || '');
+    const queueIssue = queueLength ? summarizeQueuedSyncTask(queue.find(item => item && item.conflict) || queue[0]) : null;
+    const online = typeof navigator !== 'undefined' ? navigator.onLine !== false : true;
     const lastError = state.rotationSync.lastError || null;
-    const rotationDirty = !!(typeof app !== 'undefined' && app && app.adminRotationDirty === true);
-
-    if (rotationDirty) {
-      return {
-        kind: 'pending',
-        label: 'Rozpis má neuložené změny',
-        detail: 'Změny zůstávají v editoru do úspěšného uložení',
-        queued: queueLength,
-        hasCache,
-        hardening: getSupabaseHardeningStatus()
-      };
+    const source = String(state.rotationSync.lastSource || 'unverified');
+    const readAt = Date.parse(String(state.rotationSync.lastReadAt || ''));
+    const fresh = Number.isFinite(readAt) && Date.now() - readAt >= 0 && Date.now() - readAt < 10 * 60 * 1000;
+    const verified = (source === 'remote' || source === 'tables') && fresh;
+    const conflictCount = queue.filter(item => !!(item && item.conflict)).length;
+    const dropped = Number(state.syncGuard.queueDroppedInvalid || 0);
+    const base = { queued: queueLength, hasCache, verified, source, lastReadAt: state.rotationSync.lastReadAt || null,
+      conflictCount, dropped, queueIssue, storageIssue: !!storageIssue, hardening: getSupabaseHardeningStatus() };
+    if (storageIssue) return Object.assign({}, base, {kind:'error',
+      label:'🔴 Lokální frontu nelze uložit', detail:'Neodstraňuj data aplikace. Ručně ulož zálohu fronty přes tento indikátor.'});
+    if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) {
+      return Object.assign({}, base, { kind: 'pending', label: '🟠 Rozpis má neuložené změny', detail: 'Úpravy v editoru nebyly potvrzeny databází.' });
     }
-
-    if (!online) {
-      return {
-        kind: 'offline',
-        label: hasCache ? '🟡 Offline cache' : '🟡 Offline cache',
-        detail: cached && cached.updatedAt ? ('cache ' + new Date(cached.updatedAt).toLocaleString('cs-CZ')) : 'Bez internetu',
-        queued: queueLength,
-        hasCache,
-        hardening: getSupabaseHardeningStatus()
-      };
-    }
-
-    if (queueLength > 0) {
-      return {
-        kind: 'pending',
-        label: '🟡 Offline cache',
-        detail: 'Čeká na odeslání ' + queueLength + ' změn',
-        queued: queueLength,
-        hasCache,
-        hardening: getSupabaseHardeningStatus()
-      };
-    }
-
-    if (lastError) {
-      return {
-        kind: 'error',
-        label: '🔴 Nepodařilo se synchronizovat',
-        detail: 'Poslední pokus selhal',
-        queued: queueLength,
-        hasCache,
-        hardening: getSupabaseHardeningStatus()
-      };
-    }
-
-    if (!state.rotationSync.lastReadAt && !state.rotationSync.lastWriteAt) {
-      return {
-        kind: 'pending',
-        label: 'Online · ověřuji synchronizaci',
-        detail: 'Čekám na první potvrzené načtení rozpisu',
-        queued: 0,
-        hasCache,
-        realtime: state.realtimeStatus || 'idle',
-        hardening: getSupabaseHardeningStatus()
-      };
-    }
-
-    return {
-      kind: 'online',
-      label: '🟢 Online synchronizováno',
-      detail: state.rotationSync.lastWriteAt
-        ? ('Rozpis uložen ' + new Date(state.rotationSync.lastWriteAt).toLocaleString('cs-CZ'))
-        : ('Rozpis načten ' + new Date(state.rotationSync.lastReadAt).toLocaleString('cs-CZ')),
-      queued: 0,
-      hasCache,
-      realtime: state.realtimeStatus || 'idle',
-      lastRealtimeAt: state.lastRealtimeAt || null,
-      hardening: getSupabaseHardeningStatus()
-    };
+    if (!online) return Object.assign({}, base, {
+      kind: 'offline', label: hasCache ? '🟡 Offline · uložená kopie' : '🔴 Offline · bez rozpisu',
+      detail: hasCache ? 'Používá se lokální kopie; čekající změny: ' + queueLength : 'Zařízení je bez internetu.'
+    });
+    if (!getClient()) return Object.assign({}, base, {
+      kind: 'error', label: '🔴 Supabase není připojena', detail: 'Nenačetl se klient nebo konfigurace Supabase.'
+    });
+    if (conflictCount) return Object.assign({}, base, {
+      kind: 'error', label: '🔴 Konflikt synchronizace', detail: conflictCount + ' změn vyžaduje ověření; novější online data nebyla přepsána.'
+    });
+    if (dropped) return Object.assign({}, base, {
+      kind: 'error', label: '🔴 Některé změny nebyly uloženy', detail: 'Zkontroluj ' + dropped + ' dříve vyřazených úloh.'
+    });
+    if (lastError) return Object.assign({}, base, {
+      kind: 'error', label: '🔴 Online načtení selhalo',
+      detail: (hasCache ? 'Zobrazuje se lokální kopie. ' : '') + 'Typ chyby: ' + String(lastError.code || lastError.name || 'neznámý').slice(0, 50)
+    });
+    if (queueLength) return Object.assign({}, base, {
+      kind: queueIssue && queueIssue.retries > 0 ? 'error' : 'pending',
+      label: (queueIssue && queueIssue.retries > 0 ? '🔴 Odeslání selhalo: ' : '🟠 Čeká na odeslání: ') + queueLength,
+      detail: (queueIssue ? queueIssue.label + ' · ' : '') +
+        (queueIssue && queueIssue.retries > 0 ? 'Důvod: ' + queueIssue.failure + '; další pokus bude opakován.'
+          : verified ? 'Online rozpis načten; čeká na potvrzení.' : 'Čeká na ověření online stavu.')
+    });
+    if (!verified) return Object.assign({}, base, {
+      kind: 'pending', label: hasCache ? '🟡 Cache · ověřuji online' : '🟡 Ověřuji online rozpis',
+      detail: fresh ? 'Čekám na potvrzení zdroje Supabase.' : 'Čekám na nové potvrzené načtení ze Supabase.'
+    });
+    return Object.assign({}, base, {
+      kind: 'online', label: '🟢 Online synchronizováno',
+      detail: 'Rozpis potvrzen Supabase ' + new Date(readAt).toLocaleString('cs-CZ'),
+      realtime: state.realtimeStatus || 'idle', lastRealtimeAt: state.lastRealtimeAt || null
+    });
   }
 
   window.refreshPublicData = refreshPublicData;
@@ -5029,6 +4983,13 @@
     restoreAdminAuthSession,
     signOutAdminAccount,
     getAdminAccessToken,
+    // RAK_SECURE_DIRECTORY_17027: same authenticated client as the admin console.
+    listApplicationAccountsSecure: async () => {
+      const client = getClient();
+      if (!client || !hasSecureAdminContext()) return { ok: false, reason: 'admin-auth-required', rows: [] };
+      const { data, error } = await client.rpc('rak_admin_list_application_accounts_v1');
+      return error ? { ok: false, error, rows: [] } : { ok: true, rows: Array.isArray(data) ? data : [] };
+    },
     listAdminAuthDevices,
     revokeAdminAuthDevice,
     listAdminAuthProfiles,
@@ -5394,7 +5355,164 @@
   window.clearRakDashboardAnnouncementOnline = () => window.RotationSupabaseBridge.clearDashboardAnnouncementOnline();
   window.getRakDashboardAnnouncementOnlineStatus = () => window.RotationSupabaseBridge.getDashboardAnnouncementOnlineStatus();
   window.getSupabaseCanteenStatus = getCanteenStatus;
+  // RAK_17062_READONLY_REVIEW_GUARD: scan storage bytes without compaction, writes or remote requests.
+  // Return ONLY predeclared labels and counts. Never expose names, IDs, payload, raw errors or tokens.
+  function getRakPendingSyncReview() {
+    const empty = {ok:false,total:0,held:0,retryable:0,unrecognized:0,remoteVerified:false,
+      serverContentCompared:false,labels:[],storageIssue:true};
+    let raw;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); }
+    catch (_) { return empty; }
+    if (raw === null) return Object.assign({},empty,{ok:true,storageIssue:false});
+    let tasks;
+    try { tasks = JSON.parse(raw); } catch (_) { return empty; }
+    if (!Array.isArray(tasks)) return empty;
+    const names = {rotation_state:'starší rozpis',machine_settings:'nastavení strojů',
+      rotation_month_entries:'měsíční rozpis',gomoku_win:'výsledek hry',game_stat:'herní statistika',
+      game_ui_settings:'vzhled profilu',game_session:'rozehraná hra',bug_report:'hlášení chyby'};
+    const counts = Object.create(null);
+    let held=0,unrecognized=0;
+    for (const task of tasks) {
+      const type = task && typeof task==='object' && !Array.isArray(task) ? task.type : null;
+      const safeType = typeof type==='string' && Object.prototype.hasOwnProperty.call(names,type) ? type : 'unknown';
+      counts[safeType] = (counts[safeType] || 0)+1;
+      if (safeType==='unknown' || !task || typeof task.id!=='string' || !task.id) unrecognized++;
+      if (task && task.conflict) held++;
+    }
+    const lastRead=Date.parse(String(state.rotationSync.lastReadAt||''));
+    const remoteVerified=(!state.rotationSync.lastError && ['remote','tables'].includes(state.rotationSync.lastSource)
+      && Number.isFinite(lastRead) && Date.now()>=lastRead && Date.now()-lastRead<600000);
+    const labels=Object.keys(names).filter(key=>counts[key]).map(key=>({label:names[key],count:counts[key]}));
+    if (counts.unknown) labels.push({label:'neznámá položka',count:counts.unknown});
+    return {ok:unrecognized===0,total:tasks.length,held,retryable:Math.max(0,tasks.length-held),
+      unrecognized,remoteVerified,serverContentCompared:false,labels,storageIssue:unrecognized>0};
+  }
+
+  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD: user-initiated, entirely local and read-only.
+  function downloadPendingSyncBackup() {
+    try {
+      const raw = localStorage.getItem(LOCAL_QUEUE_KEY);
+      if (!raw) return false;
+      const filename = 'RaK_fronta_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+      const blob = new Blob([raw], {type:'application/json;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  // RAK_17063_MANUAL_REVISION_GUARD: on-demand owner/admin only, read the
+  // server revision without fetching content. Equal revisions never authorize replay.
+  async function reviewRakRotationRevisionOnDemand() {
+    const blocked=reason=>({ok:false,reason,serverContentCompared:false,atomicWritePerformed:false,eligibleForReplay:false});
+    if(typeof navigator==='undefined'||!navigator.onLine)return blocked('offline');
+    if(!hasSecureAdminContext())return blocked('admin-auth-required');
+    const localQueue=getRakPendingSyncReview();
+    if(localQueue.storageIssue)return blocked('local-queue-unverified');
+    const client=getClient();
+    if(!client||!client.auth||typeof client.auth.getUser!=='function')return blocked('missing-auth-client');
+    try{
+      const verified=await client.auth.getUser();
+      if(verified.error||!verified.data||!verified.data.user)return blocked('identity-not-verified');
+      const identity=verified.data.user;
+      const auth=await client.rpc('rak_admin_context');
+      const context=auth&&auth.data;
+      if(auth.error||!context||context.authenticated!==true
+        ||!['owner','admin'].includes(context.role)||!context.account_id
+        ||!state.adminAuth.context||context.account_id!==state.adminAuth.context.account_id
+        ||(context.user_id&&String(context.user_id)!==String(identity.id)))return blocked('admin-auth-required');
+      const result=await client.from('rotation_state').select('revision').eq('key','main').maybeSingle();
+      if(result.error||!result.data||!Number.isSafeInteger(Number(result.data.revision)))return blocked('revision-read-failed');
+      const remote=Number(result.data.revision),local=state.rotationRevision;
+      const localKnown=Number.isSafeInteger(local)&&local>=0;
+      return {ok:true,remoteRevision:remote,localRevision:localKnown?local:null,
+        state:!localKnown?'local-revision-unknown':local===remote?'revision-equal':'revision-changed',
+        serverContentCompared:false,atomicWritePerformed:false,eligibleForReplay:false,
+        checkedAt:new Date().toISOString()};
+    }catch(_){return blocked('verification-failed');}
+  }
+
+  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD. Explicit local-only operation; never touches remote tables.
+  // Preserve other queued types byte-for-byte as JSON values, including legacy/unknown entries.
+  const RAK_UNSYNCED_DRAFT_PREFIX='rak_admin_unsynced_month_v1_';
+  function rakInspectLocalRotationDrafts() {
+    const denied=reason=>({ok:false,reason,drafts:0,rotationQueued:0,otherQueued:0,otherConflicts:0});
+    if(typeof app==='undefined'||!app||app.adminUnlocked!==true||!hasSecureAdminContext())return denied('admin-required');
+    if(flushPromise)return denied('queue-busy');
+    try{
+      const rawQueue=localStorage.getItem(LOCAL_QUEUE_KEY);
+      const queue=rawQueue===null?[]:JSON.parse(rawQueue);
+      if(!Array.isArray(queue))return denied('queue-invalid');
+      const drafts=[];
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        if(typeof key!=='string'||!key.startsWith(RAK_UNSYNCED_DRAFT_PREFIX))continue;
+        if(!/^rak_admin_unsynced_month_v1_[A-Za-z0-9_-]{1,140}$/.test(key))return denied('draft-invalid');
+        const raw=localStorage.getItem(key);
+        if(typeof raw!=='string'||raw.length>2000000)return denied('draft-invalid');
+        let value;try{value=JSON.parse(raw);}catch(_){return denied('draft-invalid');}
+        if(!value||value.format!=='rak-admin-month-draft-v1'||typeof value.monthKey!=='string'
+          ||!value.month||typeof value.month!=='object'||Array.isArray(value.month))return denied('draft-invalid');
+        drafts.push({key,raw});
+      }
+      drafts.sort((a,b)=>a.key.localeCompare(b.key));
+      const isRotation=task=>task&&['rotation_state','rotation_month_entries'].includes(task.type);
+      const rotationQueued=queue.filter(isRotation).length;
+      const others=queue.filter(task=>!isRotation(task));
+      // Ephemeral fingerprint only. No payload, account, name, key or token in the UI.
+      const fingerprintSource=String(rawQueue)+'\u0000'+drafts.map(item=>item.key+'\u0000'+item.raw).join('\u0000');
+      let hash=2166136261;
+      for(let i=0;i<fingerprintSource.length;i++)hash=Math.imul(hash^fingerprintSource.charCodeAt(i),16777619);
+      return {ok:true,queue,rawQueue,drafts,rotationQueued,otherQueued:others.length,
+        otherConflicts:others.filter(task=>task&&task.conflict).length,
+        signature:(hash>>>0).toString(16)+':'+fingerprintSource.length+':'+drafts.length};
+    }catch(_){return denied('storage-unavailable');}
+  }
+  function rakLocalRotationDraftCleanupPreview(){
+    const state=rakInspectLocalRotationDrafts();
+    return {ok:state.ok,reason:state.reason||'',drafts:state.drafts?.length||0,
+      rotationQueued:state.rotationQueued||0,otherQueued:state.otherQueued||0,
+      otherConflicts:state.otherConflicts||0,signature:state.signature||''};
+  }
+  function rakDiscardLocalRotationDrafts(expectedSignature){
+    const snapshot=rakInspectLocalRotationDrafts();
+    if(!snapshot.ok)return {ok:false,reason:snapshot.reason};
+    if(!expectedSignature||expectedSignature!==snapshot.signature)return {ok:false,reason:'local-changed'};
+    const keep=snapshot.queue.filter(task=>!task||!['rotation_state','rotation_month_entries'].includes(task.type));
+    const changed=snapshot.rotationQueued>0;
+    const nextQueue=JSON.stringify(keep);
+    try{
+      // No awaits between final snapshot, delete and verification: avoid partial user-visible success.
+      if(changed){localStorage.setItem(LOCAL_QUEUE_KEY,nextQueue);
+        if(localStorage.getItem(LOCAL_QUEUE_KEY)!==nextQueue)throw Error('queue-verification');}
+      for(const item of snapshot.drafts){localStorage.removeItem(item.key);
+        if(localStorage.getItem(item.key)!==null)throw Error('draft-verification');}
+      return {ok:true,drafts:snapshot.drafts.length,rotationQueued:snapshot.rotationQueued,
+        otherQueued:snapshot.otherQueued,otherConflicts:snapshot.otherConflicts};
+    }catch(_){
+      // Best-effort rollback is explicit. Never claim that a partly written store was cleared.
+      try{
+        if(changed){if(snapshot.rawQueue===null)localStorage.removeItem(LOCAL_QUEUE_KEY);
+          else localStorage.setItem(LOCAL_QUEUE_KEY,snapshot.rawQueue);}
+        for(const item of snapshot.drafts)localStorage.setItem(item.key,item.raw);
+      }catch(_){}
+      return {ok:false,reason:'storage-write-failed'};
+    }
+  }
+  window.rakLocalRotationDraftCleanupPreview=rakLocalRotationDraftCleanupPreview;
+  window.rakDiscardLocalRotationDrafts=rakDiscardLocalRotationDrafts;
+
   window.getSupabaseSyncStatus = getSyncUiStatus;
+  window.downloadRakPendingSyncBackup = downloadPendingSyncBackup;
+  window.getRakPendingSyncReview = getRakPendingSyncReview;
+  window.reviewRakRotationRevisionOnDemand = reviewRakRotationRevisionOnDemand;
   window.getGameStatsRpcSmokeStatus = getGameStatsRpcSmokeStatus;
   window.getGameUiRpcSmokeStatus = getGameUiRpcSmokeStatus;
   window.getGameSessionRpcSmokeStatus = getGameSessionRpcSmokeStatus;

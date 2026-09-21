@@ -1,8 +1,23 @@
+// RAK_NO_RETIRED_GAMES_17021
 // RaK – běžné stránky menu oddělené od admin shellu.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-menu-pages.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
+    // RAK_170_ABOUT_START
+    {
+      range: 'RaK 1.7',
+      title: 'Výroba, stabilita a zálohování',
+      lines: [
+        'Výrobní přehledy jsou přesnější: Kalírna se už nepočítá na původní stroj, osobní statistiky ukazují samostatné frézky a dvojici na soustruzích a report směny umí MO volné kusy i TTKW01/TTKW02.',
+        'Úkoly MSKC01 se při obsazení jen MSKC03 + MSKC04 správně sdílí na oba soustruhy, včetně úkolů upravených v administraci.',
+        'Bezpečnost se zpřísnila: vývoj používá oddělenou Supabase, pracovní zápisy jdou přes chráněná RPC a zbytečný přímý přístup ke keepalive tabulce byl uzavřen.',
+        'Start a PWA jsou lehčí: proběhl CSS cleanup, bezpečné lazy/idle načítání, omezení MutationObserverů, optimalizace obrázků a cache a přibyly pevné výkonové rozpočty.',
+        'Proběhl celkový audit aplikace: opravený ZIP export, aktuálnější diagnostika a changelog, odstraněné zbytky Her a přidané nové security a regresní kontroly.',
+        'Administrace má novou Úplnou zálohu RaK na jeden klik: ukládá přesný zdroj, nasazenou PWA, data a strukturu Supabase, sanitizovaný Auth přehled, Storage a návod k obnově.'
+      ]
+    },
+    // RAK_170_ABOUT_END
     {
       range: 'RaK 1.6',
       title: 'Rychlejší, čistší a přesnější',
@@ -10,7 +25,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Start aplikace a aktualizace PWA jsou rychlejší a stabilnější; části aplikace se načítají až ve chvíli, kdy jsou potřeba.',
         'Korekce Brusů pracují samostatně pro 2 brusy, 3 indexy, C1/C2 a levou/pravou stranu protokolu – celkem 24 citlivostí.',
         'Dashboard a mobilní/iPhone rozložení prošly velkým úklidem starých překrývajících se stylů bez změny ověřeného vzhledu.',
-        'Aplikace se dál rozdělila do menších modulů, odstranily se Hry a řada starých oprav a duplicit, takže je snazší ji bezpečně udržovat.'
+        'Aplikace se rozdělila do menších modulů, odstranily se nepoužívané části a duplicity, takže se snáze a bezpečněji udržuje.'
       ]
     },
     {
@@ -35,7 +50,7 @@ function buildAppMenuAboutHistoryHtml() {
       title: 'Online funkce a PWA',
       lines: [
         'Přibyly větší PWA/offline funkce, online synchronizace, statistiky a bezpečnostní i provozní kontroly.',
-        'V této řadě vznikaly také Hry a online profily; později byly z RaK odstraněny, aby aplikace zůstala pracovně zaměřená.'
+        'Vznikly základy přihlášení, osobního nastavení vzhledu a dalších pracovních online funkcí.'
       ]
     },
     {
@@ -62,7 +77,7 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.6').trim();
+      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.7').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
@@ -99,7 +114,7 @@ function renderAppMenuContactPage(body, versionText) {
 
 function renderAppMenuSettingsPage(body, versionText) {
       bindAppMenuHandlers(body);
-      const profileCard = buildGamesProfileSettingsHtml();
+      const profileCard = buildRakProfileSettingsHtml();
       const privacyCard = [
         '<details class="appMenuCard appMenuSettingsCard">',
         '  <summary class="appMenuCardTitle">Soukromí a data</summary>',
@@ -117,12 +132,6 @@ function renderAppMenuSettingsPage(body, versionText) {
         themeCards,
         '<button type="button" class="appMenuAction appMenuBack appMenuStandaloneBack" data-menu-back="1">Zpět</button>'
       ].join('');
-      if (typeof gamesRenderAccountChips === 'function') {
-        try { gamesRenderAccountChips(); } catch (err) {}
-      }
-      if (typeof renderGamesProfileStatus === 'function') {
-        try { renderGamesProfileStatus(); } catch (err) {}
-      }
       if (typeof renderThemeSettingsCards === 'function') {
         try { renderThemeSettingsCards(); } catch (err) {}
       }

@@ -1,4 +1,5 @@
 /* RaK 1.2 (1.146) – finální theme/background polish oddělený ze styles-overrides.css. */
+/* RaK 1.6.18 CSS cleanup: global theme dead helpers consolidated; visual contract unchanged. */
 /* v.1.5 (998) – Theme/pozadí globálně: zvolený background musí být vidět na každé stránce a theme má barvit celé UI. */
 :root{
   --rakThemeAccentStrong:var(--rakThemeAccent, var(--green2, #7CFF7C));
@@ -199,11 +200,7 @@ body.lowEndDevice :is(.dashboardShell,.dashboardCard,.tile,.card,.appMenuCard,.a
 /* v.1.5 (998) – Theme sjednocení: Dashboard i nadpisové panely berou odstíny z aktuální barvy; žádný natvrdo zelený roh/linka. */
 :root{
   --rakThemeHue:var(--rakThemeAccent, var(--green, #7CFF7C));
-  --rakThemeHueSoft:color-mix(in srgb, var(--rakThemeHue) 18%, transparent);
-  --rakThemeHueMid:color-mix(in srgb, var(--rakThemeHue) 34%, transparent);
-  --rakThemeHueLine:color-mix(in srgb, var(--rakThemeHue) 62%, rgba(255,255,255,.26));
   --rakThemeHueBright:color-mix(in srgb, var(--rakThemeHue) 72%, #ffffff);
-  --rakThemeHueShadow:color-mix(in srgb, var(--rakThemeHue) 20%, transparent);
   --rak-rotace-names-dock-bottom:clamp(48px, calc(min(var(--bottom-nav-h, 56px), 70px) + min(var(--rak-bottom-nav-live-gap, 0px), 6px) + 2px), 76px);
   --rak-rotace-names-content-bottom:calc(var(--rak-rotace-names-dock-bottom) + min(29dvh, 124px) + 14px);
 }
@@ -220,38 +217,6 @@ body.lowEndDevice :is(.dashboardShell,.dashboardCard,.tile,.card,.appMenuCard,.a
     0 0 28px color-mix(in srgb, var(--rakThemeHue) 10%, transparent),
     inset 0 2px 0 color-mix(in srgb, var(--rakThemeHue) 18%, rgba(255,255,255,.12)),
     inset 0 1px 0 rgba(255,255,255,.14) !important;
-}
-#home.page.active .dashboardShell::before,
-html body #home.page.active > .dashboardShell::before{
-  content:"" !important;
-  position:absolute !important;
-  left:1px !important;
-  right:1px !important;
-  top:1px !important;
-  height:2px !important;
-  border-top-left-radius:inherit !important;
-  border-top-right-radius:inherit !important;
-  background:linear-gradient(90deg, rgba(255,255,255,.08), var(--rakThemeHueLine), rgba(255,255,255,.10)) !important;
-  box-shadow:0 0 12px var(--rakThemeHueShadow) !important;
-  pointer-events:none !important;
-  z-index:60 !important;
-  display:block !important;
-}
-#home.page.active .dashboardShell::after,
-html body #home.page.active > .dashboardShell::after{
-  content:"" !important;
-  position:absolute !important;
-  left:0 !important;
-  right:0 !important;
-  top:0 !important;
-  height:22px !important;
-  border-top:1px solid color-mix(in srgb, var(--rakThemeHue) 38%, rgba(255,255,255,.18)) !important;
-  border-top-left-radius:inherit !important;
-  border-top-right-radius:inherit !important;
-  background:linear-gradient(180deg, color-mix(in srgb, var(--rakThemeHue) 8%, transparent), transparent) !important;
-  box-shadow:none !important;
-  pointer-events:none !important;
-  z-index:59 !important;
 }
 #home .dashboardHeroCard,
 #home .dashboardCard,

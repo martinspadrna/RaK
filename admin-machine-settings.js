@@ -4,6 +4,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 async function loadAdminMachineSettingsFromSupabase() {
   if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.loadMachineSettings === 'function') {
     app.machineSettingsRows = await window.RotationSupabaseBridge.loadMachineSettings();
+    // RAK_EXTERNAL_SHIFT_TEAMS_17020
+    if(typeof rakApplyShiftAccess==='function') rakApplyShiftAccess();
     return app.machineSettingsRows;
   }
   return [];

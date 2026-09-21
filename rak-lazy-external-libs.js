@@ -107,6 +107,9 @@
     'styles-games.css',
     'assets/nav-icons/games-gray.png',
     'assets/nav-icons/games-green.png',
+    'app-usage-smoke-v963.js',
+    'styles-overrides.css',
+    'assets/docs/sql/supabase_app_usage_v963.sql',
     'assets/rak-memory-total-time-fix.js'
   ]);
   try {

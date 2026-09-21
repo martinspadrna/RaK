@@ -35,7 +35,28 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
   else apply();
   if (typeof MutationObserver !== 'undefined') {
-    const observer = new MutationObserver(() => apply());
+    const calcRootSelector = '#soustruhy, #frezky, #brusy, .calcPage';
+    let applyScheduled = false;
+    const scheduleApply = () => {
+      if (applyScheduled) return;
+      applyScheduled = true;
+      const run = () => { applyScheduled = false; apply(); };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+      else setTimeout(run, 0);
+    };
+    const observer = new MutationObserver((records) => {
+      const relevant = Array.from(records || []).some((record) => {
+        const target = record && record.target;
+        try {
+          if (target && target.nodeType === 1 && target.closest && target.closest(calcRootSelector)) return true;
+          return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+            (node.matches && node.matches(calcRootSelector))
+            || (node.querySelector && node.querySelector(selector))
+          ));
+        } catch (err) { return false; }
+      });
+      if (relevant) scheduleApply();
+    });
     observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
   }
 })();

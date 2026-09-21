@@ -5,25 +5,31 @@
   window.__rakShiftReportImageExport170Installed = true;
 
   const WATERMARK_SRC = './assets/rak-login-crab.png';
-  const CANVAS_WIDTH = 1440;
+  const CANVAS_WIDTH = 1080;
   const MIN_CANVAS_HEIGHT = 1920;
-  const MAX_CANVAS_HEIGHT = 5200;
-  const OUTER = 88;
+  const MAX_CANVAS_HEIGHT = 8192;
+  const OUTER = 50;
   const STYLE_ID = 'rak-shift-report-image-export-170-style';
   const SECTION_DEFS = [
     { id: 'mo', label: 'MO', totalNok: true },
     { id: 'to', label: 'TO' },
     { id: 'r01', label: 'TBKR01' },
-    { id: 'r07', label: 'TRBR07' }
+    { id: 'r07', label: 'TBKR07' }
   ];
+// RAK_REPORT_ACCENT_PALETTE_17004
+// RAK_REPORT_COMPACT_PAIRS_17005
   const TONES = {
-    AF: { text: '#52caff', fill: 'rgba(40,174,255,.14)', stroke: 'rgba(82,202,255,.48)' },
-    AD: { text: '#52caff', fill: 'rgba(40,174,255,.14)', stroke: 'rgba(82,202,255,.48)' },
-    AG: { text: '#55efa8', fill: 'rgba(50,225,145,.13)', stroke: 'rgba(85,239,168,.44)' },
-    AE: { text: '#55efa8', fill: 'rgba(50,225,145,.13)', stroke: 'rgba(85,239,168,.44)' },
-    AH: { text: '#ffc04d', fill: 'rgba(255,174,48,.14)', stroke: 'rgba(255,192,77,.48)' }
+    AF: { text: '#005f8f', fill: 'rgba(45,156,255,.26)', stroke: 'rgba(17,120,200,.82)', chip: '#2d9cff', chipText: '#ffffff' },
+    AD: { text: '#005f8f', fill: 'rgba(45,156,255,.26)', stroke: 'rgba(17,120,200,.82)', chip: '#2d9cff', chipText: '#ffffff' },
+    AG: { text: '#0a6d3d', fill: 'rgba(139,228,88,.27)', stroke: 'rgba(78,164,47,.82)', chip: '#8be458', chipText: '#173b18' },
+    AE: { text: '#0a6d3d', fill: 'rgba(139,228,88,.27)', stroke: 'rgba(78,164,47,.82)', chip: '#8be458', chipText: '#173b18' },
+    AH: { text: '#984800', fill: 'rgba(255,179,63,.28)', stroke: 'rgba(213,120,10,.84)', chip: '#ffb33f', chipText: '#4a2800' }
   };
-  const DEFAULT_TONE = { text: '#dbe9f2', fill: 'rgba(255,255,255,.055)', stroke: 'rgba(255,255,255,.16)' };
+  const DEFAULT_TONE = { text: '#2a4655', fill: 'rgba(75,102,116,.05)', stroke: 'rgba(52,81,96,.24)', chip: '#dce6ea', chipText: '#28414e' };
+  const PAIR_GAP = 28;
+  const ROW_HEIGHT = 104;
+  const ROW_STEP = 116;
+
   const imageCache = new WeakMap();
   const prepareTimers = new WeakMap();
   let watermarkImage = null;
@@ -80,7 +86,7 @@
   }
 
   function shiftLabel(value) {
-    return ({ N: 'Noc', R: 'Ráno', N8: 'Noc 8 h', R8: 'Ráno 8 h' })[String(value || '')] || String(value || '—');
+    return ({ N: 'Noční', R: 'Ranní', N8: 'Noční 8 h', R8: 'Ranní 8 h' })[String(value || '')] || String(value || '—');
   }
 
   function problemMinutes(from, to) {
@@ -106,22 +112,157 @@
     return h + ' h' + (m ? ' ' + m + ' min' : '');
   }
 
-  function estimateHeight(model) {
-    let height = 360;
-    model.sections.forEach((section) => {
-      const rows = Math.max(1, section.rows.length);
-      height += 78 + rows * 104 + (section.totalNok ? 62 : 0) + 30;
-    });
-    if (model.problems.length) {
-      height += 92;
-      model.problems.forEach((problem) => {
-        const textLines = Math.max(1, Math.ceil(String(problem.text || '').length / 58));
-        height += 94 + Math.max(0, textLines - 1) * 38;
+  // RAK_SHIFT_REPORT_GLASS_17009
+  // RAK_MOBILE_REPORT_LINES_17013
+  const MOBILE_LINE_STEP = 78;
+  function quantityNumber17013(value) {
+    const text = String(value ?? '').trim().replace(',','.');
+    return /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : NaN;
+  }
+  function quantityText17013(value) { return new Intl.NumberFormat('cs-CZ',{maximumFractionDigits:2}).format(value); }
+  // RAK_REPORT_NOK_TOTALS_ZERO_17014
+  function positiveQuantity17014(value) {
+    const amount = quantityNumber17013(value);
+    return Number.isFinite(amount) && amount > 0 ? amount : 0;
+  }
+  function formattedQuantity17014(value) {
+    return quantityText17013(positiveQuantity17014(value));
+  }
+  function nokSuffix17014(value) {
+    const nok = positiveQuantity17014(value);
+    return nok ? ' (z toho ' + quantityText17013(nok) + ' NOK)' : '';
+  }
+  // RAK_REPORT_INDEX_GRID_TEXT_17015
+  function sectionLines17013(section) {
+    const rows = section && Array.isArray(section.rows) ? section.rows : [];
+    const lines = [];
+    const kind = section && section.id || '';
+    // RAK_REPORT_SMART_TOTALS_17017
+    const productionLineCount17017 = rows.reduce((sum, row) =>
+      sum + (positiveQuantity17014(row.qty) > 0 ? 1 : 0)
+          + (positiveQuantity17014(row.free) > 0 ? 1 : 0), 0);
+    if (kind === 'mo' || kind === 'to') {
+      const totals = new Map();
+      rows.forEach(row => {
+        const index = row.index || '—';
+        const regular = positiveQuantity17014(row.qty);
+        const free = positiveQuantity17014(row.free);
+        const nok = positiveQuantity17014(row.nok);
+        if (regular) lines.push({
+          text: kind === 'mo' ? quantityText17013(regular) + ' ' + index : index + ' ' + quantityText17013(regular) + ' ks',
+          kind: 'normal', index
+        });
+        if (free) lines.push({text: quantityText17013(free) + ' ' + index + ' volné', kind: 'free', index});
+        if (nok) lines.push({text: index + ' NOK ' + quantityText17013(nok), kind: 'nok', index});
+        if (regular + free) totals.set(index, (totals.get(index) || 0) + regular + free);
       });
-      height += 24;
+      if (totals.size && productionLineCount17017 > 1) {
+        const all = Array.from(totals.values()).reduce((sum, count) => sum + count, 0);
+        lines.push({
+          text: kind === 'mo'
+            ? 'Celkově ' + Array.from(totals, ([index, count]) => quantityText17013(count) + ' ' + index).join(', ') + ' (' + quantityText17013(all) + ' ks)'
+            : 'Celkově ' + quantityText17013(all) + ' ks',
+          kind: 'total'
+        });
+      }
+    } else if (kind === 'r01' || kind === 'r07') {
+      const totals = new Map();
+      rows.forEach(row => {
+        const regular = positiveQuantity17014(row.qty);
+        const free = positiveQuantity17014(row.free);
+        const nok = positiveQuantity17014(row.nok);
+        const index = row.index || '—';
+        if (regular) lines.push({
+          text: quantityText17013(regular) + ' ' + index + ' ks' + nokSuffix17014(row.nok),
+          kind: 'normal', index
+        });
+        if (free) lines.push({
+          text: quantityText17013(free) + ' ' + index + ' volné' + (regular ? '' : nokSuffix17014(row.nok)),
+          kind: 'free', index
+        });
+        if (nok && !regular && !free) lines.push({
+          text: index + ' NOK ' + quantityText17013(nok), kind: 'nok', index
+        });
+        // NOK is already included in regular/free output, not an extra produced piece.
+        if (regular + free) totals.set(index, (totals.get(index) || 0) + regular + free);
+      });
+      if (totals.size && productionLineCount17017 > 1) {
+        const total = Array.from(totals.values()).reduce((sum, count) => sum + count, 0);
+        lines.push({
+          text: 'Celkově ' + quantityText17013(total) + ' ks (' + Array.from(totals, ([index, count]) => quantityText17013(count) + ' ' + index).join(', ') + ')',
+          kind: 'total'
+        });
+      }
+    } else {
+      rows.forEach(row => {
+        const index = row.index || '—';
+        if (positiveQuantity17014(row.qty)) lines.push({text:index+' '+formattedQuantity17014(row.qty)+' ks',kind:'normal',index});
+        if (positiveQuantity17014(row.free)) lines.push({text:index+' '+formattedQuantity17014(row.free)+' volné',kind:'free',index});
+        if (positiveQuantity17014(row.nok)) lines.push({text:'NOK '+formattedQuantity17014(row.nok),kind:'nok',index});
+      });
     }
-    height += 100;
-    return Math.min(MAX_CANVAS_HEIGHT, Math.max(MIN_CANVAS_HEIGHT, height));
+    if (!lines.length) lines.push({ text: 'Bez záznamu', kind: 'empty' });
+    return lines;
+  }
+  function wrappedSectionLines17013(ctx,section,maxWidth) {
+    const lines=[];
+    ctx.font = '800 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    sectionLines17013(section).forEach(item => wrapLines(ctx,item.text,maxWidth).forEach(text=>lines.push({...item,text})));
+    return lines;
+  }
+  function sectionLayout17015(ctx, section, width) {
+    const all = sectionLines17013(section);
+    const footer = all.filter(line => line.kind === 'total');
+    const content = all.filter(line => line.kind !== 'total');
+    const isProduction = section.id === 'mo' || section.id === 'to';
+    const names = Array.from(new Set(content.filter(line => line.kind !== 'empty').map(line => line.index)));
+    const twoColumns = isProduction && names.length > 1;
+    const gap = 16;
+    const cellWidth = twoColumns ? (width - 40 - gap) / 2 : width - 40;
+    const fullWidth = width - 40;
+    ctx.font = '850 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const wrapped = (list, w) => list.flatMap(line => wrapLines(ctx, line.text, w - 46).map(text => ({...line, text})));
+    const groups = [];
+    let contentSteps = 0;
+    if (twoColumns) {
+      const byIndex = new Map();
+      content.forEach(line => {
+        if (!byIndex.has(line.index)) byIndex.set(line.index, []);
+        byIndex.get(line.index).push(line);
+      });
+      const indexed = Array.from(byIndex.values());
+      for (let i = 0; i < indexed.length; i += 2) {
+        const left = wrapped(indexed[i], cellWidth);
+        const right = indexed[i + 1] ? wrapped(indexed[i + 1], cellWidth) : [];
+        const steps = Math.max(left.length, right.length);
+        groups.push({left, right, steps});
+        contentSteps += steps;
+      }
+    } else {
+      const full = wrapped(content, cellWidth);
+      groups.push({left:full,right:[],steps:full.length});
+      contentSteps = full.length;
+    }
+    const totals = wrapped(footer, fullWidth);
+    const height = 98 + (contentSteps + totals.length) * MOBILE_LINE_STEP
+      + (positiveQuantity17014(section.totalNok) ? 58 : 0) + 16;
+    return { twoColumns, cellWidth, gap, groups, totals, height };
+  }
+  function sectionHeight17013(ctx,section) {
+    return sectionLayout17015(ctx, section, CANVAS_WIDTH - OUTER * 2).height;
+  }
+  function problemHeight17013(ctx,problems) {
+    if(!problems.length) return 0;
+    ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    return 88+problems.reduce((sum,item)=>sum+148+wrapLines(ctx,item.text||'bez popisu',CANVAS_WIDTH-OUTER*2-110).length*50,0)+20;
+  }
+  function estimateHeight(model) {
+    const ctx=document.createElement('canvas').getContext('2d');
+    if(!ctx) throw Error('Canvas 2D není dostupný.');
+    let height=396;
+    model.sections.forEach(section=>{height+=sectionHeight17013(ctx,section)+22;});
+    height+=problemHeight17013(ctx,model.problems||[])+(model.problems.length?24:0);
+    return Math.max(MIN_CANVAS_HEIGHT,Math.min(MAX_CANVAS_HEIGHT,Math.ceil(height/16)*16));
   }
 
   function roundedPath(ctx, x, y, w, h, r) {
@@ -184,142 +325,97 @@
     return watermarkPromise;
   }
 
+// RAK_REPORT_LIGHT_THEME_17003
   function drawBackground(ctx, width, height, watermark) {
     const base = ctx.createLinearGradient(0, 0, 0, height);
-    base.addColorStop(0, '#071a26');
-    base.addColorStop(.48, '#0b242b');
-    base.addColorStop(1, '#061118');
+    base.addColorStop(0, '#f8fafb');
+    base.addColorStop(.5, '#eff3f5');
+    base.addColorStop(1, '#e8edf0');
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, width, height);
 
-    const glowA = ctx.createRadialGradient(width * .18, height * .08, 0, width * .18, height * .08, width * .72);
-    glowA.addColorStop(0, 'rgba(32,163,225,.16)');
-    glowA.addColorStop(1, 'rgba(32,163,225,0)');
-    ctx.fillStyle = glowA;
-    ctx.fillRect(0, 0, width, height);
-
-    const glowB = ctx.createRadialGradient(width * .82, height * .72, 0, width * .82, height * .72, width * .68);
-    glowB.addColorStop(0, 'rgba(48,186,137,.10)');
-    glowB.addColorStop(1, 'rgba(48,186,137,0)');
-    ctx.fillStyle = glowB;
-    ctx.fillRect(0, 0, width, height);
-
     if (watermark && watermark.naturalWidth && watermark.naturalHeight) {
-      const scale = Math.max((width * 1.12) / watermark.naturalWidth, (height * 1.03) / watermark.naturalHeight);
+      const scale = Math.min((width * 1.15) / watermark.naturalWidth, (height * .85) / watermark.naturalHeight);
       const drawW = watermark.naturalWidth * scale;
       const drawH = watermark.naturalHeight * scale;
       ctx.save();
-      ctx.globalAlpha = .055;
+      ctx.globalAlpha = .16;
       ctx.drawImage(watermark, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
       ctx.restore();
     }
   }
 
-  function drawHeader(ctx, model) {
-    ctx.fillStyle = '#f4fbff';
-    ctx.font = '800 76px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('REPORT SMĚNY', OUTER, 150);
-
-    ctx.fillStyle = 'rgba(232,244,250,.82)';
-    ctx.font = '600 36px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.fillText(formatDate(model.date) + '  •  ' + shiftLabel(model.shift), OUTER, 218);
-
-    const rule = ctx.createLinearGradient(OUTER, 0, CANVAS_WIDTH - OUTER, 0);
-    rule.addColorStop(0, 'rgba(82,202,255,.75)');
-    rule.addColorStop(.55, 'rgba(85,239,168,.42)');
-    rule.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = rule;
-    ctx.fillRect(OUTER, 258, CANVAS_WIDTH - OUTER * 2, 3);
+  function drawHeader(ctx,model) {
+    ctx.textBaseline='alphabetic'; ctx.textAlign='left'; ctx.fillStyle='#1c3543';
+    ctx.font='850 74px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('REPORT SMĚNY',OUTER,127);
+    ctx.font='700 35px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('DIFERENCIÁLY',OUTER,186);
+    ctx.fillStyle='#315567';ctx.font='650 37px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    // RAK_EXTERNAL_SHIFT_TEAMS_17020
+    ctx.fillText(formatDate(model.date) + '  •  Směna ' + (typeof getRakActiveAccountShiftTeam==='function'?getRakActiveAccountShiftTeam():'D') + '  •  ' + shiftLabel(model.shift), OUTER, 218);
+    ctx.fillStyle='rgba(20,119,177,.45)';ctx.fillRect(OUTER,278,CANVAS_WIDTH-OUTER*2,4);
   }
 
-  function drawProductionRow(ctx, row, x, y, w) {
-    const tone = TONES[row.index] || DEFAULT_TONE;
-    fillRounded(ctx, x, y, w, 86, 20, tone.fill, tone.stroke);
-
-    fillRounded(ctx, x + 24, y + 18, 116, 50, 14, 'rgba(4,16,24,.54)', tone.stroke);
-    ctx.fillStyle = tone.text;
-    ctx.font = '800 31px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(row.index || '—', x + 82, y + 53);
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = tone.text;
-    ctx.font = '800 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.fillText((row.qty || '—') + (row.qty ? ' ks' : ''), x + 176, y + 55);
-
-    const extras = [];
-    if (row.free) extras.push('Volné ' + row.free);
-    if (row.nok) extras.push('NOK ' + row.nok);
-    if (extras.length) {
-      ctx.textAlign = 'right';
-      ctx.fillStyle = 'rgba(235,245,250,.88)';
-      ctx.font = '650 29px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(extras.join('   •   '), x + w - 28, y + 54);
-    }
-    ctx.textAlign = 'left';
+  // RAK_SHIFT_REPORT_FREE_PRIMARY_17008
+  // RAK_SHIFT_REPORT_FREE_ONLY_GRINDER_17010
+  function drawProductionRow(ctx,line,x,y,w) {
+    const tone=TONES[line.index]||DEFAULT_TONE;
+    const fill=line.kind==='total'?'rgba(40,134,174,.26)':line.kind==='empty'?'rgba(75,102,116,.045)':tone.fill;
+    fillRounded(ctx,x,y,w,68,16,fill,line.kind==='total'?'rgba(17,120,200,.68)':tone.stroke);
+    ctx.textAlign='left';ctx.fillStyle=line.kind==='total'?'#123d5b':({AF:'#004e83',AD:'#004e83',AG:'#0b632e',AE:'#0b632e',AH:'#8b4300'}[line.index]||'#244554');
+    ctx.font='850 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(line.text,x+23,y+49,w-46);
   }
-
-  function drawSection(ctx, section, y) {
-    const x = OUTER;
-    const w = CANVAS_WIDTH - OUTER * 2;
-    const rows = section.rows.length ? section.rows : [{ index: '', qty: '', free: '', nok: '' }];
-    const totalExtra = section.totalNok ? 62 : 0;
-    const h = 82 + rows.length * 104 + totalExtra + 14;
-
-    fillRounded(ctx, x, y, w, h, 28, 'rgba(3,13,20,.50)', 'rgba(255,255,255,.10)');
-    ctx.fillStyle = '#f2f8fb';
-    ctx.font = '800 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.fillText(section.label, x + 32, y + 53);
-
-    let rowY = y + 78;
-    rows.forEach((row) => {
-      drawProductionRow(ctx, row, x + 24, rowY, w - 48);
-      rowY += 104;
-    });
-
-    if (section.totalNok) {
-      ctx.fillStyle = 'rgba(235,245,250,.78)';
-      ctx.font = '650 29px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText('NOK celkem: ' + (section.totalNok || '—'), x + 32, rowY + 34);
-    }
-    return y + h + 30;
-  }
-
-  function drawProblems(ctx, problems, y) {
-    if (!problems.length) return y;
-    const x = OUTER;
-    const w = CANVAS_WIDTH - OUTER * 2;
-    ctx.font = '500 29px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    const measured = problems.map((problem) => wrapLines(ctx, problem.text || 'bez popisu', w - 96));
-    const h = 82 + measured.reduce((sum, lines) => sum + 82 + Math.max(1, lines.length) * 38, 0) + 20;
-
-    fillRounded(ctx, x, y, w, h, 28, 'rgba(3,13,20,.50)', 'rgba(255,255,255,.10)');
-    ctx.fillStyle = '#f2f8fb';
-    ctx.font = '800 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.fillText('PROBLÉMY / ODSTÁVKY', x + 32, y + 53);
-
-    let cursor = y + 92;
-    problems.forEach((problem, index) => {
-      const duration = durationLabel(problemMinutes(problem.from, problem.to));
-      const time = (problem.from || '??:??') + '–' + (problem.to || '??:??') + (duration ? '  (' + duration + ')' : '');
-      fillRounded(ctx, x + 24, cursor, w - 48, 70 + Math.max(1, measured[index].length) * 38, 18, 'rgba(255,255,255,.035)', 'rgba(255,255,255,.08)');
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '750 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.fillText(problem.machine || 'Stroj', x + 48, cursor + 38);
-      ctx.fillStyle = '#7fd9ff';
-      ctx.font = '650 27px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(time, x + w - 48, cursor + 38);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(235,245,250,.82)';
-      ctx.font = '500 29px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-      measured[index].forEach((line, lineIndex) => {
-        ctx.fillText(line, x + 48, cursor + 80 + lineIndex * 38);
+  function drawSection(ctx,section,x,y,w) {
+    const layout = sectionLayout17015(ctx,section,w);
+    fillRounded(ctx,x,y,w,layout.height,28,'rgba(255,255,255,.36)','rgba(36,65,78,.17)');
+    ctx.textAlign='left';ctx.fillStyle='#183c50';
+    ctx.font='850 46px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(section.label,x+30,y+61);
+    let rowY = y + 80;
+    layout.groups.forEach(group => {
+      group.left.forEach((line,i) => drawProductionRow(ctx,line,x+20,rowY+i*MOBILE_LINE_STEP,layout.cellWidth));
+      if (layout.twoColumns) group.right.forEach((line,i) => {
+        drawProductionRow(ctx,line,x+20+layout.cellWidth+layout.gap,rowY+i*MOBILE_LINE_STEP,layout.cellWidth);
       });
-      cursor += 82 + Math.max(1, measured[index].length) * 38;
+      rowY += group.steps*MOBILE_LINE_STEP;
     });
-    return y + h + 30;
+    // Index-specific columns end here: both MO and TO totals always occupy the full width.
+    layout.totals.forEach(line => {
+      drawProductionRow(ctx,line,x+20,rowY,w-40);
+      rowY += MOBILE_LINE_STEP;
+    });
+    if (positiveQuantity17014(section.totalNok)) {
+      ctx.fillStyle='#365363';
+      ctx.font='700 39px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText('NOK: '+section.totalNok,x+29,rowY+43);
+    }
+    return y+layout.height+22;
+  }
+  function drawProblems(ctx,problems,y) {
+    if(!problems.length) return y;
+    const x=OUTER,w=CANVAS_WIDTH-OUTER*2;
+    ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    const measured=problems.map(item=>wrapLines(ctx,item.text||'bez popisu',w-110));
+    const h=88+measured.reduce((sum,lines)=>sum+148+lines.length*50,0)+20;
+    fillRounded(ctx,x,y,w,h,28,'rgba(255,255,255,.38)','rgba(36,65,78,.17)');
+    ctx.fillStyle='#183c50';ctx.font='850 43px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('PROBLÉMY / ODSTÁVKY',x+30,y+56);
+    let cursor=y+86;
+    problems.forEach((problem,idx)=>{
+      const boxH=134+measured[idx].length*50;
+      fillRounded(ctx,x+22,cursor,w-44,boxH,18,'rgba(235,242,245,.44)','rgba(44,75,88,.12)');
+      ctx.fillStyle='#183c50';ctx.font='800 41px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(problem.machine||'Stroj',x+46,cursor+47);
+      const duration=durationLabel(problemMinutes(problem.from,problem.to));
+      ctx.fillStyle='#146a90';ctx.font='650 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText((problem.from||'??:??')+'–'+(problem.to||'??:??')+(duration?'  ('+duration+')':''),x+46,cursor+92,w-88);
+      ctx.fillStyle='#284453';ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      measured[idx].forEach((line,i)=>ctx.fillText(line,x+46,cursor+145+i*50,w-88));
+      cursor+=148+measured[idx].length*50;
+    });
+    return y+h+24;
   }
 
   function renderCanvas(model, watermark) {
@@ -334,11 +430,11 @@
 
     let y = 306;
     model.sections.forEach((section) => {
-      y = drawSection(ctx, section, y);
+      y = drawSection(ctx, section, OUTER, y, CANVAS_WIDTH - OUTER * 2);
     });
     y = drawProblems(ctx, model.problems, y);
 
-    ctx.fillStyle = 'rgba(236,246,250,.34)';
+    ctx.fillStyle = 'rgba(38,59,71,.51)';
     ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText('RaK', CANVAS_WIDTH - OUTER, Math.min(height - 46, y + 26));
@@ -441,7 +537,7 @@
     status(root, 'Otevírám sdílení obrázku – vyber WhatsApp.');
     let sharePromise;
     try {
-      sharePromise = navigator.share({ title: 'RaK – report směny', files: [file] });
+      sharePromise = navigator.share({ title: 'RaK – Report směny diferenciály', files: [file] });
     } catch (err) {
       downloadEntry(entry);
       status(root, 'Sdílení obrázku není dostupné; PNG bylo uložené.');

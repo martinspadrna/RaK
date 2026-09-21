@@ -195,12 +195,13 @@
     if (!clientFactory || !config.url || !config.publishableKey) return { ok: false, reason: 'online-not-ready' };
     try {
       const client = clientFactory(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-      const { data, error } = await client.from('game_accounts').select('account_number,full_name').like('account_number', `%${suffix}`);
+      // RAK_LOGIN_RPC_17027: do not expose the whole table to the login client.
+      const { data, error } = await client.rpc('rak_lookup_account_for_login_v2', { p_last4: suffix });
       if (error) return { ok: false, reason: 'lookup-failed', error };
-      const rows = Array.isArray(data) ? data.filter((row) => String(row && row.account_number || '').trim() && String(row && row.full_name || '').trim()) : [];
-      if (!rows.length) return { ok: false, reason: 'not-found' };
-      if (rows.length > 1) return { ok: false, reason: 'ambiguous' };
-      return { ok: true, accountNumber: String(rows[0].account_number).trim(), fullName: String(rows[0].full_name).trim() };
+      if (!data || data.ok !== true) return { ok: false, reason: data && data.reason || 'not-found' };
+      // RAK_LOGIN_ADMIN_GATE_17045: fail closed if the admin-password flag is absent.
+      if (typeof data.requiresAdminAuth !== 'boolean') return { ok: false, reason: 'admin-gate-unavailable' };
+      return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim(), requiresAdminAuth: data.requiresAdminAuth };
     } catch (error) {
       return { ok: false, reason: 'lookup-failed', error };
     }
@@ -289,7 +290,14 @@
     refreshMenu();
     try {
       if (!window.__rakUserProfileSettingsObserver) {
-        const observer = new MutationObserver(() => syncSettingsProfileCard(get()));
+        const observer = new MutationObserver((records) => {
+          const cardAdded = Array.from(records || []).some((record) => Array.from(record && record.addedNodes || []).some((node) => {
+            if (!node || node.nodeType !== 1) return false;
+            try { return node.id === 'gamesAccountCard' || !!(node.querySelector && node.querySelector('#gamesAccountCard')); }
+            catch (err) { return false; }
+          }));
+          if (cardAdded) syncSettingsProfileCard(get());
+        });
         observer.observe(document.body, { childList: true, subtree: true });
         window.__rakUserProfileSettingsObserver = observer;
       }

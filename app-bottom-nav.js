@@ -10,7 +10,6 @@ function installBottomNavBindings() {
     kalkulacky: () => { openKalkulacky(); },
     rozpisy: () => { openRotaceMonths(); },
     statistiky: () => { openRotaceStats(); },
-    games: () => { openGamesPage(); },
     menu: () => { toggleAppMenu(); }
   };
 

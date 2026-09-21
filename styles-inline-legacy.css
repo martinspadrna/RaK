@@ -758,3 +758,134 @@
       align-items:stretch !important;
       text-align:center !important;
       gap:10px !important;}}
+
+
+/* RAK_17061_ABSENCE_CSS: public and admin summary use the same measured columns.
+   Old 45% name and 12% date widths were applied to repeated name pairs and squeezed dates. */
+html body .noteTable.rakAbsenceTable {table-layout:fixed !important;max-width:none !important;}
+html body .noteTable.rakAbsenceTable th,
+html body .noteTable.rakAbsenceTable td {
+  box-sizing:border-box !important;padding:5px 2px !important;
+  white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important;
+}
+html body .noteTable.rakAbsenceTable .noteDateCell {
+  width:58px !important;min-width:58px !important;max-width:58px !important;
+  padding-left:3px !important;text-overflow:clip !important;
+}
+html body .noteTable.rakAbsenceTable .noteShiftCell {
+  width:34px !important;min-width:34px !important;max-width:34px !important;text-align:center !important;
+}
+html body .noteTable.rakAbsenceTable .notePersonCell {
+  width:68px !important;min-width:68px !important;max-width:68px !important;
+  text-align:left !important;
+}
+html body .noteTable.rakAbsenceTable .noteReasonCell {
+  width:38px !important;min-width:38px !important;max-width:38px !important;text-align:center !important;
+}
+html body .noteTable.rakAbsenceTable .noteSpacer {
+  width:7px !important;min-width:7px !important;max-width:7px !important;padding:0 !important;
+}
+@media(max-width:700px){
+  html body .noteTable.rakAbsenceTable th {font-size:10px !important;}
+  html body .noteTable.rakAbsenceTable td {font-size:11px !important;}
+}
+/* Admin editable rows: date + shift must fit without shrinking the iOS-safe 16px input font.
+   The horizontal table wrapper already scrolls if a narrower device needs it. */
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:first-child {
+  width:92px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable input[data-rot-field="date"] {
+  box-sizing:border-box !important;width:90px !important;min-width:90px !important;max-width:90px !important;
+  padding-left:4px !important;padding-right:2px !important;text-align:left !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable {
+  min-width:204px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(1) {
+  width:86px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(2) {
+  width:86px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(3) {
+  width:32px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="date"] {
+  box-sizing:border-box !important;width:84px !important;min-width:84px !important;max-width:84px !important;
+  padding-left:3px !important;padding-right:1px !important;text-align:left !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="person"] {
+  box-sizing:border-box !important;width:84px !important;min-width:84px !important;max-width:84px !important;
+  padding-left:2px !important;padding-right:1px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="code"] {
+  box-sizing:border-box !important;width:28px !important;min-width:28px !important;max-width:28px !important;
+  margin-left:0 !important;padding-left:1px !important;padding-right:1px !important;
+}
+/* END_RAK_17061_ABSENCE_CSS */
+
+
+/* RAK_17062_DATE_AND_IOS_FONT_GUARD: only admin scheduling inputs, no global input sizing. */
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:first-child {width:88px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable td:first-child {padding-left:1px !important;padding-right:1px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable input[data-rot-field="date"] {
+  box-sizing:border-box !important;width:86px !important;min-width:86px !important;max-width:86px !important;
+  font-size:16px !important;padding-left:3px !important;padding-right:1px !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="date"] {
+  font-size:16px !important;
+}
+/* END_RAK_17062_DATE_AND_IOS_FONT_GUARD */
+
+/* RAK_17065_NARROW_MO_TO_DATE: MO/TO only, 4px smaller than 1.7.62; absence unchanged. */
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable col:first-child {width:84px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable input[data-rot-field="date"] {
+  box-sizing:border-box !important;width:82px !important;min-width:82px !important;max-width:82px !important;
+  font-size:16px !important;padding-left:1px !important;padding-right:1px !important;
+}
+/* END_RAK_17065_NARROW_MO_TO_DATE */
+
+/* RAK_17066_COMPACT_MO_GRID: iPhone name-spacing correction; TO and absence untouched. */
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] {
+  box-sizing:border-box !important;width:var(--rak-soft-grid-width) !important;
+  min-width:var(--rak-soft-grid-width) !important;max-width:var(--rak-soft-grid-width) !important;
+  table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] col:first-child {width:84px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] col:not(:first-child) {width:48px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] th,
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] td {
+  box-sizing:border-box !important;width:auto !important;min-width:0 !important;max-width:none !important;padding:0 !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] td .appMenuInlineFieldWrap {
+  box-sizing:border-box !important;min-width:0 !important;max-width:100% !important;width:100% !important;
+  gap:0 !important;padding:0 !important;margin:0 !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section="soft"] input[data-rot-field^="cell-"] {
+  box-sizing:border-box !important;flex:0 0 46px !important;width:46px !important;min-width:46px !important;max-width:46px !important;
+  margin:0 !important;padding-left:1px !important;padding-right:1px !important;
+}
+/* END_RAK_17066_COMPACT_MO_GRID */
+
+/* RAK_17067_EQUAL_MO_TO_GRID – identical effective box sizes in both admin tables.
+   84+5*52=344px: inside 350px phone wrapper. No changes to Absence. */
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] {
+  box-sizing:border-box !important;width:var(--rak-grid-width) !important;
+  min-width:var(--rak-grid-width) !important;max-width:var(--rak-grid-width) !important;
+  table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] col:first-child {width:84px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] col:not(:first-child) {width:52px !important;}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] th,
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] td {
+  box-sizing:border-box !important;width:auto !important;min-width:0 !important;max-width:none !important;padding:0 !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] td .appMenuInlineFieldWrap {
+  box-sizing:border-box !important;min-width:0 !important;max-width:100% !important;width:100% !important;
+  gap:0 !important;padding:0 !important;margin:0 !important;
+}
+html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] input[data-rot-field^="cell-"] {
+  box-sizing:border-box !important;flex:0 0 50px !important;width:50px !important;min-width:50px !important;
+  max-width:50px !important;margin:0 !important;padding-left:1px !important;padding-right:1px !important;
+}
+/* END_RAK_17067_EQUAL_MO_TO_GRID */

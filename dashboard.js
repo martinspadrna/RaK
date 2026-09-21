@@ -1,3 +1,4 @@
+// RAK_NO_RETIRED_GAMES_17021
 // RaK 1.2 (1.155) – dashboard a domácí přehled.
 
 function setDashboardHtmlIfChanged(element, html, key) {
@@ -606,7 +607,38 @@ function getDashboardActiveProfile() {
   return null;
 }
 
+// RAK_FIRSTNAME_GREETING_17025
 const DASHBOARD_FRIENDLY_NAME_OVERRIDES = Object.freeze({
+  aleš: 'Aleši',
+  daniel: 'Dane',
+  david: 'Davide',
+  dominik: 'Dominiku',
+  filip: 'Filipe',
+  jakub: 'Kubo',
+  jaromír: 'Jaromíre',
+  jaroslav: 'Jardo',
+  jindřich: 'Jindro',
+  jiří: 'Jirko',
+  josef: 'Pepo',
+  karel: 'Karle',
+  libor: 'Libore',
+  matěj: 'Matěji',
+  milan: 'Milane',
+  oldřich: 'Oldo',
+  petr: 'Petře',
+  radek: 'Radku',
+  radim: 'Radime',
+  rafal: 'Rafale',
+  richard: 'Richarde',
+  robert: 'Roberte',
+  roman: 'Romane',
+  stanislav: 'Stando',
+  tomáš: 'Tomáši',
+  vladimír: 'Vláďo',
+  vojtěch: 'Vojto',
+  václav: 'Vašku',
+  vítězslav: 'Víťo',
+  zdeněk: 'Zdeňku',
   jan: 'Honzo',
   ladislav: 'Láďo',
   lukáš: 'Lukáši',
@@ -643,9 +675,22 @@ function getDashboardScheduleName(fullName) {
   }
 }
 
+// RAK_EXTERNAL_SHIFT_TEAMS_17020
+function getDashboardAccountTeamStatus(now,team) {
+  if(team==='D') return getDashboardTeamDStatus(now);
+  const state=typeof getTeamShiftState==='function'?getTeamShiftState(now,team):null;
+  const active=state&&state.active?{team,label:state.label||'',start:state.start,end:state.end}:null;
+  const next=!active?(state&&state.next&&state.next.start?{team,label:state.next.label||'',start:state.next.start,end:state.next.end}:getDashboardNextTeamShift(now,team)):null;
+  return {active,next};
+}
 function getDashboardPersonalShiftStatus(now) {
   const profile = getDashboardActiveProfile();
   const name = String(profile && profile.fullName || '').trim();
+  // RAK_OUTSIDE_NO_D_ROSTER_HERO_17020
+  // Even if an outside account happens to share a surname with a D worker,
+  // never borrow that worker's machine, tasks or absence from the D roster.
+  if (typeof getRakActiveAccountShiftInfo === 'function' && getRakActiveAccountShiftInfo().outside)
+    return {name, active:null, next:null, absence:null};
   if (!name || typeof getPersonScheduleEntries !== 'function' || typeof getPersonScheduleEntryWindow !== 'function') {
     return { name, active: null, next: null, absence: null };
   }
@@ -692,6 +737,7 @@ function dashboardPersonalDateLabel(entry) {
 }
 
 function getDashboardAccessOverview(now) {
+  if(getRakActiveAccountShiftTeam()!=='D') return [];
   // Účet mimo Rotace nepatří k žádné pracovní směně. Má proto vidět pouze
   // nepřítomnost své referenční směny D, ne průběžný přehled všech směn.
   const teamD = typeof getDashboardTeamDStatus === 'function'
@@ -769,18 +815,20 @@ function buildDashboardPersonalHeroHtml(now, esc) {
     status = 'Další směna zatím není v rozpisu';
   } else {
     status = 'Přehled směn';
-    const teamD = typeof getDashboardTeamDStatus === 'function'
-      ? getDashboardTeamDStatus(now)
-      : { active: null, next: null };
+    const accountTeam = getRakActiveAccountShiftTeam();
+    const teamD = getDashboardAccountTeamStatus(now,accountTeam);
     if (teamD.active && teamD.active.end instanceof Date && typeof formatDuration === 'function') {
-      title = 'Směna D končí za ' + formatDuration(Math.max(0, teamD.active.end.getTime() - now.getTime()));
+      title = 'Směna ' + accountTeam + ' končí za ' + formatDuration(Math.max(0, teamD.active.end.getTime() - now.getTime()));
     } else if (teamD.next && teamD.next.start instanceof Date && typeof formatDuration === 'function') {
-      title = 'Směna D začíná za ' + formatDuration(Math.max(0, teamD.next.start.getTime() - now.getTime()));
+      title = 'Směna ' + accountTeam + ' začíná za ' + formatDuration(Math.max(0, teamD.next.start.getTime() - now.getTime()));
     } else {
-      title = 'Směna D';
+      title = 'Směna ' + accountTeam;
     }
     accessOverview = getDashboardAccessOverview(now);
-    if (!accessOverview.length) detail = 'Další směna zatím není k dispozici.';
+    if (!accessOverview.length) detail = accountTeam === 'D'
+      ? 'Další směna zatím není k dispozici.'
+      : (teamD.active ? 'Právě probíhá směna ' + accountTeam + '.'
+        : (teamD.next ? 'Nejbližší směna: ' + formatDashboardNextShiftMeta(teamD.next) : 'Termín další směny není k dispozici.'));
   }
 
   const isRivetingDay = /^o nic se nestarej/i.test(task);
@@ -801,8 +849,11 @@ function buildDashboardPersonalHeroHtml(now, esc) {
 
 function updateDashboard() {
   const now = typeof getPragueNow === 'function' ? getPragueNow(new Date()) : new Date();
-  const active = typeof getDashboardActiveWorkShift === 'function' ? getDashboardActiveWorkShift(now) : null;
-  const nextWorkShift = !active && typeof getDashboardNextWorkShift === 'function' ? getDashboardNextWorkShift(now) : null;
+  if(typeof rakApplyShiftAccess==='function') rakApplyShiftAccess();
+  const assigned = getRakActiveAccountShiftInfo();
+  let active = typeof getDashboardActiveWorkShift === 'function' ? getDashboardActiveWorkShift(now) : null;
+  let nextWorkShift = !active && typeof getDashboardNextWorkShift === 'function' ? getDashboardNextWorkShift(now) : null;
+  if(assigned.outside) { const own = getDashboardAccountTeamStatus(now,assigned.team); active=own.active; nextWorkShift=own.next; }
   const teamDStatus = typeof getDashboardTeamDStatus === 'function' ? getDashboardTeamDStatus(now) : { active: null, next: null };
   const special = typeof getSpecialWorkInfo === 'function' ? getSpecialWorkInfo(now) : null;
   const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -882,7 +933,11 @@ function updateDashboard() {
   const payMeta = payDays === null
     ? ''
     : (payDays === 0 ? 'dnes' : 'za ' + payDays + ' ' + (payDays === 1 ? 'den' : (payDays >= 2 && payDays <= 4 ? 'dny' : 'dní')));
-  setCard('dashCalendar', 'Kalendář', formatCalendarDateLabel(now), getCalendarSpecialText(now), '', false, calendarIcon);
+  const calendarDate = typeof formatCalendarDateLabel === 'function'
+    ? formatCalendarDateLabel(now)
+    : new Intl.DateTimeFormat('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' }).format(now);
+  const calendarMeta = typeof getCalendarSpecialText === 'function' ? getCalendarSpecialText(now) : '';
+  setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', false, calendarIcon);
   const shiftCountdownTitle = active ? 'Zbývá' : (nextWorkShift ? 'Začíná' : 'Zbývá');
   const shiftCountdownValue = active
     ? (active.end ? formatDuration(Math.max(0, active.end - now)) : '—')
@@ -1279,7 +1334,7 @@ function setDashboardManualSyncBadge(text, kind) {
     const safeKind = String(kind || 'pending').trim() || 'pending';
     badge.className = 'dashboardSyncBadge dashboardSyncBadge--' + safeKind;
     badge.textContent = String(text || '').trim() || 'Synchronizuji…';
-    badge.title = 'Kliknutím vynutíš synchronizaci rozpisu, herních statistik a kontrolu aktualizace.';
+    badge.title = 'Kliknutím vynutíš synchronizaci rozpisu, vzhledu profilu a kontrolu aktualizace.';
   } catch (err) {}
 }
 
@@ -1293,6 +1348,11 @@ async function runDashboardManualSync(source) {
     try {
       if (typeof fn !== 'function') return null;
       const value = await fn();
+      if (value && typeof value === 'object' && value.ok === false) {
+        result.ok = false;
+        result.steps.push({ name, ok: false, reason: String(value.reason || 'operation-rejected') });
+        return value;
+      }
       result.steps.push({ name, ok: true });
       return value;
     } catch (err) {
@@ -1304,23 +1364,67 @@ async function runDashboardManualSync(source) {
   try {
     await step('flush-fronty', () => window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.flushPendingWrites === 'function' ? window.RotationSupabaseBridge.flushPendingWrites() : null);
     await step('rozpis', () => typeof syncRotationFromSupabase === 'function' ? syncRotationFromSupabase(true) : null);
-    await step('herni-profily', () => typeof gamesSyncProfileFromRemote === 'function' ? gamesSyncProfileFromRemote(true) : null);
     await step('profil-vzhled', async () => {
       if (typeof pushActiveAccountUiRemoteSettings === 'function') await pushActiveAccountUiRemoteSettings('dashboard-manual-sync');
-      const active = typeof gamesGetActiveAccount === 'function' ? gamesGetActiveAccount() : null;
-      if (active && typeof loadActiveAccountUiRemoteSettings === 'function') return loadActiveAccountUiRemoteSettings(active.id);
+      const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+      const id = String(profile && profile.accountNumber || (typeof app !== 'undefined' && app && app.activeAccountId) || '').trim();
+      if (id && typeof loadActiveAccountUiRemoteSettings === 'function') return loadActiveAccountUiRemoteSettings(id);
       return null;
     });
-    await step('herni-statistiky', () => typeof gamesRefreshRemoteLeaderboards === 'function' ? gamesRefreshRemoteLeaderboards(true) : null);
     await step('live-refresh', () => typeof window.__rotaceTriggerLiveRefresh === 'function' ? window.__rotaceTriggerLiveRefresh('dashboard-manual-sync', { force: true }) : null);
     await step('kontrola-aktualizace', () => typeof window.__rotaceForcePwaUpdateCheck === 'function' ? window.__rotaceForcePwaUpdateCheck('dashboard-manual-sync') : null);
     await step('pwa-cache', () => typeof window.__rotaceRequestPwaCacheStatus === 'function' ? window.__rotaceRequestPwaCacheStatus('dashboard-manual-sync') : null);
     if (typeof renderRotace === 'function') renderRotace();
     if (typeof renderStatsPanel === 'function') renderStatsPanel();
     if (typeof updateDashboard === 'function') updateDashboard();
+    // RAK_17057_MANUAL_TRUTH_GUARD: successful steps are not proof of an online rotation read.
+    const actual = typeof getSupabaseSyncStatus === 'function' ? getSupabaseSyncStatus() : null;
+    if (!actual || actual.kind !== 'online' || actual.queued !== 0 || actual.verified !== true) result.ok = false;
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastAt = Date.now();
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastText = result.ok ? 'Synchronizace hotová.' : 'Synchronizace doběhla s chybou.';
     setDashboardManualSyncBadge(result.ok ? '🟢 Synchronizováno teď' : '🔴 Sync s chybou', result.ok ? 'online' : 'error');
+    // RAK_17059_DIAGNOSTIC_DIALOG_GUARD: shown only after an intentional badge tap.
+    if (actual && actual.queued > 0 && (source === 'dashboard-click' || source === 'dashboard-keyboard') && typeof window.alert === 'function') {
+      // RAK_17062_READONLY_DIALOG_GUARD: counts only; no raw queue values or server overwrite.
+      const review = typeof window.getRakPendingSyncReview === 'function' ? window.getRakPendingSyncReview() : null;
+      const issue = actual.queueIssue || {};
+      const names = ['starší rozpis','nastavení strojů','měsíční rozpis','výsledek hry','herní statistika','vzhled profilu','rozehraná hra','hlášení chyby','neznámá položka'];
+      const label = names.includes(issue.label) ? issue.label : 'neznámá položka';
+      const reasons = ['oprávnění','časový limit','připojení','omezení serveru','nepotvrzené uložení'];
+      const reason = reasons.includes(issue.failure) ? issue.failure : 'nepotvrzené uložení';
+      window.alert(['RaK 1.7.59 – diagnostika synchronizace', 'Čeká: ' + Number(actual.queued || 0), 'Zadržené: ' + Number(review && review.held || 0), 'Ostatní: ' + Number(review && review.retryable || 0), 'Online načtení: ' + (review && review.remoteVerified ? 'ověřeno' : 'neověřeno'), 'Obsah serveru a telefonu nebyl porovnán.', 'Typ: ' + label, 'Předchozí neúspěšné pokusy: ' + Math.max(0, Number(issue.retries || 0)), 'Důvod: ' + reason, actual.conflictCount ? 'Zadržený konflikt: vyžaduje bezpečnou kontrolu.' : 'Lokální změna zůstává zachována.'].join('\n'));
+    }
+    // RAK_17063_MANUAL_REVISION_DIALOG_GUARD: explicit badge tap and separate
+    // approval; comparison is read-only, no payload, ID, token or automatic replay.
+    if (actual && actual.conflictCount > 0
+      && (source === 'dashboard-click' || source === 'dashboard-keyboard')
+      && typeof app !== 'undefined' && app && app.adminUnlocked === true
+      && typeof window.confirm === 'function' && typeof window.reviewRakRotationRevisionOnDemand === 'function'
+      && window.confirm('Zkontrolovat pouze číslo revize rozpisu proti serveru? Neuloží ani nepřepíše žádné změny.')) {
+      Promise.resolve().then(() => window.reviewRakRotationRevisionOnDemand()).then(review => {
+        if (typeof window.alert !== 'function') return;
+        const description = review && review.ok
+          ? (review.state === 'revision-equal' ? 'Revize byly při kontrole shodné.'
+            : review.state === 'revision-changed' ? 'Revize se liší. Nic nepřepisuj.'
+            : 'Lokální revize nebyla ověřena. Nic nepřepisuj.')
+          : 'Revizi se nepodařilo bezpečně ověřit. Nic nepřepisuj.';
+        window.alert(['Kontrola revize rozpisu',description,
+          'Obsah serveru a telefonu nebyl porovnán.',
+          'Nebyl proveden žádný zápis ani vyřešen konflikt.'].join('\n'));
+      }).catch(() => {
+        if (typeof window.alert === 'function') window.alert('Kontrola revize se nezdařila. Nic nepřepisuj.');
+      });
+    }
+    // RAK_17060_MANUAL_RESCUE_GUARD: no deletion, silent upload or automatic override.
+    if (actual && (actual.storageIssue || actual.conflictCount > 0)
+      && (source === 'dashboard-click' || source === 'dashboard-keyboard')
+      && typeof window.confirm === 'function'
+      && window.confirm('Neodeslané změny mohou obsahovat osobní údaje. Chceš uložit jejich soukromou zálohu do zařízení? Nejde o odeslání na server.')) {
+      const saved = typeof window.downloadRakPendingSyncBackup === 'function' && window.downloadRakPendingSyncBackup();
+      if (!saved && typeof window.alert === 'function') window.alert('Zálohu se nepodařilo vytvořit. Neodstraňuj data aplikace.');
+    }
+    if (actual && actual.storageIssue && !actual.queued && (source === 'dashboard-click' || source === 'dashboard-keyboard')
+      && typeof window.alert === 'function') window.alert('Lokální frontu nelze ověřit. Neodstraňuj data aplikace a použij zálohu přes nabídku.');
     const restore = () => { try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {} };
     if (typeof registerTimeout === 'function') registerTimeout(restore, 1800); else setTimeout(restore, 1800);
     return Object.assign(result, { elapsedMs: Date.now() - started });
@@ -1336,7 +1440,7 @@ function bindDashboardManualSyncBadge() {
   badge.setAttribute('role', 'button');
   badge.setAttribute('tabindex', '0');
   badge.setAttribute('aria-label', 'Vynutit synchronizaci a kontrolu aktualizace');
-  badge.title = 'Kliknutím vynutíš synchronizaci rozpisu, herních statistik a kontrolu aktualizace.';
+  badge.title = 'Kliknutím vynutíš synchronizaci rozpisu, vzhledu profilu a kontrolu aktualizace.';
   badge.addEventListener('click', () => { void runDashboardManualSync('dashboard-click'); });
   badge.addEventListener('keydown', (event) => {
     if (event && (event.key === 'Enter' || event.key === ' ')) {

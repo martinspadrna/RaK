@@ -71,11 +71,24 @@ function renderAdminMonthPickerHtml(selectedMonthKey) {
 
 async function loadAdminRotationFromSupabase() {
   if (typeof syncRotationFromSupabase === 'function') {
-    if (typeof app !== 'undefined' && app && app.adminRotationDirty === true && document.getElementById('adminRotationEditor')) {
-      if (!confirm('V editoru jsou neuložené změny. Opravdu je zahodit a načíst online stav?')) return null;
+    // RAK_17067_RESTORE_DIRTY_ON_FAILURE: guard clears the flag only after user consent.
+    const hadDirty = typeof app !== 'undefined' && app && app.adminRotationDirty === true && !!document.getElementById('adminRotationEditor');
+    if (hadDirty) {
+      // RAK_17066_RELOAD_GUARD: confirm alone lost edits; preserve BEFORE discarding.
+      if(typeof rakGuardAdminRotationDiscard!=='function' || !rakGuardAdminRotationDiscard()) return null;
       app.adminRotationDirty = false;
     }
-    return syncRotationFromSupabase('discard-draft');
+    let result = null;
+    try { result = await syncRotationFromSupabase('discard-draft'); } catch (_) { result = null; }
+    // RAK_17068_LATE_EDIT_NOTICE: also retain edits created while online loading was in flight.
+    if (!result && (hadDirty || (typeof app!=='undefined' && app && app.adminRotationDirty===true))) {
+      app.adminRotationDirty = true;
+      const status = document.getElementById('adminRotationDraftStatus');
+      if (status) status.textContent = hadDirty
+        ? 'Online načtení nebylo použito. Původní změny zůstávají v editoru a místní záloze.'
+        : 'Online načtení nebylo použito. Nové úpravy zůstávají v editoru. Uložte si místní návrh.';
+    }
+    return result;
   }
   return null;
 }
@@ -632,13 +645,14 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
 
   // v1.5.78: ruční editor hlídá i stejného člověka samotného na frézkách dvě směny po sobě.
   // Generátor tímto krokem neměníme; tohle varování vzniká jen při skutečné ruční změně před uložením.
-  if (opts.source === 'manual-save') {
+  if (opts.source === 'manual-save' || opts.source === 'generator') {
     const mfkf06IdxManual = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
     const mfkf10IdxManual = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10');
     let previousSoloMill = null;
     softRows.forEach((row, rowIdx) => {
       const dateLabel = String(row && row.date || '').trim();
       if (!dateLabel) return;
+      if (typeof adminRotationGeneratorIsWorkingRow === 'function' && !adminRotationGeneratorIsWorkingRow(month, rowIdx)) return;
       const cells = Array.isArray(row && row.cells) ? row.cells : [];
       const mfkf06 = adminRotationCanonicalName(cells[mfkf06IdxManual], knownNames);
       const mfkf10 = adminRotationCanonicalName(cells[mfkf10IdxManual], knownNames);
@@ -721,7 +735,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
     const values = workingNames.map((name) => Number(soloCounts[name] || 0));
     const spread = Math.max(...values) - Math.min(...values);
     const allowed = Math.max(0, Number(balanceRules.soloMillMaxSpread ?? 1) || 1);
-    if (spread > allowed) addIssue('warn', 'solo-mill-balance', 'Samostatné frézky nejdou bezpečně dorovnat na výchozí rozdíl ' + String(allowed) + '.', 'Aktuální rozdíl: ' + String(spread) + '.');
+    if (spread > allowed) addIssue(opts.source === 'generator' ? 'error' : 'warn', 'solo-mill-balance', 'Samostatné frézky nejdou bezpečně dorovnat na výchozí rozdíl ' + String(allowed) + '.', 'Aktuální rozdíl: ' + String(spread) + '.');
   }
 
   if (balanceRules.softTotalBalanceEnabled !== false) {
@@ -839,7 +853,20 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
   const finalTnksBalance = adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
   const tpkw02Balance = adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
   const finalSoloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);
+  // RAK_GENERATOR_FINAL_SOLO_MILL_CALL_17008
+  const finalSoloMillStreakRepair = adminRotationGeneratorRepairConsecutiveSoloMill17008(month, model, monthKey);
+  // RAK_GENERATOR_SOLO_MILL_SPREAD_CALL_17009
+  const finalSoloMillSpreadRepair = adminRotationGeneratorRepairSoloMillSpread17009(month, model, monthKey);
+  // RAK_GENERATOR_SUNDAY_TBK_FAIRNESS_CALL_17011
+  const annualSundayTbkrCleanupBalance = adminRotationGeneratorBalanceSundayTbkrCleanup17011(month, model, monthKey);
+  // RAK_GENERATOR_PRESS_HALF_STEP_CALL_17012
+  const pressHalfStepBalance = adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey);
+  // RAK_TPKW02_FINAL_CALL_17013
+  const finalTpkw02Balance = adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey);
   const ruleCheck = adminRotationValidateMonthRules(month, monthKey, { source: 'generator' });
+  if (finalTpkw02Balance.spread > 1 && !finalTpkw02Balance.disabled) {
+    ruleCheck.issues.push({ severity: 'warn', code: 'tpkw02-month-spread', message: 'TPKW02 nelze s aktuální kvalifikací bezpečně vyrovnat na rozdíl 1 směny.' });
+  }
   const criticalIssues = ruleCheck.issues.filter((issue) => issue && issue.severity === 'error');
   if (criticalIssues.length) {
     throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · '));
@@ -864,7 +891,17 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
       + (tnksPostRepairBalance && Number(tnksPostRepairBalance.swaps || 0))
       + (finalTnksBalance && Number(finalTnksBalance.swaps || 0)),
     tnksConsecutiveRepairs: tnksConsecutiveRepair && Number(tnksConsecutiveRepair.repairs || 0),
-    soloMillBalanceSwaps: (soloMillBalance && Number(soloMillBalance.swaps || 0)) + (soloMillRebalance && Number(soloMillRebalance.swaps || 0)) + (finalSoloMillBalance && Number(finalSoloMillBalance.swaps || 0)),
+    soloMillBalanceSwaps: (soloMillBalance && Number(soloMillBalance.swaps || 0)) + (soloMillRebalance && Number(soloMillRebalance.swaps || 0)) + (finalSoloMillBalance && Number(finalSoloMillBalance.swaps || 0)) + (finalSoloMillStreakRepair && Number(finalSoloMillStreakRepair.repairs || 0)) + (finalSoloMillSpreadRepair && Number(finalSoloMillSpreadRepair.repairs || 0)),
+    soloMillMonthlySpreadRepairs: finalSoloMillSpreadRepair && Number(finalSoloMillSpreadRepair.repairs || 0),
+    soloMillMonthlySpread: finalSoloMillSpreadRepair && Number(finalSoloMillSpreadRepair.spread || 0),
+    annualSundayTbkrCleanupBalanceSwaps: annualSundayTbkrCleanupBalance && Number(annualSundayTbkrCleanupBalance.swaps || 0),
+    annualSundayTbkrCleanupSpread: annualSundayTbkrCleanupBalance && Number(annualSundayTbkrCleanupBalance.tbkSpread || 0),
+    pressHalfStepBalanceSwaps: pressHalfStepBalance && Number(pressHalfStepBalance.swaps || 0),
+    pressHalfStepMonthlySpread: pressHalfStepBalance && Number(pressHalfStepBalance.spread || 0),
+    finalTpkw02BalanceSwaps: finalTpkw02Balance && Number(finalTpkw02Balance.swaps || 0),
+    finalTpkw02MonthlySpread: finalTpkw02Balance && Number(finalTpkw02Balance.spread || 0),
+    soloMillConsecutiveRepairs: finalSoloMillStreakRepair && Number(finalSoloMillStreakRepair.repairs || 0),
+    soloMillConsecutiveUnresolved: finalSoloMillStreakRepair && Array.isArray(finalSoloMillStreakRepair.unresolved) ? finalSoloMillStreakRepair.unresolved.length : 0,
     tpkw02BalanceSwaps: tpkw02Balance && Number(tpkw02Balance.swaps || 0),
     softTotalBalanceSwaps: softTotalBalance && Number(softTotalBalance.swaps || 0),
     softKindBalanceSwaps: (softKindBalance && Number(softKindBalance.swaps || 0)) + (finalSoftKindBalance && Number(finalSoftKindBalance.swaps || 0)),

@@ -359,7 +359,24 @@ function getActiveAccountUiRemotePayload() {
 
 function scheduleActiveAccountUiRemoteSave(reason) {
   const bridge = window.RotationSupabaseBridge;
-  if (!bridge || typeof bridge.saveGameAccountUiSettings !== 'function') return false;
+  if (!bridge || typeof bridge.saveGameAccountUiSettings !== 'function') {
+    if (typeof window.rakEnsureFeature === 'function') {
+      if (!window.__rakProfileUiRemoteSaveSyncEnsurePromise) {
+        window.__rakProfileUiRemoteSaveSyncEnsurePromise = Promise.resolve()
+          .then(() => window.rakEnsureFeature('sync'))
+          .catch((err) => { console.warn('Profile UI sync feature load failed', err); return null; })
+          .finally(() => { window.__rakProfileUiRemoteSaveSyncEnsurePromise = null; });
+      }
+      void window.__rakProfileUiRemoteSaveSyncEnsurePromise.then(() => {
+        const readyBridge = window.RotationSupabaseBridge;
+        if (readyBridge && typeof readyBridge.saveGameAccountUiSettings === 'function') {
+          scheduleActiveAccountUiRemoteSave(reason || 'profile-ui-sync-ready-save');
+        }
+      });
+      return true;
+    }
+    return false;
+  }
   const payload = getActiveAccountUiRemotePayload();
   if (!payload || !payload.account_number) return false;
   const accountId = payload.account_number;
@@ -825,7 +842,19 @@ function applyAppearancePreference(appearanceId, persist = true, options = {}) {
   const id = normalizeThemePreferenceId(appearanceId, RAK_DEFAULT_APPEARANCE_ID);
   applyThemePreference(id, persist, Object.assign({}, options, { skipProfile:true }));
   applyBackgroundPreference(id, persist, Object.assign({}, options, { skipProfile:true }));
-  if (persist && !options.skipProfile) saveActiveAccountUiSettings({ themeId:id, backgroundId:id }, { reason:'appearance-change', skipRemote:!!options.skipRemote });
+  if (persist && !options.skipProfile) {
+    saveActiveAccountUiSettings({ themeId:id, backgroundId:id }, { reason:'appearance-change', skipRemote:true });
+    if (!options.skipRemote) {
+      const pushAppearanceNow = () => {
+        try { if (typeof pushActiveAccountUiRemoteSettings === 'function') void pushActiveAccountUiRemoteSettings('appearance-change-immediate'); } catch (err) { console.warn('Profile UI immediate remote save failed', err); }
+      };
+      if (typeof window.rakEnsureFeature === 'function') {
+        void window.rakEnsureFeature('sync').then(pushAppearanceNow).catch((err) => console.warn('Profile UI immediate sync load failed', err));
+      } else {
+        pushAppearanceNow();
+      }
+    }
+  }
   return id;
 }
 

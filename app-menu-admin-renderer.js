@@ -2,6 +2,11 @@
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-menu-admin-renderer.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 function renderAdminMenuBody(body, section) {
+  // RAK_REPORT_ONLY_DEPUTY_17019
+  if (!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
+    if (body) body.innerHTML = '<div class="appMenuCard">Administrace není přístupná.<button type="button" class="appMenuAction" data-menu-back="1">Zpět</button></div>';
+    return;
+  }
   const mode = String(section || 'home').trim() || 'home';
   const months = getAdminRotationMonthKeys();
   const monthKey = getAdminSelectedMonthKey();
@@ -21,23 +26,25 @@ function renderAdminMenuBody(body, section) {
     adminServiceActions.push({ action: 'open-settings-backups', label: 'Zálohy nastavení' });
   }
 
+  // RAK_ADMIN_COMPACT_17022
+  const adminCompactOpenGroup = typeof app !== 'undefined' && app ? String(app.adminCompactOpenGroup || '') : '';
   const homeHtml = [
-    '<div class="appMenuCard appMenuAdminCard">',
+    '<div class="appMenuCard appMenuAdminCard adminCompactHome">',
     '  <div class="appMenuCardTitle">Administrace</div>',
     '  <div class="appMenuText">',
-    '    <div>Nejdřív nastav provoz, potom vygeneruj a ulož rozpis. Všechno se ukládá online přes Supabase.</div>',
-    '    <div class="smallText" id="adminOnlineSaveStatus">Vyber sekci, kterou chceš upravit.</div>',
+    '    <div>Nejčastější úkony najdeš hned nahoře. Ostatní možnosti rozbal podle tématu.</div>',
+    '    <div class="smallText" id="adminOnlineSaveStatus">Změny se ukládají až tlačítkem Uložit v konkrétní sekci.</div>',
     '  </div>',
+    '  <div class="appMenuSubTitle">Rychlý přístup</div>',
+    '  <div class="adminCompactQuickGrid">',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="open-rotation">Rozpisy</button>',
+    '    <button type="button" class="appMenuAction" data-admin-action="open-workers">Pracovníci</button>',
+    '    <button type="button" class="appMenuAction" data-admin-action="open-machines">Nastavení strojů</button>',
+    '    <button type="button" class="appMenuAction" data-admin-action="open-reports">Reporty chyb</button>',
+    '  </div>',
+    '  <div class="appMenuSubTitle">Všechny možnosti</div>',
     '  <div class="adminMenuSections">',
-    buildAdminMenuSectionHtml('1. Provoz', 'Stroje, provozní doby a absence – vstupy pro tvorbu rozpisu.', [
-      { action: 'open-machines', label: 'Nastavení strojů' },
-      { action: 'open-correction-settings', label: 'Nastavení korekcí' },
-      { action: 'open-food', label: 'Kantýna / jídelna' },
-      { action: 'open-overtime', label: 'Přesčasy' },
-      { action: 'open-vacation', label: 'Dovolená / odstávky' },
-      { action: 'open-special-days', label: 'Mimořádné volné dny' }
-    ]),
-    buildAdminMenuSectionHtml('2. Rozpisy', 'Tvorba, kontrola, historie, zálohy a export rozpisu.', [
+    buildAdminMenuSectionHtml('Rozpisy a směny', 'Rozpis, lidé, generátor, historie a soubory.', [
       { action: 'open-rotation', label: 'Rozpisy' },
       { action: 'open-workers', label: 'Pracovníci' },
       { action: 'open-generator-settings', label: 'Pravidla generátoru' },
@@ -45,16 +52,24 @@ function renderAdminMenuBody(body, section) {
       { action: 'open-change-log', label: 'Historie změn' },
       { action: 'open-backups', label: 'Zálohy rozpisů' },
       { action: 'open-export', label: 'Export / import' }
-    ]),
-    buildAdminMenuSectionHtml('3. Pro zaměstnance', 'Texty, odkazy a informace viditelné v běžné aplikaci.', [
+    ], { open: false }),
+    buildAdminMenuSectionHtml('Provoz a absence', 'Stroje, časy, přesčasy a volné dny.', [
+      { action: 'open-machines', label: 'Nastavení strojů' },
+      { action: 'open-correction-settings', label: 'Nastavení korekcí' },
+      { action: 'open-food', label: 'Kantýna / jídelna' },
+      { action: 'open-overtime', label: 'Přesčasy' },
+      { action: 'open-vacation', label: 'Dovolená / odstávky' },
+      { action: 'open-special-days', label: 'Mimořádné volné dny' }
+    ], { open: false }),
+    buildAdminMenuSectionHtml('Informace pro zaměstnance', 'Co se zobrazuje v běžné aplikaci.', [
       { action: 'open-announcement', label: 'Oznámení Dashboard' },
       { action: 'open-external-links', label: 'Odkazy' }
     ].concat((typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins()) ? [{ action: 'open-app-contact', label: 'Kontakt aplikace' }] : []).concat([
       { action: 'open-payroll-settings', label: 'Výplata' }
-    ])),
-    buildAdminMenuSectionHtml('4. Kontrola a servis', adminServiceDetail, [
+    ]), { open: false }),
+    buildAdminMenuSectionHtml('Správa a servis', adminServiceDetail, [
       { action: 'open-reports', label: 'Reporty chyb' }
-    ].concat(adminServiceActions)),
+    ].concat(adminServiceActions), { open: false }),
     '  </div>',
     '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
     '</div>'
@@ -342,6 +357,11 @@ function renderAdminMenuBody(body, section) {
     '    <div class="smallText">Obnovit lze dvěma způsoby: online ze Supabase (vyber řádek v seznamu níže a klikni Obnovit), nebo nahráním souboru z telefonu (tlačítko Obnovit ze souboru).</div>',
     '    <div class="smallText" id="adminOnlineSaveStatus">Vytvořit, nahrát nebo obnovit může jen hlavní admin účet.</div>',
     '  </div>',
+    '<div class="appMenuCard adminCompleteRakBackupPanel">',
+    '  <div class="appMenuCardTitle">Úplná záloha RaK</div>',
+    '  <div class="appMenuText"><div>Jeden ZIP pro obnovu celé aplikace: přesný Git zdroj, skutečně nasazená PWA, aktuální data Supabase, DB struktura/RLS/RPC a Storage.</div><div class="smallText">Hesla, aktivní relace a tajné klíče se z bezpečnostních důvodů nezahrnují. Při obnově se vytvoří znovu.</div><div class="smallText" id="adminCompleteBackupStatus">Připraveno k vytvoření úplné zálohy.</div></div>',
+    '  <div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-admin-action="create-complete-rak-backup">Stáhnout úplnou zálohu RaK (.zip)</button></div>',
+    '</div>',
     buildAdminFullSettingsBackupStatusHtml(),
     buildAdminFullSettingsBackupsHtml(),
     '  <div class="appMenuActionRow">',
@@ -479,7 +499,14 @@ function renderAdminMenuBody(body, section) {
     '</div>'
   ].join('');
 
-  const serviceHtml = buildAdminServiceHtml();
+  const serviceHtml = buildAdminServiceHtml() + [
+    '<div class="appMenuCard appMenuAdminCard" id="rakLiveAuthDiagnostic">',
+    '  <div class="appMenuCardTitle">Ověření živé administrátorské relace</div>',
+    '  <div class="smallText">Jen v testovací verzi: po kliknutí se ověří skutečný podepsaný token, role a práva ke čtení. Bez ukládání tokenu, změn dat nebo automatického přihlášení.</div>',
+    '  <button type="button" class="appMenuAction" data-admin-action="run-live-auth-check">Ověřit moje přihlášení a práva</button>',
+    '  <div class="smallText" id="rakLiveAuthDiagnosticStatus" role="status" aria-live="polite">Ještě neověřeno. Kontrola se spustí pouze klepnutím.</div>',
+    '</div>'
+  ].join('');
 
   if (mode === 'machines') {
     body.innerHTML = machinesHtml;
@@ -535,6 +562,21 @@ function renderAdminMenuBody(body, section) {
     body.innerHTML = homeHtml;
   }
 
+  if (mode === 'home') {
+    // Keep the last category open when returning from a subpage, but show one at a time.
+    const groups = Array.from(body.querySelectorAll('.adminMenuSection'));
+    groups.forEach((group, index) => {
+      group.open = adminCompactOpenGroup === String(index);
+      const summary = group.querySelector('summary');
+      if (!summary) return;
+      summary.addEventListener('click', () => {
+        const next = group.open ? '' : String(index);
+        if (typeof app !== 'undefined' && app) app.adminCompactOpenGroup = next;
+        if (next) groups.forEach(other => { if (other !== group) other.open = false; });
+      });
+    });
+  }
+
   if (mode === 'rotation') {
     runAdminRotationEditorMaintenance(body, 'render-admin-rotation');
   }
@@ -551,3 +593,101 @@ function renderAdminMenuBody(body, section) {
 
 
 // RaK 1.2 (1.155) – Plovoucí odebrání a údržba editoru rozpisů jsou oddělené v admin-rotation.js.
+
+
+// RaK 1.7.56. Injected into the built admin renderer by the development stage.
+// A real, user-initiated role probe. Never print, persist or transmit a JWT except
+// as an Authorization header to the configured isolated TEST Supabase origin.
+async function rakRunLiveAuthDiagnostic() {
+  const status = document.getElementById('rakLiveAuthDiagnosticStatus');
+  if (!status) return;
+  if (status.dataset.running === '1') return;
+  const setStatus = (message, ok) => {
+    status.textContent = message;
+    status.dataset.result = ok === true ? 'pass' : ok === false ? 'fail' : 'pending';
+  };
+  status.dataset.running = '1';
+  setStatus('Ověřuji přihlášení a práva pouze pro tento účet…', null);
+  try {
+    if (!navigator.onLine || typeof rakAdminCanOpenAdmin !== 'function' || !rakAdminCanOpenAdmin()
+        || !app || app.adminAuthVersion !== 2) {
+      setStatus('Nelze ověřit: vyžaduje online přihlášení správce přes Supabase Auth.', false);
+      return;
+    }
+    const config = window.SUPABASE_CONFIG || {};
+    const origin = String(config.url || '').replace(/\/$/, '');
+    if (origin !== 'https://cgshssdjgzzuprlwnabl.supabase.co' || !String(config.publishableKey || '').startsWith('sb_publishable_')) {
+      setStatus('Kontrola zastavena: nepovolená databáze nebo chybějící veřejný klíč.', false);
+      return;
+    }
+    const bridge = window.RotationSupabaseBridge;
+    const token = bridge && typeof bridge.getAdminAccessToken === 'function'
+      ? await bridge.getAdminAccessToken() : '';
+    if (!token || token.length < 100) {
+      setStatus('Platná administrátorská relace není dostupná. Přihlas se znovu.', false);
+      return;
+    }
+    async function probe(endpoint, method = 'POST', payload) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        return await fetch(origin + endpoint, {
+          method,
+          cache: 'no-store',
+          signal: controller.signal,
+          headers: {
+            apikey: config.publishableKey,
+            Authorization: 'Bearer ' + token,
+            ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {})
+          },
+          ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {})
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    // GoTrue verifies the cryptographic signature and current Auth identity.
+    const authResponse = await probe('/auth/v1/user', 'GET');
+    if (!authResponse.ok) {
+      setStatus('NEPROŠLO: Supabase Auth zamítl přihlašovací token.', false);
+      return;
+    }
+    const authenticatedUser = await authResponse.json();
+    const contextResponse = await probe('/rest/v1/rpc/rak_admin_context');
+    if (!contextResponse.ok) {
+      setStatus('NEPROŠLO: databáze odmítla administrátorskou relaci.', false);
+      return;
+    }
+    const context = await contextResponse.json();
+    const role = String(context && context.role || '');
+    if (!['owner', 'admin'].includes(role)
+        || String(context.user_id || '') !== String(authenticatedUser.id || '')
+        || String(context.account_id || '') !== String(app.adminAccountId || '')
+        || !String(context.session_id || '')) {
+      setStatus('NEPROŠLO: ověřená identita, aktuální účet a role spolu nesouhlasí.', false);
+      return;
+    }
+    // This read-only RPC must work for both owner and administrator.
+    const adminResponse = await probe('/rest/v1/rpc/rak_admin_list_audit_v2', 'POST', { p_limit: 1 });
+    if (!adminResponse.ok) {
+      setStatus('NEPROŠLO: oprávněná administrátorská čtecí akce byla odmítnuta.', false);
+      return;
+    }
+    await adminResponse.body?.cancel();
+    // Owner-only read-only RPC is our positive/negative privilege boundary.
+    const ownerResponse = await probe('/rest/v1/rpc/rak_owner_list_admin_profiles');
+    const privilegePass = role === 'owner' ? ownerResponse.ok : [401, 403].includes(ownerResponse.status);
+    await ownerResponse.body?.cancel();
+    if (!privilegePass) {
+      setStatus('NEPROŠLO: práva vlastníka neodpovídají ověřené roli.', false);
+      return;
+    }
+    setStatus('PROŠLO: skutečný Auth token, vazba na účet, administrátorské čtení a oddělení práv vlastníka (' + (role === 'owner' ? 'vlastník' : 'administrátor') + '). Ostatní role je nutné otestovat jejich vlastním přihlášením.', true);
+  } catch (_error) {
+    // Never expose fetch headers, JWT, private RPC payloads or error objects.
+    setStatus('Kontrola nedokončena: chyba spojení nebo odpovědi. Žádná data nebyla změněna.', false);
+  } finally {
+    status.dataset.running = '0';
+  }
+}
+

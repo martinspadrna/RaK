@@ -627,10 +627,22 @@ function normalizeRakWorkerLoginNumber(value) {
   return String(value || '').trim().replace(/\D/g, '').slice(0, 4);
 }
 
+// RAK_ACTIVE_ROSTER_SOURCE_17007
+function rakWorkerRosterActiveValue17007(entry) {
+  if (!entry || typeof entry !== 'object') return true;
+  const hasActive = Object.prototype.hasOwnProperty.call(entry, 'active');
+  const hasEnabled = Object.prototype.hasOwnProperty.call(entry, 'enabled');
+  const hasIsActive = Object.prototype.hasOwnProperty.call(entry, 'isActive');
+  if (!hasActive && !hasEnabled && !hasIsActive) return true;
+  const raw = hasActive ? entry.active : (hasEnabled ? entry.enabled : entry.isActive);
+  if (raw === false || raw === 0 || raw === '0') return false;
+  return !/^(?:false|ne|no|off|inactive)$/i.test(String(raw || '').trim());
+}
+
 function normalizeRakWorkerEntry(entry) {
   if (entry && typeof entry === 'string') {
     const name = entry.trim();
-    return name ? { name, loginNumber: '', machines: [] } : null;
+    return name ? { name, loginNumber: '', machines: [], active: true } : null;
   }
   if (!entry || typeof entry !== 'object') return null;
   const name = String(entry.name || '').trim();
@@ -638,7 +650,7 @@ function normalizeRakWorkerEntry(entry) {
   const loginNumber = normalizeRakWorkerLoginNumber(entry.loginNumber || entry.login_number || '');
   const machinesRaw = Array.isArray(entry.machines) ? entry.machines.map((m) => String(m || '').trim().toUpperCase()) : [];
   const machines = RAK_WORKER_MACHINE_GROUPS.filter((group) => machinesRaw.includes(group));
-  return { name, loginNumber, machines };
+  return { name, loginNumber, machines, active: rakWorkerRosterActiveValue17007(entry) };
 }
 
 function normalizeRakApplicationAccountEntry(entry) {
@@ -646,7 +658,9 @@ function normalizeRakApplicationAccountEntry(entry) {
   const name = String(entry.name || '').trim();
   const loginNumber = normalizeRakWorkerLoginNumber(entry.loginNumber || entry.login_number || '');
   if (!name || !loginNumber) return null;
-  return { name, loginNumber };
+  const requestedTeam = String(entry.shiftTeam || entry.shift_team || 'D').trim().toUpperCase();
+  const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : 'D';
+  return { name, loginNumber, shiftTeam };
 }
 
 function normalizeRakWorkerRosterSettings(settings) {
@@ -684,14 +698,16 @@ function getRakWorkerRosterSettingsRow() {
 
 function getRakWorkerRosterSettings() {
   const row = getRakWorkerRosterSettingsRow();
-  if (!row) return { type: RAK_WORKER_ROSTER_SETTINGS_CATEGORY, custom: false, workers: Array.from(KNOWN_STAT_NAMES).map((name) => ({ name, loginNumber: '', machines: [] })) };
+  if (!row) return { type: RAK_WORKER_ROSTER_SETTINGS_CATEGORY, custom: false, workers: Array.from(KNOWN_STAT_NAMES).map((name) => ({ name, loginNumber: '', machines: [], active: true })) };
   return normalizeRakWorkerRosterSettings(rakWorkerRosterSettingsJson(row));
 }
 window.getRakWorkerRosterSettings = getRakWorkerRosterSettings;
 
 function getActiveWorkerNames() {
   const settings = getRakWorkerRosterSettings();
-  const names = Array.isArray(settings.workers) ? settings.workers.map((w) => w.name) : [];
+  const workers = Array.isArray(settings.workers) ? settings.workers : [];
+  const names = workers.filter((worker) => worker && worker.active !== false).map((worker) => String(worker.name || '').trim()).filter(Boolean);
+  if (settings && settings.custom) return new Set(names);
   return new Set(names.length ? names : Array.from(KNOWN_STAT_NAMES));
 }
 window.getActiveWorkerNames = getActiveWorkerNames;
@@ -722,6 +738,37 @@ function getWorkerNameByLoginNumber(loginNumber) {
   const entry = (settings.workers || []).find((w) => w.loginNumber === wanted);
   return entry ? entry.name : '';
 }
+// RAK_EXTERNAL_SHIFT_TEAMS_17020
+function getRakActiveAccountShiftInfo() {
+  let id = '';
+  try { const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null; id = String(profile && profile.accountNumber || '').trim(); } catch(err) {}
+  if(!id) { try { id = String(app && app.activeAccountId || '').trim(); } catch(err) {} }
+  if(!id) return {team:'D',outside:false,accountId:''};
+  const roster = getRakWorkerRosterSettings();
+  const account = (roster.appAccounts || []).find(row => String(row.loginNumber || '') === id);
+  return account ? {team:account.shiftTeam || 'D',outside:true,accountId:id} : {team:'D',outside:false,accountId:id};
+}
+function getRakActiveAccountShiftTeam() { return getRakActiveAccountShiftInfo().team; }
+function rakCanAccessRotations() { return getRakActiveAccountShiftTeam() === 'D'; }
+function rakApplyShiftAccess() {
+  if(typeof document==='undefined') return;
+  const allowed=rakCanAccessRotations();
+  // RAK_CROSS_SHIFT_FIXES_17024
+  // Three evenly spaced entries only when Rotace is unavailable. Do not touch D layout.
+  const nav=document.querySelector('nav.bottomNav');
+  if(nav&&nav.classList) nav.classList.toggle('rakBottomNavWithoutRotace17024',!allowed);
+  document.querySelectorAll('.bottomNav button[data-action="rotace"], .bottomNav button[data-action="rozpisy"], .bottomNav button[data-action="statistiky"], .bottomNav .bottomNavBtn[data-page="rotace"]').forEach(button => {
+    button.hidden = !allowed;
+    button.setAttribute('aria-hidden',allowed?'false':'true');
+    if(allowed) button.style.removeProperty('display'); else button.style.setProperty('display','none','important');
+    if(allowed) button.removeAttribute('tabindex'); else button.setAttribute('tabindex','-1');
+  });
+  if(!allowed && document.getElementById('rotace')?.classList.contains('active') && typeof showPage==='function') showPage('home');
+}
+window.getRakActiveAccountShiftInfo=getRakActiveAccountShiftInfo;
+window.getRakActiveAccountShiftTeam=getRakActiveAccountShiftTeam;
+window.rakCanAccessRotations=rakCanAccessRotations;
+window.rakApplyShiftAccess=rakApplyShiftAccess;
 window.getWorkerNameByLoginNumber = getWorkerNameByLoginNumber;
 
 function makeRakWorkerRosterSettingsRow(settings) {
@@ -783,7 +830,7 @@ function buildAdminApplicationAccountRowHtml(entry) {
     '<tr data-app-account-row>',
     '  <td><input class="appMenuInlineInput adminAppAccountNameInput" data-app-account-field="name" value="' + escapeHtml(String(safe.name || '')) + '" placeholder="Jméno"></td>',
     '  <td><input class="appMenuInlineInput adminAppAccountLoginInput" data-app-account-field="loginNumber" value="' + escapeHtml(String(safe.loginNumber || '')) + '" placeholder="0000" inputmode="numeric" maxlength="4"></td>',
-    '  <td><span class="adminAppAccountScope">Mimo rotace</span></td>',
+    '  <td><select class="appMenuInlineInput" data-app-account-field="shiftTeam" aria-label="Směna pracovníka">' + ['A','B','C','D'].map(team => '<option value="' + team + '"' + (String(safe.shiftTeam || 'D') === team ? ' selected' : '') + '>Směna ' + team + '</option>').join('') + '</select><small class="adminAppAccountScope">Mimo rozpis</small></td>',
     '</tr>'
   ].join('');
 }
@@ -824,11 +871,11 @@ function buildAdminWorkerRosterSettingsHtml() {
     '</div>',
     '<div class="smallText uMt8">Pro přidání napiš jméno do prázdného řádku. Pro odebrání jméno smaž a ulož. Jméno musí přesně odpovídat tomu, jak je napsané v rozpisu. Přihlašovací číslo (poslední 4 číslice osobního čísla) použije pracovník k přihlášení do aplikace. Když u pracovníka nezaškrtneš žádný stroj, generátor ho bude nabízet na všechny stroje bez omezení.</div>',
     '<div class="appMenuSubTitle uMt16">Účty aplikace</div>',
-    '<div class="smallText uMb10">Tyto účty se nepřidají do pracovníků, rozpisu, statistik ani ke strojům. Slouží jen pro přihlášení do aplikace.</div>',
+    '<div class="smallText uMb10">Pracovníci mimo rozpis: vyber směnu A/B/C/D. Nepřidají se do rozpisu ani statistik týmu D; směny A/B/C neuvidí Rotace, kalkulačky zůstávají.</div>',
     '<div class="tableWrap appMenuTableWrap">',
     '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAppAccountsTable">',
     '    <colgroup><col class="adminAppAccountNameCol"><col class="adminAppAccountLoginCol"><col class="adminAppAccountScopeCol"></colgroup>',
-    '    <thead><tr><th>Jméno</th><th>Os. číslo</th><th>Zařazení</th></tr></thead>',
+    '    <thead><tr><th>Jméno</th><th>Os. číslo</th><th>Směna / zařazení</th></tr></thead>',
     '    <tbody>' + appAccountRows + '</tbody>',
     '  </table>',
     '</div>',
@@ -851,7 +898,9 @@ function readAdminWorkerRosterSettingsFromDom() {
     const loginNumber = normalizeRakWorkerLoginNumber(tr.querySelector('[data-app-account-field="loginNumber"]')?.value || '');
     if (!name && !loginNumber) return;
     if (!name || !loginNumber) throw new Error('U účtu aplikace vyplň jméno i poslední 4 číslice osobního čísla.');
-    appAccounts.push({ name, loginNumber });
+    const shiftTeam = String(tr.querySelector('[data-app-account-field="shiftTeam"]')?.value || 'D').toUpperCase();
+    if (!['A','B','C','D'].includes(shiftTeam)) throw new Error('Vyber směnu A/B/C/D.');
+    appAccounts.push({ name, loginNumber, shiftTeam });
   });
   const settings = normalizeRakWorkerRosterSettings({ workers, appAccounts });
   const knownLoginNumbers = new Set();
@@ -1153,7 +1202,8 @@ function getVacationCountdownTeamShiftCount(now, targetStart, team) {
     if (candidate.start.getTime() >= target.getTime()) break;
     const key = String(candidate.start.getTime());
     const monthKey = getVacationCountdownMonthKey(candidate.start);
-    if (!vacationCountdownMonthHasSchedule(monthKey) && !seen.has(key)) {
+    // The saved rotation belongs exclusively to D; it must not suppress the A/B/C cycle.
+    if ((targetTeam !== 'D' || !vacationCountdownMonthHasSchedule(monthKey)) && !seen.has(key)) {
       seen.add(key);
       count += 1;
     }
@@ -1162,7 +1212,7 @@ function getVacationCountdownTeamShiftCount(now, targetStart, team) {
       : candidate.start.getTime() + 12 * 60 * 60 * 1000;
     cursor = new Date(Math.max(endTime, cursor.getTime() + 60000) + 60000);
   }
-  return activeCount + count + countVacationCountdownRotationScheduledShifts(source, target, targetTeam);
+  return activeCount + count + (targetTeam === 'D' ? countVacationCountdownRotationScheduledShifts(source, target, targetTeam) : 0);
 }
 
 function getVacationCountdown(now) {
@@ -1177,13 +1227,14 @@ function getVacationCountdown(now) {
   start.setHours(0, 0, 0, 0);
   const diffDays = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000));
   const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : ('k ' + String(upcoming.countdownLabel || upcoming.label || 'dovolené'));
-  const shiftCount = active ? 0 : getVacationCountdownTeamShiftCount(sourceDate, upcoming.start, 'D');
+  const countdownTeam = getRakActiveAccountShiftTeam();
+  const shiftCount = active ? 0 : getVacationCountdownTeamShiftCount(sourceDate, upcoming.start, countdownTeam);
   return {
     text: diffDays === 0 ? 'Dnes' : (diffDays + ' ' + (diffDays === 1 ? 'den' : 'dní')),
     meta: targetLabel,
-    shiftMeta: formatVacationCountdownShiftCount(shiftCount, 'D'),
+    shiftMeta: formatVacationCountdownShiftCount(shiftCount, countdownTeam),
     shiftText: formatVacationCountdownShiftCountValue(shiftCount),
-    shiftTeamMeta: formatVacationCountdownShiftTeamLabel('D'),
+    shiftTeamMeta: formatVacationCountdownShiftTeamLabel(countdownTeam),
     shiftCount
   };
 }

@@ -124,7 +124,6 @@
     const storageSyncAudit = typeof window.getRakStorageSyncAuditHealth === 'function' ? window.getRakStorageSyncAuditHealth() : null;
     const storageSyncSmokeReport = typeof window.getRakStorageSyncSmokeReport === 'function' ? window.getRakStorageSyncSmokeReport() : null;
     const storageSyncClosure = typeof window.getRakStorageSyncClosureHealth === 'function' ? window.getRakStorageSyncClosureHealth() : null;
-    const onlineGameContracts = typeof window.getRakOnlineGameContractAuditHealth === 'function' ? window.getRakOnlineGameContractAuditHealth() : null;
     const releaseOpsClosure = typeof window.getRakReleaseOpsClosureHealth === 'function' ? window.getRakReleaseOpsClosureHealth() : null;
 
     if (!storage.ok || !storage.writable) issues.push('localStorage not writable');
@@ -134,7 +133,6 @@
     if (storageSyncAudit && storageSyncAudit.ok === false) warnings.push('storage/sync audit warning: ' + String((storageSyncAudit.issues || []).join(', ') || 'kontrola'));
     if (storageSyncSmokeReport && storageSyncSmokeReport.ok === false) warnings.push('storage/sync smoke warning: ' + String(storageSyncSmokeReport.lastError || storageSyncSmokeReport.status || 'kontrola'));
     if (storageSyncClosure && storageSyncClosure.ok === false) warnings.push('storage/sync closure warning: ' + String((storageSyncClosure.issues || []).join(', ') || storageSyncClosure.status || 'kontrola'));
-    if (onlineGameContracts && onlineGameContracts.ok === false) warnings.push('online game contracts warning: ' + String((onlineGameContracts.issues || []).join(', ') || onlineGameContracts.status || 'kontrola'));
     if (releaseOpsClosure && releaseOpsClosure.ok === false) warnings.push('release ops closure warning: ' + String((releaseOpsClosure.issues || []).join(', ') || releaseOpsClosure.status || 'kontrola'));
     if (statsScope && statsScope.futureImportedMonthCount > 0) warnings.push('budoucí měsíce ve statistikách zatím nejsou započtené: ' + statsScope.futureImportedMonths.join(', '));
 
@@ -158,9 +156,6 @@
       storageSyncSmokeReportOk: storageSyncSmokeReport ? storageSyncSmokeReport.ok : null,
       storageSyncClosureOk: storageSyncClosure ? storageSyncClosure.ok : null,
       storageSyncClosurePhasePercent: storageSyncClosure ? Number(storageSyncClosure.phasePercent || 0) : 0,
-      onlineGameContractsOk: onlineGameContracts ? !!onlineGameContracts.ok : null,
-      onlineGameContractsPhasePercent: onlineGameContracts ? Number(onlineGameContracts.phasePercent || 0) : 0,
-      onlineGameContractsFallbackCount: onlineGameContracts ? Number(onlineGameContracts.fallbackCount || 0) : 0,
       releaseOpsClosureOk: releaseOpsClosure ? !!releaseOpsClosure.ok : null,
       releaseOpsPhasePercent: releaseOpsClosure ? Number(releaseOpsClosure.phasePercent || 0) : 0,
       releaseOpsManualCount: releaseOpsClosure ? Number(releaseOpsClosure.checklistManualCount || 0) : 0

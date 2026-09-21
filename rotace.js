@@ -702,7 +702,12 @@ function renderMonth(monthKey) {
 
   if (absenceGroups.length) {
     const maxPairs = Math.max(1, ...absenceGroups.map(group => Math.max(1, group.items.length)));
-    absenceHtml += "<div class='tableWrap'><table class='noteTable'><thead><tr>";
+    // RAK_17061_PUBLIC_ABSENCE_LAYOUT: fixed columns, reclaimed name space goes to date.
+    const absenceColgroup = "<colgroup><col style='width:58px'><col style='width:34px'>" +
+      Array.from({length:maxPairs}, (_, idx) => (idx ? "<col style='width:7px'>" : '') +
+        "<col style='width:68px'><col style='width:38px'>").join('') + "</colgroup>";
+    const absenceWidth = 58 + 34 + maxPairs * (68 + 38) + Math.max(0, maxPairs - 1) * 7;
+    absenceHtml += "<div class='tableWrap'><table class='noteTable rakAbsenceTable' style='width:" + String(absenceWidth) + "px;min-width:100%'>" + absenceColgroup + "<thead><tr>";
     for (let i = 0; i < maxPairs; i += 1) {
       if (i > 0) absenceHtml += "<th class='noteSpacer'></th>";
       if (i === 0) absenceHtml += "<th class='noteDateCell'>Datum</th><th class='noteShiftCell'>Směna</th>";
@@ -869,9 +874,15 @@ function sortRotationAbsenceGroupItems(groups) {
 }
 
 function getRotationMonthExportAbsences(month) {
+  const activeNames = typeof getKnownStatNames === 'function' ? getKnownStatNames() : null;
   return getRotationMonthShiftAbsenceGroups(month)
     .flatMap((group) => {
-      const items = group.items && group.items.length ? group.items : [{ person: '', reason: '', index: group.index, personIndex: 0, empty: true }];
+      const rawItems = group.items && group.items.length ? group.items : [];
+      const items = rawItems.filter((item) => {
+        const person = String(item && item.person || '').trim();
+        return !person || !activeNames || activeNames.has(person);
+      });
+      if (!items.length) return [];
       return items.map((item) => ({
         date: group.date,
         shift: group.shift,
@@ -930,25 +941,26 @@ function buildRotationExportAbsenceTable(absences, dateWeight, personWeight) {
 
 
 const ROTATION_EXPORT_MONTH_SUMMARY_LABELS_V187 = Object.freeze(['Směn celkem', 'Ranní směny', 'Noční směny', 'Obsazenost']);
+// RAK_ROTATION_EXPORT_GLASS_17007
 const ROTATION_EXPORT_GLASS_THEME_V193 = Object.freeze({
-  titleBg: '#0b5bd3',
-  titleBgAlt: '#172554',
-  panelBgTop: 'rgba(255,255,255,.82)',
-  panelBgBottom: 'rgba(244,249,255,.58)',
-  border: 'rgba(148,163,184,.34)',
-  innerBorder: 'rgba(255,255,255,.74)',
-  headerBgTop: 'rgba(255,255,255,.52)',
-  headerBgBottom: 'rgba(224,236,255,.72)',
-  rowEvenTop: 'rgba(255,255,255,.62)',
-  rowEvenBottom: 'rgba(247,250,255,.44)',
-  rowOddTop: 'rgba(239,246,255,.70)',
-  rowOddBottom: 'rgba(228,238,255,.52)',
-  shadow: 'rgba(37, 99, 235, .15)',
+  titleBg: '#0675ff',
+  titleBgAlt: '#102b72',
+  panelBgTop: 'rgba(255,255,255,.50)',
+  panelBgBottom: 'rgba(238,247,255,.28)',
+  border: 'rgba(67,121,196,.44)',
+  innerBorder: 'rgba(255,255,255,.42)',
+  headerBgTop: 'rgba(255,255,255,.34)',
+  headerBgBottom: 'rgba(184,216,255,.48)',
+  rowEvenTop: 'rgba(255,255,255,.38)',
+  rowEvenBottom: 'rgba(241,248,255,.22)',
+  rowOddTop: 'rgba(210,230,255,.44)',
+  rowOddBottom: 'rgba(194,220,255,.28)',
+  shadow: 'rgba(18, 92, 220, .22)',
   shadowBlur: 34,
   shadowOffsetY: 14,
-  glossTop: 'rgba(255,255,255,.40)',
+  glossTop: 'rgba(255,255,255,.28)',
   glossBottom: 'rgba(255,255,255,0)',
-  titleGlossTop: 'rgba(255,255,255,.28)',
+  titleGlossTop: 'rgba(255,255,255,.22)',
   titleGlossBottom: 'rgba(255,255,255,0)'
 });
 
@@ -1014,6 +1026,7 @@ function buildRotationMonthExportSummary(month) {
     absencePeople: 0
   };
   const sections = ['hard', 'soft'];
+  const activeNames = typeof getKnownStatNames === 'function' ? getKnownStatNames() : null;
   sections.forEach((sectionKey) => {
     const section = month && month[sectionKey] ? month[sectionKey] : null;
     const machines = Array.isArray(section && section.machines) ? section.machines : [];
@@ -1036,7 +1049,7 @@ function buildRotationMonthExportSummary(month) {
         if (!machineName) return;
         summary.totalSlots += 1;
         const worker = String(row && row.cells ? row.cells[idx] || '' : '').trim();
-        if (worker) summary.occupiedSlots += 1;
+        if (worker && (!activeNames || activeNames.has(worker))) summary.occupiedSlots += 1;
       });
     });
   });
@@ -1046,9 +1059,12 @@ function buildRotationMonthExportSummary(month) {
     const normalized = typeof normalizeNoteEntry === 'function' ? normalizeNoteEntry(note) : note;
     if (!normalized || !normalized.isAbsence) return;
     const weight = typeof estimateAbsenceWeight === 'function' ? estimateAbsenceWeight(normalized) : 1;
-    const people = Array.isArray(normalized.people) ? normalized.people.filter(Boolean) : [];
-    summary.absenceWeight += weight * Math.max(1, people.length || (normalized.person ? 1 : 0));
-    summary.absencePeople += Math.max(1, people.length || (normalized.person ? 1 : 0));
+    const people = (Array.isArray(normalized.people) ? normalized.people : [normalized.person])
+      .map((name) => String(name || '').trim())
+      .filter((name) => name && (!activeNames || activeNames.has(name)));
+    if (!people.length) return;
+    summary.absenceWeight += weight * people.length;
+    summary.absencePeople += people.length;
   });
 
   const totalShifts = summary.shiftKeys.size;
@@ -1397,11 +1413,13 @@ function buildRotationExportRows(section, sectionKey, month) {
   const rest = machines.length ? (1 - dateWidth) / machines.length : (1 - dateWidth);
   machines.forEach(machine => columns.push({ label: String(machine || ''), width: rest }));
   const cellMeta = [];
+  const activeNames = typeof getKnownStatNames === 'function' ? getKnownStatNames() : null;
   const rows = (Array.isArray(sec.rows) ? sec.rows : []).map(row => {
     const cells = [String(row && row.date ? row.date : '')];
     const metaRow = [null];
     machines.forEach((_, idx) => {
-      cells.push(String((row && row.cells ? row.cells[idx] : '') || ''));
+      const rawWorker = String((row && row.cells ? row.cells[idx] : '') || '').trim();
+      cells.push(rawWorker && activeNames && !activeNames.has(rawWorker) ? '' : rawWorker);
       let mod = null;
       try { if (typeof rakDayModForCell === 'function') mod = rakDayModForCell(month, sectionKey, row && row.date, idx); } catch (e) { mod = null; }
       metaRow.push(mod ? {
@@ -1415,7 +1433,35 @@ function buildRotationExportRows(section, sectionKey, month) {
   return { columns, rows, cellMeta };
 }
 
-function createRotationMonthExportCanvas(monthKey) {
+const ROTATION_EXPORT_WATERMARK_SRC_17007 = './assets/rak-login-crab.png';
+let rotationExportWatermarkPromise17007 = null;
+
+function loadRotationExportWatermark17007() {
+  if (rotationExportWatermarkPromise17007) return rotationExportWatermarkPromise17007;
+  rotationExportWatermarkPromise17007 = new Promise((resolve) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = ROTATION_EXPORT_WATERMARK_SRC_17007;
+  });
+  return rotationExportWatermarkPromise17007;
+}
+
+function drawRotationExportWatermark17007(ctx, image, width, height) {
+  if (!ctx || !image || !image.naturalWidth || !image.naturalHeight) return;
+  const maxW = width * 0.48;
+  const maxH = height * 0.76;
+  const scale = Math.min(maxW / image.naturalWidth, maxH / image.naturalHeight);
+  const w = image.naturalWidth * scale;
+  const h = image.naturalHeight * scale;
+  ctx.save();
+  ctx.globalAlpha = 0.17;
+  ctx.drawImage(image, (width - w) / 2, (height - h) / 2, w, h);
+  ctx.restore();
+}
+
+function createRotationMonthExportCanvas(monthKey, watermarkImage) {
   const month = app && app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null;
   if (!month) throw new Error('Vybraný měsíc není dostupný.');
   const hard = buildRotationExportRows(month.hard, 'hard', month);
@@ -1445,18 +1491,18 @@ function createRotationMonthExportCanvas(monthKey) {
   const contentW = leftW + gap + absenceTableW;
   const width = Math.ceil(margin * 2 + contentW);
   const hardTheme = Object.assign({}, ROTATION_EXPORT_GLASS_THEME_V193, {
-    titleBg: '#0b60db',
-    titleBgAlt: '#1e3a8a',
-    panelBgTop: 'rgba(255,255,255,.86)',
-    panelBgBottom: 'rgba(238,246,255,.70)',
-    border: 'rgba(59,130,246,.34)',
-    headerBgTop: 'rgba(230,240,255,.76)',
-    headerBgBottom: 'rgba(206,225,255,.84)',
-    rowEvenTop: 'rgba(255,255,255,.74)',
-    rowEvenBottom: 'rgba(236,244,255,.62)',
-    rowOddTop: 'rgba(229,239,255,.86)',
-    rowOddBottom: 'rgba(211,227,255,.74)',
-    shadow: 'rgba(59,130,246,.20)',
+    titleBg: '#0679ff',
+    titleBgAlt: '#113a93',
+    panelBgTop: 'rgba(255,255,255,.48)',
+    panelBgBottom: 'rgba(224,240,255,.26)',
+    border: 'rgba(26,108,232,.50)',
+    headerBgTop: 'rgba(210,232,255,.40)',
+    headerBgBottom: 'rgba(171,211,255,.52)',
+    rowEvenTop: 'rgba(255,255,255,.38)',
+    rowEvenBottom: 'rgba(226,240,255,.22)',
+    rowOddTop: 'rgba(196,224,255,.46)',
+    rowOddBottom: 'rgba(177,211,255,.30)',
+    shadow: 'rgba(24,104,230,.26)',
     shadowBlur: 40,
     shadowOffsetY: 16
   });
@@ -1506,6 +1552,8 @@ function createRotationMonthExportCanvas(monthKey) {
   glowBottomLeft.addColorStop(1, 'rgba(150,196,255,0)');
   ctx.fillStyle = glowBottomLeft;
   ctx.fillRect(0, 0, width, height);
+
+  drawRotationExportWatermark17007(ctx, watermarkImage, width, height);
 
   const top = margin + topGap;
   const leftX = margin;
@@ -1567,7 +1615,7 @@ function createRotationMonthExportCanvas(monthKey) {
   return canvas;
 }
 
-function downloadSelectedRotationMonthImage() {
+async function downloadSelectedRotationMonthImage() {
   const select = document.getElementById('monthSelect');
   const monthKey = (select && select.value) || (app && app.selectedMonth) || '';
   if (!monthKey || !app.rotation || !app.rotation.months || !app.rotation.months[monthKey]) {
@@ -1575,7 +1623,8 @@ function downloadSelectedRotationMonthImage() {
     return;
   }
   try {
-    const canvas = createRotationMonthExportCanvas(monthKey);
+    const watermarkImage = await loadRotationExportWatermark17007();
+    const canvas = createRotationMonthExportCanvas(monthKey, watermarkImage);
     const fileName = getRotationMonthExportFileName(monthKey);
     const triggerDownload = (url) => {
       const a = document.createElement('a');

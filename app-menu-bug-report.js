@@ -4,15 +4,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 const RAK_REPORTS_KEY = APP_KEY + ':userReports';
 try { window.RAK_REPORTS_KEY = RAK_REPORTS_KEY; } catch (err) {}
 
+// RAK_NO_RETIRED_GAMES_17021
 function getBugReportAccount() {
   try {
-    if (typeof gamesGetActiveAccount === 'function') return gamesGetActiveAccount();
-  } catch (err) {}
-  try {
-    const profile = typeof gamesGetProfile === 'function' ? gamesGetProfile() : (app && app.gamesProfile);
-    return profile && profile.activeAccountId && profile.accounts ? profile.accounts[profile.activeAccountId] : null;
-  } catch (err) {}
-  return null;
+    const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+    const current = typeof app !== 'undefined' && app ? app : null;
+    const id = String(profile && profile.accountNumber || current && current.activeAccountId || '').trim();
+    const name = String(profile && profile.fullName || current && current.activeAccountName || '').trim();
+    return id && name ? { id, name } : null;
+  } catch (err) { return null; }
 }
 
 function getBugReportBuildVersion() {
@@ -56,7 +56,6 @@ function buildBugReportPayload() {
     accountName: account ? String(account.name || account.id || '') : '',
     version,
     page: String(document.querySelector('.page.active')?.id || '—'),
-    game: String((typeof app !== 'undefined' && app.activeGameShell) || ''),
     appearanceId: appearance.id,
     appearanceLabel: appearance.label,
     online: !!(typeof navigator !== 'undefined' && navigator.onLine),
@@ -73,7 +72,7 @@ function formatBugReportMessage(report) {
     'Od: ' + (report.accountName ? report.accountName + ' (' + report.accountId + ')' : 'nepřihlášený'),
     'Verze: ' + String(report.version || '—'),
     'Kdy: ' + String(report.createdAtLocal || '—'),
-    'Stránka: ' + String(report.page || '—') + (report.game ? ' · hra: ' + report.game : ''),
+    'Stránka: ' + String(report.page || '—'),
     'Vzhled aplikace: ' + String(report.appearanceLabel || report.appearanceId || '—'),
     'Online: ' + (report.online ? 'ano' : 'ne'),
     '',
@@ -102,7 +101,7 @@ function saveBugReportLocal(report) {
 function renderBugReportMenuBody(body) {
   const account = getBugReportAccount();
   const disabled = !account;
-  const accountText = account ? escapeHtml(String(account.name || account.id || 'Hráč')) : 'Nejdřív se přihlas v herním profilu.';
+  const accountText = account ? escapeHtml(String(account.name || account.id || 'Uživatel')) : 'Nejdřív se přihlas do RaK.';
   body.innerHTML = [
     '<div class="appMenuCard appMenuReportCard">',
     '  <div class="appMenuCardTitle">Pošli mi chybu</div>',
@@ -117,7 +116,6 @@ function renderBugReportMenuBody(body) {
     '    <option>Nelíbí se mi</option>',
     '    <option>Nápad</option>',
     '    <option>Výkon / sekání</option>',
-    '    <option>Hra</option>',
     '  </select>',
     '  <label class="appMenuReportLabel" for="bugReportText">Popis</label>',
     '  <textarea class="appMenuReportTextarea" id="bugReportText" maxlength="1200" rows="7" placeholder="Napiš co nejpřesněji, kde se to stalo a co jsi dělal." ' + (disabled ? 'disabled' : '') + '></textarea>',
@@ -135,7 +133,7 @@ async function handleBugReportAction(action) {
   const status = document.getElementById('bugReportStatus');
   const submitBtn = document.querySelector('[data-menu-action="bug-report-submit"]');
   if (!account) {
-    if (status) status.textContent = 'Nejdřív se přihlas v herním profilu.';
+    if (status) status.textContent = 'Nejdřív se přihlas do RaK.';
     return;
   }
   const report = buildBugReportPayload();

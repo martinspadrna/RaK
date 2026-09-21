@@ -52,10 +52,10 @@
   function getRouteSmokeChecklist() {
     return [
       { id: 'dashboard', route: 'dashboard', expected: 'dashboard cards visible, no blank page, food tiles readable' },
-      { id: 'games', route: 'games', expected: 'game cards visible, daily challenge visible, no horizontal overflow' },
-      { id: 'reaction', route: 'reaction', expected: 'Reaction Test top score remains above bottom nav after finish' },
-      { id: 'daily-challenge', route: 'daily-challenge', expected: 'Daily challenge score bridge writes to challenge top score' },
-      { id: 'diagnostics', route: 'settings/about/diagnostics', expected: 'release gates and due diligence progress are readable' }
+      { id: 'rotation', route: 'rotace', expected: 'Rotace opens, names/months/stats render without blank state' },
+      { id: 'calculators', route: 'kalkulacky', expected: 'calculator hub and Soustruhy/Frézky/Brusy pages open and accept input' },
+      { id: 'admin', route: 'menu/admin', expected: 'admin shell opens only after secure auth and diagnostics remain readable' },
+      { id: 'export', route: 'admin/service/export', expected: 'ZIP preflight references only existing current files' }
     ];
   }
 
@@ -96,25 +96,21 @@
   window.getRakPlaywrightDomSmokeDraftHealth = function getRakPlaywrightDomSmokeDraftHealth() {
     return {
       ok: true,
-      mode: 'playwright-dom-smoke-skeleton-v928',
+      mode: 'legacy-playwright-alias-browser-smoke-v1630',
       version: String(window.APP_VERSION || VERSION),
       checkedAt: nowIso(),
-      implementationStatus: 'root-playwright-smoke-spec-ready',
+      implementationStatus: 'browser-smoke-script-ready;playwright-spec-not-present',
       installRequired: false,
       shouldRunAgainstProductionDb: false,
       blockerCandidates: [
         'app boots without console page crash',
         'bottom navigation visible and active tab changes',
-        'Reaction Test top score visible after finish',
-        'Daily challenge top score updates after result bridge',
-        'About/Diagnostics exposes release gates and due diligence progress'
+        'Rotace and statistics render',
+        'calculator routes render and accept input',
+        'admin generator shell and export preflight render'
       ],
-      suggestedCommand: 'npm run test:smoke',
-      sampleSpec: [
-        "test('dashboard boots', async ({ page }) => { await page.goto('/'); await expect(page.locator('#dashboard')).toBeVisible(); });",
-        "test('games page opens', async ({ page }) => { await page.goto('/'); await page.getByRole('button', { name: /hry/i }).click(); await expect(page.locator('[data-game-card]')).toHaveCountGreaterThan(0); });"
-      ],
-      note: 'Kostra je v playwright-smoke.spec.js a playwright.config.js. Playwright se spouští přes npx, aby současný jednoduchý build zůstal kompatibilní.'
+      suggestedCommand: 'npm run test:browser-smoke',
+      note: 'Historický alias názvu zůstává kvůli kompatibilitě diagnostiky. Aktuální repo používá browser-smoke-v1103.js; samostatný playwright-smoke.spec.js v repu není.'
     };
   };
 
@@ -126,13 +122,13 @@
       mode: 'due-diligence-final-closure-v928',
       version: String(window.APP_VERSION || VERSION),
       checkedAt: nowIso(),
-      percentComplete: 100,
-      percentRemaining: 0,
+      percentComplete: 95,
+      percentRemaining: 5,
       mobileSmokePlanReady: !!(mobilePlan && mobilePlan.ok),
       playwrightDraftReady: !!(playwrightDraft && playwrightDraft.ok),
       remainingManualWork: [
         'post-release: skutečné měření na mobilu Martinovým zařízením',
-        'post-release: npm run test:smoke spustit mimo produkční Supabase při dostupném Playwrightu'
+        'post-release: npm run test:browser-smoke spustit nad bezpečným lokálním snapshotem'
       ],
       auditPromptCompleteFromProvidedMaterials: true
     };
@@ -142,19 +138,18 @@
   function getManualValidationChecklist() {
     return [
       { id: 'M-01', area: 'Start aplikace', expected: 'Home/Dashboard bez bílé obrazovky.', priority: 'P0', blocksRelease: true },
-      { id: 'M-02', area: 'Spodní lišta', expected: 'Všechny hlavní záložky jdou přepnout a nic se neschovává pod lištu.', priority: 'P0', blocksRelease: true },
-      { id: 'M-03', area: 'Kantýna/jídelna', expected: 'Karty i rozklik ukazují běžný režim a jen přesčasové rozdíly.', priority: 'P0', blocksRelease: true },
-      { id: 'M-04', area: 'Hry Top score', expected: 'Čas je bez ms, datum+čas jsou čitelné.', priority: 'P0', blocksRelease: true },
-      { id: 'M-05', area: 'Reaction Test', expected: 'Top výsledky zůstávají viditelné nad spodní vrstvou.', priority: 'P0', blocksRelease: true },
-      { id: 'M-06', area: 'Denní challenge', expected: 'Výsledek se propíše do Top score Denní challenge.', priority: 'P0', blocksRelease: true },
-      { id: 'M-07', area: 'Piškvorky offline AI', expected: 'Offline AI běží bez zamrznutí, online režim beze změny.', priority: 'P0', blocksRelease: true },
-      { id: 'M-08', area: 'Online Piškvorky', expected: 'Create/accept/realtime funguje na dvou klientech.', priority: 'P0 production', blocksRelease: true },
-      { id: 'M-09', area: 'Online Lodě', expected: 'Create/accept/save funguje na dvou klientech.', priority: 'P0 production', blocksRelease: true },
-      { id: 'M-10', area: 'Export ZIP', expected: 'Export projde a název odpovídá aktuálnímu buildu.', priority: 'P0', blocksRelease: true },
-      { id: 'M-11', area: 'O aplikaci', expected: 'Historie je stručná v blocích po cca 50 verzích.', priority: 'P2', blocksRelease: false },
-      { id: 'M-12', area: 'Diagnostika', expected: 'Release gates: dokumenty OK, mobil/Playwright manual.', priority: 'P2', blocksRelease: false },
-      { id: 'M-13', area: 'Profilový vzhled', expected: 'Téma i pozadí se drží aktivního profilu a nový profil nezačne vzhledem předchozího hráče.', priority: 'P0', blocksRelease: true },
-      { id: 'M-14', area: 'Herní achievementy', expected: 'Každá hra má vlastní achievementy a D-směnové cíle; zamčené odměny nejdou aktivovat před splněním podmínky.', priority: 'P0', blocksRelease: true }
+      { id: 'M-02', area: 'Spodní lišta', expected: 'Home, Rotace, Kalkulačky a Více se přepnou bez zamrznutí.', priority: 'P0', blocksRelease: true },
+      { id: 'M-03', area: 'Kantýna/jídelna', expected: 'Karty i rozklik ukazují běžný režim a přesčasové výjimky.', priority: 'P0', blocksRelease: true },
+      { id: 'M-04', area: 'Rotace', expected: 'Jména, Rozpisy a Statistiky se otevřou a zachovají ovládání.', priority: 'P0', blocksRelease: true },
+      { id: 'M-05', area: 'Kalkulačky', expected: 'Soustruhy, Frézky, Brusy a Pračka se otevřou; vstupy a reset fungují.', priority: 'P0', blocksRelease: true },
+      { id: 'M-06', area: 'Korekce', expected: 'Korekce soustruhů/frézek fungují; Brusy zobrazí aktuální stav bez starého placeholderu.', priority: 'P0', blocksRelease: true },
+      { id: 'M-07', area: 'QR', expected: 'QR osoby zůstane dostupné online i z cache bez změny dat.', priority: 'P0', blocksRelease: true },
+      { id: 'M-08', area: 'Administrace', expected: 'Přístup vyžaduje platnou admin relaci; rozpis/generátor se načtou bez změny pravidel.', priority: 'P0', blocksRelease: true },
+      { id: 'M-09', area: 'ZIP export', expected: 'Preflight projde a ZIP nepožaduje odstraněné nebo neexistující soubory.', priority: 'P0', blocksRelease: true },
+      { id: 'M-10', area: 'PWA aktualizace', expected: 'Aktualizace se nabídne jen při novém buildu a po potvrzení se načte nový build.', priority: 'P0', blocksRelease: true },
+      { id: 'M-11', area: 'O aplikaci', expected: 'Historie obsahuje aktuální řadu RaK 1.6.', priority: 'P2', blocksRelease: false },
+      { id: 'M-12', area: 'Diagnostika', expected: 'Neobsahuje povinné kontroly odstraněných Her ani neexistující Playwright spec.', priority: 'P2', blocksRelease: false },
+      { id: 'M-13', area: 'Profilový vzhled', expected: 'Téma i pozadí se drží aktivního profilu.', priority: 'P0', blocksRelease: true }
     ];
   }
 
@@ -206,11 +201,10 @@
       readyForZip: true,
       readyForUserTesting: !!(manual && manual.readyForUserTesting),
       readyForProduction: false,
-      manualGateCount: 4,
+      manualGateCount: 3,
       manualGates: [
         'reálný mobilní smoke',
         'reálný browser smoke',
-        'skutečný Playwright běh',
         'post-release PWA/hosting validace'
       ],
       dbSchemaChanges: false,

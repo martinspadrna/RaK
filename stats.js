@@ -479,6 +479,8 @@ function buildStatsForYear(year, options = {}) {
 
   const nameIndex = buildNameIndex(app.rotation);
   const knownStatNames = getKnownStatNames();
+  // RAK_STATS_ACTIVE_ROSTER_17007
+  knownStatNames.forEach((name) => { if (name) ensurePerson(name); });
   const annualWorkAbsenceTarget = getAnnualWorkAbsenceTarget(year);
   const includedMonthSet = new Set();
 

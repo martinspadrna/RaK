@@ -35,6 +35,121 @@ function renderAdminInlineFieldHtml(fieldAttr, fieldName, value, placeholder, ti
 }
 
 
+// RAK_17064_CONFLICT_DRAFT_GUARD: snapshot ONLY the edited month, not Auth/tokens.
+// Preserve drafts before a network attempt and retain on every failed/uncertain response.
+function rakPreserveAdminMonthDraft(monthKey, month) {
+  const result={stored:false,key:'',content:'',reason:'unavailable'};
+  try {
+    const content=JSON.stringify({format:'rak-admin-month-draft-v1',monthKey:String(monthKey),
+      capturedAt:new Date().toISOString(),month:JSON.parse(JSON.stringify(month))});
+    if(!content || new Blob([content]).size>2000000){result.reason='oversize';return result;}
+    result.content=content;
+    const key='rak_admin_unsynced_month_v1_'+String(monthKey).replace(/[^0-9A-Za-z_-]/g,'_')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    localStorage.setItem(key,content);
+    if(localStorage.getItem(key)!==content){result.reason='verification-failed';return result;}
+    result.stored=true;result.key=key;result.reason='';
+  }catch(_){result.reason='storage-denied';}
+  return result;
+}
+
+function rakShowAdminDraftExport(draft,statusEl){
+  if(!statusEl||!draft||!draft.content)return;
+  const parent=statusEl.parentNode;
+  if(!parent||typeof document==='undefined')return;
+  const button=document.createElement('button');
+  button.type='button';button.className='appMenuBtn';
+  button.setAttribute('data-rak-unsynced-draft','manual-export');
+  button.textContent='Stáhnout místní návrh JSON';
+  button.addEventListener('click',()=>{
+    if(typeof window.confirm==='function'&&!window.confirm('Soubor obsahuje jména a rozpis. Ulož jej pouze soukromě. Pokračovat?'))return;
+    let url='';
+    try {
+      const file=new Blob([draft.content],{type:'application/json;charset=utf-8'});
+      url=URL.createObjectURL(file);
+      const link=document.createElement('a');link.href=url;
+      link.download='RaK_neulozeny_rozpis_'+String(Date.now())+'.json';
+      parent.appendChild(link);link.click();link.remove();
+    }catch(_){if(typeof window.alert==='function')window.alert('Export se nezdařil. Neobnovuj stránku.');}
+    finally{if(url) setTimeout(()=>URL.revokeObjectURL(url),30000);}
+  });
+  parent.appendChild(button);
+}
+
+// RAK_17065_RECOVER_DRAFTS_GUARD: read-only enumeration; no automatic server replay,
+// no personal names, payload, account IDs or token in HTML. Exports need a user tap.
+function rakListPreservedAdminMonthDrafts(monthKey) {
+  const prefix='rak_admin_unsynced_month_v1_';
+  const found=[];
+  try {
+    for(let i=0;i<localStorage.length;i++) {
+      const key=localStorage.key(i);
+      if(typeof key!=='string'||!key.startsWith(prefix)||key.length>180)continue;
+      const raw=localStorage.getItem(key);
+      if(typeof raw!=='string'||raw.length>2000000)continue;
+      let obj;
+      try {obj=JSON.parse(raw);}catch(_){continue;}
+      if(!obj||obj.format!=='rak-admin-month-draft-v1'||typeof obj.monthKey!=='string'
+        ||!obj.month||typeof obj.month!=='object'||Array.isArray(obj.month))continue;
+      if(monthKey&&obj.monthKey!==monthKey)continue;
+      const date=Date.parse(String(obj.capturedAt||''));
+      found.push({key,monthKey:obj.monthKey,at:Number.isFinite(date)?date:0});
+    }
+  }catch(_){return [];}
+  return found.sort((a,b)=>b.at-a.at).slice(0,20);
+}
+
+function rakAdminMonthDraftRecoveryHtml(monthKey) {
+  const entries=rakListPreservedAdminMonthDrafts(monthKey);
+  if(!entries.length)return '';
+  return '<div class="appMenuCard" id="rakAdminPreservedDrafts" role="status">'
+    +'<b>Neuložené místní návrhy: '+String(entries.length)+'</b>'
+    +'<div class="smallText">Mohou pocházet z dřívějšího neúspěšného uložení. Nepřepisuj je naslepo. Stáhni soukromou kopii a porovnej ručně.</div>'
+    +entries.map(item=>'<button type="button" class="appMenuAction" data-admin-action="download-unsynced-draft" data-draft-key="'
+      +escapeHtml(item.key)+'">Stáhnout návrh '+escapeHtml(item.monthKey)+' · '
+      +escapeHtml(item.at?new Date(item.at).toLocaleString('cs-CZ'):'bez data')+'</button>').join('')
+    +'</div>';
+}
+
+function rakDownloadPreservedAdminMonthDraft(key) {
+  if(!app||app.adminUnlocked!==true||typeof key!=='string'
+     ||!/^rak_admin_unsynced_month_v1_[A-Za-z0-9_-]{1,80}$/.test(key))return false;
+  const valid=rakListPreservedAdminMonthDrafts().some(entry=>entry.key===key);
+  if(!valid)return false;
+  let raw,obj;
+  try{raw=localStorage.getItem(key);obj=JSON.parse(raw);}catch(_){return false;}
+  if(!obj||obj.format!=='rak-admin-month-draft-v1'||typeof raw!=='string'||raw.length>2000000)return false;
+  if(typeof window.confirm!=='function'||!window.confirm('JSON obsahuje jména a rozpis. Ulož soubor pouze soukromě. Stáhnout?'))return false;
+  let url='';
+  try {
+    const file=new Blob([raw],{type:'application/json;charset=utf-8'});
+    url=URL.createObjectURL(file);
+    const link=document.createElement('a');link.href=url;
+    link.download='RaK_mistni_navrh_'+String(Date.now())+'.json';
+    document.body.appendChild(link);link.click();link.remove();
+    return true;
+  }catch(_){return false;}
+  finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),30000);}
+}
+
+// RAK_17069_DRAFT_CLEANUP_CARD: counts only, deletion always requires explicit confirmation.
+function rakAdminLocalDraftCleanupHtml(){
+  const info=typeof window.rakLocalRotationDraftCleanupPreview==='function'
+    ?window.rakLocalRotationDraftCleanupPreview():null;
+  const valid=!!(info&&info.ok);
+  const drafts=valid?Number(info.drafts||0):0;
+  const pending=valid?Number(info.rotationQueued||0):0;
+  const other=valid?Number(info.otherConflicts||0):0;
+  return '<div class="appMenuCard" id="rakAdminLocalDraftCleanup">'
+    +'<b>Místní neuložené návrhy rozpisů</b>'
+    +'<div class="smallText">V tomto zařízení: '+(valid?(drafts+' záloh návrhů · '+pending+' čekajících zápisů rozpisů'):'stav místního úložiště nelze bezpečně ověřit')
+    +(other?' · '+other+' jiných konfliktů zůstane zachováno':'')+'.</div>'
+    +'<div class="smallText">Smazání je nevratné. Nezasáhne online rozpis, ostatní místní frontu ani jiná nastavení. Předem si můžeš stáhnout návrhy výše.</div>'
+    +'<button type="button" class="appMenuAction" data-admin-action="discard-local-rotation-drafts"'
+    +(valid?'':' disabled')+'>Smazat neuložené místní návrhy</button>'
+    +'<div id="rakAdminLocalDraftCleanupStatus" class="smallText" role="status" aria-live="polite"></div>'
+    +'</div>';
+}
+
 async function saveAdminRotationToSupabase(monthKey, rawText) {
   if (!monthKey) throw new Error('Chybí měsíc.');
   let parsed;
@@ -57,19 +172,175 @@ async function saveAdminRotationToSupabase(monthKey, rawText) {
   renderRotace();
   if (typeof renderMonth === 'function') renderMonth(monthKey);
   if (app.selectedName && typeof renderPerson === 'function') renderPerson(app.selectedName);
-  let saveResult = { ok: true, months: 0, entries: 0 };
+  let saveResult = { ok: false, reason: 'admin-required', months: 0, entries: 0 };
   if (app.adminUnlocked) {
-    saveResult = await saveRotationToSupabase(app.rotation, { source: 'admin-menu', monthKey }) || saveResult;
+    // Save before network: stale revision, timeout or refresh must never erase this draft.
+    const draft = rakPreserveAdminMonthDraft(monthKey, normalized);
+    saveResult = await saveRotationToSupabase(app.rotation, { source: 'admin-menu', monthKey })
+      || { ok: false, reason: 'no-result' };
     const statusEl = document.getElementById('adminOnlineSaveStatus');
-    if (statusEl) {
-      statusEl.textContent = saveResult && saveResult.ok === true
-        ? ('Uloženo online ✓ · měsíců: ' + String(saveResult.months || 0) + ' · řádků: ' + String(saveResult.entries || 0))
-        : 'Uložení online se nepodařilo.';
+    if (saveResult && saveResult.ok === true) {
+      if (draft.stored) {
+        try { if (localStorage.getItem(draft.key) === draft.content) localStorage.removeItem(draft.key); } catch (_) {}
+      }
+      if (statusEl) statusEl.textContent = 'Uloženo online ✓ · měsíců: ' + String(saveResult.months || 0) + ' · řádků: ' + String(saveResult.entries || 0);
+    } else {
+      // Fail closed. No auto-reload, new server revision, blind retry or silent success.
+      if (statusEl) {
+        statusEl.textContent = (draft.stored
+          ? 'Online neuloženo. Místní návrh je zachován; neobnovuj rozpis bez zálohy.'
+          : 'Online neuloženo a místní zálohu nebylo možné potvrdit! Neobnovuj stránku; exportuj návrh.')
+          + ' Serverová data nebyla přepsána potvrzeným uložením.';
+        rakShowAdminDraftExport(draft,statusEl);
+      }
+      if (typeof app !== 'undefined') app.adminRotationDirty = true;
     }
   }
   return { normalized, saveResult, ruleCheck };
 }
 
+
+// RAK_ADMIN_SMART_MANUAL_INPUT_17006
+function adminRotationManualFold(value) {
+  return String(value || '')
+    .trim()
+    .toLocaleLowerCase('cs-CZ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function adminRotationManualNameDistance(a, b) {
+  const left = String(a || '');
+  const right = String(b || '');
+  if (left === right) return 0;
+  if (!left) return right.length;
+  if (!right) return left.length;
+  const prev = Array.from({ length: right.length + 1 }, (_, idx) => idx);
+  const curr = new Array(right.length + 1);
+  for (let i = 1; i <= left.length; i += 1) {
+    curr[0] = i;
+    for (let j = 1; j <= right.length; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= right.length; j += 1) prev[j] = curr[j];
+  }
+  return prev[right.length];
+}
+
+function adminRotationSmartManualName(value, knownNames) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const known = Array.isArray(knownNames) ? knownNames.filter(Boolean) : adminGetKnownNames();
+  const canonical = typeof adminRotationCanonicalName === 'function' ? adminRotationCanonicalName(raw, known) : raw;
+  if (known.includes(canonical)) return canonical;
+  const key = adminRotationManualFold(raw).replace(/[^a-z0-9]/g, '');
+  if (key.length < 5 || !known.length) return raw;
+  const ranked = known.map((name) => ({
+    name,
+    distance: adminRotationManualNameDistance(key, adminRotationManualFold(name).replace(/[^a-z0-9]/g, ''))
+  })).sort((a, b) => a.distance - b.distance || String(a.name).localeCompare(String(b.name), 'cs'));
+  const best = ranked[0];
+  const second = ranked[1];
+  const maxDistance = key.length >= 8 ? 2 : 1;
+  if (best && best.distance <= maxDistance && (!second || second.distance > best.distance)) return best.name;
+  return raw;
+}
+
+function adminRotationSmartManualPeopleText(value, knownNames) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const names = adminSplitPeopleList(raw);
+  if (!names.length) return adminRotationSmartManualName(raw, knownNames);
+  return names.map((name) => adminRotationSmartManualName(name, knownNames)).filter(Boolean).join(', ');
+}
+
+function adminRotationSmartManualShift(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const direct = raw.match(/\b(R8|N8|R|N)\b/i);
+  if (direct) return direct[1].toUpperCase();
+  const folded = adminRotationManualFold(raw);
+  if (/\b(?:nocni|noc)\s*8\b/.test(folded)) return 'N8';
+  if (/\b(?:ranni|rano)\s*8\b/.test(folded)) return 'R8';
+  if (/\b(?:nocni|noc)\b/.test(folded)) return 'N';
+  if (/\b(?:ranni|rano)\b/.test(folded)) return 'R';
+  return '';
+}
+
+function adminRotationSmartManualDate(value, month, fallbackDate) {
+  const raw = String(value || '').trim().replace(/,+$/g, '').trim();
+  if (!raw) return '';
+  const parsed = typeof parseDateToken === 'function' ? parseDateToken(raw) : null;
+  let day = parsed && Number.isFinite(Number(parsed.day)) ? Number(parsed.day) : NaN;
+  let monthNo = parsed && Number.isFinite(Number(parsed.month)) ? Number(parsed.month) : NaN;
+  if (!Number.isFinite(day) || !Number.isFinite(monthNo)) {
+    const match = raw.match(/(?:^|\s)(\d{1,2})\s*[.\/-]\s*(\d{1,2})(?:\s*[.]|\b)/);
+    if (match) {
+      day = Number(match[1]);
+      monthNo = Number(match[2]);
+    }
+  }
+  if (!Number.isFinite(day) || !Number.isFinite(monthNo) || day < 1 || day > 31 || monthNo < 1 || monthNo > 12) return raw;
+
+  let shift = String((parsed && parsed.shift) || adminRotationSmartManualShift(raw) || '').trim().toUpperCase();
+  const fallbackParsed = typeof parseDateToken === 'function' ? parseDateToken(String(fallbackDate || '')) : null;
+  if (!shift && fallbackParsed && Number(fallbackParsed.day) === day && Number(fallbackParsed.month) === monthNo) {
+    shift = String(fallbackParsed.shift || adminRotationSmartManualShift(fallbackDate) || '').trim().toUpperCase();
+  }
+  if (!shift && month && typeof adminRotationFindShiftForAbsenceDate === 'function') {
+    shift = String(adminRotationFindShiftForAbsenceDate(month, String(day) + '.' + String(monthNo) + '.') || '').trim().toUpperCase();
+  }
+  if (!/^(?:R8|N8|R|N)$/.test(shift)) shift = '';
+  return String(day) + '.' + String(monthNo) + '.' + (shift ? ' ' + shift : '');
+}
+
+function adminRotationSmartAbsenceCode(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const folded = adminRotationManualFold(raw);
+  const compact = folded.replace(/[.\s_-]+/g, '');
+  if (compact === 'nv' || folded === 'nahradni volno') return 'NV';
+  if (compact === 'd' || compact === 'dov' || folded === 'dovolena') return 'D';
+  if (compact === 'n' || compact === 'pn' || folded === 'nemoc' || folded === 'neschopenka') return 'N';
+  if (compact === '§' || folded === 'paragraf') return '§';
+  if (compact === 'l' || folded === 'lazne') return 'Lázně';
+  if (folded === 'skoleni') return 'Š';
+
+  const token = raw.match(/^\s*(n\s*\.?\s*v\.?|nv|d|n|§|l)\s+(.+)$/i);
+  if (token) {
+    const headKey = adminRotationManualFold(token[1]).replace(/[.\s]+/g, '');
+    const suffix = String(token[2] || '').trim();
+    const head = headKey === 'nv' ? 'NV' : (headKey === 'd' ? 'D' : (headKey === 'n' ? 'N' : (headKey === 'l' ? 'Lázně' : '§')));
+    return head + (suffix ? ' ' + suffix : '');
+  }
+  return raw;
+}
+
+// RAK_17066_DIRTY_NAVIGATION_GUARD: verified local draft before rerender or online reload.
+// No server replay, no logging of personal content. Cancellation keeps editor intact.
+function rakGuardAdminRotationDiscard() {
+  if (typeof app==='undefined' || !app || app.adminRotationDirty!==true ||
+      typeof document==='undefined' || !document.getElementById('adminRotationEditor')) return true;
+  if (app.adminUnlocked!==true || typeof rakPreserveAdminMonthDraft!=='function' ||
+      typeof readAdminRotationFromDom!=='function') return false;
+  const key=String(app.selectedMonth || (typeof getAdminSelectedMonthKey==='function' ? getAdminSelectedMonthKey() : '') || '').trim();
+  if(!key) return false;
+  let draft;
+  try {draft=rakPreserveAdminMonthDraft(key,readAdminRotationFromDom(key));}
+  catch (_) {return false;}
+  if(!draft || !draft.stored) {
+    const status=document.getElementById('adminRotationDraftStatus');
+    if(status) status.textContent='Přepnutí zastaveno: místní zálohu nelze ověřit. Zůstaň v editoru a stáhni návrh.';
+    if(draft && draft.content && typeof rakShowAdminDraftExport==='function') rakShowAdminDraftExport(draft,status);
+    return false;
+  }
+  if(typeof window==='undefined' || typeof window.confirm!=='function' ||
+     !window.confirm('Rozpis není uložený online. Soukromý místní návrh byl zálohován. Přepnout a ponechat tento návrh k ruční obnově?')) return false;
+  app.adminRotationDirty=false;
+  return true;
+}
 
 function adminRotationFindShiftForAbsenceDate(month, rawDate) {
   const parsed = typeof parseDateToken === 'function' ? parseDateToken(rawDate) : null;
@@ -602,7 +873,12 @@ function buildAdminAbsenceSummaryHtml(month) {
 
   const maxPairs = Math.max(1, ...groups.map(group => Math.max(1, Array.isArray(group.items) ? group.items.length : 0)));
   let html = "<div class='smallText uMt12 uBold'>Absence podle dne</div>";
-  html += "<div class='tableWrap'><table class='noteTable noteTableCompact'><thead><tr>";
+  // RAK_17061_ADMIN_ABSENCE_LAYOUT: exactly the same proportional columns as public rotation.
+  const absenceColgroup = "<colgroup><col style='width:58px'><col style='width:34px'>" +
+    Array.from({length:maxPairs}, (_, idx) => (idx ? "<col style='width:7px'>" : '') +
+      "<col style='width:68px'><col style='width:38px'>").join('') + "</colgroup>";
+  const absenceWidth = 58 + 34 + maxPairs * (68 + 38) + Math.max(0, maxPairs - 1) * 7;
+  html += "<div class='tableWrap'><table class='noteTable noteTableCompact rakAbsenceTable' style='width:" + String(absenceWidth) + "px;min-width:100%'>" + absenceColgroup + "<thead><tr>";
   for (let i = 0; i < maxPairs; i += 1) {
     if (i > 0) html += "<th class='noteSpacer'></th>";
     if (i === 0) html += "<th class='noteDateCell'>Datum</th><th class='noteShiftCell'>Směna</th>";
@@ -668,6 +944,7 @@ function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, har
 }
 
 
+// RAK_ROTATION_TOOLBAR_SLIM_17023
 function buildAdminRotationTableHtml(monthKey) {
 
   const pendingMonth = typeof adminRotationGeneratorGetPendingDraft === 'function'
@@ -719,17 +996,16 @@ function buildAdminRotationTableHtml(monthKey) {
     '  <div class="appMenuText">' + (hasPendingDraft
       ? 'Je zobrazený nový vygenerovaný návrh. Online rozpis se nezmění, dokud nekliknete na Uložit rozpis.'
       : 'Stejný rozpis, jen editovatelný. Změny zůstávají rozepsané lokálně a do Supabase jdou až po kliknutí na Uložit rozpis.') + '</div>',
+    rakAdminMonthDraftRecoveryHtml(monthKey),
+    rakAdminLocalDraftCleanupHtml(),
     '  <div class="adminRotationSaveDock">',
     '    <div class="adminRotationSaveActions">',
     '      <button type="button" class="appMenuAction adminRotationSelectedRemoveBtn" data-admin-selected-remove hidden>Odebrat vybrané</button>',
-    '      <button type="button" class="appMenuAction rakOtOverviewBtn" data-daymod-overtime-overview>Přehled přesčasů</button>',
-    '      <button type="button" class="appMenuAction" data-admin-action="copy-rotation-vacations">Kopírovat dovolené</button>',
     '    </div>',
     '    <span id="adminRotationDraftStatus" class="adminRotationDraftStatus">' + (hasPendingDraft
       ? 'Zobrazen je nový návrh. Uloží se až horním tlačítkem Uložit rozpis.'
       : 'Rozepsané změny se uloží horním tlačítkem Uložit rozpis.') + '</span>',
     '  </div>',
-    buildAdminRotationPreSaveChecklistHtml(monthKey),
     buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines),
     '  <div class="appMenuFreeNamesBox" id="adminRotationFreeNamesSummary">',
     '    <div class="appMenuFreeNamesTitle">Kontrola měsíce</div>',
@@ -739,7 +1015,8 @@ function buildAdminRotationTableHtml(monthKey) {
     '  <details class="appMenuFoldSection adminRotationFold" open>',
     '    <summary>Tvrdota <button type="button" class="rakDayModModeBtn" data-daymod-mode="hard">✎ Výjimky dne</button></summary>',
     '    <div class="tableWrap appMenuTableWrap">',
-    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="hard">',
+    // RAK_17067_EQUAL_GRID_MARKUP: identical 84px dates / 52px names for BOTH sections.
+    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="hard" style="--rak-grid-width:' + String(84 + hardMachines.length * 52) + 'px;">',
     '        ' + hardColgroup,
     '        <thead><tr><th>Datum</th>' + hardMachines.map(m => '<th>' + escapeHtml(m) + '</th>').join('') + '</tr></thead>',
     '        <tbody>' + renderRows('hard', hardRows, hardMachines.length) + '</tbody>',
@@ -749,7 +1026,8 @@ function buildAdminRotationTableHtml(monthKey) {
     '  <details class="appMenuFoldSection adminRotationFold" open>',
     '    <summary>Měkota <button type="button" class="rakDayModModeBtn" data-daymod-mode="soft">✎ Výjimky dne</button></summary>',
     '    <div class="tableWrap appMenuTableWrap">',
-    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="soft">',
+    // RAK_17066_SOFT_GRID_MARKUP: date + compact machine columns, no wasted space.
+    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="soft" style="--rak-grid-width:' + String(84 + softMachines.length * 52) + 'px;">',
     '        ' + softColgroup,
     '        <thead><tr><th>Datum</th>' + softMachines.map(m => '<th>' + escapeHtml(m) + '</th>').join('') + '</tr></thead>',
     '        <tbody>' + renderRows('soft', softRows, softMachines.length) + '</tbody>',
@@ -792,9 +1070,13 @@ function readAdminRotationFromDom(monthKey) {
     const rows = [];
     const seen = new Set();
     const knownNames = adminGetKnownNames();
-    root.querySelectorAll('tr[data-rotation-section="' + section + '"]').forEach((tr) => {
-      const date = String(tr.querySelector('[data-rot-field="date"]')?.value || '').trim();
-      const cells = Array.from({ length: machineCount }, (_, i) => adminRotationCanonicalName(tr.querySelector('[data-rot-field="cell-' + i + '"]')?.value || '', knownNames));
+    const fallbackRows = Array.isArray(fallback && fallback[section] && fallback[section].rows) ? fallback[section].rows : [];
+    root.querySelectorAll('tr[data-rotation-section="' + section + '"]').forEach((tr, domIndex) => {
+      const rawDate = String(tr.querySelector('[data-rot-field="date"]')?.value || '').trim();
+      const sourceIndex = Number(tr.getAttribute('data-rotation-row-index'));
+      const fallbackRow = fallbackRows[Number.isFinite(sourceIndex) ? sourceIndex : domIndex] || fallbackRows[domIndex] || null;
+      const date = adminRotationSmartManualDate(rawDate, month, fallbackRow && fallbackRow.date ? fallbackRow.date : '');
+      const cells = Array.from({ length: machineCount }, (_, i) => adminRotationSmartManualName(tr.querySelector('[data-rot-field="cell-' + i + '"]')?.value || '', knownNames));
       if (!date && cells.every(v => !v)) return;
       const row = { date, cells };
       const key = makeRotationRowKey(row);
@@ -816,9 +1098,13 @@ function readAdminRotationFromDom(monthKey) {
   root.querySelectorAll('tr[data-note-row-index]').forEach((tr) => {
     const knownNames = adminGetKnownNames();
     const get = (field) => String(tr.querySelector('[data-note-field="' + field + '"]')?.value || '').trim();
-    const date = get('date');
-    const person = adminRotationCanonicalPeopleText(get('person'), knownNames);
-    const code = get('code');
+    const rawDate = get('date');
+    const sourceIndex = Number(tr.getAttribute('data-note-row-index'));
+    const fallbackNotes = Array.isArray(fallback && fallback.notes) ? fallback.notes : [];
+    const fallbackNote = fallbackNotes[Number.isFinite(sourceIndex) ? sourceIndex : -1] || null;
+    const date = adminRotationSmartManualDate(rawDate, month, fallbackNote && fallbackNote.date ? fallbackNote.date : '');
+    const person = adminRotationSmartManualPeopleText(get('person'), knownNames);
+    const code = adminRotationSmartAbsenceCode(get('code'));
     const parsed = typeof parseDateToken === 'function' ? parseDateToken(date) : null;
     const shift = parsed && parsed.shift ? parsed.shift : adminRotationFindShiftForAbsenceDate(month, date);
     const text = [person, code].filter(Boolean).join(' ').trim();
@@ -989,10 +1275,17 @@ async function saveAdminRotationFromDom(monthKey, options) {
   if (!candidateRotation.months) candidateRotation.months = {};
   candidateRotation.months[monthKey] = normalized;
   const normalizedRotation = normalizeRotationData(candidateRotation);
-  let saveResult = null;
-  if (app.adminUnlocked) {
-    saveResult = await saveRotationToSupabase(normalizedRotation, { source: 'admin-menu', monthKey });
-    if (saveResult && saveResult.ok !== false) {
+  // RAK_17065_REAL_ADMIN_SAVE_GUARD: this is the actual button path used by app-menu.js.
+  // Refuse a network attempt if durable draft verification failed. Keep older drafts intact.
+  const draft = rakPreserveAdminMonthDraft(monthKey, normalized);
+  let saveResult = { ok:false, reason: app.adminUnlocked ? 'draft-storage-failed' : 'admin-required' };
+  if (app.adminUnlocked && draft.stored) {
+    try { saveResult = await saveRotationToSupabase(normalizedRotation, { source: 'admin-menu', monthKey })
+      || {ok:false,reason:'no-result'}; }
+    catch(_) { saveResult={ok:false,reason:'network-error'}; }
+    if (saveResult && saveResult.ok === true && saveResult.queued !== true) {
+      try { if(localStorage.getItem(draft.key)===draft.content)localStorage.removeItem(draft.key); }catch(_){}
+
       if (typeof createRotationSaveBackup === 'function') {
         try { await createRotationSaveBackup(previousRotationSnapshot, monthKey); } catch (err) {}
       }
@@ -1005,9 +1298,10 @@ async function saveAdminRotationFromDom(monthKey, options) {
     }
   }
   const manualOverrideIssues = Array.isArray(opts.manualOverrideIssues) ? opts.manualOverrideIssues.slice() : [];
-  if (!saveResult || saveResult.ok === false) {
+  if (!saveResult || saveResult.ok !== true || saveResult.queued === true) {
     if (typeof app !== 'undefined' && app) app.adminRotationDirty = true;
-    return { normalized, saveResult: saveResult || { ok: false, reason: 'admin-required' }, ruleCheck, manualOverrideIssues, preservedDraft: true };
+    return { normalized, saveResult: saveResult || { ok: false, reason: 'no-result' }, ruleCheck,
+      manualOverrideIssues, preservedDraft: draft.stored, draft };
   }
   app.rotation = normalizedRotation;
   app.selectedMonth = monthKey;
