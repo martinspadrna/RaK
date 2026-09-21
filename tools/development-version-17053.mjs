@@ -30,6 +30,7 @@ function ensureBackupReportMetrics() {
  const anchorLine=BACKUP_REPORT_METRICS[0];
  const anchorIndex=source.indexOf(anchorLine);
  assert(anchorIndex>=0,'[17053] backup report metric anchor missing');
+ // Remove complete generated lines so replay cannot accumulate blank separators.
  const removeLine=(value,line)=>value.split(line+'\n').join('').split(line).join('');
  for(const line of BACKUP_REPORT_METRICS.slice(1)) source=removeLine(source,line);
  const firstAnchor=source.indexOf(anchorLine);
