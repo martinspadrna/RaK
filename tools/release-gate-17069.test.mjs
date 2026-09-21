@@ -85,10 +85,19 @@ test('1.7.69 TEST-only release, two builds, older gates and physical mobile chec
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  const chain=read('tools/development-version-17048.mjs');
  assert(chain.includes("await import('./development-version-17069.mjs');"));
- assert(read('tools/shift-report-mo-hotfix-170-smoke.mjs').includes('RAK_17069_TWO_PASS_GUARD'));
- assert(read('tools/release-gate-17068.test.mjs').includes('RAK_17069_HISTORICAL_GATE_COMPAT'));
- assert(read('tools/release-gate-17067.test.mjs').includes('RAK_17069_OLDER_GATE_COMPAT'));
- for(const p of ['tools/browser-equal-grid-17067.mjs','tools/browser-soft-grid-17066.mjs','tools/browser-absence-layout-17061.mjs'])assert(read(p).includes('17069'),p);
+ const pkg=JSON.parse(read('package.json'));
+ if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
+  const compiler=read('tools/development-version-17069.mjs');
+  for(const marker of ['RAK_17069_TWO_PASS_GUARD','RAK_17069_HISTORICAL_GATE_COMPAT','RAK_17069_OLDER_GATE_COMPAT','RAK_17069_EQUAL_GRID_COMPAT','RAK_17069_SOFT_GRID_COMPAT','RAK_17069_ABSENCE_COMPAT'])
+   assert(compiler.includes(marker),marker+' missing from frozen compiler');
+  assert(read('tools/browser-equal-grid-17067.mjs').includes('v1.7.69-local-drafts1'));
+  assert(read('tools/browser-soft-grid-17066.mjs').includes('v1.7.69-local-drafts1'));
+ }else{
+  assert(read('tools/shift-report-mo-hotfix-170-smoke.mjs').includes('RAK_17069_TWO_PASS_GUARD'));
+  assert(read('tools/release-gate-17068.test.mjs').includes('RAK_17069_HISTORICAL_GATE_COMPAT'));
+  assert(read('tools/release-gate-17067.test.mjs').includes('RAK_17069_OLDER_GATE_COMPAT'));
+  for(const p of ['tools/browser-equal-grid-17067.mjs','tools/browser-soft-grid-17066.mjs','tools/browser-absence-layout-17061.mjs'])assert(read(p).includes('17069'),p);
+ }
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const command of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17068.test.mjs','node --test tools/release-gate-17069.test.mjs','node tools/browser-equal-grid-17067.mjs','node tools/pwa-start-bench-17068.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(command),command);
  assert(read('admin-rotation-editor.js').includes('RAK_17069_DRAFT_CLEANUP_CARD'));

@@ -90,19 +90,39 @@ test('network error cannot clear a protected draft or apply stale cache',async()
  assert.equal(await pending,null);assert.equal(f.app.adminRotationDirty,true);
  assert.deepEqual(f.counters(),{applied:0,cache:0,guarded:1,requests:1});
 });
-test('1.7.68 TEST-only release, historical geometry and CI remain mandatory',()=>{
- const files=[['index.html',"var build='v1.7.68-async-draft-guard1';"],['supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.68";'],['app.js','const RAK_DEV_UPDATE_BUILD = "v1.7.68-async-draft-guard1";'],['sw.js',"const CACHE_VERSION = 'v1.7.68';"]];
- for(const [file,marker] of files)assert(read(file).includes(marker),file);
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- const config=read('supabase-config.js');assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
- const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17067.mjs');"));assert(chain.includes("await import('./development-version-17068.mjs');"));
- const replay=read('tools/shift-report-mo-hotfix-170-smoke.mjs');assert(replay.includes('RAK_17068_TWO_PASS_GUARD'));
- const oldGate=read('tools/release-gate-17067.test.mjs');assert(oldGate.includes('RAK_17068_HISTORICAL_GATE_COMPAT'));
- assert(read('tools/browser-equal-grid-17067.mjs').includes('RAK_17068_EQUALGRID_COMPAT'));
- assert(read('tools/browser-soft-grid-17066.mjs').includes('RAK_17068_SOFTGRID_COMPAT'));
- assert(read('tools/browser-absence-layout-17061.mjs').includes('RAK_17068_ABSENCE_COMPAT'));
- const ci=read('.github/workflows/rak-development-validation.yml');
- for(const command of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17067.test.mjs','node --test tools/release-gate-17068.test.mjs','node tools/browser-equal-grid-17067.mjs','node tools/pwa-start-bench-17068.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(command),command);
- assert(read('admin-rotation.js').includes('RAK_17068_LATE_EDIT_NOTICE'));
- assert(read('app-rotation-sync.js').includes('RAK_17068_FINAL_DRAFT_BARRIER'));
+test('1.7.68 and verified successors keep TEST-only release and historical gates',()=>{
+  const identities=new Map([
+    ['v1.7.68-async-draft-guard1','1.7.68'],
+    ['v1.7.69-local-drafts1','1.7.69'],
+    ['v1.7.70-canonical-source1','1.7.70']
+  ]);
+  const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
+  assert(match&&identities.has(match[1]),'unsupported draft-guard successor');
+  const build=match[1],version=identities.get(build);
+  const files=[['index.html',`var build='${build}';`],
+    ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${version}";`],
+    ['app.js',`const RAK_DEV_UPDATE_BUILD = "${build}";`],
+    ['sw.js',`const CACHE_VERSION = 'v${version}';`]];
+  for(const [file,marker] of files)assert(read(file).includes(marker),file);
+  const pkg=JSON.parse(read('package.json'));
+  assert.equal(pkg.version,'1.7.0');
+  const config=read('supabase-config.js');assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+  const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17067.mjs');"));assert(chain.includes("await import('./development-version-17068.mjs');"));
+  if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
+    const compiler=read('tools/development-version-17068.mjs');
+    for(const marker of ['RAK_17068_TWO_PASS_GUARD','RAK_17068_HISTORICAL_GATE_COMPAT','RAK_17068_EQUALGRID_COMPAT','RAK_17068_SOFTGRID_COMPAT','RAK_17068_ABSENCE_COMPAT'])
+      assert(compiler.includes(marker),marker+' missing from frozen compiler');
+    assert(read('tools/browser-equal-grid-17067.mjs').includes('v1.7.69-local-drafts1'));
+    assert(read('tools/browser-soft-grid-17066.mjs').includes('v1.7.69-local-drafts1'));
+  }else{
+    const replay=read('tools/shift-report-mo-hotfix-170-smoke.mjs');assert(replay.includes('RAK_17068_TWO_PASS_GUARD'));
+    const oldGate=read('tools/release-gate-17067.test.mjs');assert(oldGate.includes('RAK_17068_HISTORICAL_GATE_COMPAT'));
+    assert(read('tools/browser-equal-grid-17067.mjs').includes('RAK_17068_EQUALGRID_COMPAT'));
+    assert(read('tools/browser-soft-grid-17066.mjs').includes('RAK_17068_SOFTGRID_COMPAT'));
+    assert(read('tools/browser-absence-layout-17061.mjs').includes('RAK_17068_ABSENCE_COMPAT'));
+  }
+  const ci=read('.github/workflows/rak-development-validation.yml');
+  for(const command of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17067.test.mjs','node --test tools/release-gate-17068.test.mjs','node tools/browser-equal-grid-17067.mjs','node tools/pwa-start-bench-17068.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(command),command);
+  assert(read('admin-rotation.js').includes('RAK_17068_LATE_EDIT_NOTICE'));
+  assert(read('app-rotation-sync.js').includes('RAK_17068_FINAL_DRAFT_BARRIER'));
 });
