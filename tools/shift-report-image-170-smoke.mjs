@@ -21,7 +21,8 @@ assert(helper.includes("canvas.toDataURL('image/png')"), 'same-gesture iOS image
 assert(helper.includes('files: [file]'), 'Web Share file payload missing');
 assert(helper.includes('[data-rak-share-action="whatsapp"]'), 'WhatsApp image interception missing');
 assert(helper.includes("saveButton.textContent = 'Uložit PNG';"), 'PNG action missing');
-assert(String(pkg.scripts && pkg.scripts['vercel-build'] || '').includes('node tools/shift-report-image-170.mjs'), 'Vercel build transform missing');
+const compiler=String(pkg.scripts&& (pkg.scripts['legacy:vercel-build']||pkg.scripts['vercel-build']) || '');
+assert(compiler.includes('node tools/shift-report-image-170.mjs'), 'frozen compatibility compiler missing');
 assert(String(pkg.scripts && pkg.scripts.check || '').includes('node tools/shift-report-image-170-smoke.mjs'), 'smoke not wired into npm run check');
 
 const helperMarkerCount = helper.split(marker).length - 1;

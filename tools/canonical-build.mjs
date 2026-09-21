@@ -5,21 +5,22 @@ import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const STATE = path.join(ROOT, '.rak-canonical-build');
-export const WORK = path.join(STATE, 'work');
-export const OUTPUT = path.join(ROOT, '.rak-dist');
-export const VARIABLE_OUTPUTS = Object.freeze(['rak-complete-backup-source.zip']);
-export const RELEASE = '1.7.70';
-export const BUILD_ID = 'v1.7.70-canonical-source1';
-const LEGACY_RELEASE = '1.7.69';
-const LEGACY_BUILD_ID = 'v1.7.69-local-drafts1';
-const REQUIRED = Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-complete-backup-source.zip']);
-const STATIC_EXT = /\.(?:js|mjs|css|html|json|webmanifest|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|zip)$/i;
-const STATIC_DIR = /^(?:assets|fonts|icons|images|vendor)\//;
-const SOURCE_ONLY_ROOT = new Set(['package.json','package-lock.json','vercel.json']);
+export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+export const STATE=path.join(ROOT,'.rak-canonical-build');
+export const WORK=path.join(STATE,'work');
+export const OUTPUT=path.join(ROOT,'.rak-dist');
+export const VARIABLE_OUTPUTS=Object.freeze(['rak-complete-backup-source.zip']);
+export const RELEASE='1.7.70';
+export const BUILD_ID='v1.7.70-canonical-source1';
+const LEGACY_RELEASE='1.7.69';
+const LEGACY_BUILD_ID='v1.7.69-local-drafts1';
+const REQUIRED=Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-complete-backup-source.zip']);
+const STATIC_EXT=/\.(?:js|mjs|css|html|json|webmanifest|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|zip)$/i;
+const STATIC_DIR=/^(?:assets|fonts|icons|images|vendor)\//;
+const SOURCE_ONLY_ROOT=new Set(['package.json','package-lock.json','vercel.json']);
+const EXCLUDED_ARCHIVE_DIRS=new Set(['.git','node_modules','.vercel','.next','dist','coverage','.cache','.rak-canonical-build','.rak-dist','.rak-promotion']);
 
-function run(command,args,options={}) {
+function run(command,args,options={}){
   return execFileSync(command,args,{cwd:options.cwd||ROOT,encoding:'utf8',stdio:options.stdio||'pipe',
     maxBuffer:128*1024*1024,env:options.env||process.env});
 }
@@ -27,20 +28,23 @@ function assert(condition,message){if(!condition)throw Error('[canonical-build] 
 function split0(value){return value.split('\0').filter(Boolean);}
 function hash(buffer){return crypto.createHash('sha256').update(buffer).digest('hex');}
 function trackedFiles(){return split0(run('git',['ls-files','-z']));}
-function isStatic(relative) {
+function isStatic(relative){
   const p=relative.replaceAll('\\','/');
   if(!STATIC_EXT.test(p)||p.startsWith('api/')||p.startsWith('tools/')||p.startsWith('supabase/')||p.startsWith('.github/'))return false;
   if(!p.includes('/'))return !SOURCE_ONLY_ROOT.has(p);
   return STATIC_DIR.test(p);
 }
-function copy(relative,from,to) {
-  const source=path.join(from,relative),destination=path.join(to,relative);
-  fs.mkdirSync(path.dirname(destination),{recursive:true});
-  fs.copyFileSync(source,destination);
-  fs.chmodSync(destination,fs.statSync(source).mode);
+function safeArchivePath(relative){
+  const p=String(relative||'').replaceAll('\\','/'),base=path.posix.basename(p).toLowerCase();
+  if(!p||p.startsWith('../')||p.split('/').some(part=>EXCLUDED_ARCHIVE_DIRS.has(part)))return false;
+  if(/^\.env(?:\.|$)/i.test(base)||/\.(?:pem|key|p12|pfx|zip|log)$/i.test(base))return false;
+  return !/^(?:id_rsa|id_ed25519)(?:\.|$)/i.test(base);
 }
-
-function applyMetadata(root,fromVersion,fromBuild,toVersion,toBuild) {
+function copy(relative,from,to){
+  const source=path.join(from,relative),destination=path.join(to,relative);
+  fs.mkdirSync(path.dirname(destination),{recursive:true});fs.copyFileSync(source,destination);fs.chmodSync(destination,fs.statSync(source).mode);
+}
+function applyMetadata(root,fromVersion,fromBuild,toVersion,toBuild){
   const replacements={
     'index.html':[[`var build='${fromBuild}';`,`var build='${toBuild}';`]],
     'sw.js':[[`const CACHE_VERSION = 'v${fromVersion}';`,`const CACHE_VERSION = 'v${toVersion}';`],
@@ -58,27 +62,35 @@ function applyMetadata(root,fromVersion,fromBuild,toVersion,toBuild) {
     fs.writeFileSync(file,value);
   }
 }
-
-function prepareWork() {
-  fs.rmSync(WORK,{recursive:true,force:true});
-  fs.mkdirSync(WORK,{recursive:true});
+function prepareWork(){
+  fs.rmSync(WORK,{recursive:true,force:true});fs.mkdirSync(WORK,{recursive:true});
   for(const relative of trackedFiles())copy(relative,ROOT,WORK);
-  applyMetadata(WORK,RELEASE,BUILD_ID,LEGACY_RELEASE,LEGACY_BUILD_ID);
-  const pkgFile=path.join(WORK,'package.json'),pkg=JSON.parse(fs.readFileSync(pkgFile,'utf8'));
-  assert(pkg.scripts['legacy:vercel-build'],'legacy compiler is missing');
-  pkg.scripts['vercel-build']=pkg.scripts['legacy:vercel-build'];
-  fs.writeFileSync(pkgFile,JSON.stringify(pkg,null,2)+'\n');
 }
-function publish() {
-  fs.rmSync(OUTPUT,{recursive:true,force:true});
-  fs.mkdirSync(OUTPUT,{recursive:true});
+function prepareBackup(){
+  const commit=run('git',['rev-parse','HEAD']).trim();
+  assert(/^[a-f0-9]{40}$/.test(commit),'invalid source commit');
+  const inventory=trackedFiles().map(p=>p.replaceAll('\\','/')).filter(safeArchivePath).sort();
+  assert(inventory.length>80&&inventory.includes('rak-complete-backup.js'),'source inventory incomplete');
+  const backupFile=path.join(WORK,'rak-complete-backup.js');
+  let source=fs.readFileSync(backupFile,'utf8');
+  assert(/const RAK_COMPLETE_BACKUP_BUILD_SHA = '[a-f0-9]{40}';/.test(source),'backup SHA marker missing');
+  source=source.replace(/const RAK_COMPLETE_BACKUP_BUILD_SHA = '[a-f0-9]{40}';/,"const RAK_COMPLETE_BACKUP_BUILD_SHA = '"+commit+"';");
+  const inventoryRe=/const RAK_COMPLETE_BACKUP_REPO_FILES = Object\.freeze\(\[[\s\S]*?\]\);/;
+  assert(inventoryRe.test(source),'backup inventory marker missing');
+  source=source.replace(inventoryRe,'const RAK_COMPLETE_BACKUP_REPO_FILES = Object.freeze([\n'+inventory.map(file=>'    '+JSON.stringify(file)).join(',\n')+'\n  ]);');
+  fs.writeFileSync(backupFile,source);
+  const archive=execFileSync('git',['archive','--format=zip','HEAD'],{cwd:ROOT,encoding:null,maxBuffer:128*1024*1024});
+  assert(Buffer.isBuffer(archive)&&archive.length>100000,'source archive incomplete');
+  fs.writeFileSync(path.join(WORK,'rak-complete-backup-source.zip'),archive);
+}
+function publish(){
+  fs.rmSync(OUTPUT,{recursive:true,force:true});fs.mkdirSync(OUTPUT,{recursive:true});
   const candidates=trackedFiles().filter(isStatic);
-  if(fs.existsSync(path.join(WORK,'rak-complete-backup-source.zip'))&&!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
+  if(!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
   for(const relative of candidates.sort())if(fs.existsSync(path.join(WORK,relative)))copy(relative,WORK,OUTPUT);
   for(const required of REQUIRED)assert(fs.existsSync(path.join(OUTPUT,required)),'missing output '+required);
-  applyMetadata(OUTPUT,LEGACY_RELEASE,LEGACY_BUILD_ID,RELEASE,BUILD_ID);
 }
-function manifest() {
+function manifest(){
   const files=[];
   const visit=(folder,prefix='')=>{
     for(const entry of fs.readdirSync(folder,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){
@@ -93,24 +105,23 @@ function manifest() {
     release:RELEASE,buildId:BUILD_ID,technicalVersion:'1.7.0',variableOutputs:[...VARIABLE_OUTPUTS],files,
     stableDigest:hash(Buffer.from(JSON.stringify(stable)))};
 }
-function compare(first,second) {
+function compare(first,second){
   assert(first.sourceCommit===second.sourceCommit,'commit changed between builds');
   assert(first.stableDigest===second.stableDigest,'repeat build differs outside declared variable outputs');
-  const firstMap=new Map(first.files.map(file=>[file.path,file.sha256]));
-  const secondMap=new Map(second.files.map(file=>[file.path,file.sha256]));
-  const names=[...new Set([...firstMap.keys(),...secondMap.keys()])];
-  const differences=names.filter(file=>firstMap.get(file)!==secondMap.get(file));
+  const a=new Map(first.files.map(file=>[file.path,file.sha256])),b=new Map(second.files.map(file=>[file.path,file.sha256]));
+  const differences=[...new Set([...a.keys(),...b.keys()])].filter(file=>a.get(file)!==b.get(file));
   assert(differences.every(file=>VARIABLE_OUTPUTS.includes(file)),'undeclared variable output: '+differences.join(', '));
   return differences;
 }
-export function build() {
+export function build(){
   fs.mkdirSync(STATE,{recursive:true});
   const before=run('git',['diff','--name-only','HEAD','--']).trim();
   assert(!before,'source tree is dirty before build: '+before);
-  prepareWork();
+  prepareWork();prepareBackup();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
-  run(process.platform==='win32'?'npm.cmd':'npm',['run','vercel-build'],{cwd:WORK,env,stdio:'inherit'});
+  run(process.platform==='win32'?'npm.cmd':'npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
   publish();
+  applyMetadata(WORK,RELEASE,BUILD_ID,LEGACY_RELEASE,LEGACY_BUILD_ID);
   const after=run('git',['diff','--name-only','HEAD','--']).trim();
   assert(!after,'build modified canonical sources: '+after);
   const result=manifest(),lastPath=path.join(STATE,'last.json');
@@ -118,8 +129,7 @@ export function build() {
     const previous=JSON.parse(fs.readFileSync(lastPath,'utf8'));
     if(previous.sourceCommit===result.sourceCommit){
       const differences=compare(previous,result);
-      fs.writeFileSync(path.join(STATE,'verified.json'),JSON.stringify({...result,repeatBuild:true,
-        firstStableDigest:previous.stableDigest,differences},null,2)+'\n');
+      fs.writeFileSync(path.join(STATE,'verified.json'),JSON.stringify({...result,repeatBuild:true,firstStableDigest:previous.stableDigest,differences},null,2)+'\n');
       console.log('[canonical-build] VERIFIED second clean pass; declared variable differences: '+(differences.join(', ')||'none'));
     }
   }
@@ -127,15 +137,11 @@ export function build() {
   console.log('[canonical-build] PASS '+result.files.length+' files; stable digest '+result.stableDigest+'; source unchanged');
   return result;
 }
-export function verifyRepeat() {
-  fs.rmSync(path.join(STATE,'last.json'),{force:true});
-  fs.rmSync(path.join(STATE,'verified.json'),{force:true});
-  build();build();
-  assert(fs.existsSync(path.join(STATE,'verified.json')),'repeat proof was not written');
+export function verifyRepeat(){
+  fs.rmSync(path.join(STATE,'last.json'),{force:true});fs.rmSync(path.join(STATE,'verified.json'),{force:true});
+  build();build();assert(fs.existsSync(path.join(STATE,'verified.json')),'repeat proof was not written');
 }
 const mode=process.argv[2]||'build';
 if(path.resolve(process.argv[1]||'')===fileURLToPath(import.meta.url)){
-  if(mode==='build')build();
-  else if(mode==='verify-repeat')verifyRepeat();
-  else throw Error('[canonical-build] expected build or verify-repeat');
+  if(mode==='build')build();else if(mode==='verify-repeat')verifyRepeat();else throw Error('[canonical-build] expected build or verify-repeat');
 }
