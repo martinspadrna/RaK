@@ -137,19 +137,22 @@ jobs:
           path: .rak-promotion/snapshot
       - name: Verify and promote the canonical 1.7.69 sources
         run: node tools/promote-canonical-source.mjs
-      - name: Install dependencies for the isolated build
-        run: npm install --no-audit --no-fund
-      - name: Prove two isolated builds without source mutation
-        run: |
-          npm run vercel-build
-          npm run vercel-build
-          node --test tools/canonical-build-contract.test.mjs tools/build-architecture-contract.test.mjs
-          test -f .rak-canonical-build/verified.json
-          git diff --exit-code -- . ':(exclude)RAK_PLAN_13.md' ':(exclude)package.json' ':(exclude)vercel.json' ':(exclude).gitignore' ':(exclude).github/workflows/rak-development-validation.yml' ':(exclude)tools/build-architecture-contract.test.mjs' ':(exclude)tools/promote-canonical-source.mjs' ':(exclude)tools/canonical-build.mjs' ':(exclude)tools/canonical-build-contract.test.mjs'
-      - name: Commit the verified migration to development
+      - name: Create the local migration candidate
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "build: make 1.7.69 sources canonical"
-          git push origin HEAD:development
+      - name: Install dependencies for the isolated build
+        run: npm install --no-audit --no-fund
+      - name: Prove two isolated builds without source mutation
+        env:
+          GITHUB_SHA: ''
+        run: |
+          npm run vercel-build
+          npm run vercel-build
+          node --test tools/canonical-build-contract.test.mjs tools/build-architecture-contract.test.mjs
+          test -f .rak-canonical-build/verified.json
+          git diff --exit-code HEAD --
+      - name: Push the verified migration to development
+        run: git push origin HEAD:development
