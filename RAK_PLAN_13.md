@@ -21,7 +21,7 @@
 | P1.1 | Databázová oprávnění, RLS a RPC | **40 % (2/5)** | Otevřeno |
 | P1.2 | Administrátorské heslo, relace a zařízení | **40 % (2/5)** | Otevřeno |
 | P1.3 | Reprodukovatelný build, testy a verze | **33 % (2/6)** | **Znovu otevřeno; nejvyšší systémová priorita** |
-| P1.4 | CI před nasazením, rollout a rollback | **33 % (2/6)** | Otevřeno; striktní deploy gate chybí |
+| P1.4 | CI před nasazením, rollout a rollback | **50 % (3/6)** | Otevřeno; preview rollback ověřen, striktní deploy gate chybí |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
 | P2.2 | Rozložení, DOM, CSS a interakce | **40 % (2/5)** | Otevřeno |
@@ -113,13 +113,13 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** další funkční úpravy už nevyžadují nový `development-version-17xxx.mjs` ani přepis historických gate testů při každé verzi. Do migrace nový řetězec neprodlužovat a nezkracovat testy kvůli zelenému CI.
 
-### P1.4 – Ověření před nasazením, deployment a rollback · **33 % (2/6)**
+### P1.4 – Ověření před nasazením, deployment a rollback · **50 % (3/6)**
 
 - [x] Je doložen proces kontroly přesného Git SHA, Actions SUCCESS, Vercel READY a HTTP/testovací konfigurace na referenčním release 1.7.69.
 - [x] Existuje nedestruktivní rollback preflight a kontrola politiky přeskočení nerelease/test-only změn.
 - [ ] **S4 – brána před releasem:** povinná CI kontrola a zamezení přímého push na release větev, nebo explicitní nasazení až po SUCCESS; aktuální Vercel a Actions reagují na `development` push nezávisle a brána dosud neexistuje.
 - [ ] Nastavit fail-closed pravidla přeskočení Vercel buildu pouze pro ověřeně nefunkční změny; žádný skrytý bypass změnou názvu souboru nebo workflow.
-- [ ] Bezpečně provést skutečný PREVIEW rollback na schválený známý deployment a vrátit alias; prokázat dostupnost aplikace před, během a po operaci.
+- [x] Bezpečně proveden skutečný PREVIEW rollback přes izolovaný dočasný alias: před, během i po návratu aplikace odpověděla HTTP 200; rollback mířil na READY deployment SHA `7c78d37936c4b66248213c835f4e7d6873c2b22c`, návrat na READY SHA `7698b442e8826cff94127611db62e459f70199fc`; dočasný alias byl odstraněn a development/main/produkční aliasy zůstaly beze změny.
 - [ ] Při každém budoucím funkčním releasu automaticky spojit SHA → CI → deployment → HTTP/konfiguraci → návratový plán a uchovat důkazy; nikdy nepřepisovat `main` bez výslovného souhlasu.
 
 **Dokončení:** vadný commit se nesmí automaticky nasadit před úspěšným CI; rollback je prakticky vyzkoušen, ne jen popsán.
@@ -200,4 +200,5 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ## Záznam aktualizací
 
+- **21. 9. 2026 – stabilní opakovaný build a ověřený preview rollback:** development SHA `7698b442e8826cff94127611db62e459f70199fc`, Actions run `35601348892` SUCCESS; tři shodné build průchody doložily digest `3dd1b5351a3e695523e2cf07d050da624cf7bdcd77c8b995bf17f2f052b1fac1`. Vercel development deployment `dpl_CDWKvYAjTnA9kM4xe9SJweD3gQuW` je READY na stejném SHA. Izolovaný preview alias byl ověřen před rollbackem, během přepnutí na READY SHA `7c78d37936c4b66248213c835f4e7d6873c2b22c` i po návratu (vždy HTTP 200, `text/html`, 53 102 B) a následně odstraněn. P1.4 se zvyšuje na 50 % (3/6); striktní CI-before-deploy brána zůstává otevřená. `main` a produkční Supabase beze změn.
 - **21. 9. 2026 – nový měřitelný plán:** zachováno všech 13 oblastí; P1.3 zůstává otevřený; přidána kontrolovatelná podkritéria a procenta, S1–S6 mapovány dovnitř plánu. Nejedná se o dodání nové funkcionality ani o potvrzení opravy konfliktu. Další aktualizace zapisovat do tohoto souboru, s evidence pro změny `[x]` i procent.
