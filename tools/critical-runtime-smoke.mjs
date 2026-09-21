@@ -428,7 +428,8 @@ assert(!indexHtml.includes('data-action="games"'), 'Zdrojový index.html pořád
 assert(!indexHtml.includes('data-page="games"'), 'Zdrojový index.html pořád obsahuje navigaci na Hry');
 assert(!indexHtml.includes('styles-games.css'), 'Zdrojový index.html pořád načítá herní CSS');
 assert(!indexHtml.includes('assets/rak-memory-total-time-fix.js'), 'Zdrojový index.html pořád obsahuje odstraněný Memory/Pexeso guard');
-assert(!String(packageJson.scripts && packageJson.scripts['vercel-build'] || '').includes('strip-games-html'), 'Build pořád závisí na dočasném Games HTML stripperu');
+const compatibilityCompiler=String(packageJson.scripts&&(packageJson.scripts['legacy:vercel-build']||packageJson.scripts['vercel-build'])||'');
+assert(!compatibilityCompiler.includes('strip-games-html'), 'Build pořád závisí na dočasném Games HTML stripperu');
 
 const removedGameFiles = [
   'games-engine.js',
@@ -448,7 +449,7 @@ for (const file of removedGameFiles) {
 
 // XLSX a JSZip jsou těžké pomocné knihovny. Nesmí blokovat start aplikace,
 // ale Supabase zůstává záměrně v ověřeném eager režimu.
-const vercelBuild = String(packageJson.scripts && packageJson.scripts['vercel-build'] || '');
+const vercelBuild = compatibilityCompiler;
 const xlsxUrl = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
 const jszipUrl = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
 assert(deferred.includes('rak-lazy-external-libs.js'), 'Lazy loader XLSX/JSZip není součástí ověřeného runtime');
