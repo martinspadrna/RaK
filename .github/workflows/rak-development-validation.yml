@@ -117,7 +117,7 @@ jobs:
 
   # BEGIN CANONICAL SOURCE PROMOTION — this one-shot job removes itself.
   promote-canonical-source:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development' && !contains(github.event.head_commit.message, 'build: make 1.7.70 sources canonical')
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -142,7 +142,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "build: make 1.7.69 sources canonical"
+          git commit -m "build: make 1.7.70 sources canonical"
       - name: Install dependencies for the isolated build
         run: npm install --no-audit --no-fund
       - name: Prove two isolated builds without source mutation
