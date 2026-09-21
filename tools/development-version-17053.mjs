@@ -30,7 +30,8 @@ function ensureBackupReportMetrics() {
  const anchorLine=BACKUP_REPORT_METRICS[0];
  const anchorIndex=source.indexOf(anchorLine);
  assert(anchorIndex>=0,'[17053] backup report metric anchor missing');
- for(const line of BACKUP_REPORT_METRICS.slice(1)) source=source.split(line).join('');
+ const removeLine=(value,line)=>value.split(line+'\n').join('').split(line).join('');
+ for(const line of BACKUP_REPORT_METRICS.slice(1)) source=removeLine(source,line);
  const firstAnchor=source.indexOf(anchorLine);
  source=source.slice(0,firstAnchor+anchorLine.length)+source.slice(firstAnchor+anchorLine.length).split(anchorLine).join('');
  source=source.replace(anchorLine,BACKUP_REPORT_METRICS.join('\n'));
