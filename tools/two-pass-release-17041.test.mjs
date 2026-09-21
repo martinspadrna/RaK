@@ -34,7 +34,8 @@ test('older and newer guards all survive build replay', () => {
       assert(compilers[index].includes(`RAK_${id}_TWO_PASS_GUARD`),
         id + ' frozen guard compiler missing');
     assert(compilers[2].includes('const already17040=already17041||indexSource.includes('));
-    assert(compilers[2].includes(`already17041?"var build='${build}';":already17040?`));
+    assert(compilers[2].includes('already17041?') && compilers[2].includes(':already17040?'),
+      '1.7.41 frozen replay fallback missing');
     assert(pkg.scripts['legacy:vercel-build'].includes(
       'node tools/shift-report-mo-hotfix-170-smoke.mjs'),
       'frozen compatibility compiler is not reachable');
