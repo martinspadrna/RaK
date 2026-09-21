@@ -9,7 +9,9 @@ import {execFileSync} from 'node:child_process';
 
 const run=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',maxBuffer:128*1024*1024}).trim();
 const archive='rak-complete-backup-source.zip';
-const sha=run('git',['rev-parse','HEAD']);
+const gitRoot=run('git',['rev-parse','--show-toplevel']);
+const git=args=>execFileSync('git',['-C',gitRoot,...args],{encoding:'utf8',maxBuffer:128*1024*1024}).trim();
+const sha=git(['rev-parse','HEAD']);
 assert.match(sha,/^[a-f0-9]{40}$/,'exact Git SHA is required');
 for(const [environment,ref] of [['GitHub',process.env.GITHUB_REF_NAME],['Vercel',process.env.VERCEL_GIT_COMMIT_REF]]){
   if(ref)assert.equal(ref,'development',`${environment}: never rehearse main`);
@@ -32,7 +34,7 @@ assert(listing.filter(name=>name.endsWith('/')).every(name=>dirs.has(name)),'arc
 const entries=listing.filter(name=>!name.endsWith('/'));
 assert.deepEqual(entries.slice().sort(),expected,'restore inventory differs from the owner-visible source list');
 const tracked=new Map();
-for(const entry of execFileSync('git',['ls-files','-s','-z'],{encoding:'utf8',maxBuffer:128*1024*1024}).split('\0').filter(Boolean)){
+for(const entry of execFileSync('git',['-C',gitRoot,'ls-files','-s','-z'],{encoding:'utf8',maxBuffer:128*1024*1024}).split('\0').filter(Boolean)){
   const match=entry.match(/^(\d{6}) ([0-9a-f]{40}) 0\t(.+)$/s);
   assert(match,'unexpected unmerged or nonstandard Git index entry');
   tracked.set(match[3],{mode:match[1],sha:match[2]});
@@ -52,7 +54,7 @@ try{
     const restored=path.join(dest,...name.split('/'));
     const stat=fs.lstatSync(restored);
     assert(stat.isFile()&&!stat.isSymbolicLink(),'source restore produced non-regular file');
-    const contentSha=run('git',['hash-object','--',restored]);
+    const contentSha=git(['hash-object','--',restored]);
     assert.equal(contentSha,tracked.get(name).sha,`restored bytes differ from Git HEAD: ${name}`);
     bytes+=stat.size;
   }
@@ -69,7 +71,7 @@ try{
   // This historical stage runs before the release transform bumps package.json from its Git source version.
   // The archive must faithfully restore HEAD; final technical version 1.7.0 has its separate release gates.
   const restoredPackage=JSON.parse(fs.readFileSync(path.join(dest,'package.json'),'utf8'));
-  const originalPackage=JSON.parse(run('git',['show','HEAD:package.json']));
+  const originalPackage=JSON.parse(git(['show','HEAD:package.json']));
   assert.equal(restoredPackage.version,originalPackage.version,'restored source package version differs from Git HEAD');
   console.log(`[17069-source-rehearsal] PASS ${expected.length} files / ${bytes} bytes recovered; every Git blob hash matches ${sha}; temp restore removed. Source-only: independent Supabase/Auth/Storage restoration remains unverified.`);
 }finally{
