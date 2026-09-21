@@ -18,7 +18,7 @@ function bridgeFixture(initial,opts={}){
   flushPromise:opts.busy?Promise.resolve():null,hasSecureAdminContext:()=>opts.authorized!==false,
   app:{adminUnlocked:opts.unlocked!==false}};
  const runtime=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:[
-  'rakInspectLocalRotationDrafts','rakLocalRotationDraftCleanupPreview','rakDiscardLocalRotationDrafts'
+  'LOCAL_QUEUE_KEY','RAK_UNSYNCED_DRAFT_PREFIX','rakInspectLocalRotationDrafts','rakLocalRotationDraftCleanupPreview','rakDiscardLocalRotationDrafts'
  ]}],globals:context,exports:{preview:'rakLocalRotationDraftCleanupPreview',discard:'rakDiscardLocalRotationDrafts'}});
  window.rakLocalRotationDraftCleanupPreview=runtime.api.preview;
  window.rakDiscardLocalRotationDrafts=runtime.api.discard;
