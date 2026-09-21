@@ -6,9 +6,11 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 const VERSION='1.7.54',BUILD='v1.7.54-restorepreflight1',PREVIOUS='v1.7.53-backupverify1';
 const read=file=>fs.readFileSync(file,'utf8');
+const BACKUP_PUBLIC_ROWS_LINE = "      'Řádků aplikačních tabulek: ' + String(metrics.publicRows || 0),";
 function swap(file,before,after,label){
  const source=read(file);
  if(source.includes(after))return;
+ if(file==='rak-complete-backup.js' && after.includes(BACKUP_PUBLIC_ROWS_LINE) && source.includes(BACKUP_PUBLIC_ROWS_LINE)) return;
  assert(source.includes(before),'[17054] missing '+label+' in '+file);
  assert.equal(source.split(before).length,2,'[17054] ambiguous '+label);
  fs.writeFileSync(file,source.replace(before,after),'utf8');
