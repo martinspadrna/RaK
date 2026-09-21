@@ -116,6 +116,10 @@ function compare(first,second){
 export function build(){
   fs.mkdirSync(STATE,{recursive:true});
   const before=run('git',['diff','--name-only','HEAD','--']).trim();
+  if(before==='vercel.json'){
+    const diagnostic=run('git',['diff','--no-ext-diff','--no-color','HEAD','--','vercel.json']).trim();
+    console.error('[canonical-build] vercel.json changed before build:\n'+diagnostic);
+  }
   assert(!before,'source tree is dirty before build: '+before);
   prepareWork();prepareBackup();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
