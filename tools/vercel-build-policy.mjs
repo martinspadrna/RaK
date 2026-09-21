@@ -5,6 +5,8 @@ const NON_RUNTIME_PATHS = [
   /^\.github\/workflows\/[^/]+\.ya?ml$/,
   /^tools\/[^/]+\.test\.(?:mjs|js|cjs)$/,
   /^tools\/rak-v\d+[^/]*\.(?:py|mjs|js)$/i,
+  // CI-only extractor: snapshots compiled public assets, never runs during Vercel build.
+  /^tools\/canonical-source-snapshot\.mjs$/,
   /^RAK_PLAN_13\.md$/,
   /^RAK_PLAN_17\d+_STATUS\.md$/,
   /^RAK_STABILIZATION_PLAN\.md$/,

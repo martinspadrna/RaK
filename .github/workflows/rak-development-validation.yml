@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '22'
       - name: Preflight build policy, frozen chain and measured thirteen-point roadmap
-        run: node --test tools/vercel-build-policy.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs
+        run: node --test tools/vercel-build-policy.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice
@@ -85,3 +85,17 @@ jobs:
         run: node tools/pwa-start-bench-17068.mjs
       - name: Verify live anonymous HTTP against isolated TEST Supabase
         run: node tools/http-anon-audit-17050.mjs
+      # Transitional evidence only. This extra GitHub runner build is NOT a Vercel
+      # deployment. Do not cut over until a complete, identical overlay is proven.
+      - name: Capture and verify canonical source overlay on a third clean release pass
+        run: |
+          node tools/canonical-source-snapshot.mjs capture
+          npm run vercel-build
+          node tools/canonical-source-snapshot.mjs compare
+      - name: Retain verified 1.7.69 runtime overlay for immutable-source migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-17069-canonical-overlay-${{ github.sha }}
+          path: .rak-canonical-snapshot/
+          if-no-files-found: error
+          retention-days: 30
