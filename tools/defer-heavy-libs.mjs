@@ -57,16 +57,18 @@ if (!html.includes(snapshotMarker)) {
 // Původní home4 update marker zachováme, ale diagnostický řádek musí být
 // při každém průchodu přítomen právě jednou.
 const home2Marker = "// Previous Home marker kept for diagnostics: const DEVELOPMENT_BUILD_ID = '1.6.03-home2';";
-const home2Active = /^const DEVELOPMENT_BUILD_ID = '1\\.6\\.03-home2';$/m;
+const home2Active = /^const DEVELOPMENT_BUILD_ID = '1\.6\.03-home2';$/m;
 if (home2Active.test(sw)) {
   sw = sw.replace(home2Active, "const DEVELOPMENT_BUILD_ID = '1.6.03-home4';");
 }
-const home2MarkerEscaped = home2Marker.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
-sw = sw.replace(new RegExp('(?:^' + home2MarkerEscaped + '\\r?\\n)+', 'gm'), '');
-if (!sw.includes(home2Marker)) {
-  const home4Active = /^const DEVELOPMENT_BUILD_ID = '1\\.6\\.03-home4';$/m;
+const firstHome2Marker = sw.indexOf(home2Marker);
+if (firstHome2Marker >= 0) {
+  sw = sw.slice(0, firstHome2Marker + home2Marker.length)
+    + sw.slice(firstHome2Marker + home2Marker.length).split(home2Marker).join('');
+} else {
+  const home4Active = /^const DEVELOPMENT_BUILD_ID = '1\.6\.03-home4';$/m;
   if (!home4Active.test(sw)) throw new Error('[defer-heavy-libs] home4 active marker missing.');
-  sw = sw.replace(home4Active, "$&\\n" + home2Marker);
+  sw = sw.replace(home4Active, "$&\n" + home2Marker);
 }
 
 // RaK 1.6.13: když jsou na soustruzích jen MSKC03 + MSKC04 a MSKC01 je volná,
