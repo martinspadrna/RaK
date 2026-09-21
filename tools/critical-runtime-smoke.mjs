@@ -489,8 +489,14 @@ const appVersionMatch = appJs.match(/RAK_MODULE_CACHE_VERSION\s*=\s*["']([^"']+)
 const swVersionMatch = swJs.match(/CACHE_VERSION\s*=\s*["']v?([^"']+)["']/);
 assert(appVersionMatch, 'Nelze přečíst RAK_MODULE_CACHE_VERSION z app.js');
 assert(swVersionMatch, 'Nelze přečíst CACHE_VERSION ze sw.js');
-assert(String(packageJson.version) === appVersionMatch[1], 'package.json a app.js mají rozdílnou build verzi');
-assert(String(packageJson.version) === swVersionMatch[1], 'package.json a sw.js mají rozdílnou build verzi');
+assert(String(packageJson.version) === appVersionMatch[1], 'package.json a app.js mají rozdílnou technickou verzi');
+if(packageJson.scripts&&packageJson.scripts['legacy:vercel-build']){
+  const displayMatch=swJs.match(/DEVELOPMENT_TEST_DISPLAY_VERSION\s*=\s*["']([^"']+)["']/);
+  assert(displayMatch&&displayMatch[1]===swVersionMatch[1],'kanonický SW cache a viditelná preview verze se liší');
+  assert.equal(String(packageJson.version),'1.7.0','technická verze kanonického buildu se změnila');
+}else{
+  assert(String(packageJson.version)===swVersionMatch[1],'package.json a sw.js mají rozdílnou build verzi');
+}
 assert(stylesOverridesLegacyEarlyCss.length > 1000, 'CSS legacy early vrstva chybí nebo je neočekávaně malá');
 assert(stylesOverridesLegacyMidCss.length > 1000, 'CSS legacy mid vrstva chybí nebo je neočekávaně malá');
 assert(stylesOverridesLegacyLateCss.length > 1000, 'CSS legacy late vrstva chybí nebo je neočekávaně malá');
