@@ -10,7 +10,7 @@ const releaseIdentities=new Map([
  ['v1.7.69-local-drafts1','1.7.69'],
  ['v1.7.70-canonical-source1','1.7.70']
 ]);
-const buildMatch=read('index.html').match(/var build='(v1\\.7\\.\\d+-[a-z0-9-]+)';/);
+const buildMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
 assert(buildMatch&&releaseIdentities.has(buildMatch[1]),'unsupported equal-grid successor');
 const BUILD=buildMatch[1],DISPLAY=releaseIdentities.get(BUILD);
 function excerpt(s,b,e){const a=s.indexOf(b),z=s.indexOf(e,a+b.length);assert(a>=0&&z>a,'missing '+b);return s.slice(a,z);}
