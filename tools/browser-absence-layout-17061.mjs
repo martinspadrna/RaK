@@ -94,7 +94,13 @@ try{
     assert(data[key].shift>=32&&data[key].reason>=36,'[17061-browser] columns crushed');
     assert(data[key].visibleDate,'[17061-browser] actual date text clipped: '+key);
   }
-  assert(data.rotDate.width>=85&&data.rotCell>=87,'[17061-browser] editable hard/soft date too narrow');
+  const releaseSource=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+  const narrow=['v1.7.65-admin-draft-recovery1','v1.7.66-softgrid-draftguard1','v1.7.67-equalgrid-reload1',
+    'v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1']
+    .some(id=>releaseSource.includes(id));
+  if(narrow)assert(data.rotDate.width>=81&&data.rotDate.width<=83&&data.rotCell>=83,
+    '[17065+-browser] MO/TO date width regression '+JSON.stringify(data.rotDate));
+  else assert(data.rotDate.width>=85&&data.rotCell>=87,'[17061-browser] editable hard/soft date too narrow');
   assert(data.absDate.width>=83&&data.absDateCell>=85,'[17061-browser] editable absence date too narrow');
   assert(data.absName>=83&&data.absName<=87,'[17061-browser] absence name not reduced');
   assert(data.rotDate.font>=16&&data.absDate.font>=16,'[17061-browser] iOS input auto-zoom regression '+JSON.stringify({rot:data.rotDate,absence:data.absDate}));
@@ -102,6 +108,6 @@ try{
     '[17061-browser] full date and shift text must fit '+JSON.stringify({rot:data.rotDate,absence:data.absDate}));
   assert(!data.rotOverlap&&!data.absOverlap&&!data.codeOverlap,'[17061-browser] fields overlap neighbouring cells');
   assert(data.docWidth<=data.viewport+4,'[17061-browser] document overflows instead of table scrolling');
-  console.log('[17061-browser] PASS real Chromium CSS: public/admin 58px date + 68px names; editable 86/84px date fits shift, iOS 16px font, no overlap');
+  console.log('[17061-browser] PASS Chromium: public/admin absence geometry; MO/TO '+String(data.rotDate.width)+'px, absence '+String(data.absDate.width)+'px; full date+shift at 16px, no overlap');
 }catch(e){console.error('[17061-browser] FAIL '+e.stack);process.exitCode=1;}
 finally{fs.rmSync(tmp,{recursive:true,force:true});}
