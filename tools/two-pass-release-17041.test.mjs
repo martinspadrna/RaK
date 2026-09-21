@@ -26,6 +26,20 @@ test('latest release metadata remains consistent after repeated build', () => {
 });
 test('older and newer guards all survive build replay', () => {
   const stage = read('tools/shift-report-mo-hotfix-170-smoke.mjs');
+  const pkg = JSON.parse(read('package.json'));
+  if (pkg.scripts['vercel-build'] === 'node tools/canonical-build.mjs build') {
+    const compilers = ['17039','17040','17041'].map(id =>
+      read(`tools/development-version-${id}.mjs`));
+    for (const [index, id] of ['17039','17040','17041'].entries())
+      assert(compilers[index].includes(`RAK_${id}_TWO_PASS_GUARD`),
+        id + ' frozen guard compiler missing');
+    assert(compilers[2].includes('const already17040=already17041||indexSource.includes('));
+    assert(compilers[2].includes(`already17041?"var build='${build}';":already17040?`));
+    assert(pkg.scripts['legacy:vercel-build'].includes(
+      'node tools/shift-report-mo-hotfix-170-smoke.mjs'),
+      'frozen compatibility compiler is not reachable');
+    return;
+  }
   for (const id of ['17039','17040','17041'])
     assert(stage.includes(`// RAK_${id}_TWO_PASS_GUARD`), id + ' guard missing');
   assert(stage.includes('const already17040=already17041||indexSource.includes('));
