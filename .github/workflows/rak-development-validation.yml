@@ -111,5 +111,6 @@ jobs:
         with:
           name: rak-17069-canonical-overlay-${{ github.sha }}
           path: .rak-canonical-snapshot/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
