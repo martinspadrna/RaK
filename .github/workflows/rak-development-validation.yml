@@ -90,7 +90,20 @@ jobs:
       - name: Capture and verify canonical source overlay on a third clean release pass
         run: |
           node tools/canonical-source-snapshot.mjs capture
+          cp sw.js "$RUNNER_TEMP/rak-sw-before.js"
+          cp app-pwa-connectivity.js "$RUNNER_TEMP/rak-connectivity-before.js"
+          cp rak-complete-backup.js "$RUNNER_TEMP/rak-backup-before.js"
           npm run vercel-build
+          # Read-only diagnostics: preserve the strict comparison and show the actual
+          # source differences, not just filenames. No runtime files are rewritten here.
+          for item in "sw:rak-sw-before.js:sw.js" "connectivity:rak-connectivity-before.js:app-pwa-connectivity.js" "backup:rak-backup-before.js:rak-complete-backup.js"; do
+            label="${item%%:*}"
+            pair="${item#*:}"
+            before="${pair%%:*}"
+            after="${pair#*:}"
+            echo "Third-pass difference: $label"
+            diff -u "$RUNNER_TEMP/$before" "$after" | head -n 100 || true
+          done
           node tools/canonical-source-snapshot.mjs compare
       - name: Retain verified 1.7.69 runtime overlay for immutable-source migration
         uses: actions/upload-artifact@v4
