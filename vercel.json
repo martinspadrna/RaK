@@ -65,5 +65,10 @@
       ]
     }
   ],
-  "ignoreCommand": "node tools/vercel-ignore-build.mjs"
+  "ignoreCommand": "node tools/vercel-ignore-build.mjs",
+  "git": {
+    "deploymentEnabled": {
+      "development": false
+    }
+  }
 }
