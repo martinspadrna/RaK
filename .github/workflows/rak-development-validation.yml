@@ -101,5 +101,6 @@ jobs:
         with:
           name: rak-17070-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
