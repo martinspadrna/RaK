@@ -88,7 +88,7 @@ export function createBrowserGlobals(overrides={}){
 export function runNamedDeclarations({modules,globals={},exports}){
   const context=createBrowserGlobals(globals),source=extractNamedDeclarations(modules);
   const pairs=Object.entries(exports||{});
-  for(const [,identifier] of pairs)if(!/^[A-Za-z_$][\\w$]*$/.test(identifier))throw Error('[runtime-fixture] invalid export '+identifier);
+  for(const [,identifier] of pairs)if(!/^[A-Za-z_$][\w$]*$/.test(identifier))throw Error('[runtime-fixture] invalid export '+identifier);
   const exposed=pairs.map(([alias,identifier])=>JSON.stringify(alias)+':'+identifier).join(',');
   vm.runInNewContext(source+'\n;globalThis.__rakRuntimeFixture={'+exposed+'};',context);
   return {api:context.__rakRuntimeFixture,context,source};
