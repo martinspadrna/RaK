@@ -2,9 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const excerpt=(text,start,end)=>{const a=text.indexOf(start),b=text.indexOf(end,a+start.length);assert(a>=0&&b>a,'missing runtime boundary '+start);return text.slice(a,b);};
 function fixture({dirty=true,allow=true,editorValid=true}={}){
   const field={tagName:'INPUT',name:'MO',value:'Původní návrh',checked:false};
   const editor=editorValid?{querySelectorAll:()=>[field]}:{};
@@ -23,11 +22,12 @@ function fixture({dirty=true,allow=true,editorValid=true}={}){
     rakRefreshSyncBadgeTruth:()=>{},
     applyRakRotationState:payload=>{applied++;return payload;},
     rakGuardAdminRotationDiscard:()=>{guarded++;if(!allow)return false;app.adminRotationDirty=false;return true;}};
-  const sync=excerpt(read('app-rotation-sync.js'),'// RAK_17068_SYNC_EPOCH:','function getRakAdminPinForWrite()');
-  const reload=excerpt(read('admin-rotation.js'),'async function loadAdminRotationFromSupabase() {','function adminRotationSettingsJson(');
-  vm.runInNewContext(sync+'\n'+reload+'\nglobalThis.rakTest={sync:syncRotationFromSupabase,reload:loadAdminRotationFromSupabase};',context);
+  const runtime=runNamedDeclarations({modules:[
+    {source:read('app-rotation-sync.js'),names:['rakRotationSyncEpoch','rakRotationEditorFingerprint','syncRotationFromSupabase']},
+    {source:read('admin-rotation.js'),names:['loadAdminRotationFromSupabase']}
+  ],globals:context,exports:{sync:'syncRotationFromSupabase',reload:'loadAdminRotationFromSupabase'}});
   return {app,field,status,callbacks,editor,bridge,
-    run:()=>context.rakTest.reload(), sync:force=>context.rakTest.sync(force),
+    run:()=>runtime.api.reload(), sync:force=>runtime.api.sync(force),
     counters:()=>({applied,cache,guarded,requests}),replaceEditor:next=>{currentEditor=next;}};
 }
 test('race: editing after a confirmed discard never gets overwritten by delayed online data',async()=>{

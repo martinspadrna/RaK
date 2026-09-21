@@ -2,9 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractConditionalBlock,extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const part=(source,begin,end)=>{const a=source.indexOf(begin),b=source.indexOf(end,a+begin.length);assert(a>=0&&b>a,'missing '+begin);return source.slice(a,b);};
 const storage=(initial={})=>{
  const map=new Map(Object.entries(initial));
  return {get length(){return map.size;},key:i=>Array.from(map.keys())[i]??null,
@@ -18,9 +17,12 @@ function bridgeFixture(initial,opts={}){
  const context={window,localStorage,LOCAL_QUEUE_KEY:'rotace_supabase_queue_v1',
   flushPromise:opts.busy?Promise.resolve():null,hasSecureAdminContext:()=>opts.authorized!==false,
   app:{adminUnlocked:opts.unlocked!==false}};
- const code=part(read('supabase-bridge.js'),'  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD','  window.getSupabaseSyncStatus = getSyncUiStatus;');
- vm.runInNewContext(code,context);
- return {window,localStorage,context};
+ const runtime=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:[
+  'rakInspectLocalRotationDrafts','rakLocalRotationDraftCleanupPreview','rakDiscardLocalRotationDrafts'
+ ]}],globals:context,exports:{preview:'rakLocalRotationDraftCleanupPreview',discard:'rakDiscardLocalRotationDrafts'}});
+ window.rakLocalRotationDraftCleanupPreview=runtime.api.preview;
+ window.rakDiscardLocalRotationDrafts=runtime.api.discard;
+ return {window,localStorage,context:runtime.context};
 }
 test('confirmed cleanup removes only local month drafts and rotation tasks; keeps settings, games, unrelated storage',()=>{
  const queue=[{id:'a',type:'rotation_state',conflict:'admin-review-required'},
@@ -68,7 +70,8 @@ test('a locally replaced draft also fails closed, without touching unrelated ite
  assert.equal(f.window.rakDiscardLocalRotationDrafts(p.signature).ok,false);
 });
 test('real admin button confirms before fetching; rejects cache/offline/race and never issues a server write',()=>{
- const menu=read('app-menu.js'),code=part(menu,'// RAK_17069_EXPLICIT_DRAFT_DISCARD:',"      if (adminAction === 'load-online') {");
+ const menu=read('app-menu.js'),handlers=extractNamedDeclaration(menu,'bindAppMenuHandlers');
+ const code=extractConditionalBlock(handlers,"if(adminAction==='discard-local-rotation-drafts')");
  const prompt=code.indexOf('if(!confirm('),request=code.indexOf('await bridge.loadRotationState()');
  assert(prompt>=0&&request>prompt);
  for(const required of ['online.meta.source',"['remote','tables'].includes(source)",'fingerprint','before.signature','app.adminRotationDirty=false','rakInvalidateRotationSyncForDraftCleanup','renderAdminMenuBody(body,currentView)'])assert(code.includes(required),required);
