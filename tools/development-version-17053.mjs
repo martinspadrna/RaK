@@ -18,6 +18,24 @@ function change(file,before,after){
   fs.writeFileSync(file,src.replace(before,after),'utf8');
  } else assert.fail('[17053] missing '+file+': '+after.slice(0,100));
 }
+
+const BACKUP_REPORT_METRICS = Object.freeze([
+  "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),",
+  "      'Soukromých importů: ' + String(metrics.privateImports || 0),",
+  "      'Sanitizovaných Auth účtů: ' + String(metrics.sanitizedAuthAccounts || 0),"
+]);
+function ensureBackupReportMetrics() {
+ const file='rak-complete-backup.js';
+ let source=read(file);
+ const anchorLine=BACKUP_REPORT_METRICS[0];
+ const anchorIndex=source.indexOf(anchorLine);
+ assert(anchorIndex>=0,'[17053] backup report metric anchor missing');
+ for(const line of BACKUP_REPORT_METRICS.slice(1)) source=source.split(line).join('');
+ const firstAnchor=source.indexOf(anchorLine);
+ source=source.slice(0,firstAnchor+anchorLine.length)+source.slice(firstAnchor+anchorLine.length).split(anchorLine).join('');
+ source=source.replace(anchorLine,BACKUP_REPORT_METRICS.join('\n'));
+ fs.writeFileSync(file,source,'utf8');
+}
 const anchor='  function addSupabaseSnapshotFiles(zip, snapshot) {';
 const validator=`  // RAK_17053_BACKUP_STRUCTURE_GUARD: never download an apparently complete but partial ZIP.
   function validateCompleteSnapshot(snapshot) {
@@ -53,9 +71,7 @@ change('rak-complete-backup.js',
 change('rak-complete-backup.js',
  "      '6. Pokud existují soubory ve supabase/storage-files/, vytvoř odpovídající bucket(y) a soubory nahraj zpět.',\n      '7. Znovu nastav Supabase/Vercel tajné klíče a environment proměnné. Ty se z bezpečnostních důvodů nezálohují.',\n      '8. Nasaď aplikaci a proveď critical runtime + security smoke.',",
  "      '7. Pokud existují soubory ve supabase/storage-files/, vytvoř odpovídající bucket(y) a soubory nahraj zpět.',\n      '8. Znovu nastav Supabase/Vercel tajné klíče a environment proměnné. Ty se z bezpečnostních důvodů nezálohují.',\n      '9. Nasaď aplikaci a proveď critical runtime + security smoke.',");
-change('rak-complete-backup.js',
- "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),",
- "      'Aplikačních tabulek: ' + String(metrics.publicTables || 0),\n      'Soukromých importů: ' + String(metrics.privateImports || 0),\n      'Sanitizovaných Auth účtů: ' + String(metrics.sanitizedAuthAccounts || 0),");
+ensureBackupReportMetrics();
 assert(read('rak-complete-backup.js').includes('    const snapshot = await fetchCompleteSnapshot(token);'),'[17053] snapshot fetch lost');
 if (!read('rak-complete-backup.js').includes('completePublicTables: validated.completePublicTables')) change('rak-complete-backup.js',
  "    const progress = (text) => status(text);",

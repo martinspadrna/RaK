@@ -7,6 +7,7 @@ const VERSION='1.7.52',BUILD='v1.7.52-mobileoffline1',PREVIOUS='v1.7.51-archiveg
 const read=p=>fs.readFileSync(p,'utf8');
 function change(file,before,after){
  const old=read(file);
+ if(old.includes(after)) return;
  if(old.includes(before)){
   assert.equal(old.split(before).length,2,'[17052] ambiguous '+file);
   fs.writeFileSync(file,old.replace(before,after),'utf8');

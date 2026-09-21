@@ -54,14 +54,19 @@ if (!html.includes(snapshotMarker)) {
   html = html.replace(beforeCalculators, snapshotScript + beforeCalculators);
 }
 
-// Původní home4 update marker zachováme, ale kontrolujeme jen aktivní deklaraci,
-// aby druhý Vercel build průchod nereagoval na diagnostický komentář.
-const home2Active = /^const DEVELOPMENT_BUILD_ID = '1\.6\.03-home2';$/m;
+// Původní home4 update marker zachováme, ale diagnostický řádek musí být
+// při každém průchodu přítomen právě jednou.
+const home2Marker = "// Previous Home marker kept for diagnostics: const DEVELOPMENT_BUILD_ID = '1.6.03-home2';";
+const home2Active = /^const DEVELOPMENT_BUILD_ID = '1\\.6\\.03-home2';$/m;
 if (home2Active.test(sw)) {
-  sw = sw.replace(
-    home2Active,
-    "const DEVELOPMENT_BUILD_ID = '1.6.03-home4';\n// Previous Home marker kept for diagnostics: const DEVELOPMENT_BUILD_ID = '1.6.03-home2';"
-  );
+  sw = sw.replace(home2Active, "const DEVELOPMENT_BUILD_ID = '1.6.03-home4';");
+}
+const home2MarkerEscaped = home2Marker.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+sw = sw.replace(new RegExp('(?:^' + home2MarkerEscaped + '\\r?\\n)+', 'gm'), '');
+if (!sw.includes(home2Marker)) {
+  const home4Active = /^const DEVELOPMENT_BUILD_ID = '1\\.6\\.03-home4';$/m;
+  if (!home4Active.test(sw)) throw new Error('[defer-heavy-libs] home4 active marker missing.');
+  sw = sw.replace(home4Active, "$&\\n" + home2Marker);
 }
 
 // RaK 1.6.13: když jsou na soustruzích jen MSKC03 + MSKC04 a MSKC01 je volná,
