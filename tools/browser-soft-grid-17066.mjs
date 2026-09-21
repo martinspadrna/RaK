@@ -9,7 +9,9 @@ import {spawnSync} from 'node:child_process';
 const root=process.cwd();
 const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
 assert(chrome,'[17066-browser] actual Chromium required');
-assert(fs.readFileSync('index.html','utf8').includes('v1.7.66-softgrid-draftguard1'),'built version required');
+const releaseBuild=fs.readFileSync('index.html','utf8');
+assert(['v1.7.66-softgrid-draftguard1','v1.7.67-equalgrid-reload1','v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1']
+  .some(id=>releaseBuild.includes(id)),'built soft-grid release required');
 const css=['styles.css','styles-inline-legacy.css'].map(file=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,file)).href+'">').join('');
 const machines=['MSKC01','MSKC03','MSKC04','MFKF06','MFKF10'];
 const cols='<colgroup><col style="width:46px">'+machines.map(()=>'<col style="width:50px">').join('')+'</colgroup>';

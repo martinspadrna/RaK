@@ -4,10 +4,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const BUILD='v1.7.67-equalgrid-reload1';
+const releaseIdentities=new Map([
+ ['v1.7.67-equalgrid-reload1','1.7.67'],
+ ['v1.7.68-async-draft-guard1','1.7.68'],
+ ['v1.7.69-local-drafts1','1.7.69'],
+ ['v1.7.70-canonical-source1','1.7.70']
+]);
+const buildMatch=read('index.html').match(/var build='(v1\\.7\\.\\d+-[a-z0-9-]+)';/);
+assert(buildMatch&&releaseIdentities.has(buildMatch[1]),'unsupported equal-grid successor');
+const BUILD=buildMatch[1],DISPLAY=releaseIdentities.get(BUILD);
 function excerpt(s,b,e){const a=s.indexOf(b),z=s.indexOf(e,a+b.length);assert(a>=0&&z>a,'missing '+b);return s.slice(a,z);}
-test('1.7.67 identifiers on TEST Supabase, no technical version change',()=>{
- for(const [p,s] of [['index.html',`var build='${BUILD}';`],['supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.67";'],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['sw.js',"const CACHE_VERSION = 'v1.7.67';"],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]])assert(read(p).includes(s),p);
+test('1.7.67 and verified successors keep aligned identifiers on TEST Supabase',()=>{
+ for(const [p,s] of [['index.html',`var build='${BUILD}';`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${DISPLAY}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['sw.js',`const CACHE_VERSION = 'v${DISPLAY}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]])assert(read(p).includes(s),p);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
@@ -86,7 +94,11 @@ test('two builds, real browser gates, ZIP/CRC, TEST HTTP and 13 point tracking',
  assert(stages.includes("await import('./development-version-17066.mjs');"));
  assert(stages.includes("execFileSync(process.execPath,['--test','tools/release-gate-17066.test.mjs']"));
  assert(stages.includes("await import('./development-version-17067.mjs');"));
- assert(read('tools/shift-report-mo-hotfix-170-smoke.mjs').includes('RAK_17067_TWO_PASS_GUARD'));
+ const pkg=JSON.parse(read('package.json'));
+ if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
+  assert(read('tools/development-version-17067.mjs').includes('RAK_17067_TWO_PASS_GUARD'));
+  assert(pkg.scripts['legacy:vercel-build'].includes('node tools/shift-report-mo-hotfix-170-smoke.mjs'));
+ }else assert(read('tools/shift-report-mo-hotfix-170-smoke.mjs').includes('RAK_17067_TWO_PASS_GUARD'));
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const s of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17067.test.mjs','node tools/browser-equal-grid-17067.mjs','node tools/browser-soft-grid-17066.mjs','node tools/browser-offline-17052.mjs','node tools/backup-source-integrity-17051.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(s),s);
  const plan=read('RAK_PLAN_17067_STATUS.md');
