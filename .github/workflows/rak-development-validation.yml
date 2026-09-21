@@ -117,7 +117,7 @@ jobs:
 
   # BEGIN CANONICAL SOURCE PROMOTION — this one-shot job removes itself.
   promote-canonical-source:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/development' && !contains(github.event.head_commit.message, 'build: make 1.7.70 sources canonical') }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 25
