@@ -30,6 +30,13 @@ test('the canonical build contract names its output, variable archive and immuta
     "git',['diff','--name-only','HEAD','--']","rak-complete-backup-source.zip","stableDigest","verify-repeat"]){
     assert(source.includes(marker),'missing canonical build guard: '+marker);
   }
+  assert(source.includes("['archive','--format=zip','HEAD','--',...inventory]"),
+    'source ZIP must use the verified allowlist');
+  const restore=read('tools/source-restore-rehearsal-17069.mjs');
+  assert(restore.includes("['-C',gitRoot,'ls-files','-s','-z']"),
+    'restore rehearsal must read the repository index from its exact root');
+  assert(restore.includes("git(['hash-object','--',restored])"),
+    'restore rehearsal must compare every recovered Git blob');
   assert(!fs.existsSync(path.join(ROOT,'tools/development-version-17070.mjs')));
   assert(read('index.html').includes("var build='v1.7.70-canonical-source1';"));
   assert(read('sw.js').includes("const CACHE_VERSION = 'v1.7.70';"));

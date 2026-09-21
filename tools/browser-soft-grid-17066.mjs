@@ -41,6 +41,6 @@ try{
  assert(data.wrapScroll<=data.wrapClient+2&&data.lastRight<=data.wrapRight+1,fail('fifth name needs horizontal scrolling'));
  assert(data.dateWidth>=81&&data.dateWidth<=83&&data.dateFont>=16&&data.dateContent>=data.dateText+1,fail('date/shift clipped or iOS zoom'));
  assert(data.document<=data.viewport+4,fail('document overflow'));
- console.log('[17066-browser] PASS real Chromium: all 5 MO names, 324px table, <=4px gaps, no side scroll, 82px readable date');
+ console.log('[17066-browser] PASS real Chromium: all 5 MO names, '+String(data.table)+'px table, <=4px gaps, no side scroll, 82px readable date');
 }catch(err){console.error('[17066-browser] FAIL '+err.stack);process.exitCode=1;}
 finally{fs.rmSync(tmp,{recursive:true,force:true});}
