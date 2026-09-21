@@ -25,8 +25,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Preflight build policy, frozen chain and measured thirteen-point roadmap
-        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs
+      - name: Preflight isolated build policy and measured thirteen-point roadmap
+        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice
@@ -59,6 +59,7 @@ jobs:
       # node --test tools/release-gate-17065.test.mjs
       # node --test tools/release-gate-17066.test.mjs
       - name: Verify final release and inherited quality gates
+        working-directory: .rak-canonical-build/work
         run: |
           node --test tools/release-gate-17039.test.mjs
           node --test tools/rotation-release-gate-17040.test.mjs
@@ -67,14 +68,17 @@ jobs:
           node --test tools/release-gate-17068.test.mjs
           node --test tools/release-gate-17069.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
+        working-directory: .rak-canonical-build/work
         run: |
           node --check tools/preview-rollback-preflight-17068.mjs
           node --check tools/pwa-start-bench-17068.mjs
           node --test tools/preview-rollback-preflight-17068.test.mjs
           node --test tools/pwa-start-bench-17068.test.mjs
       - name: Verify source backup ZIP inventory, excluded files and CRC
+        working-directory: .rak-canonical-build/work
         run: node tools/backup-source-integrity-17051.mjs
       - name: Real Chromium mobile start, offline restart and online recovery
+        working-directory: .rak-canonical-build/work
         run: |
           node --test tools/pwa-offline-17052.test.mjs
           node tools/browser-offline-17052.mjs
@@ -82,77 +86,20 @@ jobs:
           node tools/browser-soft-grid-17066.mjs
           node tools/browser-equal-grid-17067.mjs
       - name: Benchmark PWA three times in independent Chromium profiles
+        working-directory: .rak-canonical-build/work
         run: node tools/pwa-start-bench-17068.mjs
       - name: Verify live anonymous HTTP against isolated TEST Supabase
+        working-directory: .rak-canonical-build/work
         run: node tools/http-anon-audit-17050.mjs
-      # Transitional evidence only. This extra GitHub runner build is NOT a Vercel
-      # deployment. Do not cut over until a complete, identical overlay is proven.
-      - name: Capture and verify canonical source overlay on a third clean release pass
+      - name: Verify isolated output and immutable canonical sources
         run: |
-          node tools/canonical-source-snapshot.mjs capture
-          cp sw.js "$RUNNER_TEMP/rak-sw-before.js"
-          cp app-pwa-connectivity.js "$RUNNER_TEMP/rak-connectivity-before.js"
-          cp rak-complete-backup.js "$RUNNER_TEMP/rak-backup-before.js"
-          npm run vercel-build
-          node --test tools/repeat-build-idempotence.test.mjs
-          # Read-only diagnostics: preserve the strict comparison and show the actual
-          # source differences, not just filenames. No runtime files are rewritten here.
-          for item in "sw:rak-sw-before.js:sw.js" "connectivity:rak-connectivity-before.js:app-pwa-connectivity.js" "backup:rak-backup-before.js:rak-complete-backup.js"; do
-            label="${item%%:*}"
-            pair="${item#*:}"
-            before="${pair%%:*}"
-            after="${pair#*:}"
-            echo "Third-pass difference: $label"
-            diff -u "$RUNNER_TEMP/$before" "$after" | head -n 100 || true
-          done
-          node tools/canonical-source-snapshot.mjs compare
-      - name: Retain verified 1.7.69 runtime overlay for immutable-source migration
-        uses: actions/upload-artifact@v4
-        with:
-          name: rak-17069-canonical-overlay-${{ github.sha }}
-          path: .rak-canonical-snapshot/
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 30
-
-  # BEGIN CANONICAL SOURCE PROMOTION — this one-shot job removes itself.
-  promote-canonical-source:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
-    needs: verify
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    permissions:
-      contents: write
-    steps:
-      - name: Check out the verified commit
-        uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Download this run's verified canonical overlay
-        uses: actions/download-artifact@v4
-        with:
-          name: rak-17069-canonical-overlay-${{ github.sha }}
-          path: .rak-promotion/snapshot
-      - name: Verify and promote the canonical 1.7.69 sources
-        run: node tools/promote-canonical-source.mjs
-      - name: Create the local migration candidate
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "build: make 1.7.70 sources canonical"
-      - name: Install dependencies for the isolated build
-        run: npm install --no-audit --no-fund
-      - name: Prove two isolated builds without source mutation
-        env:
-          GITHUB_SHA: ''
-        run: |
-          npm run vercel-build
-          npm run vercel-build
-          node --test tools/canonical-build-contract.test.mjs tools/build-architecture-contract.test.mjs
+          node --test tools/canonical-build-contract.test.mjs
           test -f .rak-canonical-build/verified.json
           git diff --exit-code HEAD --
-      - name: Push the verified migration to development
-        run: git push origin HEAD:development
+      - name: Retain isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-17070-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          if-no-files-found: error
+          retention-days: 30
