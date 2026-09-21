@@ -493,7 +493,7 @@ assert(String(packageJson.version) === appVersionMatch[1], 'package.json a app.j
 if(packageJson.scripts&&packageJson.scripts['legacy:vercel-build']){
   const displayMatch=swJs.match(/DEVELOPMENT_TEST_DISPLAY_VERSION\s*=\s*["']([^"']+)["']/);
   assert(displayMatch&&displayMatch[1]===swVersionMatch[1],'kanonický SW cache a viditelná preview verze se liší');
-  assert.equal(String(packageJson.version),'1.7.0','technická verze kanonického buildu se změnila');
+  assert(String(packageJson.version)==='1.7.0','technická verze kanonického buildu se změnila');
 }else{
   assert(String(packageJson.version)===swVersionMatch[1],'package.json a sw.js mají rozdílnou build verzi');
 }
