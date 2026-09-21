@@ -28,7 +28,7 @@ test('conditional blocks stop at the matched syntax block',()=>{
 });
 test('shared browser globals provide one memory storage and window identity',()=>{
   const storage=createMemoryStorage({a:'1'});
-  const value=evaluateExpression("localStorage.setItem('b','2'); window.localStorage===localStorage && document.readyState==='loading'",{localStorage});
+  const value=evaluateExpression("localStorage.setItem('b','2'); window.localStorage===localStorage && document.readyState==='loading'",{localStorage:storage});
   assert.equal(value,true);assert.deepEqual(storage.snapshot(),{a:'1',b:'2'});
 });
 test('missing declarations and malformed blocks fail closed',()=>{

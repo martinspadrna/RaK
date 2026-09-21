@@ -8,8 +8,8 @@ test('migrated runtime gates use the shared explicit fixture and no private VM s
     const source=read('tools/release-gate-'+number+'.test.mjs');
     assert(source.includes("from './runtime-vm-fixture.mjs'"),number+' fixture import');
     assert(!source.includes("from 'node:vm'"),number+' private vm import');
-    assert(!/function\\s+(?:excerpt|part|section)\\s*\\(|const\\s+(?:excerpt|part|section)\\s*=/.test(source),number+' local source slicer');
-    assert(!/read\\([^)]*\\)[\\s\\S]{0,120}\\.slice\\(/.test(source),number+' comment-bounded slice');
+    assert(!/function\s+(?:excerpt|part|section)\s*\(|const\s+(?:excerpt|part|section)\s*=/.test(source),number+' local source slicer');
+    assert(!/read\([^)]*\)[\s\S]{0,120}\.slice\(/.test(source),number+' comment-bounded slice');
   }
 });
 test('the fixture itself is exercised by the normal strict check',()=>{

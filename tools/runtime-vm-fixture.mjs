@@ -16,6 +16,7 @@ function scanCode(source,start,mode){
     if(ch==='(')round++;else if(ch===')')round--;
     else if(ch==='[')square++;else if(ch===']')square--;
     else if(ch==='{')curly++;else if(ch==='}')curly--;
+    if(mode==='params'&&ch===')'&&round===0)return i+1;
     if(mode==='block'&&curly===0)return i+1;
     if(mode==='statement'&&ch===';'&&round===0&&square===0&&curly===0)return i+1;
   }
@@ -25,7 +26,8 @@ function declarationMatch(source,name){
   const id=escapeRegex(name);
   const fn=new RegExp('(?:^|\\n)([ \\t]*(?:async\\s+)?function\\s+'+id+'\\s*\\()','m').exec(source);
   if(fn){
-    const start=fn.index+(source[fn.index]==='\n'?1:0),open=source.indexOf('{',fn.index+fn[0].length);
+    const start=fn.index+(source[fn.index]==='\n'?1:0),paramsOpen=source.indexOf('(',fn.index);
+    const paramsEnd=scanCode(source,paramsOpen,'params'),open=source.indexOf('{',paramsEnd);
     if(open<0)throw Error('[runtime-fixture] missing body for '+name);
     return {name,start,end:scanCode(source,open,'block')};
   }
