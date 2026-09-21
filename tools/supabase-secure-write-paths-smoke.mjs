@@ -44,17 +44,25 @@ const bridgePos = syncFeature[1].indexOf('"supabase-bridge.js"');
 const syncPos = syncFeature[1].indexOf('"app-rotation-sync.js"');
 assert(bridgePos >= 0 && syncPos > bridgePos, 'app-rotation-sync secure gate must load after supabase-bridge');
 
-assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
-assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'SW test display version must be 1.6.03');
-assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display release version must be 1.6.03');
-assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
-assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03-stats1";'), 'development PWA build marker must identify stats hotfix');
+assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'")||sw.includes("'./app-rotation-sync.js?v=1.7.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
+const canonical=!!(pkg.scripts&&pkg.scripts['legacy:vercel-build']);
+if(canonical){
+  assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.70';"), 'canonical SW display version must be 1.7.70');
+  assert(config.includes('window.RAK_RELEASE_VERSION = "1.7.70";'), 'canonical display release version must be 1.7.70');
+  assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.7.70";'), 'canonical test display version must be 1.7.70');
+  assert(config.includes('window.RAK_PWA_BUILD = "v1.7.70-canonical-source1";'), 'canonical PWA build marker missing');
+}else{
+  assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'SW test display version must be 1.6.03');
+  assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display release version must be 1.6.03');
+  assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
+  assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03-stats1";'), 'development PWA build marker must identify stats hotfix');
+}
 assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
 assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
 
 assert(exportJs.includes('"supabase-bridge.js": "src-supabase-bridge-js"'), 'export inventory must still include Supabase bridge');
 assert(exportJs.includes('"app-rotation-sync.js": "src-app-rotation-sync-js"'), 'export inventory must still include rotation sync/security gate source');
 assert(String(pkg.scripts.check || '').includes('tools/supabase-secure-write-paths-smoke.mjs'), 'secure write paths smoke must run in npm check');
-assert.equal(pkg.version, '1.6.0', 'technical package version must stay 1.6.0');
+assert.equal(pkg.version, canonical?'1.7.0':'1.6.0', 'technical package version changed');
 
-console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; visible dev build 1.6.03, internal stats1 marker; export/SW/boot links preserved');
+console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; release metadata and export/SW/boot links preserved');
