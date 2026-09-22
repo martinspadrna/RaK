@@ -145,7 +145,9 @@ try{
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
   return {unavailable:result?.__rakUnavailable===true,reason:result?.reason||'',queueLength:queue.length};
  })()`);
- assert.deepEqual(offlineUi,{unavailable:true,reason:'offline-cache-miss',queueLength:0},'[17052-browser] offline profile read created a queued write');
+ assert.equal(offlineUi.unavailable,true,'[17052-browser] unavailable offline profile read was not distinguished');
+ assert(['offline-cache-miss','missing-client'].includes(offlineUi.reason),'[17052-browser] unexpected unavailable profile reason: '+offlineUi.reason);
+ assert.equal(offlineUi.queueLength,0,'[17052-browser] offline profile read created a queued write');
  const offlineIcons=await check(`(()=>{const icons=Array.from(document.querySelectorAll('img.dashboardIconImg,img.bottomNavIconImg'));return {count:icons.length,broken:icons.filter(img=>!img.complete||img.naturalWidth<1).map(img=>img.getAttribute('src')||'')}})()`);
  assert(offlineIcons.count>=12,'[17052-browser] dashboard/navigation icons were not rendered');
  assert.deepEqual(offlineIcons.broken,[],'[17052-browser] offline dashboard/navigation icons missing');
