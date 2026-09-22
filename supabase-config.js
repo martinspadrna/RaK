@@ -7,13 +7,13 @@ window.SUPABASE_CONFIG = {
 // Development-only viditelná testovací verze. Produkční main dál zobrazuje
 // veřejnou verzi RaK 1.6; každý další testovací balík budeme číslovat
 // 1.6.01, 1.6.02, 1.6.03… aby bylo v O aplikaci hned vidět, co běží.
-window.RAK_RELEASE_VERSION = "1.7.73";
-window.RAK_TEST_DISPLAY_VERSION = "1.7.73";
+window.RAK_RELEASE_VERSION = "1.7.74";
+window.RAK_TEST_DISPLAY_VERSION = "1.7.74";
 // Legacy smoke compatibility: window.RAK_RELEASE_VERSION = "1.6.03";
 // Legacy smoke compatibility: window.RAK_TEST_DISPLAY_VERSION = "1.6.03";
 // PWA build marker je interní a může se změnit i při malém hotfixu stejné
 // viditelné verze. Tím se znovu povolí potvrzení aktualizace na iOS PWA.
-window.RAK_PWA_BUILD = "v1.7.73-offline-persistence1";
+window.RAK_PWA_BUILD = "v1.7.74-offline-cache1";
 // Předchozí interní marker ponechaný jen kvůli kompatibilitě smoke testu:
 // window.RAK_PWA_BUILD = "v1.6.03-stats1";
 

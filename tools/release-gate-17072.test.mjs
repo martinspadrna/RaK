@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const identities=new Map([['v1.7.72-shift-report1','1.7.72'],['v1.7.73-offline-persistence1','1.7.73']]);
+const identities=new Map([['v1.7.72-shift-report1','1.7.72'],['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74']]);
 const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
 assert(match&&identities.has(match[1]),'unsupported shift-report successor');
 const BUILD=match[1],VERSION=identities.get(BUILD);

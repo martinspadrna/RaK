@@ -1,16 +1,16 @@
 // RaK 1.7 PWA service worker – v1.7.0 cache + confirmed-update navigation.
-const CACHE_VERSION = 'v1.7.73';
+const CACHE_VERSION = 'v1.7.74';
 const SW_APP_VERSION = '1.7.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.73';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.74';
 // Legacy smoke compatibility: const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
-const DEVELOPMENT_BUILD_ID = 'v1.7.73-offline-persistence1';
+const DEVELOPMENT_BUILD_ID = 'v1.7.74-offline-cache1';
 const DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY = 'idle-foundation-2;feature-css-10';
 const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-identity-guard';
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
 const DEVELOPMENT_CACHE_TUNING_POLICY = 'normalize-update-navigation-cache;waituntil-runtime-write;cleanup-transient-nav';
 // Previous canonical warm-start budget before offline Rotace: const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
 const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm65;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
-const DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-rotation5;prewarm-sync2;cached-state-first;semantic-ui-conflict';
+const DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict';
 const DEVELOPMENT_STARTUP_EXECUTION_POLICY = 'mobile-layout-guard-idle;warm-cache-preserved;startup-files-15';
 const DEVELOPMENT_MUTATION_OBSERVER_POLICY = 'scoped-8;raf-coalesced-7;runtime-stability-targeted';
 const DEVELOPMENT_FULL_APP_AUDIT_POLICY = 'export-manifest-current;diagnostics-no-games;keepalive-rpc-only;security-smoke-executed';
@@ -125,6 +125,14 @@ const WARM_START = [
   './assets/nav-icons/rotace-green.png',
   './assets/nav-icons/kalkulacky-gray.png',
   './assets/nav-icons/kalkulacky-green.png',
+  './assets/dashboard-icons/calendar.png',
+  './assets/dashboard-icons/dovolena.png',
+  './assets/dashboard-icons/eportal.png',
+  './assets/dashboard-icons/hourglass.png',
+  './assets/dashboard-icons/jidelna.png',
+  './assets/dashboard-icons/jidelnilistek.png',
+  './assets/dashboard-icons/kantyna.png',
+  './assets/dashboard-icons/vyplata.png',
   './supabase-config.js?v=1.7.0',
   './rak-user-profile.js?v=1.7.0',
   './rak-auth-gate.js?v=1.7.0',
@@ -165,7 +173,14 @@ const OFFLINE_REQUIRED = Object.freeze([
   './rak-mobile-layout-guard.js?v=1.7.0','./rak-feature-routing.js?v=1.7.0','./stats.js?v=1.7.0',
   './rotace.js?v=1.7.0','./rotation-tasks.js?v=1.7.0','./admin-daymods.js?v=1.7.0',
   './app-rotation-controls.js?v=1.7.0','./supabase-config.js?v=1.7.0','./supabase-bridge.js?v=1.7.0',
-  './app-rotation-sync.js?v=1.7.0'
+  './app-rotation-sync.js?v=1.7.0',
+  './assets/nav-icons/home-gray.png','./assets/nav-icons/home-green.png',
+  './assets/nav-icons/rotace-gray.png','./assets/nav-icons/rotace-green.png',
+  './assets/nav-icons/kalkulacky-gray.png','./assets/nav-icons/kalkulacky-green.png',
+  './assets/dashboard-icons/calendar.png','./assets/dashboard-icons/dovolena.png',
+  './assets/dashboard-icons/eportal.png','./assets/dashboard-icons/hourglass.png',
+  './assets/dashboard-icons/jidelna.png','./assets/dashboard-icons/jidelnilistek.png',
+  './assets/dashboard-icons/kantyna.png','./assets/dashboard-icons/vyplata.png'
 ]);
 
 const STATIC_EXT = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|webmanifest)$/i;
@@ -185,6 +200,17 @@ async function put(cacheName, request, response) {
   } catch (_) {}
 }
 
+async function cachedPrewarm(request, ignoreSearch) {
+  try {
+    const url = new URL(request.url);
+    const relative = '.' + url.pathname + (ignoreSearch ? '' : url.search);
+    const cache = await caches.open(PREWARM_CACHE);
+    return await cache.match(prewarmKey(relative), { ignoreSearch: false });
+  } catch (_) {
+    return null;
+  }
+}
+
 async function cached(request, options) {
   const opts = options && typeof options === 'object' ? options : {};
   try {
@@ -193,12 +219,14 @@ async function cached(request, options) {
       const hit = await cache.match(request, { ignoreSearch: false });
       if (hit) return hit;
     }
+    const prewarmExact = await cachedPrewarm(request, false);
+    if (prewarmExact) return prewarmExact;
     if (opts.exactOnly) return null;
     for (const cache of current) {
       const hit = await cache.match(request, { ignoreSearch: true });
       if (hit) return hit;
     }
-    return null;
+    return (await cachedPrewarm(request, true)) || null;
   } catch (_) {
     return null;
   }
@@ -290,14 +318,38 @@ async function installCoreAndPrewarm() {
 async function promotePrewarm() {
   const staticCache = await caches.open(STATIC_CACHE);
   const prewarmCache = await caches.open(PREWARM_CACHE);
-  await Promise.allSettled(WARM_START.map(async url => {
+  const result = { promoted: 0, retained: 0, failed: 0 };
+  for (const url of WARM_START) {
     let response = null;
-    try { response = await prewarmCache.match(prewarmKey(url)); } catch (_) {}
+    let cameFromPrewarm = false;
+    try {
+      response = await prewarmCache.match(prewarmKey(url));
+      cameFromPrewarm = !!response;
+    } catch (_) {}
     if (!response) {
       try { response = await fetchBuildAsset(url); } catch (_) { response = null; }
     }
-    if (cacheable(response)) await staticCache.put(url, response.clone());
-  }));
+    if (!cacheable(response)) { result.failed += 1; continue; }
+    try {
+      await staticCache.put(url, response.clone());
+      result.promoted += 1;
+      if (cameFromPrewarm) {
+        try { await prewarmCache.delete(prewarmKey(url)); } catch (_) {}
+      }
+    } catch (_) {
+      // iOS can reject the temporary duplicate while both caches exist.
+      // Keep the verified prewarm entry as a first-class offline fallback.
+      if (!cameFromPrewarm) {
+        try {
+          await prewarmCache.put(prewarmKey(url), response.clone());
+          cameFromPrewarm = true;
+        } catch (_) {}
+      }
+      if (cameFromPrewarm) result.retained += 1;
+      else result.failed += 1;
+    }
+  }
+  return result;
 }
 
 async function staticResponse(request) {
@@ -330,8 +382,8 @@ self.addEventListener('activate', event => {
       /^rotace-(?:static|runtime|prewarm)-/.test(k)
       && k !== STATIC_CACHE
       && k !== RUNTIME_CACHE
+      && k !== PREWARM_CACHE
     )).map(k => caches.delete(k)));
-    try { await caches.delete(PREWARM_CACHE); } catch (_) {}
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.enable(); } catch (_) {}
     }
@@ -355,6 +407,76 @@ self.addEventListener('activate', event => {
   })());
 });
 
+async function collectOfflineCacheStatus(source) {
+  const staticCache = await caches.open(STATIC_CACHE);
+  const runtimeCache = await caches.open(RUNTIME_CACHE);
+  const prewarmCache = await caches.open(PREWARM_CACHE);
+  const missing = [];
+  for (const url of OFFLINE_REQUIRED) {
+    let hit = null;
+    try { hit = await staticCache.match(url, { ignoreSearch: false }); } catch (_) {}
+    if (!hit) {
+      try { hit = await prewarmCache.match(prewarmKey(url), { ignoreSearch: false }); } catch (_) {}
+    }
+    if (!hit) missing.push(url);
+  }
+  const appShell = [];
+  for (const url of CORE) {
+    try { if (await staticCache.match(url, { ignoreSearch: false })) appShell.push(url); } catch (_) {}
+  }
+  const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).catch(() => []);
+  return {
+    type: 'sw-cache-status',
+    source: String(source || 'cache-status'),
+    cacheVersion: CACHE_VERSION,
+    appVersion: SW_APP_VERSION,
+    testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION,
+    buildId: DEVELOPMENT_BUILD_ID,
+    strategy: 'navigation-network-first;static-plus-retained-prewarm;online-repair',
+    cacheLookupMode: 'static-runtime-retained-prewarm',
+    staticCacheEntries: (await staticCache.keys().catch(() => [])).length,
+    runtimeCacheEntries: (await runtimeCache.keys().catch(() => [])).length,
+    prewarmCacheEntries: (await prewarmCache.keys().catch(() => [])).length,
+    appShellCount: appShell.length,
+    precacheSuccessCount: OFFLINE_REQUIRED.length - missing.length,
+    precacheFailedCount: missing.length,
+    precacheMissingCount: missing.length,
+    precacheMissing: missing,
+    clientsCount: clients.length,
+    navigationPreloadEnabled: !!self.registration.navigationPreload,
+    warmStartCount: WARM_START.length,
+    normalizedNavigationCache: true,
+    transientNavigationParams: DEVELOPMENT_TRANSIENT_NAV_PARAMS.join(','),
+    checkedAt: Date.now()
+  };
+}
+
+async function repairOfflinePrecache(source) {
+  const before = await collectOfflineCacheStatus(source || 'precache-repair');
+  const staticCache = await caches.open(STATIC_CACHE);
+  const prewarmCache = await caches.open(PREWARM_CACHE);
+  let repaired = 0;
+  for (const url of before.precacheMissing) {
+    let response = null;
+    try { response = await fetchBuildAsset(url); } catch (_) { response = null; }
+    if (!cacheable(response)) continue;
+    try {
+      await staticCache.put(url, response.clone());
+      repaired += 1;
+      continue;
+    } catch (_) {}
+    try {
+      await prewarmCache.put(prewarmKey(url), response.clone());
+      repaired += 1;
+    } catch (_) {}
+  }
+  const after = await collectOfflineCacheStatus('precache-repair');
+  after.repairSource = String(source || 'app');
+  after.repairAttemptedCount = before.precacheMissingCount;
+  after.repairSuccessCount = repaired;
+  return after;
+}
+
 self.addEventListener('message', event => {
   const data = event.data || {};
   if (data.type === 'SKIP_WAITING') {
@@ -367,37 +489,17 @@ self.addEventListener('message', event => {
     return;
   }
   if (data.type === 'GET_CACHE_STATUS' && event.source) {
-    event.source.postMessage({
-      type: 'sw-cache-status',
-      cacheVersion: CACHE_VERSION,
-      appVersion: SW_APP_VERSION,
-      testDisplayVersion: DEVELOPMENT_TEST_DISPLAY_VERSION,
-      buildId: DEVELOPMENT_BUILD_ID,
-      strategy: 'navigation-network-first;build-static-cache-first;isolated-prewarm',
-      warmStartCount: WARM_START.length,
-      normalizedNavigationCache: true,
-      transientNavigationParams: DEVELOPMENT_TRANSIENT_NAV_PARAMS.join(','),
-      performanceGuardEnabled: true,
-      performanceStartupJsBytes: 823531,
-      performanceLargestStartupJsBytes: 116561,
-      performanceLoginPngBytes: 2771660,
-      performanceCoreImageBytes: 1429650,
-      coreCount: CORE.length,
-      startupDiagnosticPolicy: DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY,
-      deferredStyleCount: 10,
-      deferredStartupDiagnosticCount: 2,
-      optimizedPngTargetCount: 26,
-      optimizedPngChangedCount: 26,
-      optimizedPngBytesBefore: 14645094,
-      optimizedPngBytesAfter: 12458882,
-      optimizedPngBytesSaved: 2186212,
-      loginPngTargetSize: 1024,
-      loginPngChangedCount: 3,
-      loginPngBytesBefore: 5283711,
-      loginPngBytesAfter: 2771660,
-      loginPngBytesSaved: 2512051,
-      checkedAt: Date.now()
-    });
+    const task = collectOfflineCacheStatus(data.source || 'app')
+      .then(status => { try { event.source.postMessage(status); } catch (_) {} })
+      .catch(error => { try { event.source.postMessage({ type: 'sw-cache-status', source: data.source || 'app', error: String(error && error.message || error || 'cache-status-failed') }); } catch (_) {} });
+    if (typeof event.waitUntil === 'function') event.waitUntil(task);
+    return;
+  }
+  if (data.type === 'REPAIR_PRECACHE' && event.source) {
+    const task = repairOfflinePrecache(data.source || 'app')
+      .then(status => { try { event.source.postMessage(status); } catch (_) {} })
+      .catch(error => { try { event.source.postMessage({ type: 'sw-cache-status', source: 'precache-repair', error: String(error && error.message || error || 'precache-repair-failed') }); } catch (_) {} });
+    if (typeof event.waitUntil === 'function') event.waitUntil(task);
   }
 });
 

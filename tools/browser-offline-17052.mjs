@@ -107,6 +107,7 @@ try{
  await until('!!window.__rotacePwaBootstrapped');
  await check("window.__rotaceRequestPwaCacheStatus?.('ci-mobile-offline') || false");
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
+ await until('window.getPwaHardeningStatus?.().swPrecacheMissingCount===0',15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
  // Simulate the iPhone failure: newer bridge snapshot next to an older canonical cache.
  assert.equal(await check(`(()=>{
@@ -137,6 +138,9 @@ try{
    return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function'};
  })()`);
  assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true},'[17052-browser] canonical cache migration or offline feature bundle missing');
+ const offlineIcons=await check(`(()=>{const icons=Array.from(document.querySelectorAll('img.dashboardIconImg,img.bottomNavIconImg'));return {count:icons.length,broken:icons.filter(img=>!img.complete||img.naturalWidth<1).map(img=>img.getAttribute('src')||'')}})()`);
+ assert(offlineIcons.count>=12,'[17052-browser] dashboard/navigation icons were not rendered');
+ assert.deepEqual(offlineIcons.broken,[],'[17052-browser] offline dashboard/navigation icons missing');
  assert.equal(httpFailures.length,before,'[17052-browser] offline shell/rotation caused HTTP errors');
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);

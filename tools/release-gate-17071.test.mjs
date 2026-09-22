@@ -6,7 +6,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const RELEASE_IDENTITIES=new Map([
  ['v1.7.71-offline-rotation1','1.7.71'],
  ['v1.7.72-shift-report1','1.7.72'],
-  ['v1.7.73-offline-persistence1','1.7.73']
+  ['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74']
 ]);
 const releaseMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
 assert(releaseMatch&&RELEASE_IDENTITIES.has(releaseMatch[1]),'unsupported offline-rotation successor');

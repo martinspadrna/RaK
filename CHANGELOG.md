@@ -1,3 +1,11 @@
+## RaK 1.7.74 (development)
+
+- Service worker při nedostatku místa na iOS ponechá povinné soubory v bezpečné prewarm cache a nikdy ji nesmaže, dokud z ní mohou být obslouženy offline požadavky.
+- Dashboardové a navigační ikony jsou součástí povinné offline sady; instalace nové verze bez nich se neaktivuje.
+- Online aplikace umí opravit chybějící offline soubory přes skutečně obsloužený REPAIR_PRECACHE protokol a hlásí ověřený počet chybějících položek.
+- Mobilní Chromium regrese kontroluje po úplném offline restartu Rotaci, synchronizační runtime i načtení všech ikon.
+- Technická verze zůstává 1.7.0.
+
 ## RaK 1.7.73 (development)
 
 - Online synchronizace ukládá rozpis do jediné autoritativní offline kopie a při upgradu bezpečně převede novější starý snapshot; tím odstraňuje rozdílný květnový obsah po restartu i riziko dvojitého zaplnění úložiště na iOS.
