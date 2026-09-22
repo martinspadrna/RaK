@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const conn=read('app-pwa-connectivity.js'),sw=read('sw.js');
+const conn=read('app-pwa-connectivity.js'),sw=read('sw.js'),releaseMetadata=read('rak-release-metadata.js');
 test('release version rather than historical APP_VERSION drives SW matching',()=>{
  const begin=conn.indexOf('  const getAppVersionTag ='),end=conn.indexOf('  const scheduleVersionMismatchUpdateCheck =',begin);
  assert(begin>0&&end>begin);
@@ -29,7 +29,12 @@ function worker(failShell=false){
  }};
  let offline=false,skipWaiting=0;
  const self={location:{href:url+'sw.js',origin:url.slice(0,-1)},addEventListener:(t,f)=>{listeners[t]=f;},skipWaiting:()=>{skipWaiting++;},clients:{claim:async()=>{},matchAll:async()=>[]},registration:{navigationPreload:{enable:async()=>{}}}};
- const context=vm.createContext({self,caches,Response,Request,URL,Date,Promise,console,fetch:async(request)=>{
+ let context;
+ const importScripts=source=>{
+  assert.equal(source,'./rak-release-metadata.js','service worker must load the canonical release metadata');
+  vm.runInContext(releaseMetadata,context,{filename:'rak-release-metadata.js'});
+ };
+ context=vm.createContext({self,caches,Response,Request,URL,Date,Promise,console,importScripts,fetch:async(request)=>{
   if(offline)throw Error('network offline');const u=new URL(request.url);
   if(failShell&&(u.pathname==='/'||u.pathname==='/index.html'))return new Response('missing',{status:404});
   return new Response('CONTENT:'+u.pathname,{status:200,headers:{'cache-control':'public,max-age=60'}});
@@ -62,3 +67,4 @@ test('offline package prewarms Rotation and sync feature modules',()=>{
  ]) assert(sw.includes(asset),asset+' must be available before offline navigation');
  assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict'"));
 });
+
