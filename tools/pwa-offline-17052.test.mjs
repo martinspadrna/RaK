@@ -33,6 +33,7 @@ function worker(failShell=false){
  const importScripts=source=>{
   assert.equal(source,'./rak-release-metadata.js','service worker must load the canonical release metadata');
   vm.runInContext(releaseMetadata,context,{filename:'rak-release-metadata.js'});
+  self.RAK_RELEASE_METADATA=context.RAK_RELEASE_METADATA;
  };
  context=vm.createContext({self,caches,Response,Request,URL,Date,Promise,console,importScripts,fetch:async(request)=>{
   if(offline)throw Error('network offline');const u=new URL(request.url);
