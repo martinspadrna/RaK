@@ -20,7 +20,7 @@
 | P0.4 | Role vlastníka a administrátorů | **40 % (2/5)** | Otevřeno |
 | P1.1 | Databázová oprávnění, RLS a RPC | **40 % (2/5)** | Otevřeno |
 | P1.2 | Administrátorské heslo, relace a zařízení | **40 % (2/5)** | Otevřeno |
-| P1.3 | Reprodukovatelný build, testy a verze | **67 % (4/6)** | Otevřeno; S2 a S3 dokončeny |
+| P1.3 | Reprodukovatelný build, testy a verze | **83 % (5/6)** | Otevřeno; zbývá úplná regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **67 % (4/6)** | Otevřeno; preview rollback a CI-before-deploy brána ověřeny |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
@@ -100,7 +100,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** konzistentní serverová ochrana i po restartu a odvolání, nikoli pouze klientský příznak `adminUnlocked`.
 
-### P1.3 – Reprodukovatelný build, testy a jednotná verze · **67 % (4/6)**
+### P1.3 – Reprodukovatelný build, testy a jednotná verze · **83 % (5/6)**
 
 **Systémový problém:** řetězec `tools/development-version-17048.mjs` přepisuje soubory po verzích; historické VM testy vyřezávají úseky podle textových komentářů. Nová funkce mezi značkami už opakovaně rozbila staré testy. Úspěšný build 1.7.69 neznamená vyřešenou architekturu.
 
@@ -108,7 +108,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [x] Přidána dočasná pojistka proti růstu verzovaných přepisovacích skriptů nad 1.7.69 a preflight kontrola politiky sestavení.
 - [x] **S2 – jeden neměnný zdrojový strom:** převést transformovaný stav do normálních zdrojových modulů; build píše pouze do odděleného výstupu a nemění zdrojové soubory ani Git pracovní strom. Neztratit verzi 1.7.69 jako referenci.
 - [x] **S3 – stabilní testy:** křehké soukromé VM a výřezy mezi komentáři v gate testech 1.7.57–1.7.69 byly nahrazeny sdílenou runtime fixture, pojmenovanými deklaracemi, syntakticky vymezenými podmínkami a skutečnými browser testy; bezpečnostní a provozní scénáře zůstaly zachovány.
-- [ ] Jediný zdroj metadat verze/build ID; validovat soulad HTML, aplikace, SW, exportu, cache a technické verze `1.7.0`. Dva čisté buildy stejného SHA musí mít porovnatelné hashe (odlišnosti jen výslovně deklarované).
+- [x] Jediný zdroj metadat verze/build ID; HTML, aplikace, SW, build manifest, cache a technická verze `1.7.0` čtou společný metadatový modul. Dva čisté buildy stejného SHA porovnává kanonický build a CI dovoluje jen výslovně deklarovaný proměnný ZIP.
 - [ ] Prokázat regresní paritu před/po migraci: data, rotace, exporty, offline, oprávnění, rollback, rychlost; CI reprodukovatelné bez sériových oprav starých testů.
 
 **Dokončení:** další funkční úpravy už nevyžadují nový `development-version-17xxx.mjs` ani přepis historických gate testů při každé verzi. Do migrace nový řetězec neprodlužovat a nezkracovat testy kvůli zelenému CI.
@@ -201,6 +201,9 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **22. 9. 2026 – jednotná metadata releasu 1.7.76:** nový `rak-release-metadata.js` je jediným spustitelným zdrojem viditelné verze, technické verze, cache verze a build ID. Načítá se před prvním rozhodnutím v HTML, používá jej aplikace, Supabase konfigurace, service worker i kanonický build a je součástí offline jádra. Historické release gate testy 1.7.71–1.7.75 používají společný metadatový kontrakt místo ručních seznamů následníků; nová brána 1.7.76 zakazuje kopie aktuální identity v runtime/build souborech. P1.3 se zvyšuje na 83 % (5/6); zbývá úplná regresní parita před/po migraci včetně fyzického iPhonu. `main` a produkční Supabase beze změn.
+
 
 - **22. 9. 2026 – S3 dokončeno pro historické runtime gate testy:** zbývající testy 1.7.57–1.7.66 přešly na společnou `runtime-vm-fixture.mjs`; používají pojmenované deklarace a syntakticky vymezené podmínkové bloky. Geometrii absence a MO/TO nadále ověřují skutečné Chromium testy, zatímco jednotkové kontrakty už nespouštějí jednotlivé řádky vyříznuté podle komentářů. CI kontrakt nyní hlídá celý rozsah 1.7.57–1.7.69 proti návratu soukromého `node:vm`, `runInNewContext` a lokálních source-slicerů. P1.3 se zvyšuje na 67 % (4/6); sjednocení metadat verze a úplná regresní parita zůstávají otevřené. Jde pouze o testovací infrastrukturu, proto viditelná aplikace zůstává 1.7.75 a nový Vercel deployment se nevytváří. `main` a produkční Supabase beze změn.
 

@@ -2,9 +2,13 @@
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app.js', 'loaded', { source: 'index' }); } catch (err) {}
 
 (async () => {
-  const RAK_MODULE_CACHE_VERSION = "1.7.0";
-  const RAK_DEV_UPDATE_BUILD = "v1.7.75-report-columns1";
-  window.RAK_RELEASE_VERSION = "1.7.75";
+  const releaseMetadata = window.RAK_RELEASE_METADATA;
+  if (!releaseMetadata || !releaseMetadata.displayVersion || !releaseMetadata.buildId) {
+    throw new Error('Chybí metadata vydání aplikace.');
+  }
+  const RAK_MODULE_CACHE_VERSION = releaseMetadata.moduleCacheVersion;
+  const RAK_DEV_UPDATE_BUILD = releaseMetadata.buildId;
+  window.RAK_RELEASE_VERSION = releaseMetadata.displayVersion;
   const RAK_BOOT_V2_ENABLED = true;
   window.RAK_PWA_BUILD = RAK_DEV_UPDATE_BUILD;
   window.RAK_BOOT_V2_ENABLED = RAK_BOOT_V2_ENABLED;

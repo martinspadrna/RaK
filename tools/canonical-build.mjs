@@ -4,15 +4,17 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 
 export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export const STATE=path.join(ROOT,'.rak-canonical-build');
 export const WORK=path.join(STATE,'work');
 export const OUTPUT=path.join(ROOT,'.rak-dist');
 export const VARIABLE_OUTPUTS=Object.freeze(['rak-complete-backup-source.zip']);
-export const RELEASE='1.7.75';
-export const BUILD_ID='v1.7.75-report-columns1';
-const REQUIRED=Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-complete-backup-source.zip']);
+export const RELEASE=RELEASE_METADATA.displayVersion;
+export const BUILD_ID=RELEASE_METADATA.buildId;
+export const TECHNICAL_VERSION=RELEASE_METADATA.technicalVersion;
+const REQUIRED=Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-release-metadata.js','rak-complete-backup-source.zip']);
 const STATIC_EXT=/\.(?:js|mjs|css|html|json|webmanifest|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|zip)$/i;
 const STATIC_DIR=/^(?:assets|fonts|icons|images|vendor)\//;
 const SOURCE_ONLY_ROOT=new Set(['package.json','package-lock.json','vercel.json']);
@@ -110,7 +112,7 @@ function manifest(){
   visit(OUTPUT);
   const stable=files.filter(file=>!VARIABLE_OUTPUTS.includes(file.path));
   return {schema:'rak-isolated-canonical-build-v1',sourceCommit:run('git',['rev-parse','HEAD']).trim(),
-    release:RELEASE,buildId:BUILD_ID,technicalVersion:'1.7.0',variableOutputs:[...VARIABLE_OUTPUTS],files,
+    release:RELEASE,buildId:BUILD_ID,technicalVersion:TECHNICAL_VERSION,variableOutputs:[...VARIABLE_OUTPUTS],files,
     stableDigest:hash(Buffer.from(JSON.stringify(stable)))};
 }
 function compare(first,second){
@@ -152,3 +154,4 @@ const mode=process.argv[2]||'build';
 if(path.resolve(process.argv[1]||'')===fileURLToPath(import.meta.url)){
   if(mode==='build')build();else if(mode==='verify-repeat')verifyRepeat();else throw Error('[canonical-build] expected build or verify-repeat');
 }
+

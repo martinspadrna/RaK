@@ -1,22 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const identities=new Map([['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']]);
-const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
-assert(match&&identities.has(match[1]),'unsupported offline-cache successor');
-const BUILD=match[1],VERSION=identities.get(BUILD);
-test('1.7.74 offline cache and verified successors keep technical 1.7.0 and isolated TEST Supabase',()=>{
- for(const [file,anchor] of [
-  ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
-  ['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
-  ['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
-  ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]
- ])assert(read(file).includes(anchor),file+' release mismatch');
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- const config=read('supabase-config.js');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
-});
+const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
+test('1.7.74 offline cache and verified successors use canonical release metadata and TEST Supabase',()=>{assertCurrentReleaseIdentity(read,'1.7.74');});
 test('activation never discards verified prewarm fallback after an iOS quota failure',()=>{
  const sw=read('sw.js');
  for(const marker of ['async function cachedPrewarm(request, ignoreSearch)','static-runtime-retained-prewarm','if (cameFromPrewarm) result.retained += 1','&& k !== PREWARM_CACHE'])
@@ -44,3 +32,4 @@ test('strict CI runs the new regression after two clean canonical builds',()=>{
  assert(workflow.includes('node --test tools/release-gate-17074.test.mjs'));
  assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
 });
+

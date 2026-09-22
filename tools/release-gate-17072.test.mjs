@@ -2,11 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
+import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const identities=new Map([['v1.7.72-shift-report1','1.7.72'],['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']]);
-const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
-assert(match&&identities.has(match[1]),'unsupported shift-report successor');
-const BUILD=match[1],VERSION=identities.get(BUILD);
+const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 const normalize=value=>String(value).replace(/\u00a0/g,' ');
 const fixture={
  date:'2026-09-21',shift:'N',moNok:'0',problems:[],
@@ -36,18 +34,7 @@ function pngRows(source){
   exports:{rows:'sectionLines17013'}
  }).api.rows;
 }
-test('1.7.72 formatting and verified successors stay on TEST Supabase and technical 1.7.0',()=>{
- for(const [file,anchor] of [
-  ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
-  ['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
-  ['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],
-  ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
-  ['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]
- ])assert(read(file).includes(anchor),file+' release mismatch');
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- const config=read('supabase-config.js');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
-});
+test('1.7.72 formatting and verified successors use canonical release metadata and TEST Supabase',()=>{assertCurrentReleaseIdentity(read,'1.7.72');});
 test('preview and copied report use quantity-index rows with plain grand totals',()=>{
  const text=normalize(textRenderer()(fixture));
  for(const line of ['1 184 AF','32 AG','Celkově 1 216 ks','1 201 AD',
@@ -84,3 +71,4 @@ test('strict CI runs this gate after two clean canonical builds',()=>{
   'node --test tools/release-gate-17072.test.mjs','rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'])
   assert(workflow.includes(anchor),'CI missing '+anchor);
 });
+

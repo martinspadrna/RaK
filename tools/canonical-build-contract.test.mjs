@@ -5,6 +5,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {equivalentJsonText} from './canonical-build.mjs';
+import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=relative=>fs.readFileSync(path.join(ROOT,relative),'utf8');
 const git=(...args)=>execFileSync('git',args,{cwd:ROOT,encoding:'utf8'}).trim();
@@ -50,10 +51,8 @@ test('the canonical build contract names its output, variable archive and immuta
   assert(restore.includes("git(['hash-object','--',restored])"),
     'restore rehearsal must compare every recovered Git blob');
   assert(!fs.existsSync(path.join(ROOT,'tools/development-version-17070.mjs')));
-  assert(read('index.html').includes("var build='v1.7.75-report-columns1';"));
-  assert(read('sw.js').includes("const CACHE_VERSION = 'v1.7.75';"));
-  assert(read('app.js').includes('const RAK_DEV_UPDATE_BUILD = "v1.7.75-report-columns1";'));
-  assert(read('supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.75";'));
+  assertCurrentReleaseIdentity(read,'1.7.76');
+  assert(read('tools/canonical-build.mjs').includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
 });
 
 test('build evidence proves two stable passes without source changes when present',()=>{
@@ -62,14 +61,15 @@ test('build evidence proves two stable passes without source changes when presen
   const value=JSON.parse(fs.readFileSync(proof,'utf8'));
   assert.equal(value.schema,'rak-isolated-canonical-build-v1');
   assert.equal(value.repeatBuild,true);
-  assert.equal(value.technicalVersion,'1.7.0');
-  assert.equal(value.release,'1.7.75');
-  assert.equal(value.buildId,'v1.7.75-report-columns1');
+  assert.equal(value.technicalVersion,RELEASE_METADATA.technicalVersion);
+  assert.equal(value.release,RELEASE_METADATA.displayVersion);
+  assert.equal(value.buildId,RELEASE_METADATA.buildId);
   assert.match(value.stableDigest,/^[a-f0-9]{64}$/);
   assert.deepEqual(value.variableOutputs,['rak-complete-backup-source.zip']);
-  assert(read('.rak-dist/index.html').includes("var build='v1.7.75-report-columns1';"));
-  assert(read('.rak-dist/sw.js').includes("const CACHE_VERSION = 'v1.7.75';"));
-  assert(read('.rak-dist/supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.75";'));
+  assert(read('.rak-dist/index.html').includes('<script src="rak-release-metadata.js"></script>'));
+  assert(read('.rak-dist/sw.js').includes("importScripts('./rak-release-metadata.js')"));
+  assert.equal(read('.rak-dist/rak-release-metadata.js'),read('rak-release-metadata.js'));
   const changed=git('diff','--name-only','HEAD','--');
   assert.equal(changed,'','canonical source changed while building');
 });
+

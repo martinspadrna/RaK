@@ -2,16 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {extractNamedDeclaration,evaluateExpression} from './runtime-vm-fixture.mjs';
+import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const RELEASE_IDENTITIES=new Map([
- ['v1.7.71-offline-rotation1','1.7.71'],
- ['v1.7.72-shift-report1','1.7.72'],
-  ['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']
-]);
-const releaseMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
-assert(releaseMatch&&RELEASE_IDENTITIES.has(releaseMatch[1]),'unsupported offline-rotation successor');
-const BUILD=releaseMatch[1],VERSION=RELEASE_IDENTITIES.get(BUILD);
-
+const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 function flushFixture(task,remoteRow){
  let queue=[structuredClone(task)],saves=0;
  const query={
@@ -40,18 +33,7 @@ function flushFixture(task,remoteRow){
  return {run:evaluateExpression('('+fn+')',context),queue:()=>queue,saves:()=>saves};
 }
 
-test('1.7.71 and verified successors keep technical 1.7.0 and TEST Supabase',()=>{
- for(const [file,anchor] of [
-  ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
-  ['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
-  ['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
-  ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]
- ]) assert(read(file).includes(anchor),file+' release mismatch');
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- const config=read('supabase-config.js');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
-});
-
+test('1.7.71 and verified successors use canonical release metadata and TEST Supabase',()=>{assertCurrentReleaseIdentity(read,'1.7.71');});
 test('service worker prewarms complete Rotation and sync runtime before offline start',()=>{
  const sw=read('sw.js');
  for(const asset of [
@@ -103,3 +85,4 @@ test('strict CI runs the semantic gate, real Chromium and two canonical builds',
  for(const anchor of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17071.test.mjs','node tools/browser-offline-17052.mjs'])
   assert(workflow.includes(anchor),'CI missing '+anchor);
 });
+

@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
+import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const VERSION='1.7.75',BUILD='v1.7.75-report-columns1';
+const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 function planner(source){
  return runNamedDeclarations({
   modules:[{source,names:[
@@ -23,18 +24,7 @@ const compact=[
 ];
 const ctx=()=>({font:'',measureText:text=>({width:Array.from(String(text)).length*18})});
 
-test('1.7.75 keeps technical 1.7.0 and isolated TEST Supabase',()=>{
- for(const [file,anchor] of [
-  ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
-  ['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
-  ['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
-  ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]
- ]) assert(read(file).includes(anchor),file+' release mismatch');
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- const config=read('supabase-config.js');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
-});
-
+test('1.7.75 report layout and verified successors use canonical release metadata and TEST Supabase',()=>{assertCurrentReleaseIdentity(read,'1.7.75');});
 test('compact MO/TO and grinder pairs share two columns in both PNG entrypoints',()=>{
  for(const file of ['rak-shift-report-image.js','rak-shift-report-share.js']){
   const source=read(file),rows=Array.from(planner(source)(ctx(),compact),row=>({
@@ -67,5 +57,6 @@ test('strict CI runs the adaptive PNG regression after two clean canonical build
  assert(pkg.scripts.check.includes('tools/release-gate-17075.test.mjs'));
  assert(workflow.includes('npm run vercel-build\n          npm run vercel-build'));
  assert(workflow.includes('node --test tools/release-gate-17075.test.mjs'));
- assert(workflow.includes('rak-17075-isolated-build-'));
+ assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
 });
+

@@ -1,9 +1,14 @@
-// RaK 1.7 PWA service worker – v1.7.0 cache + confirmed-update navigation.
-const CACHE_VERSION = 'v1.7.75';
-const SW_APP_VERSION = '1.7.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.75';
+// RaK 1.7 PWA service worker – metadata-driven cache + confirmed-update navigation.
+importScripts('./rak-release-metadata.js');
+const RELEASE_METADATA = self.RAK_RELEASE_METADATA;
+if (!RELEASE_METADATA || !RELEASE_METADATA.displayVersion || !RELEASE_METADATA.buildId) {
+  throw new Error('Missing RaK release metadata');
+}
+const CACHE_VERSION = RELEASE_METADATA.cacheVersion;
+const SW_APP_VERSION = RELEASE_METADATA.technicalVersion;
+const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;
 // Legacy smoke compatibility: const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
-const DEVELOPMENT_BUILD_ID = 'v1.7.75-report-columns1';
+const DEVELOPMENT_BUILD_ID = RELEASE_METADATA.buildId;
 const DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY = 'idle-foundation-2;feature-css-10';
 const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-identity-guard';
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
@@ -81,6 +86,7 @@ const DEVELOPMENT_ASSET_HOTFIX_ASSETS = [
 const CORE = [
   './',
   './index.html',
+  './rak-release-metadata.js',
   './manifest.webmanifest',
   './assets/app-icons/icon-180.png?v=1.5.1',
   './assets/app-icons/icon-32.png?v=1.5.1',
