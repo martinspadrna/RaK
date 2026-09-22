@@ -11,7 +11,7 @@ const ROOT=process.cwd();
 const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
 assert(CHROME,'[17067-browser] real Chromium required');
 const releaseBuild=fs.readFileSync('index.html','utf8');
-assert(['v1.7.67-equalgrid-reload1','v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1']
+assert(['v1.7.67-equalgrid-reload1','v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1']
   .some(id=>releaseBuild.includes(id)),'built equal-grid release required');
 const editor=fs.readFileSync('admin-rotation-editor.js','utf8');
 function markup(section){

@@ -42,6 +42,8 @@ test('the canonical build contract names its output, variable archive and immuta
   }
   assert(source.includes("['archive','--format=zip','HEAD','--',...inventory]"),
     'source ZIP must use the verified allowlist');
+  assert(!source.includes('applyMetadata(WORK'),'canonical work must keep the exact published release metadata');
+  assert(!source.includes('LEGACY_RELEASE'),'canonical build must not relabel current code as an older release');
   const restore=read('tools/source-restore-rehearsal-17069.mjs');
   assert(restore.includes("['-C',gitRoot,'ls-files','-s','-z']"),
     'restore rehearsal must read the repository index from its exact root');

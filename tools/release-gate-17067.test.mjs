@@ -8,7 +8,8 @@ const releaseIdentities=new Map([
  ['v1.7.67-equalgrid-reload1','1.7.67'],
  ['v1.7.68-async-draft-guard1','1.7.68'],
  ['v1.7.69-local-drafts1','1.7.69'],
- ['v1.7.70-canonical-source1','1.7.70']
+ ['v1.7.70-canonical-source1','1.7.70'],
+ ['v1.7.71-offline-rotation1','1.7.71']
 ]);
 const buildMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
 assert(buildMatch&&releaseIdentities.has(buildMatch[1]),'unsupported equal-grid successor');

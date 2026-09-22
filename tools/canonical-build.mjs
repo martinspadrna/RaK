@@ -12,8 +12,6 @@ export const OUTPUT=path.join(ROOT,'.rak-dist');
 export const VARIABLE_OUTPUTS=Object.freeze(['rak-complete-backup-source.zip']);
 export const RELEASE='1.7.71';
 export const BUILD_ID='v1.7.71-offline-rotation1';
-const LEGACY_RELEASE='1.7.70';
-const LEGACY_BUILD_ID='v1.7.70-canonical-source1';
 const REQUIRED=Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-complete-backup-source.zip']);
 const STATIC_EXT=/\.(?:js|mjs|css|html|json|webmanifest|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|zip)$/i;
 const STATIC_DIR=/^(?:assets|fonts|icons|images|vendor)\//;
@@ -71,24 +69,6 @@ function safeArchivePath(relative){
 function copy(relative,from,to){
   const source=path.join(from,relative),destination=path.join(to,relative);
   fs.mkdirSync(path.dirname(destination),{recursive:true});fs.copyFileSync(source,destination);fs.chmodSync(destination,fs.statSync(source).mode);
-}
-function applyMetadata(root,fromVersion,fromBuild,toVersion,toBuild){
-  const replacements={
-    'index.html':[[`var build='${fromBuild}';`,`var build='${toBuild}';`]],
-    'sw.js':[[`const CACHE_VERSION = 'v${fromVersion}';`,`const CACHE_VERSION = 'v${toVersion}';`],
-      [`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${fromVersion}';`,`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${toVersion}';`],
-      [`const DEVELOPMENT_BUILD_ID = '${fromBuild}';`,`const DEVELOPMENT_BUILD_ID = '${toBuild}';`]],
-    'app.js':[[`const RAK_DEV_UPDATE_BUILD = "${fromBuild}";`,`const RAK_DEV_UPDATE_BUILD = "${toBuild}";`],
-      [`window.RAK_RELEASE_VERSION = "${fromVersion}";`,`window.RAK_RELEASE_VERSION = "${toVersion}";`]],
-    'supabase-config.js':[[`window.RAK_RELEASE_VERSION = "${fromVersion}";`,`window.RAK_RELEASE_VERSION = "${toVersion}";`],
-      [`window.RAK_TEST_DISPLAY_VERSION = "${fromVersion}";`,`window.RAK_TEST_DISPLAY_VERSION = "${toVersion}";`],
-      [`window.RAK_PWA_BUILD = "${fromBuild}";`,`window.RAK_PWA_BUILD = "${toBuild}";`]]
-  };
-  for(const [relative,pairs] of Object.entries(replacements)){
-    const file=path.join(root,relative);let value=fs.readFileSync(file,'utf8');
-    for(const [before,after] of pairs){assert(value.includes(before),'missing metadata '+before+' in '+relative);value=value.replace(before,after);}
-    fs.writeFileSync(file,value);
-  }
 }
 function prepareWork(){
   fs.rmSync(WORK,{recursive:true,force:true});fs.mkdirSync(WORK,{recursive:true});
@@ -149,7 +129,6 @@ export function build(){
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
   run(process.platform==='win32'?'npm.cmd':'npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
   publish();
-  applyMetadata(WORK,RELEASE,BUILD_ID,LEGACY_RELEASE,LEGACY_BUILD_ID);
   validateSourceTree('after build');
   assert(sourceFingerprint()===beforeFingerprint,'build modified tracked source bytes');
   const result=manifest(),lastPath=path.join(STATE,'last.json');
