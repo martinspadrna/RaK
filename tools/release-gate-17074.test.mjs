@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const VERSION='1.7.74',BUILD='v1.7.74-offline-cache1';
-test('1.7.74 keeps technical 1.7.0 and isolated TEST Supabase',()=>{
+const identities=new Map([['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']]);
+const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
+assert(match&&identities.has(match[1]),'unsupported offline-cache successor');
+const BUILD=match[1],VERSION=identities.get(BUILD);
+test('1.7.74 offline cache and verified successors keep technical 1.7.0 and isolated TEST Supabase',()=>{
  for(const [file,anchor] of [
   ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
   ['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
@@ -39,5 +42,5 @@ test('strict CI runs the new regression after two clean canonical builds',()=>{
  const pkg=JSON.parse(read('package.json')),workflow=read('.github/workflows/rak-development-validation.yml');
  assert(pkg.scripts.check.includes('tools/release-gate-17074.test.mjs'));
  assert(workflow.includes('node --test tools/release-gate-17074.test.mjs'));
- assert(workflow.includes('rak-17074-isolated-build-'));
+ assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
 });

@@ -215,7 +215,7 @@
     const content = all.filter(line => line.kind !== 'total');
     const isProduction = section.id === 'mo' || section.id === 'to';
     const names = Array.from(new Set(content.filter(line => line.kind !== 'empty').map(line => line.index)));
-    const twoColumns = isProduction && names.length > 1;
+    const twoColumns = isProduction && names.length > 1 && width >= 700;
     const gap = 16;
     const cellWidth = twoColumns ? (width - 40 - gap) / 2 : width - 40;
     const fullWidth = width - 40;
@@ -250,6 +250,51 @@
   function sectionHeight17013(ctx,section) {
     return sectionLayout17015(ctx, section, CANVAS_WIDTH - OUTER * 2).height;
   }
+
+  // RAK_17075_REPORT_SECTION_COLUMNS: pair MO/TO and both grinders only when every label fits.
+  const SECTION_PAIR_GAP_17075 = 22;
+  function sectionFitsPairColumn17075(ctx, section, width) {
+    const rowTextWidth = width - 40 - 46;
+    if (rowTextWidth <= 0) return false;
+    ctx.font = '850 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    if (!sectionLines17013(section).every(line => ctx.measureText(line.text).width <= rowTextWidth)) return false;
+    if (positiveQuantity17014(section.totalNok)) {
+      ctx.font = '700 39px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      return ctx.measureText('NOK: ' + section.totalNok).width <= width - 58;
+    }
+    return true;
+  }
+  function sectionRows17075(ctx, sections) {
+    const fullWidth = CANVAS_WIDTH - OUTER * 2;
+    const pairWidth = (fullWidth - SECTION_PAIR_GAP_17075) / 2;
+    const rows = [];
+    for (let i = 0; i < sections.length; i += 2) {
+      const left = sections[i];
+      const right = sections[i + 1];
+      const paired = !!right
+        && sectionFitsPairColumn17075(ctx, left, pairWidth)
+        && sectionFitsPairColumn17075(ctx, right, pairWidth);
+      if (paired) {
+        rows.push({
+          paired: true,
+          sections: [left, right],
+          width: pairWidth,
+          height: Math.max(
+            sectionLayout17015(ctx, left, pairWidth).height,
+            sectionLayout17015(ctx, right, pairWidth).height
+          )
+        });
+      } else {
+        [left, right].filter(Boolean).forEach(section => rows.push({
+          paired: false,
+          sections: [section],
+          width: fullWidth,
+          height: sectionLayout17015(ctx, section, fullWidth).height
+        }));
+      }
+    }
+    return rows;
+  }
   function problemHeight17013(ctx,problems) {
     if(!problems.length) return 0;
     ctx.font='500 38px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -259,7 +304,7 @@
     const ctx=document.createElement('canvas').getContext('2d');
     if(!ctx) throw Error('Canvas 2D není dostupný.');
     let height=396;
-    model.sections.forEach(section=>{height+=sectionHeight17013(ctx,section)+22;});
+    sectionRows17075(ctx, model.sections).forEach(row => { height += row.height + 22; });
     height+=problemHeight17013(ctx,model.problems||[])+(model.problems.length?24:0);
     return Math.max(MIN_CANVAS_HEIGHT,Math.min(MAX_CANVAS_HEIGHT,Math.ceil(height/16)*16));
   }
@@ -366,9 +411,10 @@
     ctx.font='850 44px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillText(line.text,x+23,y+49,w-46);
   }
-  function drawSection(ctx,section,x,y,w) {
+  function drawSection(ctx,section,x,y,w,forcedHeight) {
     const layout = sectionLayout17015(ctx,section,w);
-    fillRounded(ctx,x,y,w,layout.height,28,'rgba(255,255,255,.36)','rgba(36,65,78,.17)');
+    const cardHeight = Math.max(layout.height, Number(forcedHeight) || 0);
+    fillRounded(ctx,x,y,w,cardHeight,28,'rgba(255,255,255,.36)','rgba(36,65,78,.17)');
     ctx.textAlign='left';ctx.fillStyle='#183c50';
     ctx.font='850 46px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.fillText(section.label,x+30,y+61);
@@ -390,7 +436,20 @@
       ctx.font='700 39px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillText('NOK: '+section.totalNok,x+29,rowY+43);
     }
-    return y+layout.height+22;
+    return y+cardHeight+22;
+  }
+  function drawSectionRows17075(ctx, sections, startY) {
+    let y = startY;
+    sectionRows17075(ctx, sections).forEach(row => {
+      if (row.paired) {
+        drawSection(ctx, row.sections[0], OUTER, y, row.width, row.height);
+        drawSection(ctx, row.sections[1], OUTER + row.width + SECTION_PAIR_GAP_17075, y, row.width, row.height);
+        y += row.height + 22;
+      } else {
+        y = drawSection(ctx, row.sections[0], OUTER, y, row.width);
+      }
+    });
+    return y;
   }
   function drawProblems(ctx,problems,y) {
     if(!problems.length) return y;
@@ -428,9 +487,7 @@
     drawHeader(ctx, model);
 
     let y = 306;
-    model.sections.forEach((section) => {
-      y = drawSection(ctx, section, OUTER, y, CANVAS_WIDTH - OUTER * 2);
-    });
+    y = drawSectionRows17075(ctx, model.sections, y);
     y = drawProblems(ctx, model.problems, y);
 
     ctx.fillStyle = 'rgba(38,59,71,.51)';

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations,extractNamedDeclaration,evaluateExpression} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const identities=new Map([['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74']]);
+const identities=new Map([['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']]);
 const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
 assert(match&&identities.has(match[1]),'unsupported offline-persistence successor');
 const BUILD=match[1],VERSION=identities.get(BUILD);

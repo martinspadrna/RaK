@@ -1,9 +1,9 @@
 // RaK 1.7 PWA service worker – v1.7.0 cache + confirmed-update navigation.
-const CACHE_VERSION = 'v1.7.74';
+const CACHE_VERSION = 'v1.7.75';
 const SW_APP_VERSION = '1.7.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.74';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.75';
 // Legacy smoke compatibility: const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
-const DEVELOPMENT_BUILD_ID = 'v1.7.74-offline-cache1';
+const DEVELOPMENT_BUILD_ID = 'v1.7.75-report-columns1';
 const DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY = 'idle-foundation-2;feature-css-10';
 const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-identity-guard';
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';

@@ -1,3 +1,10 @@
+## RaK 1.7.75 (development)
+
+- PNG report skládá MO a TO do dvou sousedních sloupců, pokud se všechny jejich popisky vejdou bez zalomení.
+- Stejné adaptivní rozložení používají TBKR01 a TBKR07; delší obsah se bezpečně vykreslí pod sebou přes celou šířku.
+- Oba způsoby uložení a sdílení PNG používají totožný plán rozložení a stejně vysoké karty v každé dvojici.
+- Textový náhled a kopírovaný report zůstávají beze změny. Technická verze zůstává 1.7.0.
+
 ## RaK 1.7.74 (development)
 
 - Service worker při nedostatku místa na iOS ponechá povinné soubory v bezpečné prewarm cache a nikdy ji nesmaže, dokud z ní mohou být obslouženy offline požadavky.

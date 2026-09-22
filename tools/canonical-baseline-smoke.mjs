@@ -14,15 +14,15 @@ test('canonical baseline replaces the obsolete pre-1.7 aggregate smoke without d
   for(const removed of ['games-engine.js','games-ui.js','games-bomberman.js'])assert(!fs.existsSync(new URL('../'+removed,import.meta.url)),removed);
 });
 
-test('canonical release metadata is one explicit 1.7.74 preview identity',()=>{
+test('canonical release metadata is one explicit 1.7.75 preview identity',()=>{
   assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
-  assert(read('index.html').includes("var build='v1.7.74-offline-cache1';"));
-  assert(read('sw.js').includes("const CACHE_VERSION = 'v1.7.74';"));
-  assert(read('sw.js').includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.74';"));
-  assert(read('sw.js').includes("const DEVELOPMENT_BUILD_ID = 'v1.7.74-offline-cache1';"));
-  assert(read('app.js').includes('const RAK_DEV_UPDATE_BUILD = "v1.7.74-offline-cache1";'));
-  assert(read('app.js').includes('window.RAK_RELEASE_VERSION = "1.7.74";'));
-  assert(read('supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.74";'));
-  assert(read('supabase-config.js').includes('window.RAK_TEST_DISPLAY_VERSION = "1.7.74";'));
-  assert(read('supabase-config.js').includes('window.RAK_PWA_BUILD = "v1.7.74-offline-cache1";'));
+  assert(read('index.html').includes("var build='v1.7.75-report-columns1';"));
+  assert(read('sw.js').includes("const CACHE_VERSION = 'v1.7.75';"));
+  assert(read('sw.js').includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.75';"));
+  assert(read('sw.js').includes("const DEVELOPMENT_BUILD_ID = 'v1.7.75-report-columns1';"));
+  assert(read('app.js').includes('const RAK_DEV_UPDATE_BUILD = "v1.7.75-report-columns1";'));
+  assert(read('app.js').includes('window.RAK_RELEASE_VERSION = "1.7.75";'));
+  assert(read('supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.75";'));
+  assert(read('supabase-config.js').includes('window.RAK_TEST_DISPLAY_VERSION = "1.7.75";'));
+  assert(read('supabase-config.js').includes('window.RAK_PWA_BUILD = "v1.7.75-report-columns1";'));
 });
