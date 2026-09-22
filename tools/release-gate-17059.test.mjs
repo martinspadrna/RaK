@@ -1,11 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractConditionalBlock,evaluateExpression,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.59',BUILD='v1.7.59-queueintegrity1';
-function section(text,start,end){const a=text.indexOf(start),b=text.indexOf(end,a+start.length);assert(a>=0&&b>a,'missing '+start);return text.slice(a,b);}
 function queueFixture(initial){
  let stored=initial.map(item=>({...item}));
  const state={queueGuard:{rejected:0,oversized:0,deduped:0,trimmed:0}};
@@ -17,9 +16,8 @@ function queueFixture(initial){
   localStorage,safeReadJson:()=>stored.map(item=>({...item})),safeWriteJson:(_key,value)=>{stored=value.map(item=>({...item}));},LOCAL_QUEUE_KEY:'test',
   queueTaskKey:task=>task.type+':'+String(task.entry&&task.entry.account_number||task.code||''),
   Date,Math,JSON};
- const script=section(read('supabase-bridge.js'),'  // RAK_17059_QUEUE_PRESERVE_GUARD:','\n  function isLikelyOfflineError(');
- vm.runInNewContext(script+'\n globalThis.__queue={compactQueue,readQueue,writeQueue,enqueueTask};',ctx);
- return {api:ctx.__queue,state,stored:()=>stored};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['normalizeQueueTask','isGameProgressQueueTaskBeforeReset','compactQueue','readQueue','writeQueue','enqueueTask']}],globals:ctx,exports:{compactQueue:'compactQueue',readQueue:'readQueue',writeQueue:'writeQueue',enqueueTask:'enqueueTask'}});
+ return {api,state,stored:()=>stored};
 }
 test('1.7.59 release, PWA, TEST Supabase and technical version align',()=>{
  for(const [p,s] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]])assert(read(p).includes(s),p+' release mismatch');
@@ -56,17 +54,16 @@ test('held game item bypasses historic game reset deletion',()=>{
 });
 test('only sanitized task type and error class reach tap-only diagnostic',()=>{
  const bridge=read('supabase-bridge.js');assert(bridge.includes('RAK_17059_QUEUE_PRESERVE_GUARD'));
- const snippet=section(bridge,'  // RAK_17058_QUEUE_DIAGNOSTIC_GUARD:','\n  window.refreshPublicData = refreshPublicData;');
  const secret='PRIVATE-NAME-DO-NOT-DISCLOSE';
  const queue=[{id:'x',type:secret,entry:{text:secret},queuedAt:new Date().toISOString(),conflict:'unsupported-task'}];
  const ctx={readLocalSnapshot:()=>null,readQueue:()=>queue,getClient:()=>({}),getSupabaseHardeningStatus:()=>({}),state:{rotationSync:{lastReadAt:new Date().toISOString(),lastSource:'remote',lastError:null},syncGuard:{queueDroppedInvalid:0}},navigator:{onLine:true},app:{adminRotationDirty:false}};
- vm.runInNewContext(snippet+'\n globalThis.__status=getSyncUiStatus;',ctx);
- const s=ctx.__status();assert.equal(s.queueIssue.type,'unknown');assert.equal(s.queueIssue.label,'neznámá položka');assert(!JSON.stringify(s).includes(secret));
+ const {api}=runNamedDeclarations({modules:[{source:bridge,names:['summarizeQueuedSyncTask','getSyncUiStatus']}],globals:ctx,exports:{status:'getSyncUiStatus'}});
+ const s=api.status();assert.equal(s.queueIssue.type,'unknown');assert.equal(s.queueIssue.label,'neznámá položka');assert(!JSON.stringify(s).includes(secret));
  const dashboard=read('dashboard.js');assert(dashboard.includes('RAK_17059_DIAGNOSTIC_DIALOG_GUARD'));
- const alertSnippet=section(dashboard,'    // RAK_17059_DIAGNOSTIC_DIALOG_GUARD:', '\n    const restore = () =>');
- let displayed='';vm.runInNewContext(alertSnippet,{actual:{...s,queued:1},source:'dashboard-click',window:{alert:t=>{displayed=t;}}});
+ const alertBlock=extractConditionalBlock(dashboard,'if (actual && actual.queued > 0');
+ let displayed='';evaluateExpression(alertBlock,{actual:{...s,queued:1},source:'dashboard-click',window:{alert:t=>{displayed=t;}}});
  assert(displayed.includes('Čeká: 1'));assert(displayed.includes('Typ: neznámá položka'));assert(!displayed.includes(secret));
- displayed='';vm.runInNewContext(alertSnippet,{actual:{...s,queued:1},source:'automatic',window:{alert:t=>{displayed=t;}}});assert.equal(displayed,'');
+ displayed='';evaluateExpression(alertBlock,{actual:{...s,queued:1},source:'automatic',window:{alert:t=>{displayed=t;}}});assert.equal(displayed,'');
 });
 test('two builds keep historical 1.7.58 tests and final gates, offline Chromium, HTTP, CRC',()=>{
  const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17058.mjs');"));assert(chain.includes("await import('./development-version-17059.mjs');"));

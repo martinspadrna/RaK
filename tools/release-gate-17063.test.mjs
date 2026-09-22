@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractConditionalBlock,extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.63',BUILD='v1.7.63-casbaseline1';
-function section(s,b,e){const a=s.indexOf(b),z=s.indexOf(e,a+b.length);assert(a>=0&&z>a,'missing section '+b);return s.slice(a,z);}
 test('visible and internal versions aligned; technical 1.7.0 and TEST Supabase unchanged',()=>{
  for(const [p,s] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]])assert(read(p).includes(s),p);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
@@ -18,9 +17,8 @@ function rotationFixture(revision,reply){
    return reply||{data:{revision:revision+1},error:null};}};
  const ctx={state,hasSecureAdminContext:()=>true,isSupabaseRpcUnavailableError:()=>false,
    SUPABASE_RPC_HARDENING_STATUS:{},console:{warn:()=>{}}};
- const snippet=section(read('supabase-bridge.js'),'  async function trySaveRotationStateViaRpc(', '  async function upsertMachineSettingsDirect(');
- const fn=vm.runInNewContext('('+snippet.trim()+')',ctx);
- return {run:()=>fn(client,{key:'main',payload:{months:{}},meta:{}},{}),state,calls};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['trySaveRotationStateViaRpc']}],globals:ctx,exports:{save:'trySaveRotationStateViaRpc'}});
+ return {run:()=>api.save(client,{key:'main',payload:{months:{}},meta:{}},{}),state,calls};
 }
 test('unknown editor revision rejects before ANY online read or write; cannot silently adopt current server revision',async()=>{
  for(const value of [null,undefined,NaN,1.5,-1,'7']){
@@ -30,7 +28,7 @@ test('unknown editor revision rejects before ANY online read or write; cannot si
  }
  const bridge=read('supabase-bridge.js');
  assert(bridge.includes('RAK_17063_UNKNOWN_BASELINE_GUARD'));
- assert(!section(bridge,'  async function trySaveRotationStateViaRpc(', '  async function upsertMachineSettingsDirect(').includes(".from('rotation_state')"));
+ assert(!extractNamedDeclaration(bridge,'trySaveRotationStateViaRpc').includes(".from('rotation_state')"));
 });
 test('known revision is passed unchanged to atomic server CAS and updated only after successful RPC',async()=>{
  const f=rotationFixture(7);const saved=await f.run();
@@ -46,9 +44,8 @@ function monthFixture(authorized,rpcReply){
  const calls={rpc:0};
  const client={rpc:async(name,args)=>{calls.rpc++;assert.equal(name,'rak_admin_save_rotation_month_entries_v2');assert(Array.isArray(args.p_rows));return rpcReply||{data:{inserted:2},error:null};},from:()=>{throw Error('direct table fallback forbidden')}};
  const ctx={hasSecureAdminContext:()=>authorized};
- const snippet=section(read('supabase-bridge.js'),'  async function upsertRotationMonthEntriesDirect(', '  async function upsertGomokuWinDirect(');
- const fn=vm.runInNewContext('('+snippet.trim()+')',ctx);
- return {run:()=>fn(client,'2026-10-01','10/26',[{employee_name:'worker'},{employee_name:'worker2'}]),calls};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['upsertRotationMonthEntriesDirect']}],globals:ctx,exports:{save:'upsertRotationMonthEntriesDirect'}});
+ return {run:()=>api.save(client,'2026-10-01','10/26',[{employee_name:'worker'},{employee_name:'worker2'}]),calls};
 }
 test('month-entry write is admin RPC-only; no unprivileged delete/upsert/insert path',async()=>{
  const blocked=monthFixture(false);await assert.rejects(()=>blocked.run(),/administrátorem/);
@@ -57,7 +54,7 @@ test('month-entry write is admin RPC-only; no unprivileged delete/upsert/insert 
  assert.equal(saved.months,1);assert.equal(saved.entries,2);assert.equal(ok.calls.rpc,1);
  const empty=monthFixture(true,{data:{inserted:0},error:null});
  assert.equal((await empty.run()).entries,0);
- const body=section(read('supabase-bridge.js'),'  async function upsertRotationMonthEntriesDirect(', '  async function upsertGomokuWinDirect(');
+ const body=extractNamedDeclaration(read('supabase-bridge.js'),'upsertRotationMonthEntriesDirect');
  assert(body.includes('RAK_17063_MONTH_RPC_ONLY_GUARD'));
  assert(!body.includes(".from('rotation_months')")&&!body.includes(".from('rotation_entries')"));
 });
@@ -71,9 +68,8 @@ function reviewFixture(opts={}){
  getClient:()=>client,Date};
  // Mirror the browser global: production code accesses window in this extracted fixture.
  ctx.window=ctx;
- const snippet=section(read('supabase-bridge.js'),'  // RAK_17063_MANUAL_REVISION_GUARD:', '  window.getSupabaseSyncStatus = getSyncUiStatus;');
- vm.runInNewContext(snippet+'\n globalThis.__review=reviewRakRotationRevisionOnDemand;',ctx);
- return {review:()=>ctx.__review(),calls};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['reviewRakRotationRevisionOnDemand']}],globals:ctx,exports:{review:'reviewRakRotationRevisionOnDemand'}});
+ return {review:()=>api.review(),calls};
 }
 test('remote inspection rejects offline/nonadmin/corrupt local queue BEFORE all remote requests',async()=>{
  for(const options of [{online:false},{authorized:false},{badQueue:true}]){
@@ -100,7 +96,7 @@ test('matching version still DOES NOT imply equal content or authorize manual ov
 });
 test('manual badge confirmation only on user tap with conflict and admin; no payload or auto-write',()=>{
  const dashboard=read('dashboard.js');
- const code=section(dashboard,'    // RAK_17063_MANUAL_REVISION_DIALOG_GUARD:', '    // RAK_17060_MANUAL_RESCUE_GUARD:');
+ const code=extractConditionalBlock(dashboard,'if (actual && actual.conflictCount > 0');
  for(const piece of ["actual.conflictCount > 0","source === 'dashboard-click'","app.adminUnlocked === true","window.confirm(","reviewRakRotationRevisionOnDemand",'Nebyl proveden žádný zápis'])assert(code.includes(piece));
  assert(!code.includes('localStorage.')&&!code.includes('.delete(')&&!code.includes('.update('));
  const bridge=read('supabase-bridge.js');assert(bridge.includes('window.reviewRakRotationRevisionOnDemand = reviewRakRotationRevisionOnDemand;'));

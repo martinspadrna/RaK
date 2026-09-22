@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.62',BUILD='v1.7.62-safe-review1';
-function section(s,b,e){const a=s.indexOf(b),z=s.indexOf(e,a+b.length);assert(a>=0&&z>a,'missing section '+b);return s.slice(a,z);}
 test('1.7.62 release markers, TEST DB, technical version and OS-only login',()=>{
  for(const [p,s] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]])assert(read(p).includes(s),p);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
@@ -12,7 +11,7 @@ test('1.7.62 release markers, TEST DB, technical version and OS-only login',()=>
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });
 test('MO/TO editable date gets slightly narrower; iOS font 16px and absence inputs unaffected in width',()=>{
- const css=section(read('styles-inline-legacy.css'),'/* RAK_17062_DATE_AND_IOS_FONT_GUARD:', '/* END_RAK_17062_DATE_AND_IOS_FONT_GUARD */');
+ const css=read('styles-inline-legacy.css');
  assert(css.includes('.appMenuAdminRotationTable col:first-child {width:88px !important;}'));
  assert(css.includes('width:86px !important;min-width:86px !important;max-width:86px !important;'));
  assert.equal((css.match(/font-size:16px !important/g)||[]).length,2);
@@ -28,9 +27,8 @@ function fixture(raw,compact){
  let text=raw,writes=0;const state={queueGuard:{storageError:'',rejected:0}};
  const ctx={state,localStorage:{getItem:()=>text,setItem:(_key,value)=>{text=value;writes++}},LOCAL_QUEUE_KEY:'queue',JSON,Date,Math,SUPABASE_QUEUE_MAX_ITEMS:120,
  compactQueue:compact,queueTaskKey:q=>String(q.id),normalizeQueueTask:q=>q};
- const source=section(read('supabase-bridge.js'),'  // RAK_17060_DURABLE_QUEUE_GUARD:', '\n  function isLikelyOfflineError(');
- vm.runInNewContext(source+'\n globalThis.__storage={readQueue,writeQueue,enqueueTask};',ctx);
- return {api:ctx.__storage,state,getRaw:()=>text,getWrites:()=>writes};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['readQueue','writeQueue','enqueueTask']}],globals:ctx,exports:{readQueue:'readQueue',writeQueue:'writeQueue',enqueueTask:'enqueueTask'}});
+ return {api,state,getRaw:()=>text,getWrites:()=>writes};
 }
 test('ambiguous legacy queue is never rewritten, cannot be appended or accidentally flushed',()=>{
  const raw='[{"id":"first","type":"bug_report","entry":{"private":"SECRET"}},{"id":"second","type":"bug_report"}]';
@@ -55,9 +53,8 @@ function reviewFixture(raw){
  let writes=0,network=0;
  const ctx={LOCAL_QUEUE_KEY:'queue',localStorage:{getItem:()=>raw,setItem:()=>{writes++;throw Error('no writes');}},
   state:{rotationSync:{lastReadAt:new Date().toISOString(),lastSource:'remote',lastError:null}},Date};
- const source=section(read('supabase-bridge.js'),'  // RAK_17062_READONLY_REVIEW_GUARD:', '  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD:');
- vm.runInNewContext(source+'\n globalThis.__review=getRakPendingSyncReview;',ctx);
- return {review:()=>ctx.__review(),writes:()=>writes,network:()=>network};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['getRakPendingSyncReview']}],globals:ctx,exports:{review:'getRakPendingSyncReview'}});
+ return {review:()=>api.review(),writes:()=>writes,network:()=>network};
 }
 test('read-only conflict summary includes fixed labels/counts, never personal data, IDs or raw errors',()=>{
  const raw=JSON.stringify([{id:'123456',type:'rotation_state',conflict:'PRIVATE-ERROR',payload:{name:'PERSON-PRIVATE',token:'TOKEN-PRIVATE'}},
@@ -82,7 +79,7 @@ test('badge only reports sanitized counts and explicitly says server content was
  for(const phrase of ['Zadržené: ','Ostatní: ','Online načtení: ','Obsah serveru a telefonu nebyl porovnán.'])assert(src.includes(phrase));
  const bridge=read('supabase-bridge.js');assert(bridge.includes('window.getRakPendingSyncReview = getRakPendingSyncReview;'));
  assert(bridge.includes('downloadPendingSyncBackup')&&bridge.includes('RAK_17060_QUEUE_RESCUE_EXPORT_GUARD'));
- assert(!section(bridge,'  // RAK_17062_READONLY_REVIEW_GUARD:', '  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD:').includes('.rpc('));
+ assert(!extractNamedDeclaration(bridge,'getRakPendingSyncReview').includes('.rpc('));
 });
 test('full historical gates, two builds, SHA/ZIP, Chromium mobile/offline and live TEST HTTP remain mandatory',()=>{
  const chain=read('tools/development-version-17048.mjs');

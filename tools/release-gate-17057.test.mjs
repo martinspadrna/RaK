@@ -1,15 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.57',BUILD='v1.7.57-synctruth1';
-function extracted(source,start,end){
- const a=source.indexOf(start),b=source.indexOf(end,a+start.length);
- assert(a>=0&&b>a,'missing function '+start);
- return source.slice(a,b).trim();
-}
 const bridge=()=>read('supabase-bridge.js');
 function status(overrides={}){
  const now=new Date().toISOString();
@@ -19,8 +14,8 @@ function status(overrides={}){
   getClient:()=>overrides.client===false?null:{},getSupabaseHardeningStatus:()=>({}),
   summarizeQueuedSyncTask:task=>({label:'test task',retries:Number(task&&task.retryCount||0),conflict:!!(task&&task.conflict)}),
   navigator:{onLine:overrides.online!==false},state,app:{adminRotationDirty:!!overrides.dirty}};
- const fn=vm.runInNewContext('('+extracted(bridge(),'  function getSyncUiStatus() {','\n  window.refreshPublicData = refreshPublicData;')+')',context);
- return fn();
+ const {api}=runNamedDeclarations({modules:[{source:bridge(),names:['getSyncUiStatus']}],globals:context,exports:{status:'getSyncUiStatus'}});
+ return api.status();
 }
 test('1.7.57 visible markers, TEST-only database, original employee OS-only and 1.7.0 technical version',()=>{
  for(const [file,anchor] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
@@ -45,7 +40,6 @@ test('actual sync getter distinguishes offline, no client, pending queue, cached
  assert.equal(status({dirty:true}).kind,'pending');
 });
 test('real rotation read marks success only after read, preserves network error with cached fallback and handles empty online rows',async()=>{
- const source=extracted(bridge(),'  async function loadRotationState() {','\n  async function saveRotationState(');
  const make=({row=null,online=true,error=null}={})=>{
   const snapshots=[];
   const state={rotationSync:{lastReadAt:null,lastError:null,lastSource:'unverified'},rotationRevision:null,lastError:null};
@@ -54,8 +48,8 @@ test('real rotation read marks success only after read, preserves network error 
    runSharedSupabaseRead:(_key,work)=>work(),runSupabaseOperation:(_key,work)=>work(),
    readLocalSnapshot:()=>({rotation:{months:{cached:1}},updatedAt:123}),saveLocalSnapshot:(...args)=>snapshots.push(args),
    console:{warn:()=>{}}};
-  const fn=vm.runInNewContext('('+source+')',context);
-  return {run:()=>fn(),state,snapshots};
+  const {api}=runNamedDeclarations({modules:[{source:bridge(),names:['loadRotationState']}],globals:context,exports:{load:'loadRotationState'}});
+  return {run:()=>api.load(),state,snapshots};
  };
  const ok=make({row:{key:'main',payload:{months:{remote:1}},revision:50,updated_at:new Date().toISOString()}});
  const data=await ok.run();assert.equal(data.revision,50);assert.equal(ok.state.rotationSync.lastSource,'remote');assert(ok.state.rotationSync.lastReadAt);assert.equal(ok.state.rotationSync.lastError,null);assert.equal(ok.snapshots.length,1);

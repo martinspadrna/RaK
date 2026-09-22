@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractConditionalBlock,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const BUILD='v1.7.65-admin-draft-recovery1';
-function excerpt(source,start,end){const a=source.indexOf(start),b=source.indexOf(end,a+start.length);assert(a>=0&&b>a,'missing '+start);return source.slice(a,b);}
 function fixture(result,options={}){
  const stored=options.stored||new Map(),writes=[],files=[];
  let network=0,confirmed=0,successExports=0;
@@ -24,14 +23,11 @@ function fixture(result,options={}){
   window:{confirm:()=>{confirmed++;return !options.rejectConsent;},alert:()=>{}},
   document:{body:{appendChild:el=>files.push(el)},createElement:()=>({click(){successExports++;},remove(){}}),getElementById:()=>null},
   URL:{createObjectURL:()=> 'blob:private',revokeObjectURL:()=>{}},setTimeout:()=>{}};
- const editor=read('admin-rotation-editor.js');
- const helpers=excerpt(editor,'// RAK_17064_CONFLICT_DRAFT_GUARD:', '\nfunction adminRotationFindShiftForAbsenceDate(');
- const active=excerpt(editor,'async function saveAdminRotationFromDom(', '\nfunction adminShowRotationSelectedRemove(');
- vm.runInNewContext(helpers+'\n'+active+'\nglobalThis.__rak65={saveAdminRotationFromDom,rakListPreservedAdminMonthDrafts,rakAdminMonthDraftRecoveryHtml,rakDownloadPreservedAdminMonthDraft};',context);
+ const {api}=runNamedDeclarations({modules:[{source:read('admin-rotation-editor.js'),names:['rakPreserveAdminMonthDraft','rakListPreservedAdminMonthDrafts','rakAdminMonthDraftRecoveryHtml','rakDownloadPreservedAdminMonthDraft','saveAdminRotationFromDom']}],globals:context,exports:{save:'saveAdminRotationFromDom',list:'rakListPreservedAdminMonthDrafts',html:'rakAdminMonthDraftRecoveryHtml',download:'rakDownloadPreservedAdminMonthDraft'}});
  const month={notes:[{person:'PRIVATE-PERSON',date:'19.10. N',code:'NV'}]};
- return {app,stored,writes,files,month,save:()=>context.__rak65.saveAdminRotationFromDom('10/26',{normalizedMonth:month,ruleCheck:{ok:true,issues:[]}}),
-  list:()=>context.__rak65.rakListPreservedAdminMonthDrafts('10/26'),html:()=>context.__rak65.rakAdminMonthDraftRecoveryHtml('10/26'),
-  download:key=>context.__rak65.rakDownloadPreservedAdminMonthDraft(key),network:()=>network,confirmed:()=>confirmed,exports:()=>successExports};
+ return {app,stored,writes,files,month,save:()=>api.save('10/26',{normalizedMonth:month,ruleCheck:{ok:true,issues:[]}}),
+  list:()=>api.list('10/26'),html:()=>api.html('10/26'),download:key=>api.download(key),
+  network:()=>network,confirmed:()=>confirmed,exports:()=>successExports};
 }
 test('1.7.65 release, TEST DB and technical package',()=>{
  for(const [p,marker] of [['index.html',`var build='${BUILD}';`],['supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.65";'],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['sw.js',"const CACHE_VERSION = 'v1.7.65';"],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]])assert(read(p).includes(marker),p);
@@ -85,7 +81,7 @@ test('real menu connects draft recovery and game account auto-provisioning is re
  assert(source.includes('RAK_17065_NO_GAME_PROVISIONING_GUARD'));
  assert(!source.includes('ensureGameAccountsExistForWorkers(workerSettings.workers)'));
  assert(!source.includes('nových herních profilů:'));
- const save=excerpt(source,"if (adminAction === 'save-rotation') {", "if (adminAction === 'load-food-schedule') {");
+ const save=extractConditionalBlock(source,"if (adminAction === 'save-rotation')");
  assert(save.includes('const result = await saveAdminRotationFromDom(monthKey, saveOptions);'));
  assert(save.includes('result.draft')&&save.includes('rakShowAdminDraftExport'));
  assert(save.includes("saveResult.reason === 'draft-storage-failed'"));
@@ -96,7 +92,7 @@ test('real menu connects draft recovery and game account auto-provisioning is re
  assert(editor.includes('RAK_17065_REAL_ADMIN_SAVE_GUARD'));
 });
 test('MO and TO narrower, absence untouched, iOS font and browser geometry preserved',()=>{
- const css=excerpt(read('styles-inline-legacy.css'),'/* RAK_17065_NARROW_MO_TO_DATE:', '/* END_RAK_17065_NARROW_MO_TO_DATE */');
+ const css=read('styles-inline-legacy.css');
  assert(css.includes('.appMenuAdminRotationTable col:first-child {width:84px !important;}'));
  assert(css.includes('width:82px !important;min-width:82px !important;max-width:82px !important;'));
  assert(css.includes('font-size:16px !important;'));

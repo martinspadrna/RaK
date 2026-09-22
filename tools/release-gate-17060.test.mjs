@@ -1,11 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractConditionalBlock,evaluateExpression,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.60',BUILD='v1.7.60-queuedurability1';
-function section(source,begin,end){const a=source.indexOf(begin),b=source.indexOf(end,a+begin.length);assert(a>=0&&b>a,'missing '+begin);return source.slice(a,b);}
 function storageFixture(raw,opts={}){
  let stored=raw, writes=0;
  const guard={storageError:'',rejected:0},state={queueGuard:guard};
@@ -13,9 +12,8 @@ function storageFixture(raw,opts={}){
  const ctx={state,localStorage,LOCAL_QUEUE_KEY:'queue',JSON,Date,Math,SUPABASE_QUEUE_MAX_ITEMS:120,
   compactQueue:q=>q,queueTaskKey:q=>q.type+':'+String(q.entry&&q.entry.id||''),
   normalizeQueueTask:q=>q};
- const source=section(read('supabase-bridge.js'),'  // RAK_17060_DURABLE_QUEUE_GUARD:','\n  function isLikelyOfflineError(');
- vm.runInNewContext(source+'\n globalThis.__q={readQueue,writeQueue,enqueueTask};',ctx);
- return {api:ctx.__q,guard,getRaw:()=>stored,getWrites:()=>writes};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['readQueue','writeQueue','enqueueTask']}],globals:ctx,exports:{readQueue:'readQueue',writeQueue:'writeQueue',enqueueTask:'enqueueTask'}});
+ return {api,guard,getRaw:()=>stored,getWrites:()=>writes};
 }
 test('release markers and TEST-only config, technical version unchanged',()=>{
  for(const [p,s] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['app.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]])assert(read(p).includes(s),'version '+p);
@@ -42,13 +40,12 @@ test('valid append persists and is immediately verified by a fresh storage read'
 });
 test('broken local queue never displays a green synced badge or leaks raw JSON',()=>{
  const bridge=read('supabase-bridge.js');
- const source=section(bridge,'  // RAK_17058_QUEUE_DIAGNOSTIC_GUARD:','\n  window.refreshPublicData = refreshPublicData;');
  const guard={storageError:'corrupt'},ctx={state:{queueGuard:guard,rotationSync:{lastSource:'remote',lastReadAt:new Date().toISOString(),lastError:null},syncGuard:{queueDroppedInvalid:0}},
  readQueue:()=>[],readLocalSnapshot:()=>null,getClient:()=>({}),getSupabaseHardeningStatus:()=>({}),navigator:{onLine:true},app:{adminRotationDirty:false}};
- vm.runInNewContext(source+'\n globalThis.__status=getSyncUiStatus;',ctx);
- const status=ctx.__status();assert.equal(status.kind,'error');assert.equal(status.storageIssue,true);
+ const {api}=runNamedDeclarations({modules:[{source:bridge,names:['summarizeQueuedSyncTask','getSyncUiStatus']}],globals:ctx,exports:{status:'getSyncUiStatus'}});
+ const status=api.status();assert.equal(status.kind,'error');assert.equal(status.storageIssue,true);
  assert(!JSON.stringify(status).includes('PRIVATE'));assert(status.label.includes('Lokální frontu'));
- guard.storageError='';assert.equal(ctx.__status().kind,'online');
+ guard.storageError='';assert.equal(api.status().kind,'online');
 });
 function flushFixture({sameId=false,failPersist=false}={}){
  let queue=[{id:'first',type:'bug_report',entry:{message:'OLD'},queuedAt:new Date().toISOString()}];
@@ -63,9 +60,8 @@ function flushFixture({sameId=false,failPersist=false}={}){
  scheduleSupabaseQueueFlush:(reason,delay)=>{assert.equal(ctx.flushPromise,null);scheduled.push({reason,delay});return true;},
  runSupabaseOperation:(_label,work)=>work(),saveBugReportDirect:async()=>{sent++;if(sameId&&sent===1)queue[0]={...queue[0],entry:{message:'NEW'}};return {ok:true};},
  console:{warn:()=>{}},isLikelyOfflineError:()=>false,isLikelyPermanentQueueError:()=>false});
- const src=section(read('supabase-bridge.js'),'  async function flushPendingWrites() {','\n  async function enqueueAndMaybeFlush(');
- const run=vm.runInNewContext('('+src.trim()+')',ctx);
- return {run,ctx,scheduled,tasks:()=>queue,sent:()=>sent};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['flushPendingWrites']}],globals:ctx,exports:{run:'flushPendingWrites'}});
+ return {run:api.run,ctx,scheduled,tasks:()=>queue,sent:()=>sent};
 }
 test('new same-ID edit during network await survives even if old write succeeded',async()=>{
  const f=flushFixture({sameId:true}),first=await f.run();assert.equal(first.ok,false);
@@ -80,19 +76,14 @@ test('local rescue exports exact original bytes only after manual request and ne
  const raw='{"raw":"PRIVATE-LOCAL-PAYLOAD"}';let written='',clicked=false,download='',objectUrl='';
  const ctx={LOCAL_QUEUE_KEY:'queue',localStorage:{getItem:()=>raw},Date,Blob,URL:{createObjectURL:blob=>{objectUrl=blob;return 'blob:local';},revokeObjectURL:()=>{}},
  document:{body:{appendChild:()=>{}},createElement:()=>({style:{},click:()=>{clicked=true;},remove:()=>{},set download(x){download=x;},get download(){return download;}})},setTimeout:()=>{}};
- const bridge=read('supabase-bridge.js');
- const end=bridge.includes('  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD.')
-   ? '  // RAK_17069_LOCAL_DRAFT_QUEUE_GUARD.'
-   : '  window.getSupabaseSyncStatus = getSyncUiStatus;';
- const script=section(bridge,'  // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD:',end);
- vm.runInNewContext(script+'\n globalThis.__download=downloadPendingSyncBackup;',ctx);
- assert.equal(ctx.__download(),true);assert(clicked);assert(download.startsWith('RaK_fronta_'));
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['downloadPendingSyncBackup']}],globals:ctx,exports:{download:'downloadPendingSyncBackup'}});
+ assert.equal(api.download(),true);assert(clicked);assert(download.startsWith('RaK_fronta_'));
  written=await objectUrl.text();assert.equal(written,raw);
- const alertSection=section(read('dashboard.js'),'    // RAK_17060_MANUAL_RESCUE_GUARD:','\n    const restore = () =>');
+ const rescueBlock=extractConditionalBlock(read('dashboard.js'),'if (actual && (actual.storageIssue || actual.conflictCount > 0)');
  let prompts=0,exports=0;
- const dialog={actual:{storageIssue:false,conflictCount:1,queued:1},source:'automatic',window:{confirm:()=>{prompts++;return true;},downloadRakPendingSyncBackup:()=>{exports++;return true;},alert:()=>{}}};
- vm.runInNewContext(alertSection,dialog);assert.equal(prompts,0);assert.equal(exports,0);
- dialog.source='dashboard-click';vm.runInNewContext(alertSection,dialog);assert.equal(prompts,1);assert.equal(exports,1);
+ const automatic={actual:{storageIssue:false,conflictCount:1,queued:1},source:'automatic',window:{confirm:()=>{prompts++;return true;},downloadRakPendingSyncBackup:()=>{exports++;return true;},alert:()=>{}}};
+ evaluateExpression(rescueBlock,automatic);assert.equal(prompts,0);assert.equal(exports,0);
+ evaluateExpression(rescueBlock,{...automatic,source:'dashboard-click'});assert.equal(prompts,1);assert.equal(exports,1);
 });
 test('CI keeps historic gates, both builds, mobile offline, anonymous audit and current plan',()=>{
  const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17059.mjs');"));assert(chain.includes("await import('./development-version-17060.mjs');"));assert(chain.indexOf('17059.mjs')<chain.indexOf('17060.mjs'));

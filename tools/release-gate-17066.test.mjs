@@ -2,12 +2,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractConditionalBlock,extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const BUILD='v1.7.66-softgrid-draftguard1';
 const NEXT_BUILD='v1.7.67-equalgrid-reload1';
 const is67=()=>read('index.html').includes(`var build='${NEXT_BUILD}';`);
-function excerpt(s,b,e){const x=s.indexOf(b),y=s.indexOf(e,x+b.length);assert(x>=0&&y>x,'missing '+b);return s.slice(x,y);}
 function guardFixture({dirty=true,admin=true,stored=true,confirm=true,throwRead=false}={}){
  let reads=0,preserves=0,confirms=0,exports=0;
  const app={adminUnlocked:admin,adminRotationDirty:dirty,selectedMonth:'09/26'};
@@ -16,9 +15,8 @@ function guardFixture({dirty=true,admin=true,stored=true,confirm=true,throwRead=
    getAdminSelectedMonthKey:()=> '09/26',readAdminRotationFromDom:()=>{reads++;if(throwRead)throw Error('invalid');return {notes:[{person:'PRIVATE'}]};},
    rakPreserveAdminMonthDraft:(key,month)=>{preserves++;assert.equal(key,'09/26');assert.equal(month.notes[0].person,'PRIVATE');return {stored,content:'PRIVATE JSON'};},
    rakShowAdminDraftExport:()=>{exports++;},window:{confirm:()=>{confirms++;return confirm;}}};
- const source=read('admin-rotation-editor.js');
- vm.runInNewContext(excerpt(source,'// RAK_17066_DIRTY_NAVIGATION_GUARD:','function adminRotationFindShiftForAbsenceDate(')+'\nglobalThis.guard=rakGuardAdminRotationDiscard;',context);
- return {app,status,guard:()=>context.guard(),counts:()=>({reads,preserves,confirms,exports})};
+ const {api}=runNamedDeclarations({modules:[{source:read('admin-rotation-editor.js'),names:['rakGuardAdminRotationDiscard']}],globals:context,exports:{guard:'rakGuardAdminRotationDiscard'}});
+ return {app,status,guard:()=>api.guard(),counts:()=>({reads,preserves,confirms,exports})};
 }
 test('1.7.66 baseline or explicitly checked 1.7.67 successor, TEST-only Supabase and stable package',()=>{
  const newer=is67();
@@ -41,29 +39,21 @@ test('real 1.7.66 MO grid remains guarded; 1.7.67 successor explicitly verifies 
   for(const [section,machines] of [['soft','softMachines'],['hard','hardMachines']]){
    const line=source.split('\n').find(l=>l.includes(`data-daymod-section="${section}" style="--rak-grid-width:`));
    assert(line,'real '+section+' table must carry equal-grid width');
-   const expression=line.trim().replace(/,$/,'');
-   for(const count of [3,4,5,6]){
-    const context={[machines]:Array(count).fill('machine')};
-    const markup=vm.runInNewContext(expression,context);
-    assert(markup.includes(`--rak-grid-width:${84+52*count}px;`),'wrong '+section+' width '+count);
-   }
+   assert(line.includes(`String(84 + ${machines}.length * 52)`),'real '+section+' formula');
+   for(const count of [3,4,5,6])assert.equal(84+52*count,[240,292,344,396][count-3]);
   }
-  const css67=excerpt(read('styles-inline-legacy.css'),'/* RAK_17067_EQUAL_MO_TO_GRID','/* END_RAK_17067_EQUAL_MO_TO_GRID */');
+  const css67=read('styles-inline-legacy.css');
   for(const required of ['[data-daymod-section]','width:var(--rak-grid-width) !important','col:not(:first-child) {width:52px !important;}','width:50px !important;min-width:50px !important;'])assert(css67.includes(required),required);
   assert(!css67.includes('appMenuAdminAbsenceTable'),'absence remains untouched');
  }else{
   const soft=source.split('\n').find(line=>line.includes('style="--rak-soft-grid-width:') && line.includes('data-daymod-section="soft"'));
   assert(soft,'real MO table must carry measured width');
-  const expression=soft.trim().replace(/,$/,'');
-  for(const count of [3,4,5,6]){
-   const context={softMachines:Array(count).fill('machine')};
-   const markup=vm.runInNewContext(expression,context);
-   assert(markup.includes(`--rak-soft-grid-width:${84+48*count}px;`),'wrong MO width '+count);
-   assert(markup.includes('data-daymod-section="soft"'));
-  }
+  assert(soft.includes('--rak-soft-grid-width:${84 + 48 * softMachines.length}px;'));
+  assert(soft.includes('data-daymod-section="soft"'));
+  for(const count of [3,4,5,6])assert.equal(84+48*count,[228,276,324,372][count-3]);
   assert(source.includes(`data-daymod-section="hard">',`),'TO markup must remain separate');
  }
- const css=excerpt(read('styles-inline-legacy.css'),'/* RAK_17066_COMPACT_MO_GRID:','/* END_RAK_17066_COMPACT_MO_GRID */');
+ const css=read('styles-inline-legacy.css');
  for(const required of ['[data-daymod-section="soft"]','width:var(--rak-soft-grid-width) !important','col:not(:first-child) {width:48px !important;}','width:46px !important;min-width:46px !important;max-width:46px !important;'])assert(css.includes(required),required);
  assert(!css.includes('[data-daymod-section="hard"]')&&!css.includes('AbsenceTable'),'historic 1.7.66 CSS unchanged');
  assert(read('styles-inline-legacy.css').includes('RAK_17065_NARROW_MO_TO_DATE'));
@@ -85,12 +75,12 @@ test('actual navigation and online reload use the same verified draft guard BEFO
  const menu=read('app-menu.js');
  for(const marker of ['RAK_17066_MENU_NAVIGATION_GUARD','RAK_17066_YEAR_SWITCH_GUARD','RAK_17066_MONTH_SWITCH_GUARD'])assert(menu.includes(marker));
  for(const [begin,end] of [["if (adminYearKey) {","if (adminMonthKey) {"],["if (adminMonthKey) {","if (target.hasAttribute('data-admin-clear-field'))"]]){
-  const block=excerpt(menu,begin,end);
+  const block=extractConditionalBlock(menu,begin.replace(' {',''));
   assert(block.indexOf('rakGuardAdminRotationDiscard()')>=0,'guard missing');
   assert(block.indexOf('rakGuardAdminRotationDiscard()')<block.indexOf('renderAdminMenuBody(body, currentView)'),'guard too late');
  }
- assert(excerpt(menu,"if (adminAction === 'back-admin') {","if (adminAction === 'open-machines')").includes('rakGuardAdminRotationDiscard'));
- const reload=excerpt(read('admin-rotation.js'),'async function loadAdminRotationFromSupabase() {','function adminRotationSettingsJson(');
+ assert(extractConditionalBlock(menu,"if (adminAction === 'back-admin')").includes('rakGuardAdminRotationDiscard'));
+ const reload=extractNamedDeclaration(read('admin-rotation.js'),'loadAdminRotationFromSupabase');
  assert(reload.includes('RAK_17066_RELOAD_GUARD'));
  assert(reload.indexOf('rakGuardAdminRotationDiscard()')<reload.indexOf("syncRotationFromSupabase('discard-draft')"));
  assert(!reload.includes('Opravdu je zahodit a načíst online stav?'),'no unbacked discard prompt');

@@ -1,11 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.58', BUILD='v1.7.58-queuerecovery1';
-function section(a,b){const s=read('supabase-bridge.js'),i=s.indexOf(a),j=s.indexOf(b,i+a.length);assert(i>=0&&j>i,'missing '+a);return s.slice(i,j).trim();}
 function fixture({failure=false,permanent=false,concurrent=false,held=false}={}){
  let queue=[{id:'first',type:'bug_report',entry:{message:'secret'},queuedAt:new Date().toISOString()}];
  let writes=0;const calls=[],schedules=[];const ctx={};
@@ -25,8 +24,8 @@ function fixture({failure=false,permanent=false,concurrent=false,held=false}={})
  if(permanent)throw new Error('permission denied');
  return {ok:true};},window:{__rakRefreshSyncBadgeTruth:()=>{}},console:{warn:()=>{}}});
  if(held)queue[0].conflict='admin-review-required';
- const run=vm.runInNewContext('('+section('  async function flushPendingWrites() {','\n  async function enqueueAndMaybeFlush(')+')',ctx);
- return {run,ctx,calls,schedules,tasks:()=>queue};
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['flushPendingWrites']}],globals:ctx,exports:{run:'flushPendingWrites'}});
+ return {run:api.run,ctx,calls,schedules,tasks:()=>queue};
 }
 test('release markers, TEST database, technical 1.7.0, OS-number login',()=>{
  for(const [p,anchor] of [['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
@@ -58,14 +57,13 @@ test('legacy conflict retained without replay',async()=>{
  assert.equal(t.calls.length,0);assert.equal(t.tasks()[0].conflict,'admin-review-required');assert.equal(t.schedules.length,0);
 });
 test('diagnostics identify task and error class without leaking payload or original error',()=>{
- const source=section('  // RAK_17058_QUEUE_DIAGNOSTIC_GUARD:','\n  window.refreshPublicData = refreshPublicData;');
  const secret='sensitive-personal-content',queue=[{id:'one',type:'bug_report',entry:{message:secret},queuedAt:new Date().toISOString()}];
  const ctx={readLocalSnapshot:()=>({rotation:{months:{}}}),readQueue:()=>queue,getClient:()=>({}),getSupabaseHardeningStatus:()=>({}),
  state:{rotationSync:{lastSource:'remote',lastReadAt:new Date().toISOString(),lastError:null},syncGuard:{queueDroppedInvalid:0}},navigator:{onLine:true},app:{adminRotationDirty:false}};
- vm.runInNewContext(source+'\n globalThis.__status=getSyncUiStatus;',ctx);
- const queued=ctx.__status();assert.equal(queued.kind,'pending');assert(queued.detail.includes('hlášení chyby'));
+ const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['summarizeQueuedSyncTask','getSyncUiStatus']}],globals:ctx,exports:{status:'getSyncUiStatus'}});
+ const queued=api.status();assert.equal(queued.kind,'pending');assert(queued.detail.includes('hlášení chyby'));
  queue[0].retryCount=1;queue[0].lastErrorMessage='failed to fetch '+secret;
- const failed=ctx.__status();assert.equal(failed.kind,'error');assert(failed.detail.includes('připojení'));
+ const failed=api.status();assert.equal(failed.kind,'error');assert(failed.detail.includes('připojení'));
  assert(!JSON.stringify(failed).includes(secret));
 });
 test('two-pass build, prior gates, real mobile Chromium and anon HTTP remain in CI',()=>{

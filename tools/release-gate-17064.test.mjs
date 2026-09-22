@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const BUILD='v1.7.64-conflict-draft1';
-function excerpt(source,start,end){const a=source.indexOf(start),b=source.indexOf(end,a+start.length);assert(a>=0&&b>a,start);return source.slice(a,b);}
 function fixture(result,denyStorage=false){
  let saved=new Map(),clicked=0,exported=0,networkStorageAt=null,confirmCount=0;
  const children=[];
@@ -23,10 +22,8 @@ function fixture(result,denyStorage=false){
   }},
   window:{confirm:()=>{confirmCount++;return true;},alert:()=>{}},
   URL:{createObjectURL:()=> 'blob:private-test',revokeObjectURL:()=>{}},setTimeout:()=>{}};
- const source=read('admin-rotation-editor.js');
- const methods=excerpt(source,'// RAK_17064_CONFLICT_DRAFT_GUARD:', '\nfunction adminRotationFindShiftForAbsenceDate(');
- vm.runInNewContext(methods+'\nglobalThis.__save=saveAdminRotationToSupabase;',context);
- return {save:()=>context.__save('10/26',JSON.stringify({notes:[{person:'SECRET-NAME',date:'19.10. N',code:'NV'}]})),
+ const {api}=runNamedDeclarations({modules:[{source:read('admin-rotation-editor.js'),names:['rakPreserveAdminMonthDraft','rakShowAdminDraftExport','saveAdminRotationToSupabase']}],globals:context,exports:{save:'saveAdminRotationToSupabase'}});
+ return {save:()=>api.save('10/26',JSON.stringify({notes:[{person:'SECRET-NAME',date:'19.10. N',code:'NV'}]})),
   saved,status,children,app,clicks:()=>clicked,exports:()=>exported,networkStorageAt:()=>networkStorageAt,confirmCount:()=>confirmCount};
 }
 test('release 1.7.64, TEST Supabase only, technical package unchanged',()=>{

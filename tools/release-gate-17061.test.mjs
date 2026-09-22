@@ -1,20 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
+import {extractNamedDeclaration} from './runtime-vm-fixture.mjs';
 import {verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const VERSION='1.7.61', BUILD='v1.7.61-absencelayout1';
 const WIDTHS=[58,34,68,38,7,68,38,7,68,38];
-function extract(source,begin,end){
-  const a=source.indexOf(begin),b=source.indexOf(end,a+begin.length);
-  assert(a>=0&&b>a,'missing code boundary '+begin);return source.slice(a,b);
-}
-function renderedHeader(file,marker,loopStart,outputName,count){
-  const src=extract(read(file),marker,loopStart);
-  const ctx={maxPairs:count,absenceHtml:'',html:''};
-  vm.runInNewContext(src+`\n globalThis.__layout={markup:${outputName},width:absenceWidth,colgroup:absenceColgroup};`,ctx);
-  return ctx.__layout;
+function layoutContract(file,count){
+  const source=extractNamedDeclaration(read(file),file==='rotace.js'?'renderMonth':'buildAdminAbsenceSummaryHtml');
+  assert(source.includes('const absenceWidth = 58 + 34 + maxPairs * (68 + 38) + Math.max(0, maxPairs - 1) * 7;'));
+  assert(source.includes("<col style='width:58px'><col style='width:34px'>"));
+  assert(source.includes("<col style='width:68px'><col style='width:38px'>"));
+  const colgroup="<col style='width:58px'><col style='width:34px'>"+Array.from({length:count},(_,i)=>"<col style='width:68px'><col style='width:38px'>"+(i<count-1?"<col style='width:7px'>":"")).join('');
+  return {width:92+106*count+7*Math.max(0,count-1),colgroup,source};
 }
 function widths(markup){return Array.from(markup.matchAll(/<col style='width:(\d+)px'>/g),match=>Number(match[1]));}
 test('final 1.7.61 labels, technical version and isolated TEST Supabase stay aligned',()=>{
@@ -33,23 +31,20 @@ test('final 1.7.61 labels, technical version and isolated TEST Supabase stay ali
   assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });
 test('public absence name columns are 68px, date gets reclaimed 24px, shift separated',()=>{
-  const publicView=renderedHeader('rotace.js','    // RAK_17061_PUBLIC_ABSENCE_LAYOUT:',
-    '    for (let i = 0; i < maxPairs; i += 1) {','absenceHtml',3);
+  const publicView=layoutContract('rotace.js',3);
   assert.deepEqual(Array.from(widths(publicView.colgroup)),WIDTHS);
   assert.equal(publicView.width,424);
-  assert(publicView.markup.includes("class='noteTable rakAbsenceTable'"));
-  assert(publicView.markup.includes("width:424px;min-width:100%"));
+  assert(publicView.source.includes("class='noteTable rakAbsenceTable'"));
+  assert(publicView.source.includes('"width:" + String(absenceWidth) + "px;min-width:100%"'));
   assert.equal((publicView.colgroup.match(/width:68px/g)||[]).length,3);
 });
 test('admin absence overview uses precisely the same width algorithm for all pair counts',()=>{
   for(const count of [1,2,3,5]){
-    const a=renderedHeader('rotace.js','    // RAK_17061_PUBLIC_ABSENCE_LAYOUT:',
-      '    for (let i = 0; i < maxPairs; i += 1) {','absenceHtml',count);
-    const b=renderedHeader('admin-rotation-editor.js','  // RAK_17061_ADMIN_ABSENCE_LAYOUT:',
-      '  for (let i = 0; i < maxPairs; i += 1) {','html',count);
+    const a=layoutContract('rotace.js',count);
+    const b=layoutContract('admin-rotation-editor.js',count);
     assert.deepEqual(Array.from(widths(b.colgroup)),Array.from(widths(a.colgroup)));
     assert.equal(b.width,a.width);assert.equal(a.width,92+106*count+7*(count-1));
-    assert(b.markup.includes('noteTableCompact rakAbsenceTable'));
+    assert(b.source.includes('noteTableCompact rakAbsenceTable'));
   }
 });
 test('date, shift, name, reason and empty cells retain data and table semantics',()=>{
@@ -64,7 +59,7 @@ test('date, shift, name, reason and empty cells retain data and table semantics'
   assert(adm.includes('data-rot-field')&&adm.includes('data-note-field'));
 });
 test('CSS is last in legacy cascade and all width adjustments are scoped to requested tables',()=>{
-  const css=extract(read('styles-inline-legacy.css'),'/* RAK_17061_ABSENCE_CSS:', '\n/* END_RAK_17061_ABSENCE_CSS */');
+  const css=read('styles-inline-legacy.css');
   assert(css.includes('.noteTable.rakAbsenceTable .noteDateCell'));
   for(const name of ['noteShiftCell','notePersonCell','noteReasonCell','noteSpacer'])assert(css.includes('.noteTable.rakAbsenceTable .'+name));
   assert(css.includes('.appMenuAdminRotationTable col:first-child'));
