@@ -454,6 +454,10 @@ async function loadActiveAccountUiRemoteSettings(accountId) {
       rakProfileUiSyncGuard.remoteLoads += 1;
       rakProfileUiSyncGuard.lastLoadAt = Date.now();
       const remote = await bridge.loadGameAccountUiSettings(id);
+      if (remote && remote.__rakUnavailable === true) {
+        rakProfileUiSyncGuard.remoteUnavailableSkips = Number(rakProfileUiSyncGuard.remoteUnavailableSkips || 0) + 1;
+        return { ok: true, skipped: true, reason: String(remote.reason || 'remote-unavailable') };
+      }
       if (!remote || typeof remote !== 'object') {
         rakProfileUiSyncGuard.remoteMissingCreates += 1;
         if (!isProfileUiAccountActive(id)) return { ok: true, skipped: true, reason: 'account-switched' };

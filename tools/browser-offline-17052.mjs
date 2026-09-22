@@ -110,19 +110,20 @@ try{
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
  await until('window.getPwaHardeningStatus?.().swPrecacheMissingCount===0',15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
- // Simulate the iPhone failure: newer bridge snapshot next to an older canonical cache.
- assert.equal(await check(`(()=>{
+  // Exercise the installed-PWA path: persist the rotation through the application API,
+  // then remove localStorage so the offline reboot must recover from durable CacheStorage.
+  assert.equal(await check(`(async()=>{
+   await window.rakEnsureFeature('sync');
    const current=JSON.parse(JSON.stringify(app.rotation));
    const monthKey=Object.keys(current.months||{})[0];
    if(!monthKey)return false;
-   current.months[monthKey].notes=[...(current.months[monthKey].notes||[]),{date:'',shift:'',person:'',code:'',text:'RAK-CI-OFFLINE-17073'}];
-   const stale={months:{'5/26':{hard:{title:'Rotace tvrdota',machines:[],rows:[]},soft:{title:'Rotace měkota',machines:[],rows:[]},notes:[]}}};
-   localStorage.setItem('rotace_kalkulacky_state_v123',JSON.stringify(stale));
-   localStorage.setItem('rotace_supabase_local_state_v1',JSON.stringify({updatedAt:Date.now(),version:window.APP_VERSION||'',rotation:current,machineSettingsRows:[],announcements:[]}));
+   current.months[monthKey].notes=[...(current.months[monthKey].notes||[]),{date:'',shift:'',person:'',code:'',text:'RAK-CI-OFFLINE-17077'}];
+   const stored=await window.RotationSupabaseBridge.persistDurableRotationState(current);
+   localStorage.removeItem('rotace_kalkulacky_state_v123');
+   localStorage.removeItem('rotace_supabase_local_state_v1');
    localStorage.setItem('rotace_supabase_queue_v1','[]');
-   return true;
- })()`),true,'[17052-browser] divergent rotation fixture was not stored');
- const before=httpFailures.length;
+   return stored;
+  })()`),true,'[17052-browser] durable rotation snapshot was not stored'); const before=httpFailures.length;
  await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await send('Page.reload',{ignoreCache:false});
  const offline=await boot('offline reload',expected);
@@ -131,14 +132,20 @@ try{
    await window.rakEnsureFeature('rotation');
    await window.rakEnsureFeature('sync');
    await window.syncRotationFromSupabase(false);
-   const marker=Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17073'));
+   const marker=Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17077'));
    const cached=window.RotationSupabaseBridge.loadCachedRotationState();
    const canonical=JSON.parse(localStorage.getItem('rotace_kalkulacky_state_v123')||'null');
    const snapshot=JSON.parse(localStorage.getItem('rotace_supabase_local_state_v1')||'null');
-   const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17073'));
+   const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17077'));
    return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function'};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true},'[17052-browser] canonical cache migration or offline feature bundle missing');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true},'[17052-browser] durable cache recovery or offline feature bundle missing');
+ const offlineUi=await check((async()=>{
+  const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
+  const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
+  return {unavailable:result?.__rakUnavailable===true,reason:result?.reason||'',queueLength:queue.length};
+ })());
+ assert.deepEqual(offlineUi,{unavailable:true,reason:'offline-cache-miss',queueLength:0},'[17052-browser] offline profile read created a queued write');
  const offlineIcons=await check(`(()=>{const icons=Array.from(document.querySelectorAll('img.dashboardIconImg,img.bottomNavIconImg'));return {count:icons.length,broken:icons.filter(img=>!img.complete||img.naturalWidth<1).map(img=>img.getAttribute('src')||'')}})()`);
  assert(offlineIcons.count>=12,'[17052-browser] dashboard/navigation icons were not rendered');
  assert.deepEqual(offlineIcons.broken,[],'[17052-browser] offline dashboard/navigation icons missing');

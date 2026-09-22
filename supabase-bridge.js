@@ -1425,6 +1425,8 @@
 
   const LOCAL_STATE_KEY = 'rotace_supabase_local_state_v1';
   const LOCAL_ROTATION_KEY = 'rotace_kalkulacky_state_v123';
+  const DURABLE_ROTATION_CACHE = 'rotace-offline-data-v1';
+  const DURABLE_ROTATION_REQUEST = './__rak/offline/rotation-state-v1.json';
   const LOCAL_QUEUE_KEY = 'rotace_supabase_queue_v1';
   const LOCAL_ANNOUNCEMENTS_KEY = 'rotace_supabase_announcements_v1';
   const LOCAL_MACHINE_SETTINGS_KEY = 'rotace_supabase_machine_settings_v1';
@@ -1865,7 +1867,45 @@
     state.cacheGuard.rotationStorageError = '';
     return true;
   }
+  function getDurableRotationRequestUrl() {
+    try { return new URL(DURABLE_ROTATION_REQUEST, window.location.href).href; }
+    catch (_) { return DURABLE_ROTATION_REQUEST; }
+  }
 
+  async function persistDurableRotationState(rotation) {
+    if (!rotation || typeof rotation !== 'object' || !rotation.months || typeof caches === 'undefined') return false;
+    try {
+      const cache = await caches.open(DURABLE_ROTATION_CACHE);
+      const body = JSON.stringify({ schema: 1, savedAt: Date.now(), version: window.APP_VERSION || '', payload: rotation });
+      await cache.put(getDurableRotationRequestUrl(), new Response(body, { status: 200, headers: { 'content-type': 'application/json;charset=utf-8', 'cache-control': 'no-store' } }));
+      state.cacheGuard.durableRotationWrites = Number(state.cacheGuard.durableRotationWrites || 0) + 1;
+      state.cacheGuard.durableRotationError = '';
+      return true;
+    } catch (err) {
+      state.cacheGuard.durableRotationWriteErrors = Number(state.cacheGuard.durableRotationWriteErrors || 0) + 1;
+      state.cacheGuard.durableRotationError = 'durable-rotation-write-failed';
+      return false;
+    }
+  }
+
+  async function loadDurableRotationState() {
+    if (typeof caches === 'undefined') return null;
+    try {
+      const cache = await caches.open(DURABLE_ROTATION_CACHE);
+      const response = await cache.match(getDurableRotationRequestUrl());
+      if (!response) return null;
+      const stored = await response.json();
+      const payload = stored && stored.payload;
+      if (!payload || typeof payload !== 'object' || !payload.months) return null;
+      state.cacheGuard.durableRotationReads = Number(state.cacheGuard.durableRotationReads || 0) + 1;
+      state.cacheGuard.durableRotationError = '';
+      return { id: 'main', payload, updatedAt: stored.savedAt || null, meta: { source: 'durable-cache' } };
+    } catch (err) {
+      state.cacheGuard.durableRotationReadErrors = Number(state.cacheGuard.durableRotationReadErrors || 0) + 1;
+      state.cacheGuard.durableRotationError = 'durable-rotation-read-failed';
+      return null;
+    }
+  }
   function saveLocalSnapshot(rotation, machineSettingsRows) {
     const existing = readLocalSnapshot() || {};
     const hasRotation = !!(rotation && typeof rotation === 'object' && rotation.months);
@@ -3286,11 +3326,13 @@
             }
             const remoteAt = Date.parse(String(remoteRow && remoteRow.updated_at || ''));
             if (Number.isFinite(remoteAt) && remoteAt > queuedAt) {
-              remaining.push(Object.assign({}, task, { conflict: 'newer-online-state' }));
-              state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
+              // Appearance is a non-critical preference. A newer verified server value wins
+              // and an older automatic/offline preference must never become a global conflict.
+              writeTimedCache(gameUiSettingsCacheKey(account), [remoteRow], 'ui');
+              state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
+              flushed += 1;
               continue;
-            }
-            await saveGameAccountUiSettingsDirect(client, task.entry);
+            }            await saveGameAccountUiSettingsDirect(client, task.entry);
             flushed += 1;
           } else if (task.type === 'game_session') {
             const code = task.inviteCode || task.code;
@@ -4488,6 +4530,7 @@
           state.rotationSync.lastError = null;
           state.lastError = null;
           saveLocalSnapshot(payload, state.machineSettingsSnapshot || []);
+          await persistDurableRotationState(payload);
           return {
             id: row.key || 'main',
             payload,
@@ -4506,6 +4549,7 @@
             state.rotationSync.lastError = null;
             state.lastError = null;
             saveLocalSnapshot(rebuilt, state.machineSettingsSnapshot || []);
+            await persistDurableRotationState(rebuilt);
             return {
               id: row && row.key ? row.key : 'main',
               payload: rebuilt,
@@ -4538,6 +4582,14 @@
       return cached;
     }
 
+    const durable = await loadDurableRotationState();
+    if (durable && durable.payload) {
+      state.rotationSnapshot = durable.payload;
+      state.rotationSync.lastSource = 'durable-cache';
+      saveLocalSnapshot(durable.payload, state.machineSettingsSnapshot || []);
+      return durable;
+    }
+
     return null;
   }
 
@@ -4554,6 +4606,7 @@
         state.rotationSync.lastWriteRevision = Number.isFinite(Number(row.revision)) ? Number(row.revision) : state.rotationRevision;
         state.rotationSync.lastError = null;
         saveLocalSnapshot(state.rotationSnapshot, state.machineSettingsSnapshot || []);
+        await persistDurableRotationState(state.rotationSnapshot);
         await flushPendingWrites();
         return {
           ok: true,
@@ -5072,6 +5125,8 @@
     sendGomokuWin,
     loadRotationState,
     loadCachedRotationState,
+    loadDurableRotationState,
+    persistDurableRotationState,
     saveRotationState,
     listRotationBackups,
     restoreRotationBackup,
@@ -5200,14 +5255,14 @@
       if (!account) return null;
       if (!client || !navigator.onLine) {
         if (cache && cache.rows && cache.rows[0]) { rememberTimedCacheHit('ui', cache); return cache.rows[0]; }
-        return null;
+        return { __rakUnavailable: true, reason: navigator.onLine ? 'missing-client' : 'offline-cache-miss' };
       }
       try { const row = await loadGameAccountUiSettingsDirect(client, account); state.lastError = null; return row; }
       catch (err) {
         state.lastError = err;
         console.error('Game UI settings load failed', err);
         if (cache && cache.rows && cache.rows[0]) { rememberTimedCacheHit('ui', cache); return cache.rows[0]; }
-        return null;
+        return { __rakUnavailable: true, reason: 'read-failed' };
       }
     },
     saveGameAccountUiSettings: async (payload) => {

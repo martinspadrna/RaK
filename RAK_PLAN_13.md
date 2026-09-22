@@ -21,11 +21,11 @@
 | P1.1 | Databázová oprávnění, RLS a RPC | **40 % (2/5)** | Otevřeno |
 | P1.2 | Administrátorské heslo, relace a zařízení | **40 % (2/5)** | Otevřeno |
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
-| P1.4 | CI před nasazením, rollout a rollback | **67 % (4/6)** | Otevřeno; preview rollback a CI-before-deploy brána ověřeny |
+| P1.4 | CI před nasazením, rollout a rollback | **83 % (5/6)** | Otevřeno; fail-closed skip, preview rollback a CI-before-deploy brána ověřeny |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
 | P2.2 | Rozložení, DOM, CSS a interakce | **40 % (2/5)** | Otevřeno |
-| P2.3 | Offline, fronta, verze a konflikty | **25 % (2/8)** | **Otevřeno; příčiny opraveny v 1.7.71, fyzický iPhone čeká na potvrzení** |
+| P2.3 | Offline, fronta, verze a konflikty | **25 % (2/8)** | **Otevřeno; 1.7.77 opravuje další prokázané příčiny, fyzický iPhone čeká na potvrzení** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
 **Bilance: 2/13 uzavřeny (P0.2 rozhodnutím o riziku, P1.3 technicky), 11/13 otevřených.** Dřívější historické `2/13` počítalo P1.3 jako hotový pouze kvůli existenci CI; současné uzavření navíc vyžaduje kanonický build, stabilní fixture, jednotná metadata a sedmidoménovou regresní paritu. Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
@@ -113,12 +113,12 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** další funkční úpravy už nevyžadují nový `development-version-17xxx.mjs` ani přepis historických gate testů při každé verzi. Do migrace nový řetězec neprodlužovat a nezkracovat testy kvůli zelenému CI.
 
-### P1.4 – Ověření před nasazením, deployment a rollback · **67 % (4/6)**
+### P1.4 – Ověření před nasazením, deployment a rollback · **83 % (5/6)**
 
 - [x] Je doložen proces kontroly přesného Git SHA, Actions SUCCESS, Vercel READY a HTTP/testovací konfigurace na referenčním release 1.7.69.
 - [x] Existuje nedestruktivní rollback preflight a kontrola politiky přeskočení nerelease/test-only změn.
 - [x] **S4 – brána před releasem:** automatické Vercel Git deploymenty pro `development` jsou v `vercel.json` vypnuté a CI změnu hlídá samostatným kontraktem. SHA `50795a7cd13c0733523b0cb5decabeed00b838bf` nevytvořil před CI žádný deployment; teprve po Actions runu `35606650384` SUCCESS byl přes Vercel API založen preview `dpl_BY2VDD2WuiVkbpEDGToX2oLZZFWn`, READY se stejným SHA, platným development aliasem a HTTP 200. `main` zůstal beze změny.
-- [ ] Nastavit fail-closed pravidla přeskočení Vercel buildu pouze pro ověřeně nefunkční změny; žádný skrytý bypass změnou názvu souboru nebo workflow.
+- [x] Fail-closed pravidla dovolují přeskočit Vercel build pouze přesně vyjmenovaným dokumentačním souborům; změna workflow, spustitelného testu, nástroje, konfigurace, runtime nebo neznámé cesty vždy vyžádá build.
 - [x] Bezpečně proveden skutečný PREVIEW rollback přes izolovaný dočasný alias: před, během i po návratu aplikace odpověděla HTTP 200; rollback mířil na READY deployment SHA `7c78d37936c4b66248213c835f4e7d6873c2b22c`, návrat na READY SHA `7698b442e8826cff94127611db62e459f70199fc`; dočasný alias byl odstraněn a development/main/produkční aliasy zůstaly beze změny.
 - [ ] Při každém budoucím funkčním releasu automaticky spojit SHA → CI → deployment → HTTP/konfiguraci → návratový plán a uchovat důkazy; nikdy nepřepisovat `main` bez výslovného souhlasu.
 
@@ -160,7 +160,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **25 % (2/8)**
 
-**Aktuální uživatelská závada:** verze 1.7.70 po čistém offline startu nenačetla Rotaci a po návratu online mohla ukázat „Konflikt synchronizace“, i když uživatel nic nezměnil. Analýza našla dvě konkrétní příčiny: moduly Rotace a synchronizace nebyly v předem uloženém offline balíku; fronta nastavení vzhledu rozhodovala pouze podle času a automatická normalizace profilu mohla vytvořit zápis i při offline startu. Balík 1.7.71 moduly předem ukládá, automatický offline start ponechává jen pro čtení a shodné hodnoty rekonciluje bez konfliktu. Historický automatický `local-seed` rozpis se zahodí jen po potvrzení existujícího online rozpisu. Automatické testy pokrývají offline Rotaci i návrat bez konfliktu; fyzický iPhone **stále musí výsledek potvrdit**, proto bod zůstává otevřený.
+**Aktuální uživatelská závada:** verze 1.7.70 po čistém offline startu nenačetla Rotaci a po návratu online mohla ukázat „Konflikt synchronizace“, i když uživatel nic nezměnil. Analýza našla dvě konkrétní příčiny: moduly Rotace a synchronizace nebyly v předem uloženém offline balíku; fronta nastavení vzhledu rozhodovala pouze podle času a automatická normalizace profilu mohla vytvořit zápis i při offline startu. Balík 1.7.71 moduly předem ukládal, ale test si rozpis vložil ručně a neověřil skutečné online uložení. Balík 1.7.77 proto po ověřeném online čtení ukládá druhou odolnou kopii do CacheStorage a při studeném offline startu z ní obnoví lokální stav. Současně rozlišuje nedostupné offline čtení vzhledu od skutečně chybějícího serverového záznamu a novější ověřená serverová volba vzhledu bezpečně ukončí starou nekritickou položku bez globálního konfliktu. Historický automatický `local-seed` rozpis se zahodí jen po potvrzení existujícího online rozpisu. Automatické testy pokrývají offline Rotaci i návrat bez konfliktu; fyzický iPhone **stále musí výsledek potvrdit**, proto bod zůstává otevřený.
 
 - [x] Pravdivé online/cache stavy, retry a ochrana historických/neznámých úloh v místní frontě před tichou ztrátou.
 - [x] Ochrana editovaných návrhů před opožděnou síťovou odpovědí a jednotkové testy selektivního lokálního mazání.
@@ -202,6 +202,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ## Záznam aktualizací
 
+- **22. 9. 2026 – připraven release 1.7.77 pro skutečný offline start PWA a fail-closed deploy policy:** online načtená Rotace se vedle kanonického `localStorage` zrcadlí do samostatné trvalé CacheStorage, která není verzovanou SW cache; studený offline start umí z této kopie obnovit lokální stav. Offline nebo chybné čtení vzhledu účtu je výslovně označeno jako nedostupné a nesmí založit automatický zápis. Starší nekritická položka vzhledu se po ověření novějšího serverového stavu ukončí bez globálního konfliktu. Chromium test už nemaže problém ručním vložením do `localStorage`: ukládá přes aplikační API, lokální kopii odstraní a vyžaduje obnovu z CacheStorage. Vercel skip policy nyní dovoluje přeskočit build jen přesně vyjmenovaným dokumentům; workflow, testy, nástroje a neznámé cesty vždy build spustí, takže P1.4 stoupá na 83 % (5/6). Fyzický iPhone zůstává povinným neuzavřeným důkazem; `main` a produkční Supabase beze změn.
 - **22. 9. 2026 – P1.3 dokončeno regresní paritou:** strojově čitelný manifest `tools/regression-parity.json` váže referenční release 1.7.69 na sedm povinných oblastí: data, rotaci, exporty, offline, oprávnění, rollback a rychlost. `tools/regression-parity-contract.test.mjs` ověřuje existenci původních důkazů, zachování současných scénářů a jejich skutečné spuštění v `npm run check` nebo povinném CI. Současně hlídá dva čisté kanonické buildy, čistý Git strom a zákaz `development-version-17070.mjs`. Referenční Actions run `35750687960` pro SHA `173d57fdf2c0e6dc8af5abcf9928240c383e5649` prošel všemi build, runtime, offline Chromium, benchmark, ZIP/CRC a TEST HTTP kroky; odpovídající preview `dpl_FKtZmysaTpjWibxTAzRyVP1shzkw` je READY a development alias vrací HTTP 200 s verzí 1.7.76. P1.3 je 100 % (6/6). Jde o testovací a dokumentační uzavření již nasazeného releasu 1.7.76, proto se verze znovu nezvyšuje a nevytváří další deployment. `main` a produkční Supabase beze změn.
 
 
