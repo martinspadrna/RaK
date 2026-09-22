@@ -60,5 +60,5 @@ test('offline package prewarms Rotation and sync feature modules',()=>{
   './admin-daymods.js?v=1.7.0','./app-rotation-controls.js?v=1.7.0',
   './supabase-bridge.js?v=1.7.0','./app-rotation-sync.js?v=1.7.0'
  ]) assert(sw.includes(asset),asset+' must be available before offline navigation');
- assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-rotation5;prewarm-sync2;cached-state-first;semantic-ui-conflict'"));
+ assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict'"));
 });
