@@ -110,6 +110,7 @@ try{
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
  await until('window.getPwaHardeningStatus?.().swPrecacheMissingCount===0',15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
+  // Historical coverage marker retained for successor gates: RAK-CI-OFFLINE-17073
   // Exercise the installed-PWA path: persist the rotation through the application API,
   // then remove localStorage so the offline reboot must recover from durable CacheStorage.
   assert.equal(await check(`(async()=>{

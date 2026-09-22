@@ -6,7 +6,7 @@ import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 function flushFixture(task,remoteRow){
- let queue=[structuredClone(task)],saves=0;
+ let queue=[structuredClone(task)],saves=0,cacheWrites=0;
  const query={
   select(){return this;},eq(){return this;},order(){return this;},
   async limit(){return {data:remoteRow?[structuredClone(remoteRow)]:[],error:null};},
@@ -26,11 +26,12 @@ function flushFixture(task,remoteRow){
   runSupabaseOperation:async(_name,action)=>await action(),GAME_UI_SETTINGS_TYPE:'__profile_ui',
   normalizeGameUiSettings:entry=>({account_number:String(entry.account_number||''),theme_id:String(entry.theme_id||''),background_id:String(entry.background_id||''),updated_at:entry.updated_at||null}),
   decodeGameUiSettingsRow:row=>row?{account_number:String(row.account_number||''),theme_id:String(row.theme_id||''),background_id:String(row.background_id||''),updated_at:row.updated_at||null}:null,
+  gameUiSettingsCacheKey:account=>'ui:'+account,writeTimedCache:()=>{cacheWrites+=1;return true;},
   saveGameAccountUiSettingsDirect:async()=>{saves+=1;return {ok:true};},
   window:{__rakRefreshSyncBadgeTruth:()=>{}},console:{warn:()=>{}},Date,JSON,Promise,Map,Set,structuredClone
  };
  const fn=extractNamedDeclaration(read('supabase-bridge.js'),'flushPendingWrites');
- return {run:evaluateExpression('('+fn+')',context),queue:()=>queue,saves:()=>saves};
+ return {run:evaluateExpression('('+fn+')',context),queue:()=>queue,saves:()=>saves,cacheWrites:()=>cacheWrites};
 }
 
 test('1.7.71 and verified successors use canonical release metadata and TEST Supabase',()=>{assertCurrentReleaseIdentity(read,'1.7.71');});
@@ -53,13 +54,13 @@ test('already-conflicted same profile appearance is rechecked and acknowledged w
  assert.equal(fixture.queue().length,0);assert.equal(fixture.saves(),0);
 });
 
-test('different newer profile appearance remains held for review',async()=>{
+test('different newer profile appearance accepts verified server value without write or global conflict',async()=>{
  const queuedAt='2026-09-22T08:00:00.000Z';
- const fixture=flushFixture({id:'different-ui',type:'game_ui_settings',queuedAt,entry:{account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:queuedAt}},
+ const fixture=flushFixture({id:'different-ui',type:'game_ui_settings',queuedAt,conflict:'newer-online-state',entry:{account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:queuedAt}},
   {account_number:'1234',theme_id:'light',background_id:'light',updated_at:'2026-09-22T09:00:00.000Z'});
  const result=await fixture.run();
- assert.equal(result.ok,false);assert.equal(result.held,1);assert.equal(fixture.saves(),0);
- assert.equal(fixture.queue()[0].conflict,'newer-online-state');
+ assert.equal(result.ok,true);assert.equal(result.flushed,1);assert.equal(result.held,0);
+ assert.equal(fixture.queue().length,0);assert.equal(fixture.saves(),0);assert.equal(fixture.cacheWrites(),1);
 });
 
 test('historic automatic local seed is removed only when an online rotation exists',async()=>{

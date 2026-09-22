@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+const {displayVersion:VERSION}=RELEASE_METADATA;
 
-test('1.7.76 has one release identity and keeps technical 1.7.0 with TEST Supabase',()=>{
+test('1.7.76 and verified successors keep one release identity with technical 1.7.0 and TEST Supabase',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.76');
-  assert.equal(metadata.displayVersion,'1.7.76');
   assert.equal(metadata.technicalVersion,'1.7.0');
-  assert.equal(metadata.cacheVersion,'v1.7.76');
-  assert.equal(metadata.buildId,'v1.7.76-release-metadata1');
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
 
 test('runtime and canonical build consume metadata instead of copying the current version',()=>{
@@ -37,5 +37,5 @@ test('strict CI checks metadata after both canonical builds and keeps reproducib
   assert(pkg.scripts.check.includes('tools/release-gate-17076.test.mjs'));
   assert(workflow.includes('npm run vercel-build\n          npm run vercel-build'));
   assert(workflow.includes('node --test tools/release-gate-17076.test.mjs'));
-  assert(workflow.includes('rak-17076-isolated-build-'));
+  assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
 });
