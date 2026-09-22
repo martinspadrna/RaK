@@ -1,0 +1,130 @@
+{
+  "schema": "rak-regression-parity-v1",
+  "baseline": {
+    "version": "1.7.69",
+    "sha": "1693c8631c13d6e381e44a96810a55140ad6aa62"
+  },
+  "categories": [
+    {
+      "id": "data",
+      "baselineEvidence": [
+        "tools/release-gate-17069.test.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/release-gate-17073.test.mjs",
+          "marker": "newer legacy snapshot migrates into one canonical cache",
+          "runner": "package:tools/release-gate-17073.test.mjs"
+        },
+        {
+          "path": "tools/backup-source-integrity-17051.mjs",
+          "marker": "every Git blob",
+          "runner": "workflow:node tools/backup-source-integrity-17051.mjs"
+        }
+      ]
+    },
+    {
+      "id": "rotation",
+      "baselineEvidence": [
+        "tools/release-gate-17069.test.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/release-gate-17071.test.mjs",
+          "marker": "historic automatic local seed is removed only when an online rotation exists",
+          "runner": "package:tools/release-gate-17071.test.mjs"
+        },
+        {
+          "path": "tools/browser-offline-17052.mjs",
+          "marker": "await window.rakEnsureFeature('rotation')",
+          "runner": "workflow:node tools/browser-offline-17052.mjs"
+        }
+      ]
+    },
+    {
+      "id": "exports",
+      "baselineEvidence": [
+        "tools/shift-report-image-170-smoke.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/release-gate-17072.test.mjs",
+          "marker": "both PNG entrypoints generate the exact same simplified production labels",
+          "runner": "package:tools/release-gate-17072.test.mjs"
+        },
+        {
+          "path": "tools/shift-report-image-170-smoke.mjs",
+          "marker": "mobile/legacy portrait PNG width",
+          "runner": "package:tools/shift-report-image-170-smoke.mjs"
+        }
+      ]
+    },
+    {
+      "id": "offline",
+      "baselineEvidence": [
+        "tools/release-gate-17052.test.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/pwa-offline-17052.test.mjs",
+          "marker": "offline navigation uses current release only",
+          "runner": "workflow:node --test tools/pwa-offline-17052.test.mjs"
+        },
+        {
+          "path": "tools/release-gate-17074.test.mjs",
+          "marker": "dashboard and navigation images are required offline assets",
+          "runner": "package:tools/release-gate-17074.test.mjs"
+        }
+      ]
+    },
+    {
+      "id": "permissions",
+      "baselineEvidence": [
+        "tools/release-gate-17050.test.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/http-anon-audit-17050.mjs",
+          "marker": "forged-jwt",
+          "runner": "workflow:node tools/http-anon-audit-17050.mjs"
+        },
+        {
+          "path": "tools/supabase-secure-write-paths-smoke.mjs",
+          "marker": "secure RPC",
+          "runner": "package:tools/supabase-secure-write-paths-smoke.mjs"
+        }
+      ]
+    },
+    {
+      "id": "rollback",
+      "baselineEvidence": [
+        "tools/preview-rollback-preflight-17068.test.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/preview-rollback-preflight-17068.test.mjs",
+          "marker": "read-only preflight proves identities",
+          "runner": "workflow:node --test tools/preview-rollback-preflight-17068.test.mjs"
+        }
+      ]
+    },
+    {
+      "id": "speed",
+      "baselineEvidence": [
+        "tools/pwa-start-bench-17068.test.mjs"
+      ],
+      "currentEvidence": [
+        {
+          "path": "tools/pwa-start-bench-17068.test.mjs",
+          "marker": "three independent cycles and strict fixed per-mode P95 budgets",
+          "runner": "workflow:node --test tools/pwa-start-bench-17068.test.mjs"
+        },
+        {
+          "path": "tools/pwa-start-bench-17068.mjs",
+          "marker": "export const ROUNDS=3;",
+          "runner": "workflow:node tools/pwa-start-bench-17068.mjs"
+        }
+      ]
+    }
+  ]
+}

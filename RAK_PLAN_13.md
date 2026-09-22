@@ -20,7 +20,7 @@
 | P0.4 | Role vlastníka a administrátorů | **40 % (2/5)** | Otevřeno |
 | P1.1 | Databázová oprávnění, RLS a RPC | **40 % (2/5)** | Otevřeno |
 | P1.2 | Administrátorské heslo, relace a zařízení | **40 % (2/5)** | Otevřeno |
-| P1.3 | Reprodukovatelný build, testy a verze | **83 % (5/6)** | Otevřeno; zbývá úplná regresní parita |
+| P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **67 % (4/6)** | Otevřeno; preview rollback a CI-before-deploy brána ověřeny |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
@@ -28,7 +28,7 @@
 | P2.3 | Offline, fronta, verze a konflikty | **25 % (2/8)** | **Otevřeno; příčiny opraveny v 1.7.71, fyzický iPhone čeká na potvrzení** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
-**Bilance: 1/13 uzavřen rozhodnutím o riziku, 0/12 ostatních plně technicky dokončeno, 12/13 otevřených.** Dřívější historické `2/13` počítalo P1.3 jako hotový kvůli existenci CI; tento závěr byl odvolán po regresích historických VM testů. Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 2/13 uzavřeny (P0.2 rozhodnutím o riziku, P1.3 technicky), 11/13 otevřených.** Dřívější historické `2/13` počítalo P1.3 jako hotový pouze kvůli existenci CI; současné uzavření navíc vyžaduje kanonický build, stabilní fixture, jednotná metadata a sedmidoménovou regresní paritu. Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
@@ -100,7 +100,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** konzistentní serverová ochrana i po restartu a odvolání, nikoli pouze klientský příznak `adminUnlocked`.
 
-### P1.3 – Reprodukovatelný build, testy a jednotná verze · **83 % (5/6)**
+### P1.3 – Reprodukovatelný build, testy a jednotná verze · **100 % (6/6)**
 
 **Systémový problém:** řetězec `tools/development-version-17048.mjs` přepisuje soubory po verzích; historické VM testy vyřezávají úseky podle textových komentářů. Nová funkce mezi značkami už opakovaně rozbila staré testy. Úspěšný build 1.7.69 neznamená vyřešenou architekturu.
 
@@ -109,7 +109,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [x] **S2 – jeden neměnný zdrojový strom:** převést transformovaný stav do normálních zdrojových modulů; build píše pouze do odděleného výstupu a nemění zdrojové soubory ani Git pracovní strom. Neztratit verzi 1.7.69 jako referenci.
 - [x] **S3 – stabilní testy:** křehké soukromé VM a výřezy mezi komentáři v gate testech 1.7.57–1.7.69 byly nahrazeny sdílenou runtime fixture, pojmenovanými deklaracemi, syntakticky vymezenými podmínkami a skutečnými browser testy; bezpečnostní a provozní scénáře zůstaly zachovány.
 - [x] Jediný zdroj metadat verze/build ID; HTML, aplikace, SW, build manifest, cache a technická verze `1.7.0` čtou společný metadatový modul. Dva čisté buildy stejného SHA porovnává kanonický build a CI dovoluje jen výslovně deklarovaný proměnný ZIP.
-- [ ] Prokázat regresní paritu před/po migraci: data, rotace, exporty, offline, oprávnění, rollback, rychlost; CI reprodukovatelné bez sériových oprav starých testů.
+- [x] Prokázána regresní parita před/po migraci pro data, rotaci, exporty, offline, oprávnění, rollback a rychlost. Strojově čitelný manifest mapuje referenční 1.7.69 na současné důkazy a CI kontroluje jejich skutečné zapojení po dvou čistých kanonických buildech bez dalšího verzovaného přepisovacího skriptu.
 
 **Dokončení:** další funkční úpravy už nevyžadují nový `development-version-17xxx.mjs` ani přepis historických gate testů při každé verzi. Do migrace nový řetězec neprodlužovat a nezkracovat testy kvůli zelenému CI.
 
@@ -201,6 +201,9 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **22. 9. 2026 – P1.3 dokončeno regresní paritou:** strojově čitelný manifest `tools/regression-parity.json` váže referenční release 1.7.69 na sedm povinných oblastí: data, rotaci, exporty, offline, oprávnění, rollback a rychlost. `tools/regression-parity-contract.test.mjs` ověřuje existenci původních důkazů, zachování současných scénářů a jejich skutečné spuštění v `npm run check` nebo povinném CI. Současně hlídá dva čisté kanonické buildy, čistý Git strom a zákaz `development-version-17070.mjs`. Referenční Actions run `35750687960` pro SHA `173d57fdf2c0e6dc8af5abcf9928240c383e5649` prošel všemi build, runtime, offline Chromium, benchmark, ZIP/CRC a TEST HTTP kroky; odpovídající preview `dpl_FKtZmysaTpjWibxTAzRyVP1shzkw` je READY a development alias vrací HTTP 200 s verzí 1.7.76. P1.3 je 100 % (6/6). Jde o testovací a dokumentační uzavření již nasazeného releasu 1.7.76, proto se verze znovu nezvyšuje a nevytváří další deployment. `main` a produkční Supabase beze změn.
+
 
 - **22. 9. 2026 – jednotná metadata releasu 1.7.76:** nový `rak-release-metadata.js` je jediným spustitelným zdrojem viditelné verze, technické verze, cache verze a build ID. Načítá se před prvním rozhodnutím v HTML, používá jej aplikace, Supabase konfigurace, service worker i kanonický build a je součástí offline jádra. Historické release gate testy 1.7.71–1.7.75 používají společný metadatový kontrakt místo ručních seznamů následníků; nová brána 1.7.76 zakazuje kopie aktuální identity v runtime/build souborech. P1.3 se zvyšuje na 83 % (5/6); zbývá úplná regresní parita před/po migraci včetně fyzického iPhonu. `main` a produkční Supabase beze změn.
 
