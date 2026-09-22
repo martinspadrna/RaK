@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {RELEASE_METADATA,assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 function fixture({dirty=true,allow=true,editorValid=true}={}){
@@ -91,22 +92,7 @@ test('network error cannot clear a protected draft or apply stale cache',async()
  assert.deepEqual(f.counters(),{applied:0,cache:0,guarded:1,requests:1});
 });
 test('1.7.68 and verified successors keep TEST-only release and historical gates',()=>{
-  const identities=new Map([
-    ['v1.7.68-async-draft-guard1','1.7.68'],
-    ['v1.7.69-local-drafts1','1.7.69'],
-    ['v1.7.70-canonical-source1','1.7.70'],
- ['v1.7.71-offline-rotation1','1.7.71'],
-  ['v1.7.72-shift-report1','1.7.72'],
-  ['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']
-  ]);
-  const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
-  assert(match&&identities.has(match[1]),'unsupported draft-guard successor');
-  const build=match[1],version=identities.get(build);
-  const files=[['index.html',`var build='${build}';`],
-    ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${version}";`],
-    ['app.js',`const RAK_DEV_UPDATE_BUILD = "${build}";`],
-    ['sw.js',`const CACHE_VERSION = 'v${version}';`]];
-  for(const [file,marker] of files)assert(read(file).includes(marker),file);
+  assertCurrentReleaseIdentity(read,'1.7.68');
   const pkg=JSON.parse(read('package.json'));
   assert.equal(pkg.version,'1.7.0');
   const config=read('supabase-config.js');assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
@@ -129,3 +115,4 @@ test('1.7.68 and verified successors keep TEST-only release and historical gates
   assert(read('admin-rotation.js').includes('RAK_17068_LATE_EDIT_NOTICE'));
   assert(read('app-rotation-sync.js').includes('RAK_17068_FINAL_DRAFT_BARRIER'));
 });
+

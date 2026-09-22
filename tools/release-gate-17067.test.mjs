@@ -2,24 +2,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {RELEASE_METADATA,assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {evaluateExpression,extractConditionalBlock,extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
-const releaseIdentities=new Map([
- ['v1.7.67-equalgrid-reload1','1.7.67'],
- ['v1.7.68-async-draft-guard1','1.7.68'],
- ['v1.7.69-local-drafts1','1.7.69'],
- ['v1.7.70-canonical-source1','1.7.70'],
- ['v1.7.71-offline-rotation1','1.7.71'],
-  ['v1.7.72-shift-report1','1.7.72'],
-  ['v1.7.73-offline-persistence1','1.7.73'],['v1.7.74-offline-cache1','1.7.74'],['v1.7.75-report-columns1','1.7.75']
-]);
-const buildMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
-assert(buildMatch&&releaseIdentities.has(buildMatch[1]),'unsupported equal-grid successor');
-const BUILD=buildMatch[1],DISPLAY=releaseIdentities.get(BUILD);
+const {buildId:BUILD,displayVersion:DISPLAY}=RELEASE_METADATA;
 test('1.7.67 and verified successors keep aligned identifiers on TEST Supabase',()=>{
- for(const [p,s] of [['index.html',`var build='${BUILD}';`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${DISPLAY}";`],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['sw.js',`const CACHE_VERSION = 'v${DISPLAY}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]])assert(read(p).includes(s),p);
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertCurrentReleaseIdentity(read,'1.7.67');
 });
 test('real TO and MO render expressions generate identical widths for equal machine counts',()=>{
  const src=read('admin-rotation-editor.js');
