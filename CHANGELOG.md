@@ -1,3 +1,11 @@
+## RaK 1.7.73 (development)
+
+- Online synchronizace ukládá rozpis do jediné autoritativní offline kopie a při upgradu bezpečně převede novější starý snapshot; tím odstraňuje rozdílný květnový obsah po restartu i riziko dvojitého zaplnění úložiště na iOS.
+- Service worker aktivuje novou verzi jen tehdy, když skutečně stáhl všechny soubory nutné pro offline spuštění Rotace a synchronizace.
+- Starý automatický local-seed konflikt se po připojení znovu ověří pouze čtením a odstraní, pokud online rozpis existuje; skutečné administrátorské změny zůstávají chráněné.
+- Regrese simuluje rozdílnou starou a novou cache při limitu úložiště, již konfliktní automatickou úlohu a úplný offline restart v mobilním Chromium.
+- Technická verze zůstává 1.7.0.
+
 ## RaK 1.7.72 (development)
 
 - Report směny sjednocuje MO, TO i brusy do pořadí „počet kusů + index“ bez opakovaného „ks“ na výrobních řádcích.

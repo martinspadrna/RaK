@@ -1,9 +1,9 @@
 // RaK 1.7 PWA service worker – v1.7.0 cache + confirmed-update navigation.
-const CACHE_VERSION = 'v1.7.72';
+const CACHE_VERSION = 'v1.7.73';
 const SW_APP_VERSION = '1.7.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.72';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.73';
 // Legacy smoke compatibility: const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
-const DEVELOPMENT_BUILD_ID = 'v1.7.72-shift-report1';
+const DEVELOPMENT_BUILD_ID = 'v1.7.73-offline-persistence1';
 const DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY = 'idle-foundation-2;feature-css-10';
 const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-identity-guard';
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
@@ -157,6 +157,17 @@ const WARM_START = [
   './app-rotation-sync.js?v=1.7.0'
 ];
 
+const OFFLINE_REQUIRED = Object.freeze([
+  './app.js?v=1.7.0','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
+  './core.js?v=1.7.0','./lifecycle.js?v=1.7.0','./app-runtime-guards.js?v=1.7.0','./ui.js?v=1.7.0',
+  './app-navigation.js?v=1.7.0','./app-bottom-nav.js?v=1.7.0','./app-actions.js?v=1.7.0',
+  './app-pwa-connectivity.js?v=1.7.0','./app-home-boot.js?v=1.7.0','./rak-runtime-stability.js?v=1.7.0',
+  './rak-mobile-layout-guard.js?v=1.7.0','./rak-feature-routing.js?v=1.7.0','./stats.js?v=1.7.0',
+  './rotace.js?v=1.7.0','./rotation-tasks.js?v=1.7.0','./admin-daymods.js?v=1.7.0',
+  './app-rotation-controls.js?v=1.7.0','./supabase-config.js?v=1.7.0','./supabase-bridge.js?v=1.7.0',
+  './app-rotation-sync.js?v=1.7.0'
+]);
+
 const STATIC_EXT = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|webmanifest)$/i;
 let approvedUpdateClientId = '';
 const DEVELOPMENT_TRANSIENT_NAV_PARAMS = ['_rak_update', '_rak_update_reason'];
@@ -265,6 +276,15 @@ async function installCoreAndPrewarm() {
       if (cacheable(response)) await prewarmCache.put(prewarmKey(url), response.clone());
     } catch (_) {}
   }));
+  const missingRequired = [];
+  for (const url of OFFLINE_REQUIRED) {
+    try {
+      if (!(await prewarmCache.match(prewarmKey(url)))) missingRequired.push(url);
+    } catch (_) {
+      missingRequired.push(url);
+    }
+  }
+  if (missingRequired.length) throw new Error('[RaK] incomplete offline runtime: ' + missingRequired.join(', '));
 }
 
 async function promotePrewarm() {

@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const VERSION='1.7.72',BUILD='v1.7.72-shift-report1';
+const identities=new Map([['v1.7.72-shift-report1','1.7.72'],['v1.7.73-offline-persistence1','1.7.73']]);
+const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
+assert(match&&identities.has(match[1]),'unsupported shift-report successor');
+const BUILD=match[1],VERSION=identities.get(BUILD);
 const normalize=value=>String(value).replace(/\u00a0/g,' ');
 const fixture={
  date:'2026-09-21',shift:'N',moNok:'0',problems:[],
@@ -33,7 +36,7 @@ function pngRows(source){
   exports:{rows:'sectionLines17013'}
  }).api.rows;
 }
-test('1.7.72 metadata stays on TEST Supabase and technical 1.7.0',()=>{
+test('1.7.72 formatting and verified successors stay on TEST Supabase and technical 1.7.0',()=>{
  for(const [file,anchor] of [
   ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
   ['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
@@ -78,6 +81,6 @@ test('strict CI runs this gate after two clean canonical builds',()=>{
  const pkg=JSON.parse(read('package.json')),workflow=read('.github/workflows/rak-development-validation.yml');
  assert(pkg.scripts.check.includes('tools/release-gate-17072.test.mjs'));
  for(const anchor of ['npm run vercel-build\n          npm run vercel-build',
-  'node --test tools/release-gate-17072.test.mjs','rak-17072-isolated-build-'])
+  'node --test tools/release-gate-17072.test.mjs','rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'])
   assert(workflow.includes(anchor),'CI missing '+anchor);
 });

@@ -1424,6 +1424,7 @@
   }
 
   const LOCAL_STATE_KEY = 'rotace_supabase_local_state_v1';
+  const LOCAL_ROTATION_KEY = 'rotace_kalkulacky_state_v123';
   const LOCAL_QUEUE_KEY = 'rotace_supabase_queue_v1';
   const LOCAL_ANNOUNCEMENTS_KEY = 'rotace_supabase_announcements_v1';
   const LOCAL_MACHINE_SETTINGS_KEY = 'rotace_supabase_machine_settings_v1';
@@ -1842,33 +1843,68 @@
   }
 
 
+  // RAK_17073_SINGLE_ROTATION_CACHE: one authoritative payload avoids iOS quota races
+  // and divergence between the runtime state and the bridge snapshot.
+  function readCanonicalRotationState() {
+    const rotation = safeReadJson(LOCAL_ROTATION_KEY, null);
+    return rotation && typeof rotation === 'object' && rotation.months ? rotation : null;
+  }
+
+  function writeCanonicalRotationState(rotation) {
+    if (!rotation || typeof rotation !== 'object' || !rotation.months) return false;
+    let expected = '';
+    try { expected = JSON.stringify(rotation); } catch (_) { return false; }
+    if (!safeWriteJson(LOCAL_ROTATION_KEY, rotation)) return false;
+    try {
+      if (localStorage.getItem(LOCAL_ROTATION_KEY) !== expected) return false;
+    } catch (_) {
+      const verified = readCanonicalRotationState();
+      try { if (JSON.stringify(verified) !== expected) return false; } catch (_) { return false; }
+    }
+    state.cacheGuard.rotationCacheWrites = Number(state.cacheGuard.rotationCacheWrites || 0) + 1;
+    state.cacheGuard.rotationStorageError = '';
+    return true;
+  }
+
   function saveLocalSnapshot(rotation, machineSettingsRows) {
     const existing = readLocalSnapshot() || {};
-    const hasRotation = !!(rotation && typeof rotation === 'object');
+    const hasRotation = !!(rotation && typeof rotation === 'object' && rotation.months);
+    const candidateRotation = hasRotation ? rotation
+      : (existing.rotation && typeof existing.rotation === 'object' ? existing.rotation : readCanonicalRotationState());
     const hasMachineSettings = Array.isArray(machineSettingsRows) && machineSettingsRows.length > 0;
-    const nextRotation = hasRotation ? rotation : (existing.rotation || null);
     const nextMachineSettings = hasMachineSettings
       ? machineSettingsRows
       : (Array.isArray(existing.machineSettingsRows) ? existing.machineSettingsRows : []);
     const nextAnnouncements = Array.isArray(state.announcements) && state.announcements.length
       ? state.announcements
       : (Array.isArray(existing.announcements) ? existing.announcements : []);
-    const snapshot = {
+    const compact = {
       updatedAt: Date.now(),
-      version: window.APP_VERSION || existing.version || '',
-      rotation: nextRotation,
-      machineSettingsRows: nextMachineSettings,
-      announcements: nextAnnouncements
+      rotation: null,
+      rotationKey: LOCAL_ROTATION_KEY
     };
-    if (existing && typeof existing.updatedAt === 'number' && existing.updatedAt > snapshot.updatedAt && !hasRotation && !hasMachineSettings) {
-      snapshot.updatedAt = existing.updatedAt;
-      snapshot.version = existing.version || snapshot.version;
+    if (nextMachineSettings.length) compact.machineSettingsRows = nextMachineSettings;
+    if (nextAnnouncements.length) compact.announcements = nextAnnouncements;
+
+    let canonicalStored = !candidateRotation || writeCanonicalRotationState(candidateRotation);
+    if (!canonicalStored && existing.rotation) {
+      // Shrinking the duplicate first frees space to replace an older canonical payload.
+      safeWriteJson(LOCAL_STATE_KEY, compact);
+      canonicalStored = writeCanonicalRotationState(candidateRotation);
+      if (canonicalStored) state.cacheGuard.rotationCacheMigrations = Number(state.cacheGuard.rotationCacheMigrations || 0) + 1;
     }
-    safeWriteJson(LOCAL_STATE_KEY, snapshot);
+    if (!canonicalStored) {
+      state.cacheGuard.rotationCacheWriteErrors = Number(state.cacheGuard.rotationCacheWriteErrors || 0) + 1;
+      state.cacheGuard.rotationStorageError = 'rotation-cache-write-failed';
+      const fallback = Object.assign({}, compact, { rotation: candidateRotation || null, rotationKey: '' });
+      safeWriteJson(LOCAL_STATE_KEY, fallback);
+      return fallback;
+    }
+    safeWriteJson(LOCAL_STATE_KEY, compact);
     if (hasMachineSettings || (Array.isArray(existing.machineSettingsRows) && existing.machineSettingsRows.length)) {
-      safeWriteJson(LOCAL_MACHINE_SETTINGS_KEY, snapshot.machineSettingsRows);
+      safeWriteJson(LOCAL_MACHINE_SETTINGS_KEY, compact.machineSettingsRows);
     }
-    return snapshot;
+    return compact;
   }
 
   function readLocalSnapshot() {
@@ -1879,11 +1915,18 @@
 
   function loadCachedRotationState() {
     const snapshot = readLocalSnapshot();
-    if (!snapshot || !snapshot.rotation || typeof snapshot.rotation !== 'object') return null;
+    // The embedded legacy payload has updatedAt and may be newer than an old canonical key.
+    if (snapshot && snapshot.rotation && typeof snapshot.rotation === 'object' && snapshot.rotation.months) {
+      const payload = snapshot.rotation;
+      saveLocalSnapshot(payload, snapshot.machineSettingsRows || []);
+      return { id: 'main', payload, updatedAt: snapshot.updatedAt || null, meta: { source: 'local-cache-migrated' } };
+    }
+    const rotation = readCanonicalRotationState();
+    if (!rotation) return null;
     return {
       id: 'main',
-      payload: snapshot.rotation,
-      updatedAt: snapshot.updatedAt || null,
+      payload: rotation,
+      updatedAt: snapshot && snapshot.updatedAt ? snapshot.updatedAt : null,
       meta: { source: 'local-cache' }
     };
   }
@@ -3183,8 +3226,14 @@
           break;
         }
         const originalTask = queue[i];
-        if (originalTask && originalTask.conflict) { remaining.push(originalTask); continue; }
-        if (shouldSkipQueuedTaskForBackoff(originalTask)) {
+        const automaticLocalSeed = !!(originalTask && originalTask.type === 'rotation_state'
+          && String(originalTask.meta && originalTask.meta.source || '') === 'local-seed');
+        const semanticUiTask = !!(originalTask && originalTask.type === 'game_ui_settings');
+        const recheckableAutomaticTask = automaticLocalSeed || semanticUiTask;
+        // RAK_17073_RECHECK_AUTOMATIC_CONFLICT: older releases may already have marked
+        // these automatic tasks, so they must pass their read-only semantic server checks.
+        if (originalTask && originalTask.conflict && !recheckableAutomaticTask) { remaining.push(originalTask); continue; }
+        if (shouldSkipQueuedTaskForBackoff(originalTask) && !recheckableAutomaticTask) {
           remaining.push(originalTask);
           continue;
         }
@@ -3195,7 +3244,7 @@
             // Old clients could create a rotation_state task merely by opening a local
             // snapshot offline. When an online rotation already exists, that automatic
             // seed is not a user edit and must not become a false conflict.
-            if (task.type === 'rotation_state' && String(task.meta && task.meta.source || '') === 'local-seed') {
+            if (automaticLocalSeed) {
               const remoteSeed = await runSupabaseOperation('queue.rotation_state.local_seed_check', () => client.from('rotation_state').select('key,revision').eq('key', 'main').maybeSingle(), { mode: 'read', attempts: 1 });
               if (remoteSeed.error) throw remoteSeed.error;
               if (remoteSeed.data && remoteSeed.data.key === 'main') {
@@ -4481,17 +4530,12 @@
       console.warn('Supabase rotation load failed', err);
     }
 
-    const snapshot = readLocalSnapshot();
-    if (snapshot && snapshot.rotation) {
-      state.rotationSnapshot = snapshot.rotation;
+    const cached = loadCachedRotationState();
+    if (cached && cached.payload) {
+      state.rotationSnapshot = cached.payload;
       state.rotationSync.lastSource = 'cache';
       // Never erase an online read error merely because a local copy exists.
-      return {
-        id: 'main',
-        payload: snapshot.rotation,
-        updatedAt: snapshot.updatedAt || null,
-        meta: { source: 'local-cache' }
-      };
+      return cached;
     }
 
     return null;
@@ -4890,7 +4934,8 @@
   function getSyncUiStatus() {
     // RAK_17057_STATUS_GUARD: only a fresh, successful Supabase read warrants green.
     const cached = readLocalSnapshot();
-    const hasCache = !!(cached && (cached.rotation || (Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length)));
+    const cachedRotation = loadCachedRotationState();
+    const hasCache = !!((cachedRotation && cachedRotation.payload) || (cached && Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length));
     const queue = readQueue();
     const queueLength = queue.length;
     const storageIssue = String(state.queueGuard && state.queueGuard.storageError || '');
@@ -4905,6 +4950,8 @@
     const dropped = Number(state.syncGuard.queueDroppedInvalid || 0);
     const base = { queued: queueLength, hasCache, verified, source, lastReadAt: state.rotationSync.lastReadAt || null,
       conflictCount, dropped, queueIssue, storageIssue: !!storageIssue, hardening: getSupabaseHardeningStatus() };
+    if (state.cacheGuard.rotationStorageError) return Object.assign({}, base, {kind:'error',
+      label:'🔴 Offline kopii rozpisu nelze uložit', detail:'Online rozpis je načtený, ale úložiště telefonu odmítlo jeho trvalé uložení.'});
     if (storageIssue) return Object.assign({}, base, {kind:'error',
       label:'🔴 Lokální frontu nelze uložit', detail:'Neodstraňuj data aplikace. Ručně ulož zálohu fronty přes tento indikátor.'});
     if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) {

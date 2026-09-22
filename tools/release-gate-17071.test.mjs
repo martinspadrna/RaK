@@ -5,7 +5,8 @@ import {extractNamedDeclaration,evaluateExpression} from './runtime-vm-fixture.m
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const RELEASE_IDENTITIES=new Map([
  ['v1.7.71-offline-rotation1','1.7.71'],
- ['v1.7.72-shift-report1','1.7.72']
+ ['v1.7.72-shift-report1','1.7.72'],
+  ['v1.7.73-offline-persistence1','1.7.73']
 ]);
 const releaseMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
 assert(releaseMatch&&RELEASE_IDENTITIES.has(releaseMatch[1]),'unsupported offline-rotation successor');
@@ -61,9 +62,9 @@ test('service worker prewarms complete Rotation and sync runtime before offline 
  assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-rotation5;prewarm-sync2;cached-state-first;semantic-ui-conflict'"));
 });
 
-test('same profile appearance with a newer remote timestamp is acknowledged without conflict or write',async()=>{
+test('already-conflicted same profile appearance is rechecked and acknowledged without write',async()=>{
  const queuedAt='2026-09-22T08:00:00.000Z';
- const fixture=flushFixture({id:'same-ui',type:'game_ui_settings',queuedAt,entry:{account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:queuedAt}},
+ const fixture=flushFixture({id:'same-ui',type:'game_ui_settings',queuedAt,conflict:'newer-online-state',entry:{account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:queuedAt}},
   {account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:'2026-09-22T09:00:00.000Z'});
  const result=await fixture.run();
  assert.equal(result.ok,true);assert.equal(result.flushed,1);assert.equal(result.held,0);
