@@ -68,6 +68,7 @@ jobs:
           node --test tools/release-gate-17068.test.mjs
           node --test tools/release-gate-17069.test.mjs
           node --test tools/release-gate-17071.test.mjs
+          node --test tools/release-gate-17072.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
         run: |
@@ -100,7 +101,7 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-17071-isolated-build-${{ github.sha }}
+          name: rak-17072-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error

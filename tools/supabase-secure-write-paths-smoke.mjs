@@ -47,10 +47,10 @@ assert(bridgePos >= 0 && syncPos > bridgePos, 'app-rotation-sync secure gate mus
 assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'")||sw.includes("'./app-rotation-sync.js?v=1.7.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
 const canonical=!!(pkg.scripts&&pkg.scripts['legacy:vercel-build']);
 if(canonical){
-  assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.71';"), 'canonical SW display version must be 1.7.71');
-  assert(config.includes('window.RAK_RELEASE_VERSION = "1.7.71";'), 'canonical display release version must be 1.7.71');
-  assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.7.71";'), 'canonical test display version must be 1.7.71');
-  assert(config.includes('window.RAK_PWA_BUILD = "v1.7.71-offline-rotation1";'), 'canonical PWA build marker missing');
+  assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.72';"), 'canonical SW display version must be 1.7.72');
+  assert(config.includes('window.RAK_RELEASE_VERSION = "1.7.72";'), 'canonical display release version must be 1.7.72');
+  assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.7.72";'), 'canonical test display version must be 1.7.72');
+  assert(config.includes('window.RAK_PWA_BUILD = "v1.7.72-shift-report1";'), 'canonical PWA build marker missing');
 }else{
   assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'SW test display version must be 1.6.03');
   assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display release version must be 1.6.03');

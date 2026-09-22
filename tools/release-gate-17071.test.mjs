@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {extractNamedDeclaration,evaluateExpression} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const VERSION='1.7.71',BUILD='v1.7.71-offline-rotation1';
+const RELEASE_IDENTITIES=new Map([
+ ['v1.7.71-offline-rotation1','1.7.71'],
+ ['v1.7.72-shift-report1','1.7.72']
+]);
+const releaseMatch=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
+assert(releaseMatch&&RELEASE_IDENTITIES.has(releaseMatch[1]),'unsupported offline-rotation successor');
+const BUILD=releaseMatch[1],VERSION=RELEASE_IDENTITIES.get(BUILD);
 
 function flushFixture(task,remoteRow){
  let queue=[structuredClone(task)],saves=0;
@@ -33,7 +39,7 @@ function flushFixture(task,remoteRow){
  return {run:evaluateExpression('('+fn+')',context),queue:()=>queue,saves:()=>saves};
 }
 
-test('1.7.71 metadata keeps technical 1.7.0 and TEST Supabase',()=>{
+test('1.7.71 and verified successors keep technical 1.7.0 and TEST Supabase',()=>{
  for(const [file,anchor] of [
   ['index.html',`var build='${BUILD}';`],['sw.js',`const CACHE_VERSION = 'v${VERSION}';`],
   ['sw.js',`const DEVELOPMENT_TEST_DISPLAY_VERSION = '${VERSION}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],

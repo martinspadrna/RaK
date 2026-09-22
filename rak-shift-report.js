@@ -133,6 +133,7 @@ function defaultShiftContext(now) {
     return out.join('\n');
   }
   // RAK_SHIFT_TEXT_INDEX_TOTALS_17015
+  // RAK_17072_REPORT_QUANTITY_INDEX: every production row is quantity + index; totals never repeat indexes.
   function reportText(draft) {
     const date = draft.date ? new Date(draft.date + 'T12:00:00').toLocaleDateString('cs-CZ') : new Date().toLocaleDateString('cs-CZ');
     const team=typeof getRakActiveAccountShiftTeam==='function'?getRakActiveAccountShiftTeam():'D';
@@ -153,11 +154,11 @@ function defaultShiftContext(now) {
       rows.forEach(row => {
         const index = row.index || '—', qty = count(row.qty), free = count(row.free), nok = count(row.nok);
         if (id === 'mo' || id === 'to') {
-          if (qty) produced.push({index,text:id==='mo'?fmt(qty)+' '+index:index+' '+fmt(qty)+' ks'});
+          if (qty) produced.push({index,text:fmt(qty)+' '+index});
           if (free) produced.push({index,text:fmt(free)+' '+index+' volné'});
           if (nok) produced.push({index,text:index+' NOK '+fmt(nok)});
         } else {
-          if (qty) produced.push({index,text:fmt(qty)+' '+index+' ks'+suffix(row.nok)});
+          if (qty) produced.push({index,text:fmt(qty)+' '+index+suffix(row.nok)});
           if (free) produced.push({index,text:fmt(free)+' '+index+' volné'+(qty?'':suffix(row.nok))});
           if (nok && !qty && !free) produced.push({index,text:index+' NOK '+fmt(nok)});
         }
@@ -171,10 +172,7 @@ function defaultShiftContext(now) {
       if (!produced.length) lines.push('  Bez záznamu');
       if (totals.size && productionLineCount17017 > 1) {
         const total = Array.from(totals.values()).reduce((sum,n)=>sum+n,0);
-        const indexed = Array.from(totals,([index,n])=>fmt(n)+' '+index).join(', ');
-        const summary = id==='mo' ? 'Celkově '+indexed+' ('+fmt(total)+' ks)'
-          : id==='to' ? 'Celkově '+fmt(total)+' ks'
-          : 'Celkově '+fmt(total)+' ks ('+indexed+')';
+        const summary = 'Celkově '+fmt(total)+' ks';
         lines.push('  '+summary);
       }
       if (id==='mo' && count(draft.moNok)) lines.push('  NOK: '+fmt(count(draft.moNok)));

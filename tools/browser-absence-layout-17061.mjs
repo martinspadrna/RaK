@@ -96,7 +96,7 @@ try{
   }
   const releaseSource=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
   const narrow=['v1.7.65-admin-draft-recovery1','v1.7.66-softgrid-draftguard1','v1.7.67-equalgrid-reload1',
-    'v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1']
+    'v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1','v1.7.72-shift-report1']
     .some(id=>releaseSource.includes(id));
   if(narrow)assert(data.rotDate.width>=81&&data.rotDate.width<=83&&data.rotCell>=83,
     '[17065+-browser] MO/TO date width regression '+JSON.stringify(data.rotDate));

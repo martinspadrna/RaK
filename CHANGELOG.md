@@ -1,3 +1,10 @@
+## RaK 1.7.72 (development)
+
+- Report směny sjednocuje MO, TO i brusy do pořadí „počet kusů + index“ bez opakovaného „ks“ na výrobních řádcích.
+- Souhrn více výrobních řádků je vždy pouze „Celkově X ks“; neopakuje rozpis indexů, který je už vidět nad ním.
+- Náhled, kopírovaný text i oba PNG generátory používají stejnou logiku a CI je ověřuje na hodnotách z uživatelského reportu.
+- Technická verze zůstává 1.7.0.
+
 ## RaK 1.7.71 (development)
 
 - Offline Rotace: service worker předem ukládá všech pět modulů Rotace i oba synchronizační moduly, takže čistý restart bez sítě otevře uložený rozpis místo pouhého obalu aplikace.

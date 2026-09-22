@@ -82,7 +82,8 @@ test('1.7.69 and verified canonical successors keep TEST-only release and histor
  const identities=new Map([
   ['v1.7.69-local-drafts1','1.7.69'],
   ['v1.7.70-canonical-source1','1.7.70'],
-  ['v1.7.71-offline-rotation1','1.7.71']
+  ['v1.7.71-offline-rotation1','1.7.71'],
+  ['v1.7.72-shift-report1','1.7.72']
  ]);
  const match=read('index.html').match(/var build='(v1\.7\.\d+-[a-z0-9-]+)';/);
  assert(match&&identities.has(match[1]),'unsupported local-draft successor');

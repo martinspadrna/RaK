@@ -497,6 +497,7 @@
     return nok ? ' (z toho ' + quantityText17013(nok) + ' NOK)' : '';
   }
   // RAK_REPORT_INDEX_GRID_TEXT_17015
+  // RAK_17072_REPORT_QUANTITY_INDEX: mirror the preview/copy quantity-index labels in PNG.
   function sectionLines17013(section) {
     const rows = section && Array.isArray(section.rows) ? section.rows : [];
     const lines = [];
@@ -513,7 +514,7 @@
         const free = positiveQuantity17014(row.free);
         const nok = positiveQuantity17014(row.nok);
         if (regular) lines.push({
-          text: kind === 'mo' ? quantityText17013(regular) + ' ' + index : index + ' ' + quantityText17013(regular) + ' ks',
+          text: quantityText17013(regular) + ' ' + index,
           kind: 'normal', index
         });
         if (free) lines.push({text: quantityText17013(free) + ' ' + index + ' volné', kind: 'free', index});
@@ -523,9 +524,7 @@
       if (totals.size && productionLineCount17017 > 1) {
         const all = Array.from(totals.values()).reduce((sum, count) => sum + count, 0);
         lines.push({
-          text: kind === 'mo'
-            ? 'Celkově ' + Array.from(totals, ([index, count]) => quantityText17013(count) + ' ' + index).join(', ') + ' (' + quantityText17013(all) + ' ks)'
-            : 'Celkově ' + quantityText17013(all) + ' ks',
+          text: 'Celkově ' + quantityText17013(all) + ' ks',
           kind: 'total'
         });
       }
@@ -537,7 +536,7 @@
         const nok = positiveQuantity17014(row.nok);
         const index = row.index || '—';
         if (regular) lines.push({
-          text: quantityText17013(regular) + ' ' + index + ' ks' + nokSuffix17014(row.nok),
+          text: quantityText17013(regular) + ' ' + index + nokSuffix17014(row.nok),
           kind: 'normal', index
         });
         if (free) lines.push({
@@ -553,7 +552,7 @@
       if (totals.size && productionLineCount17017 > 1) {
         const total = Array.from(totals.values()).reduce((sum, count) => sum + count, 0);
         lines.push({
-          text: 'Celkově ' + quantityText17013(total) + ' ks (' + Array.from(totals, ([index, count]) => quantityText17013(count) + ' ' + index).join(', ') + ')',
+          text: 'Celkově ' + quantityText17013(total) + ' ks',
           kind: 'total'
         });
       }
