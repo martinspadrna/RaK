@@ -110,7 +110,6 @@ try{
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
  await until('window.getPwaHardeningStatus?.().swPrecacheMissingCount===0',15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
-  // Historical coverage marker retained for successor gates: RAK-CI-OFFLINE-17073
   // Exercise the installed-PWA path: persist the rotation through the application API,
   // then remove localStorage so the offline reboot must recover from durable CacheStorage.
   assert.equal(await check(`(async()=>{
@@ -141,11 +140,11 @@ try{
    return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function'};
  })()`);
  assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true},'[17052-browser] durable cache recovery or offline feature bundle missing');
- const offlineUi=await check((async()=>{
+ const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
   return {unavailable:result?.__rakUnavailable===true,reason:result?.reason||'',queueLength:queue.length};
- })());
+ })()`);
  assert.deepEqual(offlineUi,{unavailable:true,reason:'offline-cache-miss',queueLength:0},'[17052-browser] offline profile read created a queued write');
  const offlineIcons=await check(`(()=>{const icons=Array.from(document.querySelectorAll('img.dashboardIconImg,img.bottomNavIconImg'));return {count:icons.length,broken:icons.filter(img=>!img.complete||img.naturalWidth<1).map(img=>img.getAttribute('src')||'')}})()`);
  assert(offlineIcons.count>=12,'[17052-browser] dashboard/navigation icons were not rendered');
