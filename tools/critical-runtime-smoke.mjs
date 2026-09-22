@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -485,18 +486,18 @@ assert(qrJs.includes('function getFoodMachineSettings'), 'qr.js už neobsahuje f
 assert(qrJs.includes('function getFoodSpecialDateSet'), 'qr.js už neobsahuje food kalendář očekávaný dashboardem');
 assert(qrJs.includes('const BRUS_CONFIG'), 'qr.js ztratil konfiguraci brusů');
 
-const appVersionMatch = appJs.match(/RAK_MODULE_CACHE_VERSION\s*=\s*["']([^"']+)["']/);
-const swVersionMatch = swJs.match(/CACHE_VERSION\s*=\s*["']v?([^"']+)["']/);
-assert(appVersionMatch, 'Nelze přečíst RAK_MODULE_CACHE_VERSION z app.js');
-assert(swVersionMatch, 'Nelze přečíst CACHE_VERSION ze sw.js');
-assert(String(packageJson.version) === appVersionMatch[1], 'package.json a app.js mají rozdílnou technickou verzi');
-if(packageJson.scripts&&packageJson.scripts['legacy:vercel-build']){
-  const displayMatch=swJs.match(/DEVELOPMENT_TEST_DISPLAY_VERSION\s*=\s*["']([^"']+)["']/);
-  assert(displayMatch&&displayMatch[1]===swVersionMatch[1],'kanonický SW cache a viditelná preview verze se liší');
-  assert(String(packageJson.version)==='1.7.0','technická verze kanonického buildu se změnila');
-}else{
-  assert(String(packageJson.version)===swVersionMatch[1],'package.json a sw.js mají rozdílnou build verzi');
-}
+assert(appJs.includes('const RAK_MODULE_CACHE_VERSION = releaseMetadata.moduleCacheVersion;'),
+  'app.js nečte technickou cache verzi z release metadat');
+assert(swJs.includes('const CACHE_VERSION = RELEASE_METADATA.cacheVersion;'),
+  'sw.js nečte cache verzi z release metadat');
+assert(swJs.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;'),
+  'sw.js nečte viditelnou verzi z release metadat');
+assert(String(packageJson.version)===RELEASE_METADATA.technicalVersion,
+  'package.json a release metadata mají rozdílnou technickou verzi');
+assert(RELEASE_METADATA.moduleCacheVersion===RELEASE_METADATA.technicalVersion,
+  'modulová cache a technická verze se liší');
+assert(RELEASE_METADATA.cacheVersion==='v'+RELEASE_METADATA.displayVersion,
+  'SW cache a viditelná preview verze se liší');
 assert(stylesOverridesLegacyEarlyCss.length > 1000, 'CSS legacy early vrstva chybí nebo je neočekávaně malá');
 assert(stylesOverridesLegacyMidCss.length > 1000, 'CSS legacy mid vrstva chybí nebo je neočekávaně malá');
 assert(stylesOverridesLegacyLateCss.length > 1000, 'CSS legacy late vrstva chybí nebo je neočekávaně malá');
@@ -541,3 +542,4 @@ assert(stylesAdminRotationEditorCss.includes('RaK v1.5.80 – vlastní dialog pr
 assert(stylesAdminRotationEditorCss.includes('.adminRotationRuleOverrideSave') && stylesAdminRotationEditorCss.includes('.adminRotationRuleOverrideClose'), 'v1.5.80 chybí styly obou dialogových tlačítek');
 
 console.log('[critical-runtime-smoke] OK navigation+rotation+food baseline locked; stable qr.js boot; extended diagnostics idle; version sync ' + packageJson.version + '; Games removed; XLSX+JSZip lazy; Supabase eager; DOM security eager');
+
