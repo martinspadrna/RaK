@@ -7,6 +7,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 const ROOT=process.cwd();
 const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser']
   .map(name=>'/usr/bin/'+name).find(name=>fs.existsSync(name));
@@ -94,10 +95,8 @@ try{
     assert(data[key].shift>=32&&data[key].reason>=36,'[17061-browser] columns crushed');
     assert(data[key].visibleDate,'[17061-browser] actual date text clipped: '+key);
   }
-  const releaseSource=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
-  const narrow=['v1.7.65-admin-draft-recovery1','v1.7.66-softgrid-draftguard1','v1.7.67-equalgrid-reload1',
-    'v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1','v1.7.72-shift-report1','v1.7.73-offline-persistence1','v1.7.74-offline-cache1','v1.7.75-report-columns1']
-    .some(id=>releaseSource.includes(id));
+  const releasePatch=Number(String(RELEASE_METADATA.displayVersion).split('.').at(-1));
+  const narrow=Number.isInteger(releasePatch)&&releasePatch>=65;
   if(narrow)assert(data.rotDate.width>=81&&data.rotDate.width<=83&&data.rotCell>=83,
     '[17065+-browser] MO/TO date width regression '+JSON.stringify(data.rotDate));
   else assert(data.rotDate.width>=85&&data.rotCell>=87,'[17061-browser] editable hard/soft date too narrow');
@@ -111,3 +110,4 @@ try{
   console.log('[17061-browser] PASS Chromium: public/admin absence geometry; MO/TO '+String(data.rotDate.width)+'px, absence '+String(data.absDate.width)+'px; full date+shift at 16px, no overlap');
 }catch(e){console.error('[17061-browser] FAIL '+e.stack);process.exitCode=1;}
 finally{fs.rmSync(tmp,{recursive:true,force:true});}
+

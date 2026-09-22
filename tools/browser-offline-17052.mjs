@@ -8,13 +8,14 @@ import http from 'node:http';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 const ROOT=path.resolve(process.cwd());
 const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>{try{return fs.statSync(n).isFile();}catch{return false;}});
 assert(CHROME,'[17052-browser] Chrome/Chromium binary missing');
 assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'))).version,'1.7.0');
 const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
-const expected=(config.match(/^window\.RAK_RELEASE_VERSION = "(1\.7\.\d+)";$/m)||[])[1];
-assert(expected,'[17052-browser] expected release missing from built configuration');
+const expected=RELEASE_METADATA.displayVersion;
+assert(/^1\.7\.\d+$/.test(expected),'[17052-browser] expected release missing from metadata');
 assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'[17052-browser] preview must use TEST database');
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml','.jpg':'image/jpeg','.woff2':'font/woff2','.ico':'image/x-icon'};
 const server=http.createServer((req,res)=>{
@@ -161,3 +162,4 @@ try{
  try{ws?.close();}catch{}try{chrome?.kill('SIGTERM');}catch{}
  await new Promise(resolve=>server.close(resolve));try{fs.rmSync(temp,{recursive:true,force:true});}catch{}
 }
+

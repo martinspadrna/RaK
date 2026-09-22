@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const sync = read('app-rotation-sync.js');
@@ -47,10 +48,11 @@ assert(bridgePos >= 0 && syncPos > bridgePos, 'app-rotation-sync secure gate mus
 assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'")||sw.includes("'./app-rotation-sync.js?v=1.7.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
 const canonical=!!(pkg.scripts&&pkg.scripts['legacy:vercel-build']);
 if(canonical){
-  assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.75';"), 'canonical SW display version must be 1.7.75');
-  assert(config.includes('window.RAK_RELEASE_VERSION = "1.7.75";'), 'canonical display release version must be 1.7.75');
-  assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.7.75";'), 'canonical test display version must be 1.7.75');
-  assert(config.includes('window.RAK_PWA_BUILD = "v1.7.75-report-columns1";'), 'canonical PWA build marker missing');
+  assert.equal(pkg.version,RELEASE_METADATA.technicalVersion,'canonical technical version changed');
+  assert(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;'), 'canonical SW must read display version metadata');
+  assert(config.includes('window.RAK_RELEASE_VERSION = rakReleaseMetadata.displayVersion;'), 'canonical config must read release metadata');
+  assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = rakReleaseMetadata.displayVersion;'), 'canonical config must read test display metadata');
+  assert(config.includes('window.RAK_PWA_BUILD = rakReleaseMetadata.buildId;'), 'canonical config must read PWA build metadata');
 }else{
   assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';"), 'SW test display version must be 1.6.03');
   assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.03";'), 'development display release version must be 1.6.03');
@@ -66,3 +68,4 @@ assert(String(pkg.scripts.check || '').includes('tools/supabase-secure-write-pat
 assert.equal(pkg.version, canonical?'1.7.0':'1.6.0', 'technical package version changed');
 
 console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; release metadata and export/SW/boot links preserved');
+

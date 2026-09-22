@@ -6,14 +6,13 @@ import path from 'node:path';
 import os from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 const root=process.cwd();
 const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
 assert(chrome,'[17066-browser] actual Chromium required');
-const releaseBuild=fs.readFileSync('index.html','utf8');
-assert(['v1.7.66-softgrid-draftguard1','v1.7.67-equalgrid-reload1','v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1','v1.7.72-shift-report1','v1.7.73-offline-persistence1','v1.7.74-offline-cache1','v1.7.75-report-columns1']
-  .some(id=>releaseBuild.includes(id)),'built soft-grid release required');
-const isEqualGrid=['v1.7.67-equalgrid-reload1','v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1','v1.7.72-shift-report1','v1.7.73-offline-persistence1','v1.7.74-offline-cache1','v1.7.75-report-columns1']
-  .some(id=>releaseBuild.includes(id));
+const releasePatch=Number(String(RELEASE_METADATA.displayVersion).split('.').at(-1));
+assert(Number.isInteger(releasePatch)&&releasePatch>=66,'built soft-grid release required');
+const isEqualGrid=releasePatch>=67;
 const css=['styles.css','styles-inline-legacy.css'].map(file=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,file)).href+'">').join('');
 const machines=['MSKC01','MSKC03','MSKC04','MFKF06','MFKF10'];
 const cols='<colgroup><col style="width:46px">'+machines.map(()=>'<col style="width:50px">').join('')+'</colgroup>';

@@ -7,12 +7,12 @@ import path from 'node:path';
 import vm from 'node:vm';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import RELEASE_METADATA from '../rak-release-metadata.js';
 const ROOT=process.cwd();
 const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
 assert(CHROME,'[17067-browser] real Chromium required');
-const releaseBuild=fs.readFileSync('index.html','utf8');
-assert(['v1.7.67-equalgrid-reload1','v1.7.68-async-draft-guard1','v1.7.69-local-drafts1','v1.7.70-canonical-source1','v1.7.71-offline-rotation1','v1.7.72-shift-report1','v1.7.73-offline-persistence1','v1.7.74-offline-cache1','v1.7.75-report-columns1']
-  .some(id=>releaseBuild.includes(id)),'built equal-grid release required');
+const releasePatch=Number(String(RELEASE_METADATA.displayVersion).split('.').at(-1));
+assert(Number.isInteger(releasePatch)&&releasePatch>=67,'built equal-grid release required');
 const editor=fs.readFileSync('admin-rotation-editor.js','utf8');
 function markup(section){
  const line=editor.split('\n').find(l=>l.includes(`data-daymod-section="${section}" style="--rak-grid-width:`));
