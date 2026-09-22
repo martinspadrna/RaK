@@ -90,8 +90,11 @@ test('1.7.69 and verified canonical successors keep TEST-only release and histor
   const compiler=read('tools/development-version-17069.mjs');
   for(const marker of ['RAK_17069_TWO_PASS_GUARD','RAK_17069_HISTORICAL_GATE_COMPAT','RAK_17069_OLDER_GATE_COMPAT','RAK_17069_EQUAL_GRID_COMPAT','RAK_17069_SOFT_GRID_COMPAT','RAK_17069_ABSENCE_COMPAT'])
    assert(compiler.includes(marker),marker+' missing from frozen compiler');
-  assert(read('tools/browser-equal-grid-17067.mjs').includes('v1.7.69-local-drafts1'));
-  assert(read('tools/browser-soft-grid-17066.mjs').includes('v1.7.69-local-drafts1'));
+  assert(read('tools/browser-equal-grid-17067.mjs').includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
+  assert(read('tools/browser-equal-grid-17067.mjs').includes('releasePatch>=67'));
+  assert(read('tools/browser-soft-grid-17066.mjs').includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
+  assert(read('tools/browser-soft-grid-17066.mjs').includes('releasePatch>=66'));
+  assert(read('tools/browser-absence-layout-17061.mjs').includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
  }else{
   assert(read('tools/shift-report-mo-hotfix-170-smoke.mjs').includes('RAK_17069_TWO_PASS_GUARD'));
   assert(read('tools/release-gate-17068.test.mjs').includes('RAK_17069_HISTORICAL_GATE_COMPAT'));
