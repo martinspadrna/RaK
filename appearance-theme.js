@@ -557,7 +557,11 @@ function applyProfileUiPreferencesForActiveAccount(options = {}) {
   }
   applyAppearancePreference(appearanceToApply, true, { skipProfile: true });
   if (typeof renderThemeSettingsCards === 'function') renderThemeSettingsCards();
-  if (changed) scheduleActiveAccountUiRemoteSave('profile-ui-normalized-local');
+  // RAK_17071_OFFLINE_PROFILE_READ_ONLY: startup normalization is not a user edit.
+  // While offline, keep it local and reconcile by reading the server after the online event.
+  if (changed && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+    scheduleActiveAccountUiRemoteSave('profile-ui-normalized-local');
+  }
   if (options.loadRemote !== false) void loadActiveAccountUiRemoteSettings(account.id);
   return true;
 }

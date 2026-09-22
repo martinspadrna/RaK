@@ -1,14 +1,16 @@
 // RaK 1.7 PWA service worker – v1.7.0 cache + confirmed-update navigation.
-const CACHE_VERSION = 'v1.7.70';
+const CACHE_VERSION = 'v1.7.71';
 const SW_APP_VERSION = '1.7.0';
-const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.70';
+const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7.71';
 // Legacy smoke compatibility: const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
-const DEVELOPMENT_BUILD_ID = 'v1.7.70-canonical-source1';
+const DEVELOPMENT_BUILD_ID = 'v1.7.71-offline-rotation1';
 const DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY = 'idle-foundation-2;feature-css-10';
 const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-identity-guard';
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
 const DEVELOPMENT_CACHE_TUNING_POLICY = 'normalize-update-navigation-cache;waituntil-runtime-write;cleanup-transient-nav';
-const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
+// Previous canonical warm-start budget before offline Rotace: const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
+const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm65;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
+const DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-rotation5;prewarm-sync2;cached-state-first;semantic-ui-conflict';
 const DEVELOPMENT_STARTUP_EXECUTION_POLICY = 'mobile-layout-guard-idle;warm-cache-preserved;startup-files-15';
 const DEVELOPMENT_MUTATION_OBSERVER_POLICY = 'scoped-8;raf-coalesced-7;runtime-stability-targeted';
 const DEVELOPMENT_FULL_APP_AUDIT_POLICY = 'export-manifest-current;diagnostics-no-games;keepalive-rpc-only;security-smoke-executed';
@@ -145,7 +147,14 @@ const WARM_START = [
   './app-home-boot.js?v=1.7.0',
   './rak-runtime-stability.js?v=1.7.0',
   './rak-mobile-layout-guard.js?v=1.7.0',
-  './rak-feature-routing.js?v=1.7.0'
+  './rak-feature-routing.js?v=1.7.0',
+  './stats.js?v=1.7.0',
+  './rotace.js?v=1.7.0',
+  './rotation-tasks.js?v=1.7.0',
+  './admin-daymods.js?v=1.7.0',
+  './app-rotation-controls.js?v=1.7.0',
+  './supabase-bridge.js?v=1.7.0',
+  './app-rotation-sync.js?v=1.7.0'
 ];
 
 const STATIC_EXT = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|webmanifest)$/i;

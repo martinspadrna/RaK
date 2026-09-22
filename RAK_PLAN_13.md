@@ -25,7 +25,7 @@
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
 | P2.2 | Rozložení, DOM, CSS a interakce | **40 % (2/5)** | Otevřeno |
-| P2.3 | Offline, fronta, verze a konflikty | **25 % (2/8)** | **Otevřeno; konflikt na iPhonu trvá** |
+| P2.3 | Offline, fronta, verze a konflikty | **25 % (2/8)** | **Otevřeno; příčiny opraveny v 1.7.71, fyzický iPhone čeká na potvrzení** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
 **Bilance: 1/13 uzavřen rozhodnutím o riziku, 0/12 ostatních plně technicky dokončeno, 12/13 otevřených.** Dřívější historické `2/13` počítalo P1.3 jako hotový kvůli existenci CI; tento závěr byl odvolán po regresích historických VM testů. Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
@@ -160,7 +160,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **25 % (2/8)**
 
-**Aktuální uživatelská závada:** na jediném iPhonu, kde vznikly neodeslané návrhy, přetrvává „Konflikt synchronizace“ i po jejich smazání. Verze 1.7.69 maže jen návrhy a typy fronty `rotation_state` / `rotation_month_entries`; ostatní konflikty úmyslně zachovává. Příčina na konkrétním telefonu **není potvrzená**. Neoznačovat opravu za hotovou podle zeleného CI.
+**Aktuální uživatelská závada:** verze 1.7.70 po čistém offline startu nenačetla Rotaci a po návratu online mohla ukázat „Konflikt synchronizace“, i když uživatel nic nezměnil. Analýza našla dvě konkrétní příčiny: moduly Rotace a synchronizace nebyly v předem uloženém offline balíku; fronta nastavení vzhledu rozhodovala pouze podle času a automatická normalizace profilu mohla vytvořit zápis i při offline startu. Balík 1.7.71 moduly předem ukládá, automatický offline start ponechává jen pro čtení a shodné hodnoty rekonciluje bez konfliktu. Historický automatický `local-seed` rozpis se zahodí jen po potvrzení existujícího online rozpisu. Automatické testy pokrývají offline Rotaci i návrat bez konfliktu; fyzický iPhone **stále musí výsledek potvrdit**, proto bod zůstává otevřený.
 
 - [x] Pravdivé online/cache stavy, retry a ochrana historických/neznámých úloh v místní frontě před tichou ztrátou.
 - [x] Ochrana editovaných návrhů před opožděnou síťovou odpovědí a jednotkové testy selektivního lokálního mazání.
@@ -170,6 +170,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [ ] Zavést a otestovat serverově atomický CAS / revizi pro relevantní zápisy, včetně konkurence dvou zařízení; samotná shoda čísla revize bez obsahu nedovoluje přepsání.
 - [ ] Ověřit staré PWA/service worker, dvojí instanci, aktualizace a offline→online bez reprodukce starého konfliktu či ztráty dat.
 - [ ] Na fyzickém iPhonu potvrdit: po legitimním vyřešení konflikt zmizí a nevrátí se po restartu; online rozpis, jiná fronta a neodeslané údaje zůstanou konzistentní.
+
+**Důkaz balíku 1.7.71:** regresní brána `release-gate-17071.test.mjs` rozlišuje shodný a skutečně odlišný profil, zachovává pravé administrátorské konflikty a bezpečně uklízí pouze historický automatický `local-seed`. Skutečný mobilní Chromium test ukládá značkovací Rotaci, restartuje aplikaci offline, načte Rotaci i sync moduly z cache a po návratu online požaduje nulový počet konfliktů. Výsledek fyzického Safari se do procent započte až po uživatelském testu.
 
 **Dokončení:** popsaná závada reprodukována a odstraněna bez plošného mazání Safari/PWA a bez neověřených serverových zápisů. Dokud trvá, P2.3 nesmí být uzavřen.
 

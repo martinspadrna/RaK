@@ -3192,8 +3192,19 @@
         attempted += 1;
         try {
           if (task.type === 'rotation_state' || task.type === 'machine_settings' || task.type === 'rotation_month_entries') {
+            // Old clients could create a rotation_state task merely by opening a local
+            // snapshot offline. When an online rotation already exists, that automatic
+            // seed is not a user edit and must not become a false conflict.
+            if (task.type === 'rotation_state' && String(task.meta && task.meta.source || '') === 'local-seed') {
+              const remoteSeed = await runSupabaseOperation('queue.rotation_state.local_seed_check', () => client.from('rotation_state').select('key,revision').eq('key', 'main').maybeSingle(), { mode: 'read', attempts: 1 });
+              if (remoteSeed.error) throw remoteSeed.error;
+              if (remoteSeed.data && remoteSeed.data.key === 'main') {
+                flushed += 1;
+                continue;
+              }
+            }
             // Legacy admin writes cannot be replayed without a fresh signed Auth session
-            // and revision validation. Preserve them for explicit admin reconciliation.
+            // and revision validation. Preserve real edits for explicit admin reconciliation.
             remaining.push(Object.assign({}, task, { conflict: 'admin-review-required' }));
             state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
           } else if (task.type === 'gomoku_win') {
@@ -3211,9 +3222,20 @@
               state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
               continue;
             }
-            const profile = await runSupabaseOperation('queue.game_ui.version', () => client.from('game_stats').select('updated_at').eq('account_number', account).eq('game_type', GAME_UI_SETTINGS_TYPE).order('updated_at', { ascending: false }).limit(1), { mode: 'read', attempts: 1 });
+            const profile = await runSupabaseOperation('queue.game_ui.version', () => client.from('game_stats').select('account_number,wins,losses,points,last_played_at,updated_at').eq('account_number', account).eq('game_type', GAME_UI_SETTINGS_TYPE).order('updated_at', { ascending: false }).limit(1), { mode: 'read', attempts: 1 });
             if (profile.error) throw profile.error;
-            const remoteAt = Date.parse(String(profile.data && profile.data[0] && profile.data[0].updated_at || ''));
+            const remoteRow = profile.data && profile.data[0] ? decodeGameUiSettingsRow(profile.data[0]) : null;
+            const queuedUi = normalizeGameUiSettings(task.entry || {});
+            const sameAppearance = !!(remoteRow
+              && queuedUi.theme_id === remoteRow.theme_id
+              && queuedUi.background_id === remoteRow.background_id);
+            // RAK_17071_SEMANTIC_UI_RECONCILIATION: timestamps alone must not create
+            // a conflict when both sides already contain the same appearance.
+            if (sameAppearance) {
+              flushed += 1;
+              continue;
+            }
+            const remoteAt = Date.parse(String(remoteRow && remoteRow.updated_at || ''));
             if (Number.isFinite(remoteAt) && remoteAt > queuedAt) {
               remaining.push(Object.assign({}, task, { conflict: 'newer-online-state' }));
               state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;

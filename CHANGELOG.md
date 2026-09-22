@@ -1,3 +1,11 @@
+## RaK 1.7.71 (development)
+
+- Offline Rotace: service worker předem ukládá všech pět modulů Rotace i oba synchronizační moduly, takže čistý restart bez sítě otevře uložený rozpis místo pouhého obalu aplikace.
+- Synchronizace: stejné místní a online nastavení vzhledu se porovnává podle hodnot, ne jen podle času; shodná položka se bezpečně potvrdí bez falešného konfliktu.
+- Offline start už při automatickém doplnění profilu nevytváří vzdálený zápis. Po návratu online se nejprve načte serverová hodnota.
+- Historická automatická úloha `rotation_state` se zdrojem `local-seed` se odstraní pouze tehdy, když server potvrdí existující hlavní rozpis; skutečné administrátorské změny zůstávají zadržené k ruční kontrole.
+- CI nově testuje skutečný Chromium restart s uloženou Rotací, načtení odložených modulů výhradně z cache a návrat online bez nového konfliktu. Technická verze zůstává `1.7.0`.
+
 ## RaK 1.5
 
 - Hotfix `1.5.1`: první pozdrav použije jméno okamžitě z lokálně uloženého profilu; sjednocené čtení profilu odstranilo závod mezi startem dashboardu a obnovením přihlášení.

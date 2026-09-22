@@ -108,17 +108,46 @@ try{
  await check("window.__rotaceRequestPwaCacheStatus?.('ci-mobile-offline') || false");
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
+ // Seed a harmless local marker without loading the deferred Rotation feature online.
+ // The offline restart must obtain both Rotation and sync code exclusively from the service worker.
+ assert.equal(await check(`(()=>{
+   const rotation=JSON.parse(JSON.stringify(app.rotation));
+   const monthKey=Object.keys(rotation.months||{})[0];
+   if(!monthKey)return false;
+   rotation.months[monthKey].notes=[...(rotation.months[monthKey].notes||[]),{date:'',shift:'',person:'',code:'',text:'RAK-CI-OFFLINE-17071'}];
+   localStorage.setItem('rotace_state_v1',JSON.stringify(rotation));
+   localStorage.setItem('rotace_supabase_local_state_v1',JSON.stringify({updatedAt:Date.now(),version:window.APP_VERSION||'',rotation,machineSettingsRows:[],announcements:[]}));
+   localStorage.setItem('rotace_supabase_queue_v1','[]');
+   return true;
+ })()`),true,'[17052-browser] local rotation fixture was not stored');
  const before=httpFailures.length;
  await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await send('Page.reload',{ignoreCache:false});
  const offline=await boot('offline reload',expected);
  assert(offline.controller,'[17052-browser] offline shell lost service worker');
- assert.equal(httpFailures.length,before,'[17052-browser] offline shell caused HTTP errors');
+ const offlineRotation=await check(`(async()=>{
+   await window.rakEnsureFeature('rotation');
+   await window.rakEnsureFeature('sync');
+   await window.syncRotationFromSupabase(false);
+   const marker=Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17071'));
+   const cached=window.RotationSupabaseBridge.loadCachedRotationState();
+   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,render:typeof renderRotace==='function'};
+ })()`);
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,render:true},'[17052-browser] cached rotation or offline feature bundle missing');
+ assert.equal(httpFailures.length,before,'[17052-browser] offline shell/rotation caused HTTP errors');
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);
+ const recovered=await check(`(async()=>{
+   await window.rakEnsureFeature('sync');
+   await new Promise(resolve=>setTimeout(resolve,50));
+   const status=window.getSupabaseSyncStatus?.()||{};
+   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
+   return {conflictCount:Number(status.conflictCount||0),conflict:/Konflikt synchronizace/.test(String(status.label||'')),queueLength:queue.length};
+ })()`);
+ assert.deepEqual(recovered,{conflictCount:0,conflict:false,queueLength:0},'[17052-browser] online recovery created a false conflict');
  const severe=exceptions.filter(t=>!/NetworkError|Failed to fetch|fetch|Supabase|network|offline/i.test(t));
  assert(severe.length<=2,'[17052-browser] uncaught browser exceptions ('+severe.length+'/'+exceptions.length+'): '+severe.slice(0,5).join(' | '));
- console.log('[17052-browser] PASS actual Chromium mobile cold-start, offline and recovery, cache version, no false update, viewport');
+ console.log('[17052-browser] PASS mobile cold-start, cached Rotation offline, semantic conflict-free recovery, cache version and viewport');
 }catch(error){console.error('[17052-browser] FAIL '+error.stack);process.exitCode=1;
 }finally{
  for(const p of pending.values()){clearTimeout(p.timeout);p.reject(Error('Chrome closing'));}pending.clear();

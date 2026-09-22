@@ -3,8 +3,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 (async () => {
   const RAK_MODULE_CACHE_VERSION = "1.7.0";
-  const RAK_DEV_UPDATE_BUILD = "v1.7.70-canonical-source1";
-  window.RAK_RELEASE_VERSION = "1.7.70";
+  const RAK_DEV_UPDATE_BUILD = "v1.7.71-offline-rotation1";
+  window.RAK_RELEASE_VERSION = "1.7.71";
   const RAK_BOOT_V2_ENABLED = true;
   window.RAK_PWA_BUILD = RAK_DEV_UPDATE_BUILD;
   window.RAK_BOOT_V2_ENABLED = RAK_BOOT_V2_ENABLED;
@@ -379,6 +379,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     window.__rakSyncActiveAppearance = syncActiveAppearance;
     window.addEventListener('rak:user-profile-ready', () => { void syncActiveAppearance('profile-ready'); });
     window.addEventListener('pageshow', () => { void syncActiveAppearance('pageshow'); });
+    window.addEventListener('online', () => { void syncActiveAppearance('online'); });
     window.addEventListener('focus', () => { void syncActiveAppearance('focus'); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) void syncActiveAppearance('visibility'); });
   }

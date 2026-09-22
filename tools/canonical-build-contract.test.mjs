@@ -48,10 +48,10 @@ test('the canonical build contract names its output, variable archive and immuta
   assert(restore.includes("git(['hash-object','--',restored])"),
     'restore rehearsal must compare every recovered Git blob');
   assert(!fs.existsSync(path.join(ROOT,'tools/development-version-17070.mjs')));
-  assert(read('index.html').includes("var build='v1.7.70-canonical-source1';"));
-  assert(read('sw.js').includes("const CACHE_VERSION = 'v1.7.70';"));
-  assert(read('app.js').includes('const RAK_DEV_UPDATE_BUILD = "v1.7.70-canonical-source1";'));
-  assert(read('supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.70";'));
+  assert(read('index.html').includes("var build='v1.7.71-offline-rotation1';"));
+  assert(read('sw.js').includes("const CACHE_VERSION = 'v1.7.71';"));
+  assert(read('app.js').includes('const RAK_DEV_UPDATE_BUILD = "v1.7.71-offline-rotation1";'));
+  assert(read('supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.71";'));
 });
 
 test('build evidence proves two stable passes without source changes when present',()=>{
@@ -61,13 +61,13 @@ test('build evidence proves two stable passes without source changes when presen
   assert.equal(value.schema,'rak-isolated-canonical-build-v1');
   assert.equal(value.repeatBuild,true);
   assert.equal(value.technicalVersion,'1.7.0');
-  assert.equal(value.release,'1.7.70');
-  assert.equal(value.buildId,'v1.7.70-canonical-source1');
+  assert.equal(value.release,'1.7.71');
+  assert.equal(value.buildId,'v1.7.71-offline-rotation1');
   assert.match(value.stableDigest,/^[a-f0-9]{64}$/);
   assert.deepEqual(value.variableOutputs,['rak-complete-backup-source.zip']);
-  assert(read('.rak-dist/index.html').includes("var build='v1.7.70-canonical-source1';"));
-  assert(read('.rak-dist/sw.js').includes("const CACHE_VERSION = 'v1.7.70';"));
-  assert(read('.rak-dist/supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.70";'));
+  assert(read('.rak-dist/index.html').includes("var build='v1.7.71-offline-rotation1';"));
+  assert(read('.rak-dist/sw.js').includes("const CACHE_VERSION = 'v1.7.71';"));
+  assert(read('.rak-dist/supabase-config.js').includes('window.RAK_RELEASE_VERSION = "1.7.71";'));
   const changed=git('diff','--name-only','HEAD','--');
   assert.equal(changed,'','canonical source changed while building');
 });
