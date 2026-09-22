@@ -78,12 +78,20 @@ test('real admin button confirms before fetching; rejects cache/offline/race and
  assert(!/\.saveRotationState\(|\.saveRotationMonthEntries\(|\.rpc\(|\.delete\(|\.update\(/.test(code),'cleanup must never write to Supabase');
  assert(menu.includes("if(adminAction==='discard-local-rotation-drafts')"));
 });
-test('1.7.69 TEST-only release, two builds, older gates and physical mobile checks remain mandatory',()=>{
+test('1.7.69 and verified canonical successors keep TEST-only release and historical gates',()=>{
+ const identities=new Map([
+  ['v1.7.69-local-drafts1','1.7.69'],
+  ['v1.7.70-canonical-source1','1.7.70'],
+  ['v1.7.71-offline-rotation1','1.7.71']
+ ]);
+ const match=read('index.html').match(/var build='(v1\\.7\\.\\d+-[a-z0-9-]+)';/);
+ assert(match&&identities.has(match[1]),'unsupported local-draft successor');
+ const build=match[1],version=identities.get(build);
  for(const [file,marker] of [
-  ['index.html',"var build='v1.7.69-local-drafts1';"],
-  ['supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.69";'],
-  ['app.js','const RAK_DEV_UPDATE_BUILD = "v1.7.69-local-drafts1";'],
-  ['sw.js',"const CACHE_VERSION = 'v1.7.69';"]])assert(read(file).includes(marker),file);
+  ['index.html',`var build='${build}';`],
+  ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${version}";`],
+  ['app.js',`const RAK_DEV_UPDATE_BUILD = "${build}";`],
+  ['sw.js',`const CACHE_VERSION = 'v${version}';`]])assert(read(file).includes(marker),file);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  const chain=read('tools/development-version-17048.mjs');
