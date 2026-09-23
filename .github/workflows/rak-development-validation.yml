@@ -159,8 +159,8 @@ jobs:
           main_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)"
           test "$development_sha" = "$GITHUB_SHA"
           jq -n --arg development "$development_sha" --arg main "$main_sha" '{development:$development,main:$main}' > .rak-release-evidence/refs-before.json
-          vercel inspect "https://$STABLE_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/rollback-target.json
-          vercel inspect "https://$PRODUCTION_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/production-before.json
+          vercel api "/v13/deployments/$STABLE_ALIAS" --raw --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/rollback-target.json
+          vercel api "/v13/deployments/$PRODUCTION_ALIAS" --raw --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/production-before.json
       - name: Build exact SHA as a preview without touching production
         if: steps.policy.outputs.deploy == 'true'
         run: vercel build --yes --target=preview --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
@@ -172,7 +172,7 @@ jobs:
           deployment_id="$(jq -r '.id // .deployment.id // empty' .rak-release-evidence/deploy-result.json)"
           test -n "$deployment_id"
           echo "DEPLOYMENT_ID=$deployment_id" >> "$GITHUB_ENV"
-          vercel inspect "$deployment_id" --wait --timeout 10m --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/deployment.json
+          vercel api "/v13/deployments/$deployment_id" --raw --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/deployment.json
       - name: Verify immutable deployment HTTP, release metadata and TEST isolation
         if: steps.policy.outputs.deploy == 'true'
         run: |
@@ -187,7 +187,7 @@ jobs:
         run: |
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$GITHUB_SHA"
           vercel alias set "$DEPLOYMENT_ID" "$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
-          vercel inspect "https://$STABLE_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/alias-after.json
+          vercel api "/v13/deployments/$STABLE_ALIAS" --raw --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/alias-after.json
       - name: Verify the stable development alias through authenticated HTTP
         if: steps.policy.outputs.deploy == 'true'
         run: |
@@ -203,7 +203,7 @@ jobs:
           development_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)"
           main_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)"
           jq -n --arg development "$development_sha" --arg main "$main_sha" '{development:$development,main:$main}' > .rak-release-evidence/refs-after.json
-          vercel inspect "https://$PRODUCTION_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/production-after.json
+          vercel api "/v13/deployments/$PRODUCTION_ALIAS" --raw --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/production-after.json
           node tools/release-evidence.mjs assemble
       - name: Retain release evidence bound to the exact SHA
         if: steps.policy.outputs.deploy == 'true'

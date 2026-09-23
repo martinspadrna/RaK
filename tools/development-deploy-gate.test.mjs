@@ -37,7 +37,7 @@ test('release job proves exact SHA, HTTP TEST isolation, rollback and durable ev
   const release=workflow.split('\n  release-preview:')[1];
   assert((release.match(/git\/ref\/heads\/development/g)||[]).length>=3,'development HEAD must be rechecked around deployment and aliasing');
   assert(release.includes('--meta githubCommitSha="$GITHUB_SHA"'));
-  assert(release.includes('vercel inspect "https://$STABLE_ALIAS"'));
+  assert(release.includes('vercel api "/v13/deployments/$STABLE_ALIAS" --raw'),'release evidence must use complete read-only deployment API metadata');
   assert(release.includes('vercel alias set "$DEPLOYMENT_ID" "$STABLE_ALIAS"'));
   assert(release.includes('/rak-release-metadata.js'));
   assert(release.includes('/supabase-config.js'));
