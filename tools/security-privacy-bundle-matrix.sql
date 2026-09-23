@@ -11,8 +11,22 @@ DO $setup$ DECLARE v_owner text; v_spoof text; BEGIN
  PERFORM set_config('rak.privacy_machine_count',(SELECT count(*) FROM public.machine_settings)::text,true);
  PERFORM set_config('rak.privacy_archive_count',(SELECT count(*) FROM public.announcements WHERE NOT is_active)::text,true);
 END $setup$;
-INSERT INTO public.machine_settings(machine_key,label,category,settings_json)
-SELECT 'RAK_PRIVATE_SHAPE_TEST_'||kind,'temporary privacy fixture','frezka',pg_catalog.jsonb_build_object(kind,pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object('loginNumber','0000','name','synthetic fixture'))) FROM (VALUES ('appAccounts'),('applicationAccounts'),('workers')) AS types(kind);
+DO $blocked_shapes$
+DECLARE kind text;
+BEGIN
+ FOR kind IN SELECT * FROM unnest(ARRAY['appAccounts','applicationAccounts','workers']) LOOP
+  BEGIN
+   INSERT INTO public.machine_settings(machine_key,label,category,settings_json)
+   VALUES('RAK_PRIVATE_SHAPE_TEST_'||kind,'temporary privacy fixture','frezka',
+          pg_catalog.jsonb_build_object(kind,pg_catalog.jsonb_build_array(
+            pg_catalog.jsonb_build_object('loginNumber','0000','name','synthetic fixture'))));
+   RAISE EXCEPTION 'Restricted public machine-settings payload unexpectedly accepted: %',kind;
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+ END LOOP;
+ IF EXISTS(SELECT 1 FROM public.machine_settings WHERE machine_key LIKE 'RAK_PRIVATE_SHAPE_TEST_%')
+ THEN RAISE EXCEPTION 'Rejected privacy fixture survived'; END IF;
+END $blocked_shapes$;
 SET LOCAL ROLE anon;
 DO $anon$ BEGIN
  IF (SELECT count(*) FROM public.machine_settings WHERE machine_key LIKE 'RAK_PRIVATE_SHAPE_TEST_%' OR machine_key='WORKER_ROSTER_SETTINGS')<>0 THEN RAISE EXCEPTION 'Anonymous roster disclosure'; END IF;
@@ -36,9 +50,9 @@ END $spoof$;
 SELECT set_config('request.jwt.claims',current_setting('rak.privacy_owner_claims'),true);
 DO $owner$ BEGIN
  IF NOT private.rak_is_admin() THEN RAISE EXCEPTION 'Owner denied'; END IF;
- IF (SELECT count(*) FROM public.machine_settings WHERE machine_key LIKE 'RAK_PRIVATE_SHAPE_TEST_%')<>3 THEN RAISE EXCEPTION 'Owner fixture visibility'; END IF;
- IF (SELECT count(*) FROM public.machine_settings)<>current_setting('rak.privacy_machine_count')::bigint+3 THEN RAISE EXCEPTION 'Owner settings visibility'; END IF;
+ IF EXISTS(SELECT 1 FROM public.machine_settings WHERE machine_key LIKE 'RAK_PRIVATE_SHAPE_TEST_%') THEN RAISE EXCEPTION 'Blocked privacy fixture persisted'; END IF;
+ IF (SELECT count(*) FROM public.machine_settings)<>current_setting('rak.privacy_machine_count')::bigint THEN RAISE EXCEPTION 'Owner settings count changed'; END IF;
  IF (SELECT count(*) FROM public.announcements WHERE NOT is_active)<>current_setting('rak.privacy_archive_count')::bigint THEN RAISE EXCEPTION 'Owner announcement archive visibility'; END IF;
 END $owner$;
 ROLLBACK;
-SELECT 'PASS: role matrix, archived notices, 3 disguised roster payloads, login and legacy rotation; no persistent test data' AS result;
+SELECT 'PASS: role matrix, archived notices, restricted roster writes rejected at DB boundary, login and legacy rotation preserved; no persistent test data' AS result;
