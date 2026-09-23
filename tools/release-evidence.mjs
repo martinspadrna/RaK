@@ -14,7 +14,7 @@ export const STABLE_ALIAS='skoda-spada-git-development-martinspadrnas-projects.v
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const SHA=/^[0-9a-f]{40}$/i;
 const DEPLOYMENT=/^dpl_[a-zA-Z0-9]+$/;
-const REQUIRED_BUILD_FILES=['index.html','sw.js','rak-release-metadata.js','supabase-config.js','rak-complete-backup-source.zip'];
+const REQUIRED_BUILD_FILES=['index.html','sw.js','rak-release-metadata.js','supabase-config.js','supabase-vendor-2.110.7.js','rak-complete-backup-source.zip'];
 const REQUIRED_CHECKS=[
   'preflight-contracts','dependency-install','two-clean-canonical-builds','release-and-regression-gates',
   'rollback-and-pwa-contracts','zip-manifest-crc','chromium-offline-layout','three-profile-benchmark',

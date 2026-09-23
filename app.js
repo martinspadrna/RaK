@@ -10,7 +10,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const RAK_DEV_UPDATE_BUILD = releaseMetadata.buildId;
   window.RAK_RELEASE_VERSION = releaseMetadata.displayVersion;
   const RAK_BOOT_V2_ENABLED = true;
-  const RAK_SUPABASE_SDK_URL = 'vendor/supabase-2.110.7.js';
+  const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js';
   const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
   let supabaseSdkLoadPromise = null;
 
@@ -26,7 +26,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function findRakSupabaseSdkScript() {
     try {
-      return Array.from(document.scripts || []).find((script) => String(script.src || '').includes('/vendor/supabase-2.110.7.js')) || null;
+      return Array.from(document.scripts || []).find((script) => String(script.src || '').includes('/supabase-vendor-2.110.7.js')) || null;
     } catch (_) { return null; }
   }
 

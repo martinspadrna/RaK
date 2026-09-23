@@ -51,6 +51,7 @@ jobs:
           node --test tools/release-gate-17077.test.mjs
           node --test tools/release-gate-17079.test.mjs
           node --test tools/release-gate-17080.test.mjs
+          node --test tools/release-gate-17081.test.mjs
           node --test tools/regression-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
@@ -88,7 +89,7 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-17080-isolated-build-${{ github.sha }}
+          name: rak-17081-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
@@ -164,7 +165,11 @@ jobs:
           vercel api "/v13/deployments/$PRODUCTION_ALIAS" --raw --token="$VERCEL_TOKEN" > .rak-release-evidence/production-before.json
       - name: Build exact SHA as a preview without touching production
         if: steps.policy.outputs.deploy == 'true'
-        run: vercel build --yes --target=preview --token="$VERCEL_TOKEN"
+        run: |
+          vercel build --yes --target=preview --token="$VERCEL_TOKEN"
+          test -s ".vercel/output/static/app.js"
+          test -s ".vercel/output/static/supabase-config.js"
+          test -s ".vercel/output/static/supabase-vendor-2.110.7.js"
       - name: Deploy prebuilt exact SHA only after the green verify job
         if: steps.policy.outputs.deploy == 'true'
         run: |
@@ -234,7 +239,7 @@ jobs:
           fetch_public "/rak-release-metadata.js" "metadata"
           fetch_public "/supabase-config.js" "supabase"
           fetch_public "/app.js?v=1.7.0" "app"
-          fetch_public "/vendor/supabase-2.110.7.js" "vendor"
+          fetch_public "/supabase-vendor-2.110.7.js" "vendor"
           test -s .rak-release-evidence/http/stable/app.body
           test -s .rak-release-evidence/http/stable/vendor.body
           node tools/release-evidence.mjs http-check stable-alias .rak-release-evidence/http/stable .rak-release-evidence/http-stable-alias.json

@@ -22,7 +22,7 @@ assert(csp && csp.value.includes("frame-ancestors 'none'"), 'CSP frame protectio
 assert(csp.value.includes("object-src 'none'"), 'CSP object-src protection missing');
 assert(csp.value.includes("connect-src 'self' https://*.supabase.co wss://*.supabase.co"), 'Supabase connect-src contract changed');
 
-assert(index.includes('vendor/supabase-2.110.7.js'), 'Self-hosted pinned Supabase client missing');
+assert(index.includes('supabase-vendor-2.110.7.js'), 'Self-hosted pinned Supabase client missing');
 assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
 assert(!index.includes('xlsx.full.min.js'), 'XLSX must stay lazy after build transforms');
 assert(!index.includes('jszip.min.js'), 'JSZip must stay lazy after build transforms');

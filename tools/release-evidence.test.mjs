@@ -21,7 +21,7 @@ function buildProof(){
     schema:'rak-isolated-canonical-build-v1',sourceCommit:SHA,release:RELEASE_METADATA.displayVersion,
     technicalVersion:RELEASE_METADATA.technicalVersion,buildId:RELEASE_METADATA.buildId,
     repeatBuild:true,stableDigest:HASH,variableOutputs:['rak-complete-backup-source.zip'],differences:['rak-complete-backup-source.zip'],
-    files:['index.html','sw.js','rak-release-metadata.js','supabase-config.js','rak-complete-backup-source.zip'].map(file=>({path:file,sha256:HASH}))
+    files:['index.html','sw.js','rak-release-metadata.js','supabase-config.js','supabase-vendor-2.110.7.js','rak-complete-backup-source.zip'].map(file=>({path:file,sha256:HASH}))
   };
 }
 function ciProof(){

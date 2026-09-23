@@ -55,7 +55,7 @@ test('the canonical build contract names its output, variable archive and immuta
   assertCurrentReleaseIdentity(read,'1.7.76');
   const buildSource=read('tools/canonical-build.mjs');
   assert(buildSource.includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
-  assert(buildSource.includes("SUPABASE_VENDOR_RELATIVE='vendor/supabase-2.110.7.js'"));
+  assert(buildSource.includes("SUPABASE_VENDOR_RELATIVE='supabase-vendor-2.110.7.js'"));
   assert(buildSource.includes("SUPABASE_VENDOR_SOURCE=path.join(ROOT,'node_modules','@supabase','supabase-js','dist','umd','supabase.js')"));
   assert(buildSource.includes("SUPABASE_VENDOR_SHA384='hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"));
   assert(buildSource.includes("crypto.createHash('sha384')"));
@@ -77,8 +77,8 @@ test('build evidence proves two stable passes without source changes when presen
   assert(read('.rak-dist/index.html').includes('<script src="rak-release-metadata.js"></script>'));
   assert(read('.rak-dist/sw.js').includes("importScripts('./rak-release-metadata.js')"));
   assert.equal(read('.rak-dist/rak-release-metadata.js'),read('rak-release-metadata.js'));
-  assert(fs.existsSync(path.join(ROOT,'.rak-dist','vendor','supabase-2.110.7.js')),'self-hosted Supabase SDK missing from public output');
-  const vendor=fs.readFileSync(path.join(ROOT,'.rak-dist','vendor','supabase-2.110.7.js'));
+  assert(fs.existsSync(path.join(ROOT,'.rak-dist','supabase-vendor-2.110.7.js')),'self-hosted Supabase SDK missing from public output');
+  const vendor=fs.readFileSync(path.join(ROOT,'.rak-dist','supabase-vendor-2.110.7.js'));
   assert.equal(crypto.createHash('sha384').update(vendor).digest('base64'),'hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD');
   const changed=git('diff','--name-only','HEAD','--');
   assert.equal(changed,'','canonical source changed while building');

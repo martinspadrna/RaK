@@ -96,7 +96,7 @@ const CORE = [
 ];
 
 const WARM_START = [
-  './vendor/supabase-2.110.7.js',
+  './supabase-vendor-2.110.7.js',
   './app.js?v=1.7.0',
   './data.js',
   './module-readiness.js',
@@ -173,7 +173,7 @@ const WARM_START = [
 ];
 
 const OFFLINE_REQUIRED = Object.freeze([
-  './vendor/supabase-2.110.7.js',
+  './supabase-vendor-2.110.7.js',
   './app.js?v=1.7.0','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
   './core.js?v=1.7.0','./lifecycle.js?v=1.7.0','./app-runtime-guards.js?v=1.7.0','./ui.js?v=1.7.0',
   './app-navigation.js?v=1.7.0','./app-bottom-nav.js?v=1.7.0','./app-actions.js?v=1.7.0',

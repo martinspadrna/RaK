@@ -6,7 +6,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.80 identifies offline boot and reconnect hardening',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.80');
-  assert(metadata.buildId.includes('offline-boot-supabase-reconnect'));
+  assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
 
 test('offline boot restores persisted Rotation before startup is declared ready',()=>{
@@ -23,10 +23,10 @@ test('Supabase SDK is self-hosted and recoverable without reloading the page',()
   const index=read('index.html');
   const sw=read('sw.js');
   const build=read('tools/canonical-build.mjs');
-  assert(index.includes('vendor/supabase-2.110.7.js'));
+  assert(index.includes('supabase-vendor-2.110.7.js'));
   assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'));
-  assert(app.includes("const RAK_SUPABASE_SDK_URL = 'vendor/supabase-2.110.7.js'"));
-  assert(sw.includes("'./vendor/supabase-2.110.7.js'"));
+  assert(app.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"));
+  assert(sw.includes("'./supabase-vendor-2.110.7.js'"));
   assert(build.includes("SUPABASE_VENDOR_SHA384='hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"));
   assert(build.includes('prepareVendor()'));
   assert(app.includes('function ensureRakSupabaseSdk(options = {})'));
