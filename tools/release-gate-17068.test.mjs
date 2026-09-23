@@ -24,7 +24,7 @@ function fixture({dirty=true,allow=true,editorValid=true}={}){
     applyRakRotationState:payload=>{applied++;return payload;},
     rakGuardAdminRotationDiscard:()=>{guarded++;if(!allow)return false;app.adminRotationDirty=false;return true;}};
   const runtime=runNamedDeclarations({modules:[
-    {source:read('app-rotation-sync.js'),names:['rakRotationSyncEpoch','rakRotationEditorFingerprint','syncRotationFromSupabase']},
+    {source:read('app-rotation-sync.js'),names:['rakRotationSyncEpoch','rakRotationEditorFingerprint','hydrateRakRotationFromOfflineCache','syncRotationFromSupabase']},
     {source:read('admin-rotation.js'),names:['loadAdminRotationFromSupabase']}
   ],globals:context,exports:{sync:'syncRotationFromSupabase',reload:'loadAdminRotationFromSupabase'}});
   return {app,field,status,callbacks,editor,bridge,
