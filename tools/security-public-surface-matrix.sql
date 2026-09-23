@@ -1,5 +1,6 @@
 -- RaK test-only regression. Run in test Supabase SQL editor.
 -- Every fixture and simulated request claim is rolled back.
+-- Login V2 is intentionally anonymous: it inherits V1 rate limits and only adds the admin-auth prompt flag.
 BEGIN;
 DO $setup$
 DECLARE v_uid uuid; v_sid uuid; v_claims text; v_public text[];
@@ -12,7 +13,7 @@ BEGIN
   IF v_public IS DISTINCT FROM ARRAY[
     'rak_admin_account_requires_auth', 'rak_admin_auth_capabilities',
     'rak_app_keepalive', 'rak_lookup_account_for_login_v1',
-    'rak_submit_bug_report_v2'
+    'rak_lookup_account_for_login_v2', 'rak_submit_bug_report_v2'
   ]::text[] THEN
     RAISE EXCEPTION 'Anonymous RPC allowlist changed; review before release';
   END IF;
@@ -78,4 +79,4 @@ BEGIN
 END
 $verified_owner$;
 ROLLBACK;
-SELECT 'OK: anonymous RPC allowlist fixed; disguised admin JSON blocked for anon/unsigned and visible to owner; rollback complete' AS result;
+SELECT 'OK: anonymous RPC allowlist verified; disguised admin JSON blocked for anon/unsigned and visible to owner; rollback complete' AS result;
