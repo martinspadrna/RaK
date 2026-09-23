@@ -1955,7 +1955,7 @@
       : (existing.rotation && typeof existing.rotation === 'object' ? existing.rotation : readCanonicalRotationState());
     const candidateFingerprint = rotationPayloadFingerprint(candidateRotation);
     const existingRotationMeta = candidateRotation
-      ? normalizeRotationPersistenceMeta(existing.rotationMeta || {}, existing.updatedAt || 0, candidateRotation)
+      ? normalizeRotationPersistenceMeta(existing.rotationMeta || {}, existing.rotationSavedAt || existing.updatedAt || 0, candidateRotation)
       : null;
     const canReuseMeta = !!(existingRotationMeta && existingRotationMeta.fingerprint === candidateFingerprint);
     const nextRotationMeta = candidateRotation
@@ -1965,24 +1965,40 @@
     const nextMachineSettings = hasMachineSettings ? machineSettingsRows : (Array.isArray(existing.machineSettingsRows) ? existing.machineSettingsRows : []);
     const nextAnnouncements = Array.isArray(state.announcements) && state.announcements.length
       ? state.announcements : (Array.isArray(existing.announcements) ? existing.announcements : []);
-    const compact = { updatedAt: Date.now(), rotation: null, rotationKey: LOCAL_ROTATION_KEY, rotationMeta: nextRotationMeta };
+    const rotationSavedAt = nextRotationMeta ? nextRotationMeta.savedAt : Math.max(0, Number(existing.rotationSavedAt || 0) || 0);
+    const lean = { updatedAt: Date.now(), rotation: null, rotationKey: LOCAL_ROTATION_KEY, rotationSavedAt };
+    const compact = Object.assign({}, lean, { rotationMeta: nextRotationMeta });
     if (nextMachineSettings.length) compact.machineSettingsRows = nextMachineSettings;
     if (nextAnnouncements.length) compact.announcements = nextAnnouncements;
 
-    let canonicalStored = !candidateRotation || writeCanonicalRotationState(candidateRotation);
-    if (!canonicalStored && existing.rotation) {
-      safeWriteJson(LOCAL_STATE_KEY, compact);
+    let canonicalStored = !candidateRotation;
+    if (candidateRotation && existing.rotation) {
+      // RAK_17079_QUOTA_MIGRATION: free the duplicate legacy payload BEFORE growing
+      // the canonical key. Keep this transitional record intentionally tiny so a full
+      // iOS/WebKit localStorage can still migrate without deleting the only good payload.
+      const released = safeWriteJson(LOCAL_STATE_KEY, lean);
+      if (released) {
+        canonicalStored = writeCanonicalRotationState(candidateRotation);
+        if (canonicalStored) state.cacheGuard.rotationCacheMigrations = Number(state.cacheGuard.rotationCacheMigrations || 0) + 1;
+      }
+    } else if (candidateRotation) {
       canonicalStored = writeCanonicalRotationState(candidateRotation);
-      if (canonicalStored) state.cacheGuard.rotationCacheMigrations = Number(state.cacheGuard.rotationCacheMigrations || 0) + 1;
     }
+
     if (!canonicalStored) {
       state.cacheGuard.rotationCacheWriteErrors = Number(state.cacheGuard.rotationCacheWriteErrors || 0) + 1;
       state.cacheGuard.rotationStorageError = 'rotation-cache-write-failed';
-      const fallback = Object.assign({}, compact, { rotation: candidateRotation || null, rotationKey: '' });
+      const fallback = Object.assign({}, lean, { rotation: candidateRotation || null, rotationKey: '' });
       safeWriteJson(LOCAL_STATE_KEY, fallback);
       return fallback;
     }
-    safeWriteJson(LOCAL_STATE_KEY, compact);
+
+    // Full metadata are preferred, but never sacrifice a verified canonical rotation
+    // merely because the browser has room only for the lean migration record.
+    if (!safeWriteJson(LOCAL_STATE_KEY, compact)) {
+      state.cacheGuard.rotationMetadataWriteErrors = Number(state.cacheGuard.rotationMetadataWriteErrors || 0) + 1;
+      safeWriteJson(LOCAL_STATE_KEY, lean);
+    }
     if (hasMachineSettings || (Array.isArray(existing.machineSettingsRows) && existing.machineSettingsRows.length)) {
       safeWriteJson(LOCAL_MACHINE_SETTINGS_KEY, compact.machineSettingsRows);
     }
@@ -2007,7 +2023,7 @@
     const rotation = readCanonicalRotationState();
     if (!rotation) return null;
     const actualFingerprint = rotationPayloadFingerprint(rotation);
-    let meta = normalizeRotationPersistenceMeta(snapshot && snapshot.rotationMeta ? snapshot.rotationMeta : {}, snapshot && snapshot.updatedAt ? snapshot.updatedAt : 0, rotation);
+    let meta = normalizeRotationPersistenceMeta(snapshot && snapshot.rotationMeta ? snapshot.rotationMeta : {}, snapshot && (snapshot.rotationSavedAt || snapshot.updatedAt) ? (snapshot.rotationSavedAt || snapshot.updatedAt) : 0, rotation);
     if (snapshot && snapshot.rotationMeta && snapshot.rotationMeta.fingerprint && String(snapshot.rotationMeta.fingerprint) !== actualFingerprint) {
       state.cacheGuard.rotationLocalFingerprintMismatches = Number(state.cacheGuard.rotationLocalFingerprintMismatches || 0) + 1;
       meta = normalizeRotationPersistenceMeta({ source: 'local-cache-unverified', fingerprint: actualFingerprint }, 0, rotation);
