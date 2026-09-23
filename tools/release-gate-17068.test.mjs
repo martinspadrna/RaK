@@ -80,6 +80,10 @@ test('unreadable editor fails closed even if consent was given',async()=>{
 });
 test('background synchronization also respects edits made while waiting',async()=>{
  const f=fixture({dirty:false}),pending=f.sync();
+ // Successor releases explicitly await local runtime hydration before starting
+ // the remote request, so let that single microtask complete first.
+ await Promise.resolve();
+ assert.equal(f.callbacks.length,1);
  const appliedBeforeResponse=f.counters().applied; // normal sync may use cache before the user starts editing
  f.field.value='Nový offline návrh';
  f.callbacks[0].resolve({payload:{remote:true}});
