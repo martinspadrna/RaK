@@ -24,7 +24,7 @@ test('verify job cannot deploy and release job depends on complete green verific
   assert.match(release,/needs: verify/);
   assert.match(release,/github\.event_name == 'push'.*github\.ref == 'refs\/heads\/development'.*needs\.verify\.result == 'success'/);
   assert(release.includes('ref: ${{ github.sha }}'),'release checkout must use exact green SHA');
-  assert(release.includes('VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}'),'encrypted Vercel credential missing');
+  assert(release.includes('VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_2 }}'),'encrypted Vercel credential missing');
   assert(release.includes('vercel@59.24.0'),'Vercel CLI must be pinned');
   assert(release.includes('vercel deploy --prebuilt --yes --target=preview'),'deployment must use verified prebuilt preview target');
   assert(release.includes('vercel curl / --deployment "$DEPLOYMENT_ID"'),'protected HTTP verification must target the immutable deployment');
