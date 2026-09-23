@@ -31,3 +31,45 @@ Tento postup nahrazuje zastaralý návod pro starou verzi aplikace. Platí pro *
 4. Produkční rollback ani změnu aliasu nikdy nespouštěj automaticky; vyžadují výslovné svolení vlastníka, kompletní produkční zálohu a samostatné ověření.
 
 **Stav:** tento dokument je aktuální provozní postup pro preview; skutečný produkční rollback, fyzický iPhone a izolovaná plná obnova zůstávají samostatnými neuzavřenými testy.
+## Audit bezpečnostní plochy TEST – 2026-09-23
+
+Rozsah auditu je přesný Git SHA `b52745fe6c84a58b3187bc0f5fdd39593c9df59f`, větev `development` a pouze TEST Supabase `cgshssdjgzzuprlwnabl`. Produkční projekt `bkqamcbkiwumsvelahxr`, `main`, produkční alias a produkční deployment nebyly změněny. Audit je nedestruktivní: nevytvořil DB zápis, nezobrazil podepsaný uživatelský JWT a nepoužil service-role klíč.
+
+### Živý inventář TEST
+
+- `supabase gen types` vrátil 20 tabulek: `announcements`, `app_keepalive`, `bug_reports`, `game_accounts`, `game_invites`, `game_sessions`, `game_stats`, `gomoku_wins`, `machine_settings`, `machine_settings_backups`, `rak_admin_audit_log`, `rak_admin_devices`, `rak_admin_profiles`, `rak_admin_secrets`, `rak_admin_settings_backups`, `rak_rotation_backups_v2`, `rotation_entries`, `rotation_months`, `rotation_state`, `rotation_state_backups`.
+- Typové API vystavuje 24 RPC: `rak_admin_account_requires_auth`, `rak_admin_list_audit_v2`, `rak_admin_list_bug_reports_v2`, `rak_admin_list_rotation_backups_v2`, `rak_admin_restore_rotation_backup_v2`, `rak_admin_save_announcement_v2`, `rak_admin_save_machine_settings_v2`, `rak_admin_save_rotation_month_entries_v2`, `rak_admin_save_rotation_v2`, `rak_admin_touch_device`, `rak_admin_update_bug_report_v2`, `rak_admin_upsert_application_account`, `rak_admin_write_audit_v2`, `rak_app_keepalive`, `rak_lookup_account_for_login_v1`, `rak_lookup_account_for_login_v2`, `rak_owner_create_settings_backup_v2`, `rak_owner_delete_settings_backup_v2`, `rak_owner_get_settings_backup_v2`, `rak_owner_list_admin_devices`, `rak_owner_list_admin_profiles`, `rak_owner_list_settings_backups_v2`, `rak_owner_revoke_admin_device`, `rak_submit_bug_report_v2`.
+- Aktivní RaK Edge Functions: `rak-admin-users` v5, `rak-absence-calendar` v3, `rak-test-seed-once` v2 a `rak-test-secret-check` v4; všechny mají `verify_jwt=true`. První dvě odmítly anonymní i záměrně neplatný JWT HTTP 401. Testovací seed/secret funkce nebyly volány.
+- Statický průchod všech 48 migrací identifikoval 33 posledních zdrojových definic `rak_*` jako `SECURITY DEFINER`: `rak_admin_account_requires_auth`, `rak_admin_auth_capabilities`, `rak_admin_cleanup_expired_game_invites_v2`, `rak_admin_clear_announcement_v2`, `rak_admin_context`, `rak_admin_delete_bug_report_v2`, `rak_admin_list_application_accounts_v1`, `rak_admin_list_audit_v2`, `rak_admin_list_bug_reports_v2`, `rak_admin_list_rotation_backups_v2`, `rak_admin_restore_rotation_backup_v2`, `rak_admin_save_announcement_v2`, `rak_admin_save_machine_settings_v2`, `rak_admin_save_rotation_month_entries_v2`, `rak_admin_save_rotation_v2`, `rak_admin_touch_device`, `rak_admin_update_bug_report_v2`, `rak_admin_upsert_application_account`, `rak_admin_write_audit_v2`, `rak_app_keepalive`, `rak_lookup_account_for_login_v1`, `rak_lookup_account_for_login_v2`, `rak_owner_complete_backup_v1`, `rak_owner_create_settings_backup_v2`, `rak_owner_delete_settings_backup_v2`, `rak_owner_get_settings_backup_v2`, `rak_owner_list_admin_devices`, `rak_owner_list_admin_profiles`, `rak_owner_list_settings_backups_v2`, `rak_owner_revoke_admin_device`, `rak_read_rotation_v1`, `rak_submit_bug_report_v2`, `rak_submit_gomoku_win_v2`. Jde o inventář zdrojových migrací, nikoli náhradu za dotaz do živého `pg_catalog`.
+
+### Negativní testy a veřejné zápisové cesty
+
+Actions [run #202](https://github.com/martinspadrna/RaK/actions/runs/35810827612) na přesném SHA uspěl a provedl 18 živých sond proti TEST. Anonymní čtení adresáře účtů, admin zařízení, reportů, owner záloh, rotačních záloh a admin tajemství bylo odmítnuto HTTP 401. Stejně byly odmítnuty `rak_admin_context`, úplný owner export, admin directory RPC a owner device RPC. Úmyslně veřejná rotace a filtrovaná veřejná nastavení vrátila HTTP 200; 20 vrácených nastavení neobsahovalo privátní kategorie. Neplatné login vstupy vrátily sanitizované výsledky, neplatný keepalive a report HTTP 400 a padělaný JWT HTTP 401. Test nelogoval těla soukromých odpovědí, přihlašovací údaje ani platný JWT.
+
+Úmyslné anonymní zápisy jsou omezeny na validačně svázané RPC `rak_app_keepalive` a `rak_submit_bug_report_v2`; negativní vstupy byly odmítnuty před zápisem. Kritické klientské zápisy rotace, měsíčních položek, nastavení strojů, oznámení a administrátorských reportů používají secure RPC gate. Platné zápisy jednotlivých rolí ani křížový přístup účtů nebyly bez odpovídajících TEST relací provedeny.
+
+Nález k uzavření: `tools/security-public-surface-matrix.sql` očekává anonymní allowlist pěti RPC (`rak_admin_account_requires_auth`, `rak_admin_auth_capabilities`, `rak_app_keepalive`, `rak_lookup_account_for_login_v1`, `rak_submit_bug_report_v2`), ale zdrojová migrace i živá HTTP sonda ukazují anonymní sanitizovaný `rak_lookup_account_for_login_v2`. Dokud se zamýšlený stav a matice nesjednotí a matice se nespustí proti TEST, nelze ji uvádět jako úspěšný důkaz P1.1.
+
+### Osobní údaje, exporty a cache
+
+- `rak-admin-users` vyžaduje platného uživatele, serverový `rak_admin_context` a roli owner/admin; deputy je vyloučen. Adresář vrací pouze `account_id`, `display_name`, `role`, `enabled`. Změny účtů jsou dále owner-only.
+- `rak-absence-calendar` vyžaduje platného uživatele a roli owner/admin, povoluje jen GET/HEAD, omezuje odpověď na 2 MB a stahuje pouze z `calendar.google.com` s omezenými redirecty.
+- Staré Vercel endpointy `/api/admin-users` a `/api/rotation-absence-calendar` jsou vyřazené a vracejí `410` s `Cache-Control: no-store`.
+- Běžný export `export.js` balí zdrojové soubory podle manifestu; nepřidává živý databázový snapshot. Admin export zapisuje do soukromého souboru aktivní ID administrátorského účtu a označení role, což je osobní metadata určené pro administrátorský kontext.
+- Owner disaster-recovery ZIP je dvakrát chráněn: kontrolou owner UI a owner-only RPC `rak_owner_complete_backup_v1`. Obsahuje sanitizované Auth údaje v allowlistu včetně e-mailu/telefonu a sanitizovaných identit, tedy skutečná osobní data. Výslovně zakazuje `encrypted_password`, potvrzovací/recovery tokeny, access/refresh tokeny a aktivní relace; tato záloha musí zůstat soukromá.
+- Současný service worker obsluhuje jen GET na stejném originu, cizí origin ignoruje, `/api/` necachuje a odpovědi `no-store`/`private` neukládá. Předchozí stažené ZIPy, dříve nainstalované PWA cache a veřejnou Git historii nelze tímto auditem vzdáleně odvolat ani prohlásit za smazané.
+
+### Připravená role matrix a neověřené položky
+
+| Aktér | Negativní/pozitivní důkaz | Stav 2026-09-23 |
+|---|---|---|
+| anonymní | 18 PostgREST/RPC sond + 2 Edge Functions | doloženo pro kontrolované cesty |
+| neplatný/padělaný JWT | PostgREST a 2 Edge Functions HTTP 401 | doloženo pro kontrolované cesty |
+| owner | rollback-only SQL umí použít živou session a syntetické claims, ale neověřuje podpis externího JWT | nepovažovat za end-to-end ověřené |
+| admin | serverové kontroly a zdrojový kontrakt existují | chybí skutečný podepsaný TEST JWT |
+| deputy | má být vyloučen z owner/admin Edge Functions | chybí skutečný podepsaný TEST JWT |
+| běžný uživatel | přihlášení je záměrně OS-only, bez Supabase Auth/JWT | není ekvivalentem role `authenticated`; privilegia nutno testovat zvlášť |
+| cizí účet | očekává se odmítnutí vazby/profilu | chybí bezpečný TEST účet a podepsaná relace |
+| odvolaná relace | existují statické a SQL regresní kontroly | chybí end-to-end druhé zařízení a skutečný odvolaný JWT |
+
+Úplný živý katalog `pg_proc`/`pg_policy`/GRANT a pozitivní role matrix nebylo možné získat bez DB katalogového nebo owner přístupu. `supabase gen types` dokládá vystavené typy, nikoli úplné RLS/policy ani skutečné granty rolí. Proto P0.1, P0.3, P0.4, P1.1 a P1.2 zůstávají otevřené se stejnými procenty. Další bezpečný krok je sjednotit anonymní RPC allowlist, spustit rollback-only katalogovou matici proti TEST a teprve s neveřejně předanými TEST relacemi provést owner/admin/deputy/cizí/odvolanou end-to-end matici. Produkční DB se kvůli tomu nemění.
