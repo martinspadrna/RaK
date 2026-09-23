@@ -14,8 +14,10 @@ test('offline boot restores persisted Rotation before startup is declared ready'
   assert(app.includes('RAK_17080_OFFLINE_BOOT_RESTORE'));
   const restore=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(restore.includes("await ensureFeature('sync')"));
-  assert(restore.includes('await activateRemoteSync()'));
+  assert(restore.includes('await window.hydrateRakRotationFromOfflineCache'));
   assert(restore.includes('navigator.onLine === false'));
+  assert(restore.indexOf('await window.hydrateRakRotationFromOfflineCache') < restore.indexOf('void activateRemoteSync()'));
+  assert(!restore.includes('await activateRemoteSync()'));
 });
 
 test('Supabase SDK is self-hosted and recoverable without reloading the page',()=>{
