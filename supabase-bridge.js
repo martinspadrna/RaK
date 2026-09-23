@@ -5462,6 +5462,13 @@
         state.lastError = err;
         console.error('Game UI settings load failed', err);
         if (cache && cache.rows && cache.rows[0]) { rememberTimedCacheHit('ui', cache); return cache.rows[0]; }
+        // RAK_17081_NETWORK_HINT_GUARD: navigator.onLine is not authoritative on iOS
+        // or under abrupt network loss. A transient transport failure with no cached
+        // profile is an offline cache miss, not a database/read integrity failure.
+        if (typeof isLikelyTransientError === 'function' && isLikelyTransientError(err)) {
+          state.cacheGuard.uiSettingsLoadFallbacks += 1;
+          return { __rakUnavailable: true, reason: 'offline-cache-miss' };
+        }
         return { __rakUnavailable: true, reason: 'read-failed' };
       }
     },
