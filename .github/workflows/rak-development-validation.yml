@@ -86,7 +86,7 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-isolated-build-${{ github.sha }}
+          name: rak-17077-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
