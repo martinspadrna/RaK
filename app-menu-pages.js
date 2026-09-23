@@ -16,6 +16,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Start a PWA jsou lehčí: proběhl úklid stylů, bezpečné odložené načítání, omezení zbytečných překreslení, optimalizace obrázků a pevné výkonové rozpočty.',
         'Report směny lze sdílet jako sjednocený text i obrázek a rozložení se přizpůsobuje množství výrobních údajů.',
         'Běžný ZIP export už nesmí převzít otevřený osobní nebo administrátorský obsah ze stránky a při chybě bezpečně skončí bez vytvoření archivu.',
+        'Celkový audit přinesl přesnější diagnostiku, nové bezpečnostní a regresní kontroly a odstraněné zbytky Her.',
         'Administrace má Úplnou zálohu RaK na jeden klik: ukládá přesný zdroj, nasazenou PWA, data a strukturu Supabase, sanitizovaný Auth přehled, Storage a návod k obnově.'
       ]
     },
