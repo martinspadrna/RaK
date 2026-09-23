@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import RELEASE_METADATA from '../rak-release-metadata.js';
 import {PROD_SUPABASE,TEST_SUPABASE,releaseDecision,validateBuildProof,validateCiProof,validateHttpFolder} from './release-evidence.mjs';
 
@@ -65,4 +67,15 @@ test('HTTP proof accepts only complete TEST output',()=>{
   assert.equal(validateHttpFolder('fixture',good).supabase.productionProjectAbsent,true);
   const bad=httpFixture({production:true});
   assert.throws(()=>validateHttpFolder('fixture',bad),/TEST Supabase missing|production Supabase detected/);
+});
+
+test('CLI argument routing verifies downloaded CI proof and HTTP files',()=>{
+  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'rak-release-cli-'));
+  const proofFile=path.join(folder,'ci.json'),buildFile=path.join(folder,'build.json'),httpOut=path.join(folder,'http.json');
+  fs.writeFileSync(proofFile,JSON.stringify(ciProof()));
+  fs.writeFileSync(buildFile,JSON.stringify(buildProof()));
+  const script=fileURLToPath(new URL('./release-evidence.mjs',import.meta.url));
+  assert.doesNotThrow(()=>execFileSync(process.execPath,[script,'verify-ci',proofFile,buildFile,SHA],{stdio:'pipe'}));
+  assert.doesNotThrow(()=>execFileSync(process.execPath,[script,'http-check','fixture',httpFixture(),httpOut],{stdio:'pipe'}));
+  assert.equal(JSON.parse(fs.readFileSync(httpOut,'utf8')).result,'PASS');
 });

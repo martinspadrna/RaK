@@ -184,8 +184,8 @@ function assemble(){
   console.log('[release-evidence] PASS '+sha+' -> '+current.id+'; rollback '+rollback.id);
 }
 
-function httpCheck(){const [,,label,folder,out]=process.argv;ok(label&&folder&&out,'usage: http-check label folder output');writeJson(path.resolve(out),validateHttpFolder(label,path.resolve(folder)));console.log('[release-evidence] HTTP '+label+' PASS');}
-function verifyCi(){const [,,proofFile,buildFile,sha]=process.argv;validateCiProof(json(proofFile),sha);validateBuildProof(json(buildFile),sha);console.log('[release-evidence] downloaded CI proof PASS for '+sha);}
+function httpCheck(){const [,,,label,folder,out]=process.argv;ok(label&&folder&&out,'usage: http-check label folder output');writeJson(path.resolve(out),validateHttpFolder(label,path.resolve(folder)));console.log('[release-evidence] HTTP '+label+' PASS');}
+function verifyCi(){const [,,,proofFile,buildFile,sha]=process.argv;validateCiProof(json(proofFile),sha);validateBuildProof(json(buildFile),sha);console.log('[release-evidence] downloaded CI proof PASS for '+sha);}
 
 const mode=process.argv[2];
 if(path.resolve(process.argv[1]||'')===fileURLToPath(import.meta.url)){
