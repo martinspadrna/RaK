@@ -36,7 +36,7 @@
         },
         {
           "path": "tools/browser-offline-17052.mjs",
-          "marker": "await window.rakEnsureFeature('rotation')",
+          "marker": "rotationReady:window.rakIsFeatureReady('rotation')",
           "runner": "workflow:node tools/browser-offline-17052.mjs"
         }
       ]
