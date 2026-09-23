@@ -26,7 +26,7 @@ test('verify job cannot deploy and release job depends on complete green verific
   assert(release.includes('ref: ${{ github.sha }}'),'release checkout must use exact green SHA');
   assert(release.includes('VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}'),'encrypted Vercel credential missing');
   assert(release.includes('vercel@59.24.0'),'Vercel CLI must be pinned');
-  assert(release.includes('vercel deploy --prebuilt --yes --skip-domain'),'deployment must use verified prebuilt preview without automatic domains');
+  assert(release.includes('vercel deploy --prebuilt --yes --target=preview'),'deployment must use verified prebuilt preview target');
   assert(!/--prod\b|--target=production/.test(release),'production deployment is prohibited');
 });
 

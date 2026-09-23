@@ -168,7 +168,7 @@ jobs:
         if: steps.policy.outputs.deploy == 'true'
         run: |
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$GITHUB_SHA"
-          vercel deploy --prebuilt --yes --skip-domain --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"             --meta githubCommitSha="$GITHUB_SHA" --meta githubCommitRef=development             --meta githubRepo=RaK --meta githubOrg=martinspadrna > .rak-release-evidence/deploy-result.json
+          vercel deploy --prebuilt --yes --target=preview --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"             --meta githubCommitSha="$GITHUB_SHA" --meta githubCommitRef=development             --meta githubRepo=RaK --meta githubOrg=martinspadrna > .rak-release-evidence/deploy-result.json
           deployment_id="$(jq -r '.id // .deployment.id // empty' .rak-release-evidence/deploy-result.json)"
           test -n "$deployment_id"
           echo "DEPLOYMENT_ID=$deployment_id" >> "$GITHUB_ENV"
