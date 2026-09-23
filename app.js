@@ -543,6 +543,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     try {
       await ensureFeature('sync');
+      // RAK_17082_AWAIT_RUNTIME_HYDRATION: cache arbitration alone is not enough;
+      // app.rotation and its dependent UI must be updated before startupReady.
+      if (typeof window.hydrateRakRotationFromOfflineCache === 'function') {
+        await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true });
+      }
       await activateRemoteSync();
     } catch (err) {
       console.warn('Offline Rotation restore during boot failed', err);

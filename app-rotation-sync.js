@@ -70,6 +70,20 @@ function rakRotationEditorFingerprint(editor){
       [field.tagName,field.name,field.value,!!field.checked]));
   } catch(_){return null;}
 }
+async function hydrateRakRotationFromOfflineCache(options) {
+  const bridge = window.RotationSupabaseBridge;
+  if (!bridge) return null;
+  const opts = options && typeof options === 'object' ? options : {};
+  let cached = null;
+  if (typeof bridge.loadBestOfflineRotationState === 'function') {
+    cached = await bridge.loadBestOfflineRotationState({ repair: opts.repair !== false });
+  } else if (typeof bridge.loadCachedRotationState === 'function') {
+    cached = bridge.loadCachedRotationState();
+  }
+  if (!cached || !cached.payload) return null;
+  return applyRakRotationState(cached.payload, { force: opts.force === true });
+}
+
 async function syncRotationFromSupabase(force) {
   const bridge = window.RotationSupabaseBridge;
   if (!bridge || typeof bridge.loadRotationState !== 'function') return null;
@@ -80,20 +94,9 @@ async function syncRotationFromSupabase(force) {
   const fingerprint=editor?rakRotationEditorFingerprint(editor):null;
   if(editor && fingerprint===null) return null;
   try {
-    // RAK_17067_SKIP_CACHE_ON_FORCE: manual online reload MUST NOT replace a draft with stale offline cache.
-    if (force !== 'discard-draft') {
-      // RAK_17081_BEST_SNAPSHOT_FIRST: navigator.onLine is only a hint and may lag on iOS.
-      // Always arbitrate localStorage against the durable CacheStorage snapshot before any
-      // remote attempt, so a stale canonical copy cannot win just because the browser
-      // temporarily still reports "online".
-      let cached = null;
-      if (typeof bridge.loadBestOfflineRotationState === 'function') {
-        cached = await bridge.loadBestOfflineRotationState({ repair: true });
-      } else if (typeof bridge.loadCachedRotationState === 'function') {
-        cached = bridge.loadCachedRotationState();
-      }
-      if (cached && cached.payload) applyRakRotationState(cached.payload, { force: false });
-    }
+    // RAK_17082_BOOT_HYDRATE: cached state has its own awaited contract so cold
+    // startup can complete runtime hydration before startupReady.
+    if (force !== 'discard-draft') await hydrateRakRotationFromOfflineCache({ repair: true, force: false });
     refreshRakMachineSettingsInBackground(bridge);
     const remote = await bridge.loadRotationState();
     if (!remote || !remote.payload) return null;
@@ -331,6 +334,7 @@ function installRakSupabaseSecureWriteGate() {
   return true;
 }
 
+window.hydrateRakRotationFromOfflineCache = hydrateRakRotationFromOfflineCache;
 window.syncRotationFromSupabase = syncRotationFromSupabase;
 window.saveRotationToSupabase = saveRotationToSupabase;
 installRakSupabaseSecureWriteGate();
