@@ -58,6 +58,23 @@ Po této větě musí agent sám online zjistit aktuální SHA `development`, na
 
 Dokumentační commity nad tímto runtime standardně nemají vlastní nový Vercel deployment. Při prvním přidání tohoto dosud neznámého souboru fail-closed politika výjimečně vytvořila preview `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`; vlastník tento jediný deployment výslovně povolil. Commit `15a78a85afec80170440f6ff1dc36b87a8451cb4` přidal `RAK_HANDOFF.md` do přesného dokumentačního allowlistu a kontraktního testu. Ruční Actions #250 / run `35914753211` na témže SHA prošel bez release jobu. Další samostatná změna `RAK_HANDOFF.md` proto musí skončit dokumentačním skipem. Živý `development` HEAD se vždy zjišťuje online a může být novější než runtime SHA.
 
+## Produkční připravenost 1.7.83
+
+Vlastník chce po bezpečné přípravě zvážit vydání současných změn do `main`, produkčního Vercelu a produkční Supabase; po případném vydání mají další úpravy znovu probíhat pouze v TEST prostředí. Samotná otázka na vhodnost vydání není povolením obejít poslední explicitní kontrolu před produkčními zápisy.
+
+Čtecí audit 23. 9. 2026 zjistil:
+
+- `development` a `main` jsou divergovány: development byl při kontrole 401 commitů napřed a 5 commitů pozadu; prosté přepsání `main` je zakázané.
+- Pět main-only commitů je `18308f78`, `75f0672a`, `c8e220f2`, `def12642` a `ceca9f96`; před produkčním commitem je nutné doložit jejich zachování nebo vědomé nahrazení.
+- Produkční Vercel alias `skoda-spada.vercel.app` je READY na deploymentu `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`, tedy ani neodpovídá současnému `main` SHA `ceca9f9644da3dc41059c5d232661d27bc6dba18`.
+- `vercel.json` vypíná automatické deploymenty pouze pro `development`; obyčejný zápis do `main` může spustit produkční deployment bez nové produkční brány.
+- TEST Supabase má bezpečnostní migrace až po `20260923045532`, zatímco produkční projekt končí RaK migracemi `20260915193102`. Historie není totožná a nesmí se slepě kopírovat.
+- Současný klient volá `rak_admin_list_application_accounts_v1`, která byla v TEST katalogu nalezena, ale v produkčním katalogu při auditu chyběla.
+- TEST a produkční Edge Function `rak-admin-users` mají rozdílný obsah a digest; TEST varianta obsahuje novější pravidla rolí, hesel a povolených preview originů.
+- Produkční DB, Edge Functions, Vercel ani `main` nebyly auditem změněny.
+
+Před produkčním zápisem musí vzniknout jediný verzovaný release postup: kompatibilní produkční migrace s reverzním postupem a zálohou, nasazení přesně ověřené Edge Function, produkční sestavení z reconciliovaného Git stromu, zákaz předčasného auto-deploye, kontrola přesného SHA a následný READY/HTTP/metadata/produkční-ID důkaz. Každý produkční zápis vyžaduje nové jednoznačné potvrzení vlastníka.
+
 ## Důležitý stav fyzického iPhonu
 
 RaK 1.7.82 prošla 23. 9. 2026 fyzickým acceptance testem bez mazání dat:
