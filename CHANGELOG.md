@@ -1,3 +1,10 @@
+## RaK 1.7.78 (development)
+
+- ZIP export aplikace se při nedostupném čistém `index.html` bezpečně zastaví a nevytvoří archiv z právě zobrazené stránky.
+- Export už nikdy nekopíruje živý DOM, takže do zdrojového ZIPu nemůže omylem převzít otevřený administrátorský nebo osobní obsah.
+- CI negativně ověřuje, že při chybě nevznikne ZIP ani stažení, a živá TEST HTTP kontrola rekurzivně odmítá osobní pole ve veřejných nastaveních.
+- Viditelná verze je 1.7.78; technická verze zůstává 1.7.0.
+
 ## RaK 1.7.75 (development)
 
 - PNG report skládá MO a TO do dvou sousedních sloupců, pokud se všechny jejich popisky vejdou bez zalomení.

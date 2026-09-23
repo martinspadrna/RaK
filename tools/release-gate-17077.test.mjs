@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.77 keeps technical 1.7.0 and uses one release identity',()=>{
+test('1.7.77 offline baseline remains active under the current release identity',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.77');
   assert.equal(metadata.technicalVersion,'1.7.0');
-  assert.equal(metadata.cacheVersion,'v1.7.77');
-  assert.equal(metadata.buildId,'v1.7.77-pwa-durable-rotation1');
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert(metadata.buildId.includes('pwa-durable-rotation'));
 });
 
 test('online rotation is mirrored durably and cold offline load restores it',()=>{
@@ -42,5 +42,5 @@ test('Vercel skip policy is fail closed for workflow and executable filename cha
   assert(!policy.includes('rak-v\\d+'));
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(workflow.includes('node --test tools/release-gate-17077.test.mjs'));
-  assert(workflow.includes('rak-17077-isolated-build-'));
+  assert(workflow.includes('rak-17078-isolated-build-'));
 });

@@ -57,8 +57,16 @@ const privateRow=row=>{
       return blockedKeys.has(key)||key.startsWith('ADMIN_FULL_SETTINGS_BACKUP_')||key.startsWith('ROTATION_SAVE_BACKUP_');
     });
 };
+const restrictedIdentityFields=new Set(['appaccounts','applicationaccounts','workers','loginnumber','accountnumber','personalnumber','employeeid','userid','roster','employees','staff','fullname','firstname','lastname','email','phone','contactemail','contactphone']);
+const normalizeField=key=>String(key||'').replace(/[^a-z0-9]/gi,'').toLowerCase();
+function containsRestrictedIdentityField(value){
+  if(Array.isArray(value))return value.some(containsRestrictedIdentityField);
+  if(!value||typeof value!=='object')return false;
+  return Object.entries(value).some(([key,nested])=>restrictedIdentityFields.has(normalizeField(key))||containsRestrictedIdentityField(nested));
+}
 assert(!settings.data.some(privateRow),'[17050-http] private machine settings leaked');
-console.log(`[17050-http] machine settings: ${settings.data.length} public rows, 0 private categories`);
+assert(!settings.data.some(row=>containsRestrictedIdentityField(row?.settings_json)),'[17050-http] recursive personal field leaked through public settings');
+console.log(`[17050-http] machine settings: ${settings.data.length} public rows, 0 private categories or personal fields`);
 for(const [name,fn,args] of [
  ['admin-context','rak_admin_context',{}],
  ['owner-complete-export','rak_owner_complete_backup_v1',{}],
@@ -73,7 +81,7 @@ for(const [name,fn,args] of [
   const result=await call(name,`/rest/v1/rpc/${fn}`,{method:'POST',body:args});
   assert.equal(result.status,200);
   if(name==='invalid-legacy-admin-gate')assert.equal(result.data,false);
-  else assert(result.data?.ok===false&&!('accountNumber' in result.data)&&!('fullName' in result.data));
+  else assert(result.data?.ok===false&&!containsRestrictedIdentityField(result.data),'[17050-http] invalid login leaked personal fields');
 }
 rejected('invalid-keepalive',await call('invalid-keepalive','/rest/v1/rpc/rak_app_keepalive',{method:'POST',body:{p_device_key:'x',p_app_version:null,p_user_agent:null,p_payload:{}}}));
 rejected('invalid-report',await call('invalid-report','/rest/v1/rpc/rak_submit_bug_report_v2',{method:'POST',body:{p_account_number:null,p_player_name:null,p_report_type:'chyba',p_message:'x',p_app_version:null,p_route:null,p_user_agent:null,p_device_info:{}}}));

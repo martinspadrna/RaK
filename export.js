@@ -748,18 +748,8 @@ async function exportCurrentHtml() {
     let indexText = '';
     try {
       indexText = await readExportText(exportManifest.indexFile || 'index.html');
-    } catch (indexErr) {
-      console.warn('Export fallback: index.html se nepodařilo načíst jako zdroj, používám DOM kopii.', indexErr);
-      const pages = [...document.querySelectorAll(".page")];
-      const previousActive = pages.find(p => p.classList.contains("active"))?.id || "home";
-      pages.forEach(p => p.classList.remove("active"));
-      const home = document.getElementById("home");
-      if (home) home.classList.add("active");
-      indexText = `<!DOCTYPE html>
-${document.documentElement.cloneNode(true).outerHTML}`;
-      pages.forEach(p => p.classList.remove("active"));
-      const restore = document.getElementById(previousActive);
-      if (restore) restore.classList.add("active");
+    } catch (_) {
+      throw new Error('Export byl bezpečně zastaven: nepodařilo se načíst čistý index.html.');
     }
 
     const zip = new JSZip();

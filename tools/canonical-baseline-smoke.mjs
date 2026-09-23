@@ -16,6 +16,6 @@ test('canonical baseline replaces the obsolete pre-1.7 aggregate smoke without d
 });
 
 test('canonical release metadata has one executable source of truth',()=>{
-  const metadata=assertCurrentReleaseIdentity(read,'1.7.76');
+  const metadata=assertCurrentReleaseIdentity(read,'1.7.78');
   assert.equal(metadata,RELEASE_METADATA);
 });

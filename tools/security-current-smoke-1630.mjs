@@ -10,6 +10,9 @@ const adminUnlock = read('app-admin-unlock.js');
 const config = read('supabase-config.js');
 const migration = read('supabase/migrations/20260915144000_audit_keepalive_rpc_only.sql');
 const exportJs = read('export.js');
+assert(!exportJs.includes('document.documentElement.cloneNode'), 'ZIP export must never clone live DOM');
+assert(!exportJs.includes('používám DOM kopii'), 'ZIP export DOM fallback returned');
+assert(exportJs.includes('Export byl bezpečně zastaven: nepodařilo se načíst čistý index.html.'), 'ZIP export must fail closed without canonical index');
 const mobileAudit = read('rak-mobile-smoke-audit.js');
 const domAudit = read('rak-dom-action-audit.js');
 

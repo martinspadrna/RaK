@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createMemoryStorage,evaluateExpression,extractConditionalBlock,extractNamedDeclaration,extractNamedDeclarations,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 
 const sample=[
@@ -34,4 +35,45 @@ test('shared browser globals provide one memory storage and window identity',()=
 test('missing declarations and malformed blocks fail closed',()=>{
   assert.throws(()=>extractNamedDeclaration(sample,'missing'),/declaration not found/);
   assert.throws(()=>extractConditionalBlock('if(true){','if(true)'),/unterminated/);
+});
+test('application ZIP export fails closed before ZIP creation when canonical index is unavailable',async()=>{
+  const source=fs.readFileSync(new URL('../export.js',import.meta.url),'utf8');
+  assert(!source.includes('document.documentElement.cloneNode'),'live DOM clone returned to export');
+  let zipConstructions=0,clicks=0;
+  const reports=[],alerts=[];
+  class MockZip {
+    constructor(){zipConstructions++;}
+    file(){}
+    async generateAsync(){return new Blob(['unexpected']);}
+  }
+  const document={
+    body:{appendChild:()=>{}},
+    createElement:()=>({click:()=>{clicks++;},remove:()=>{}}),
+    getElementById:()=>null,
+    querySelectorAll:()=>{throw new Error('live DOM queried');}
+  };
+  const {api}=runNamedDeclarations({
+    modules:[{source,names:['exportCurrentHtml']}],
+    globals:{
+      document,JSZip:MockZip,app:{rotation:{loginNumber:'must-not-be-exported'}},
+      getRakExportManifest:()=>({indexFile:'index.html',jsFiles:[],textFiles:[],binaryFiles:[]}),
+      validateRakExportManifestFiles:async()=>({ok:true}),
+      readExportText:async path=>{
+        if(path==='styles.css')return 'body{}';
+        if(path==='index.html')throw new Error('synthetic index failure');
+        return '';
+      },
+      readExportBinary:async()=>new ArrayBuffer(0),
+      updateRakExportSmokeReport:report=>reports.push(report),
+      setRakExportStatus:()=>{},
+      alert:message=>alerts.push(String(message)),
+    },
+    exports:{exportCurrentHtml:'exportCurrentHtml'},
+  });
+  await api.exportCurrentHtml();
+  assert.equal(zipConstructions,0);
+  assert.equal(clicks,0);
+  assert.equal(reports.at(-1)?.status,'export-failed');
+  assert.match(reports.at(-1)?.lastError||'',/čistý index\.html/);
+  assert.match(alerts.at(-1)||'',/čistý index\.html/);
 });
