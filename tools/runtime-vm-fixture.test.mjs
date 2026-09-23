@@ -53,7 +53,7 @@ test('application ZIP export fails closed before ZIP creation when canonical ind
     querySelectorAll:()=>{throw new Error('live DOM queried');}
   };
   const {api}=runNamedDeclarations({
-    modules:[{source,names:['exportCurrentHtml']}],
+    modules:[{source,names:['EXPORT_SMOKE_REPORT','exportCurrentHtml']}],
     globals:{
       document,JSZip:MockZip,app:{rotation:{loginNumber:'must-not-be-exported'}},
       getRakExportManifest:()=>({indexFile:'index.html',jsFiles:[],textFiles:[],binaryFiles:[]}),
