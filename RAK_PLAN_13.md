@@ -25,7 +25,7 @@
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
 | P2.2 | Rozložení, DOM, CSS a interakce | **40 % (2/5)** | Otevřeno |
-| P2.3 | Offline, fronta, verze a konflikty | **25 % (2/8)** | **Otevřeno; fyzický iPhone selhal i na 1.7.77, další pokusy jsou rozhodnutím vlastníka odloženy** |
+| P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
 **Bilance: 3/13 uzavřeny (P0.2 rozhodnutím o riziku, P1.3 a P1.4 technicky), 10/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
