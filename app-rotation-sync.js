@@ -73,8 +73,12 @@ async function syncRotationFromSupabase(force) {
   try {
     // RAK_17067_SKIP_CACHE_ON_FORCE: manual online reload MUST NOT replace a draft with stale offline cache.
     if (force !== 'discard-draft') {
+      // RAK_17081_BEST_SNAPSHOT_FIRST: navigator.onLine is only a hint and may lag on iOS.
+      // Always arbitrate localStorage against the durable CacheStorage snapshot before any
+      // remote attempt, so a stale canonical copy cannot win just because the browser
+      // temporarily still reports "online".
       let cached = null;
-      if (typeof navigator !== 'undefined' && navigator.onLine === false && typeof bridge.loadBestOfflineRotationState === 'function') {
+      if (typeof bridge.loadBestOfflineRotationState === 'function') {
         cached = await bridge.loadBestOfflineRotationState({ repair: true });
       } else if (typeof bridge.loadCachedRotationState === 'function') {
         cached = bridge.loadCachedRotationState();
