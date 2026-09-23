@@ -8,7 +8,7 @@ test('1.7.77 offline baseline remains active under the current release identity'
   const metadata=assertCurrentReleaseIdentity(read,'1.7.77');
   assert.equal(metadata.technicalVersion,'1.7.0');
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
-  assert(metadata.buildId.includes('pwa-durable-rotation'));
+  assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
 
 test('online rotation is mirrored durably and cold offline load restores it',()=>{
