@@ -39,6 +39,12 @@ test('release job proves exact SHA, HTTP TEST isolation, rollback and durable ev
   assert(release.includes('--meta githubCommitSha="$GITHUB_SHA"'));
   assert(release.includes('vercel api "/v13/deployments/$STABLE_ALIAS" --raw'),'release evidence must use complete read-only deployment API metadata');
   assert(release.includes('vercel alias set "$DEPLOYMENT_ID" "$STABLE_ALIAS"'));
+  assert(release.includes("scope:'alias-protection-override',action:'create'"),'stable development alias must explicitly bypass Vercel SSO without disabling project protection');
+  assert(release.includes('/protection-bypass?teamId='),'alias-specific protection API is required');
+  assert(release.includes('Verify the stable development alias is publicly usable without Vercel auth'));
+  assert(release.includes('curl --silent --show-error --max-redirs 0'),'stable alias must be checked anonymously without Vercel credentials');
+  assert(release.includes('/vendor/supabase-2.110.7.js'),'public verification must cover the self-hosted Supabase SDK');
+  assert(release.includes('/app.js?v=1.7.0'),'public verification must cover the application runtime');
   assert(release.includes('/rak-release-metadata.js'));
   assert(release.includes('/supabase-config.js'));
   assert(release.includes('node tools/release-evidence.mjs assemble'));
