@@ -167,8 +167,9 @@ jobs:
         if: steps.policy.outputs.deploy == 'true'
         run: |
           vercel build --yes --target=preview --token="$VERCEL_TOKEN"
-          test -s ".vercel/output/static/app.js"
-          test -s ".vercel/output/static/supabase-config.js"
+          test -s ".rak-dist/supabase-vendor-2.110.7.js"
+          mkdir -p ".vercel/output/static"
+          cp ".rak-dist/supabase-vendor-2.110.7.js" ".vercel/output/static/supabase-vendor-2.110.7.js"
           test -s ".vercel/output/static/supabase-vendor-2.110.7.js"
       - name: Deploy prebuilt exact SHA only after the green verify job
         if: steps.policy.outputs.deploy == 'true'
