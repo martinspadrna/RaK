@@ -1845,8 +1845,30 @@
   }
 
 
-  // RAK_17073_SINGLE_ROTATION_CACHE: one authoritative payload avoids iOS quota races
-  // and divergence between the runtime state and the bridge snapshot.
+  // RAK_17079_ROTATION_OFFLINE_ARBITRATION: compare both persistent stores and verify writes.
+  function rotationPayloadFingerprint(rotation) {
+    let json = '';
+    try { json = JSON.stringify(rotation); } catch (_) { return ''; }
+    let hash = 2166136261;
+    for (let i = 0; i < json.length; i += 1) {
+      hash ^= json.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return json.length.toString(36) + ':' + (hash >>> 0).toString(36);
+  }
+
+  function normalizeRotationPersistenceMeta(raw, fallbackSavedAt, payload) {
+    const base = raw && typeof raw === 'object' ? raw : {};
+    return {
+      schema: 2,
+      savedAt: Math.max(0, Number(base.savedAt || fallbackSavedAt || 0) || 0),
+      revision: Math.max(0, Number(base.revision || 0) || 0),
+      remoteUpdatedAt: String(base.remoteUpdatedAt || base.updatedAt || '').slice(0, 80),
+      source: String(base.source || 'local-cache').slice(0, 40),
+      fingerprint: String(base.fingerprint || rotationPayloadFingerprint(payload)).slice(0, 80)
+    };
+  }
+
   function readCanonicalRotationState() {
     const rotation = safeReadJson(LOCAL_ROTATION_KEY, null);
     return rotation && typeof rotation === 'object' && rotation.months ? rotation : null;
@@ -1867,17 +1889,26 @@
     state.cacheGuard.rotationStorageError = '';
     return true;
   }
+
   function getDurableRotationRequestUrl() {
     try { return new URL(DURABLE_ROTATION_REQUEST, window.location.href).href; }
     catch (_) { return DURABLE_ROTATION_REQUEST; }
   }
 
-  async function persistDurableRotationState(rotation) {
+  async function persistDurableRotationState(rotation, metadata) {
     if (!rotation || typeof rotation !== 'object' || !rotation.months || typeof caches === 'undefined') return false;
+    const meta = normalizeRotationPersistenceMeta(metadata, Date.now(), rotation);
     try {
       const cache = await caches.open(DURABLE_ROTATION_CACHE);
-      const body = JSON.stringify({ schema: 1, savedAt: Date.now(), version: window.APP_VERSION || '', payload: rotation });
-      await cache.put(getDurableRotationRequestUrl(), new Response(body, { status: 200, headers: { 'content-type': 'application/json;charset=utf-8', 'cache-control': 'no-store' } }));
+      const body = JSON.stringify({
+        schema: 2, savedAt: meta.savedAt, revision: meta.revision,
+        remoteUpdatedAt: meta.remoteUpdatedAt, source: meta.source,
+        version: window.RAK_RELEASE_VERSION || window.APP_VERSION || '',
+        fingerprint: meta.fingerprint, payload: rotation
+      });
+      await cache.put(getDurableRotationRequestUrl(), new Response(body, {
+        status: 200, headers: { 'content-type': 'application/json;charset=utf-8', 'cache-control': 'no-store' }
+      }));
       state.cacheGuard.durableRotationWrites = Number(state.cacheGuard.durableRotationWrites || 0) + 1;
       state.cacheGuard.durableRotationError = '';
       return true;
@@ -1897,38 +1928,49 @@
       const stored = await response.json();
       const payload = stored && stored.payload;
       if (!payload || typeof payload !== 'object' || !payload.months) return null;
+      const actualFingerprint = rotationPayloadFingerprint(payload);
+      if (stored.fingerprint && String(stored.fingerprint) !== actualFingerprint) {
+        state.cacheGuard.durableRotationReadErrors = Number(state.cacheGuard.durableRotationReadErrors || 0) + 1;
+        state.cacheGuard.durableRotationError = 'durable-rotation-fingerprint-mismatch';
+        return null;
+      }
+      const meta = normalizeRotationPersistenceMeta(stored, stored.savedAt || 0, payload);
       state.cacheGuard.durableRotationReads = Number(state.cacheGuard.durableRotationReads || 0) + 1;
       state.cacheGuard.durableRotationError = '';
-      return { id: 'main', payload, updatedAt: stored.savedAt || null, meta: { source: 'durable-cache' } };
+      return {
+        id: 'main', payload, updatedAt: meta.savedAt || null, revision: meta.revision,
+        meta: { source: 'durable-cache', savedAt: meta.savedAt, remoteUpdatedAt: meta.remoteUpdatedAt, fingerprint: meta.fingerprint }
+      };
     } catch (err) {
       state.cacheGuard.durableRotationReadErrors = Number(state.cacheGuard.durableRotationReadErrors || 0) + 1;
       state.cacheGuard.durableRotationError = 'durable-rotation-read-failed';
       return null;
     }
   }
-  function saveLocalSnapshot(rotation, machineSettingsRows) {
+
+  function saveLocalSnapshot(rotation, machineSettingsRows, rotationMeta) {
     const existing = readLocalSnapshot() || {};
     const hasRotation = !!(rotation && typeof rotation === 'object' && rotation.months);
     const candidateRotation = hasRotation ? rotation
       : (existing.rotation && typeof existing.rotation === 'object' ? existing.rotation : readCanonicalRotationState());
+    const candidateFingerprint = rotationPayloadFingerprint(candidateRotation);
+    const existingRotationMeta = candidateRotation
+      ? normalizeRotationPersistenceMeta(existing.rotationMeta || {}, existing.updatedAt || 0, candidateRotation)
+      : null;
+    const canReuseMeta = !!(existingRotationMeta && existingRotationMeta.fingerprint === candidateFingerprint);
+    const nextRotationMeta = candidateRotation
+      ? normalizeRotationPersistenceMeta(rotationMeta || (canReuseMeta ? existingRotationMeta : {}), canReuseMeta ? existingRotationMeta.savedAt : Date.now(), candidateRotation)
+      : null;
     const hasMachineSettings = Array.isArray(machineSettingsRows) && machineSettingsRows.length > 0;
-    const nextMachineSettings = hasMachineSettings
-      ? machineSettingsRows
-      : (Array.isArray(existing.machineSettingsRows) ? existing.machineSettingsRows : []);
+    const nextMachineSettings = hasMachineSettings ? machineSettingsRows : (Array.isArray(existing.machineSettingsRows) ? existing.machineSettingsRows : []);
     const nextAnnouncements = Array.isArray(state.announcements) && state.announcements.length
-      ? state.announcements
-      : (Array.isArray(existing.announcements) ? existing.announcements : []);
-    const compact = {
-      updatedAt: Date.now(),
-      rotation: null,
-      rotationKey: LOCAL_ROTATION_KEY
-    };
+      ? state.announcements : (Array.isArray(existing.announcements) ? existing.announcements : []);
+    const compact = { updatedAt: Date.now(), rotation: null, rotationKey: LOCAL_ROTATION_KEY, rotationMeta: nextRotationMeta };
     if (nextMachineSettings.length) compact.machineSettingsRows = nextMachineSettings;
     if (nextAnnouncements.length) compact.announcements = nextAnnouncements;
 
     let canonicalStored = !candidateRotation || writeCanonicalRotationState(candidateRotation);
     if (!canonicalStored && existing.rotation) {
-      // Shrinking the duplicate first frees space to replace an older canonical payload.
       safeWriteJson(LOCAL_STATE_KEY, compact);
       canonicalStored = writeCanonicalRotationState(candidateRotation);
       if (canonicalStored) state.cacheGuard.rotationCacheMigrations = Number(state.cacheGuard.rotationCacheMigrations || 0) + 1;
@@ -1955,19 +1997,133 @@
 
   function loadCachedRotationState() {
     const snapshot = readLocalSnapshot();
-    // The embedded legacy payload has updatedAt and may be newer than an old canonical key.
     if (snapshot && snapshot.rotation && typeof snapshot.rotation === 'object' && snapshot.rotation.months) {
       const payload = snapshot.rotation;
-      saveLocalSnapshot(payload, snapshot.machineSettingsRows || []);
-      return { id: 'main', payload, updatedAt: snapshot.updatedAt || null, meta: { source: 'local-cache-migrated' } };
+      const meta = normalizeRotationPersistenceMeta(snapshot.rotationMeta || {}, snapshot.updatedAt || 0, payload);
+      saveLocalSnapshot(payload, snapshot.machineSettingsRows || [], meta);
+      return { id: 'main', payload, updatedAt: meta.savedAt || snapshot.updatedAt || null, revision: meta.revision,
+        meta: { source: 'local-cache-migrated', savedAt: meta.savedAt, remoteUpdatedAt: meta.remoteUpdatedAt, fingerprint: meta.fingerprint } };
     }
     const rotation = readCanonicalRotationState();
     if (!rotation) return null;
+    const actualFingerprint = rotationPayloadFingerprint(rotation);
+    let meta = normalizeRotationPersistenceMeta(snapshot && snapshot.rotationMeta ? snapshot.rotationMeta : {}, snapshot && snapshot.updatedAt ? snapshot.updatedAt : 0, rotation);
+    if (snapshot && snapshot.rotationMeta && snapshot.rotationMeta.fingerprint && String(snapshot.rotationMeta.fingerprint) !== actualFingerprint) {
+      state.cacheGuard.rotationLocalFingerprintMismatches = Number(state.cacheGuard.rotationLocalFingerprintMismatches || 0) + 1;
+      meta = normalizeRotationPersistenceMeta({ source: 'local-cache-unverified', fingerprint: actualFingerprint }, 0, rotation);
+    }
+    return { id: 'main', payload: rotation, updatedAt: meta.savedAt || null, revision: meta.revision,
+      meta: { source: meta.source || 'local-cache', savedAt: meta.savedAt, remoteUpdatedAt: meta.remoteUpdatedAt, fingerprint: meta.fingerprint } };
+  }
+
+  function compareRotationOfflineCandidates(a, b) {
+    if (!a) return b ? -1 : 0;
+    if (!b) return 1;
+    const ar = Math.max(0, Number(a.revision || 0) || 0), br = Math.max(0, Number(b.revision || 0) || 0);
+    if (ar > 0 && br > 0 && ar !== br) return ar - br;
+    const at = Math.max(0, Number(a.meta && a.meta.savedAt || a.updatedAt || 0) || 0);
+    const bt = Math.max(0, Number(b.meta && b.meta.savedAt || b.updatedAt || 0) || 0);
+    if (at !== bt) return at - bt;
+    if (ar !== br) return ar - br;
+    return (String(a.meta && a.meta.source || '') === 'durable-cache' ? 1 : 0) -
+      (String(b.meta && b.meta.source || '') === 'durable-cache' ? 1 : 0);
+  }
+
+  async function loadBestOfflineRotationState(options) {
+    const opts = options && typeof options === 'object' ? options : {};
+    let local = loadCachedRotationState(), durable = await loadDurableRotationState();
+    const candidates = [local, durable].filter(item => item && item.payload);
+    if (!candidates.length) {
+      state.cacheGuard.rotationOfflineReady = false;
+      state.cacheGuard.rotationOfflineCopies = 0;
+      state.cacheGuard.rotationOfflineSelection = '';
+      return null;
+    }
+    let selected = candidates[0];
+    for (let i = 1; i < candidates.length; i += 1) if (compareRotationOfflineCandidates(candidates[i], selected) > 0) selected = candidates[i];
+    const selectedFingerprint = rotationPayloadFingerprint(selected.payload);
+    let localMatches = !!(local && rotationPayloadFingerprint(local.payload) === selectedFingerprint);
+    let durableMatches = !!(durable && rotationPayloadFingerprint(durable.payload) === selectedFingerprint);
+    if (opts.repair !== false) {
+      const repairMeta = {
+        savedAt: Number(selected.meta && selected.meta.savedAt || selected.updatedAt || Date.now()) || Date.now(),
+        revision: Number(selected.revision || 0) || 0,
+        remoteUpdatedAt: String(selected.meta && selected.meta.remoteUpdatedAt || ''),
+        source: 'offline-repair', fingerprint: selectedFingerprint
+      };
+      if (!localMatches) {
+        saveLocalSnapshot(selected.payload, state.machineSettingsSnapshot || [], repairMeta);
+        local = loadCachedRotationState();
+        localMatches = !!(local && rotationPayloadFingerprint(local.payload) === selectedFingerprint);
+      }
+      if (!durableMatches) {
+        const repaired = await persistDurableRotationState(selected.payload, repairMeta);
+        if (repaired) {
+          durable = await loadDurableRotationState();
+          durableMatches = !!(durable && rotationPayloadFingerprint(durable.payload) === selectedFingerprint);
+        }
+      }
+    }
+    state.cacheGuard.rotationOfflineReady = true;
+    state.cacheGuard.rotationOfflineCopies = Number(localMatches) + Number(durableMatches);
+    state.cacheGuard.rotationOfflineSelection = String(selected.meta && selected.meta.source || 'offline-cache');
+    state.cacheGuard.rotationOfflineSelectionAt = Date.now();
+    state.cacheGuard.rotationOfflineError = state.cacheGuard.rotationOfflineCopies >= 2 ? '' : 'rotation-offline-single-copy';
+    return selected;
+  }
+
+  async function persistRotationOfflineSnapshot(rotation, metadata) {
+    if (!rotation || typeof rotation !== 'object' || !rotation.months) {
+      state.cacheGuard.rotationOfflineReady = false;
+      state.cacheGuard.rotationOfflineCopies = 0;
+      state.cacheGuard.rotationOfflineError = 'rotation-offline-invalid-payload';
+      return { ok: false, copies: 0, local: false, durable: false, reason: 'invalid-payload' };
+    }
+    const meta = normalizeRotationPersistenceMeta(metadata, Date.now(), rotation);
+    const expectedFingerprint = rotationPayloadFingerprint(rotation);
+    saveLocalSnapshot(rotation, state.machineSettingsSnapshot || [], meta);
+    const local = loadCachedRotationState();
+    const localOk = !!(local && rotationPayloadFingerprint(local.payload) === expectedFingerprint);
+    const durableStored = await persistDurableRotationState(rotation, meta);
+    const durable = durableStored ? await loadDurableRotationState() : null;
+    const durableOk = !!(durable && rotationPayloadFingerprint(durable.payload) === expectedFingerprint);
+    const copies = Number(localOk) + Number(durableOk), ok = copies > 0;
+    state.cacheGuard.rotationOfflineReady = ok;
+    state.cacheGuard.rotationOfflineCopies = copies;
+    state.cacheGuard.rotationOfflineVerifiedAt = Date.now();
+    state.cacheGuard.rotationOfflineSelection = ok ? (durableOk ? 'durable-cache' : 'local-cache') : '';
+    state.cacheGuard.rotationOfflineSelectionAt = Date.now();
+    state.cacheGuard.rotationOfflineError = ok ? (copies >= 2 ? '' : 'rotation-offline-single-copy') : 'rotation-offline-write-failed';
+    state.cacheGuard.rotationStorageError = ok ? '' : 'rotation-cache-write-failed';
+    return { ok, copies, local: localOk, durable: durableOk, revision: meta.revision, savedAt: meta.savedAt,
+      reason: ok ? (copies >= 2 ? 'verified-two-copies' : 'verified-one-copy') : 'verification-failed' };
+  }
+
+  async function getRotationOfflineDiagnostics() {
+    const local = loadCachedRotationState(), durable = await loadDurableRotationState();
+    const candidates = [local, durable].filter(item => item && item.payload);
+    let selected = candidates[0] || null;
+    for (let i = 1; i < candidates.length; i += 1) if (compareRotationOfflineCandidates(candidates[i], selected) > 0) selected = candidates[i];
+    const localFingerprint = local ? rotationPayloadFingerprint(local.payload) : '';
+    const durableFingerprint = durable ? rotationPayloadFingerprint(durable.payload) : '';
+    const review = typeof getRakPendingSyncReview === 'function' ? getRakPendingSyncReview() : null;
     return {
-      id: 'main',
-      payload: rotation,
-      updatedAt: snapshot && snapshot.updatedAt ? snapshot.updatedAt : null,
-      meta: { source: 'local-cache' }
+      ok: true, offlineReady: !!selected,
+      selectedSource: selected ? String(selected.meta && selected.meta.source || 'offline-cache') : '',
+      selectedRevision: selected ? Math.max(0, Number(selected.revision || 0) || 0) : 0,
+      copies: Number(!!local) + Number(!!durable),
+      equivalent: !!(localFingerprint && durableFingerprint && localFingerprint === durableFingerprint),
+      local: { present: !!local, revision: local ? Math.max(0, Number(local.revision || 0) || 0) : 0,
+        savedAt: local ? Math.max(0, Number(local.meta && local.meta.savedAt || local.updatedAt || 0) || 0) : 0,
+        source: local ? String(local.meta && local.meta.source || 'local-cache') : '' },
+      durable: { present: !!durable, revision: durable ? Math.max(0, Number(durable.revision || 0) || 0) : 0,
+        savedAt: durable ? Math.max(0, Number(durable.meta && durable.meta.savedAt || durable.updatedAt || 0) || 0) : 0,
+        source: durable ? String(durable.meta && durable.meta.source || 'durable-cache') : '' },
+      storage: { localError: String(state.cacheGuard.rotationStorageError || ''), durableError: String(state.cacheGuard.durableRotationError || ''),
+        offlineError: String(state.cacheGuard.rotationOfflineError || '') },
+      queue: review ? { total: Number(review.total || 0), held: Number(review.held || 0), retryable: Number(review.retryable || 0),
+        unrecognized: Number(review.unrecognized || 0), storageIssue: !!review.storageIssue,
+        labels: Array.isArray(review.labels) ? review.labels.slice(0, 8) : [] } : null
     };
   }
 
@@ -4529,8 +4685,10 @@
           state.rotationSync.lastSource = 'remote';
           state.rotationSync.lastError = null;
           state.lastError = null;
-          saveLocalSnapshot(payload, state.machineSettingsSnapshot || []);
-          await persistDurableRotationState(payload);
+          state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(payload, {
+            revision: Number.isFinite(Number(row.revision)) ? Number(row.revision) : 0,
+            remoteUpdatedAt: row.updated_at || '', source: 'remote'
+          });
           return {
             id: row.key || 'main',
             payload,
@@ -4548,8 +4706,10 @@
             state.rotationSync.lastSource = 'tables';
             state.rotationSync.lastError = null;
             state.lastError = null;
-            saveLocalSnapshot(rebuilt, state.machineSettingsSnapshot || []);
-            await persistDurableRotationState(rebuilt);
+            state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(rebuilt, {
+              revision: row && Number.isFinite(Number(row.revision)) ? Number(row.revision) : 0,
+              remoteUpdatedAt: row && row.updated_at ? row.updated_at : '', source: 'tables'
+            });
             return {
               id: row && row.key ? row.key : 'main',
               payload: rebuilt,
@@ -4574,20 +4734,12 @@
       console.warn('Supabase rotation load failed', err);
     }
 
-    const cached = loadCachedRotationState();
-    if (cached && cached.payload) {
-      state.rotationSnapshot = cached.payload;
-      state.rotationSync.lastSource = 'cache';
+    const offline = await loadBestOfflineRotationState({ repair: true });
+    if (offline && offline.payload) {
+      state.rotationSnapshot = offline.payload;
+      state.rotationSync.lastSource = String(offline.meta && offline.meta.source || 'offline-cache');
       // Never erase an online read error merely because a local copy exists.
-      return cached;
-    }
-
-    const durable = await loadDurableRotationState();
-    if (durable && durable.payload) {
-      state.rotationSnapshot = durable.payload;
-      state.rotationSync.lastSource = 'durable-cache';
-      saveLocalSnapshot(durable.payload, state.machineSettingsSnapshot || []);
-      return durable;
+      return offline;
     }
 
     return null;
@@ -4605,8 +4757,10 @@
         state.rotationSync.lastWriteAt = new Date().toISOString();
         state.rotationSync.lastWriteRevision = Number.isFinite(Number(row.revision)) ? Number(row.revision) : state.rotationRevision;
         state.rotationSync.lastError = null;
-        saveLocalSnapshot(state.rotationSnapshot, state.machineSettingsSnapshot || []);
-        await persistDurableRotationState(state.rotationSnapshot);
+        state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(state.rotationSnapshot, {
+          revision: Number.isFinite(Number(row.revision)) ? Number(row.revision) : state.rotationRevision,
+          remoteUpdatedAt: row.updated_at || '', source: 'remote-write'
+        });
         await flushPendingWrites();
         return {
           ok: true,
@@ -4664,7 +4818,10 @@
       if (row && row.payload) {
         state.rotationSnapshot = row.payload;
         state.lastError = null;
-        saveLocalSnapshot(row.payload, state.machineSettingsSnapshot || []);
+        state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(row.payload, {
+          revision: Number.isFinite(Number(row.revision)) ? Number(row.revision) : state.rotationRevision,
+          remoteUpdatedAt: row.updated_at || '', source: 'restore'
+        });
       }
       return { ok: true, secure: true, data: data || null, row, updatedAt: row && row.updated_at ? row.updated_at : null };
     } catch (err) {
@@ -4988,7 +5145,7 @@
     // RAK_17057_STATUS_GUARD: only a fresh, successful Supabase read warrants green.
     const cached = readLocalSnapshot();
     const cachedRotation = loadCachedRotationState();
-    const hasCache = !!((cachedRotation && cachedRotation.payload) || (cached && Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length));
+    const hasCache = !!((cachedRotation && cachedRotation.payload) || state.cacheGuard.rotationOfflineReady === true || (cached && Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length));
     const queue = readQueue();
     const queueLength = queue.length;
     const storageIssue = String(state.queueGuard && state.queueGuard.storageError || '');
@@ -5002,9 +5159,13 @@
     const conflictCount = queue.filter(item => !!(item && item.conflict)).length;
     const dropped = Number(state.syncGuard.queueDroppedInvalid || 0);
     const base = { queued: queueLength, hasCache, verified, source, lastReadAt: state.rotationSync.lastReadAt || null,
-      conflictCount, dropped, queueIssue, storageIssue: !!storageIssue, hardening: getSupabaseHardeningStatus() };
-    if (state.cacheGuard.rotationStorageError) return Object.assign({}, base, {kind:'error',
-      label:'🔴 Offline kopii rozpisu nelze uložit', detail:'Online rozpis je načtený, ale úložiště telefonu odmítlo jeho trvalé uložení.'});
+      conflictCount, dropped, queueIssue, storageIssue: !!storageIssue,
+      offlineReady: state.cacheGuard.rotationOfflineReady === true, offlineCopies: Math.max(0, Number(state.cacheGuard.rotationOfflineCopies || 0) || 0),
+      offlineSource: String(state.cacheGuard.rotationOfflineSelection || ''), offlineError: String(state.cacheGuard.rotationOfflineError || ''), hardening: getSupabaseHardeningStatus() };
+    if (state.cacheGuard.rotationOfflineError === 'rotation-offline-write-failed' || (state.cacheGuard.rotationStorageError && state.cacheGuard.rotationOfflineReady !== true)) return Object.assign({}, base, {kind:'error',
+      label:'🔴 Offline kopii rozpisu nelze uložit', detail:'Online rozpis je načtený, ale po zápisu se nepodařilo ověřit žádnou trvalou kopii.'});
+    if (online && verified && state.cacheGuard.rotationOfflineError === 'rotation-offline-single-copy') return Object.assign({}, base, {kind:'pending',
+      label:'🟡 Online · offline záloha omezená', detail:'Rozpis je online správně, ale telefon ověřil jen jednu ze dvou trvalých kopií.'});
     if (storageIssue) return Object.assign({}, base, {kind:'error',
       label:'🔴 Lokální frontu nelze uložit', detail:'Neodstraňuj data aplikace. Ručně ulož zálohu fronty přes tento indikátor.'});
     if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) {
@@ -5126,7 +5287,10 @@
     loadRotationState,
     loadCachedRotationState,
     loadDurableRotationState,
+    loadBestOfflineRotationState,
     persistDurableRotationState,
+    persistRotationOfflineSnapshot,
+    getRotationOfflineDiagnostics,
     saveRotationState,
     listRotationBackups,
     restoreRotationBackup,
@@ -5634,6 +5798,7 @@
   window.rakDiscardLocalRotationDrafts=rakDiscardLocalRotationDrafts;
 
   window.getSupabaseSyncStatus = getSyncUiStatus;
+  window.getRakRotationOfflineDiagnostics = getRotationOfflineDiagnostics;
   window.downloadRakPendingSyncBackup = downloadPendingSyncBackup;
   window.getRakPendingSyncReview = getRakPendingSyncReview;
   window.reviewRakRotationRevisionOnDemand = reviewRakRotationRevisionOnDemand;

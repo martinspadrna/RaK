@@ -110,20 +110,31 @@ try{
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
  await until('window.getPwaHardeningStatus?.().swPrecacheMissingCount===0',15000);
  assert.equal(await check("!!document.querySelector('.rakUpdateToast')"),false,'[17052-browser] false update toast after fresh install');
-  // Exercise the installed-PWA path: persist the rotation through the application API,
-  // then remove localStorage so the offline reboot must recover from durable CacheStorage.
-  assert.equal(await check(`(async()=>{
+  // Verify application persistence, then reproduce stale localStorage versus newer durable cache.
+  const persisted=await check(`(async()=>{
    await window.rakEnsureFeature('sync');
-   const current=JSON.parse(JSON.stringify(app.rotation));
-   const monthKey=Object.keys(current.months||{})[0];
-   if(!monthKey)return false;
-   current.months[monthKey].notes=[...(current.months[monthKey].notes||[]),{date:'',shift:'',person:'',code:'',text:'RAK-CI-OFFLINE-17077'}];
-   const stored=await window.RotationSupabaseBridge.persistDurableRotationState(current);
+   await caches.delete('rotace-offline-data-v1');
    localStorage.removeItem('rotace_kalkulacky_state_v123');
    localStorage.removeItem('rotace_supabase_local_state_v1');
    localStorage.setItem('rotace_supabase_queue_v1','[]');
-   return stored;
-  })()`),true,'[17052-browser] durable rotation snapshot was not stored'); const before=httpFailures.length;
+   const current=JSON.parse(JSON.stringify(app.rotation));
+   const monthKey=Object.keys(current.months||{})[0];
+   if(!monthKey)return {ok:false};
+   current.months[monthKey].notes=[...(current.months[monthKey].notes||[]),{date:'',shift:'',person:'',code:'',text:'RAK-CI-OFFLINE-17079'}];
+   const status=await window.RotationSupabaseBridge.persistRotationOfflineSnapshot(current,{revision:17079,remoteUpdatedAt:new Date().toISOString(),source:'ci-online'});
+   const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
+   applyRakRotationState(current,{force:true});
+   const stale=JSON.parse(JSON.stringify(current));
+   stale.months[monthKey].notes=(stale.months[monthKey].notes||[]).filter(note=>note.text!=='RAK-CI-OFFLINE-17079');
+   localStorage.setItem('rotace_kalkulacky_state_v123',JSON.stringify(stale));
+   return {status,diag};
+  })()`);
+ assert.equal(persisted.status?.ok,true,'[17052-browser] verified rotation persistence failed');
+ assert.equal(persisted.status?.copies,2,'[17052-browser] both offline rotation stores were not verified');
+ assert.equal(persisted.diag?.local?.present,true,'[17052-browser] local rotation snapshot missing');
+ assert.equal(persisted.diag?.durable?.present,true,'[17052-browser] durable rotation snapshot missing');
+ assert.equal(persisted.diag?.equivalent,true,'[17052-browser] persistence stores diverged');
+ const before=httpFailures.length;
  await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await send('Page.reload',{ignoreCache:false});
  const offline=await boot('offline reload',expected);
@@ -132,14 +143,15 @@ try{
    await window.rakEnsureFeature('rotation');
    await window.rakEnsureFeature('sync');
    await window.syncRotationFromSupabase(false);
-   const marker=Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17077'));
-   const cached=window.RotationSupabaseBridge.loadCachedRotationState();
+   const marker=Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
+   const cached=await window.RotationSupabaseBridge.loadBestOfflineRotationState({repair:true});
    const canonical=JSON.parse(localStorage.getItem('rotace_kalkulacky_state_v123')||'null');
    const snapshot=JSON.parse(localStorage.getItem('rotace_supabase_local_state_v1')||'null');
-   const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17077'));
-   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function'};
+   const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
+   const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
+   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true},'[17052-browser] durable cache recovery or offline feature bundle missing');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,selectedRevision:17079,equivalent:true},'[17052-browser] newest verified snapshot was not selected/repaired offline');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');

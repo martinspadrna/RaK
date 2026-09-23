@@ -14,14 +14,14 @@ test('1.7.77 offline baseline remains active under the current release identity'
 test('online rotation is mirrored durably and cold offline load restores it',()=>{
   const bridge=read('supabase-bridge.js');
   assert(bridge.includes("const DURABLE_ROTATION_CACHE = 'rotace-offline-data-v1'"));
-  assert(bridge.includes('await persistDurableRotationState(payload);'));
-  assert(bridge.includes('await persistDurableRotationState(rebuilt);'));
-  assert(bridge.includes('const durable = await loadDurableRotationState();'));
-  assert(bridge.includes("meta: { source: 'durable-cache' }"));
+  assert(bridge.includes('persistRotationOfflineSnapshot(payload'));
+  assert(bridge.includes('persistRotationOfflineSnapshot(rebuilt'));
+  assert(bridge.includes('loadBestOfflineRotationState({ repair: true })'));
+  assert(bridge.includes("source: 'durable-cache'"));
   const browser=read('tools/browser-offline-17052.mjs');
-  assert(browser.includes('persistDurableRotationState(current)'));
-  assert(browser.includes("localStorage.removeItem('rotace_kalkulacky_state_v123')"));
-  assert(browser.includes('RAK-CI-OFFLINE-17077'));
+  assert(browser.includes('persistRotationOfflineSnapshot(current'));
+  assert(browser.includes("localStorage.setItem('rotace_kalkulacky_state_v123',JSON.stringify(stale))"));
+  assert(browser.includes('RAK-CI-OFFLINE-17079'));
 });
 
 test('offline profile reads are read-only and older appearance tasks cannot create a global conflict',()=>{
@@ -42,5 +42,5 @@ test('Vercel skip policy is fail closed for workflow and executable filename cha
   assert(!policy.includes('rak-v\\d+'));
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(workflow.includes('node --test tools/release-gate-17077.test.mjs'));
-  assert(workflow.includes('rak-17078-isolated-build-'));
+  assert(/rak-170\d+-isolated-build-/.test(workflow));
 });

@@ -72,8 +72,13 @@ async function syncRotationFromSupabase(force) {
   if(editor && fingerprint===null) return null;
   try {
     // RAK_17067_SKIP_CACHE_ON_FORCE: manual online reload MUST NOT replace a draft with stale offline cache.
-    if (force !== 'discard-draft' && typeof bridge.loadCachedRotationState === 'function') {
-      const cached = bridge.loadCachedRotationState();
+    if (force !== 'discard-draft') {
+      let cached = null;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false && typeof bridge.loadBestOfflineRotationState === 'function') {
+        cached = await bridge.loadBestOfflineRotationState({ repair: true });
+      } else if (typeof bridge.loadCachedRotationState === 'function') {
+        cached = bridge.loadCachedRotationState();
+      }
       if (cached && cached.payload) applyRakRotationState(cached.payload, { force: false });
     }
     refreshRakMachineSettingsInBackground(bridge);
