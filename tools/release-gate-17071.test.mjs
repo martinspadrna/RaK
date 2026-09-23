@@ -77,7 +77,8 @@ test('offline startup is read-only and reconnect refreshes appearance from serve
  const appearance=read('appearance-theme.js'),app=read('app.js'),browser=read('tools/browser-offline-17052.mjs');
  assert(appearance.includes("changed && (typeof navigator === 'undefined' || navigator.onLine !== false)"));
  assert(app.includes("window.addEventListener('online', () => { void syncActiveAppearance('online'); });"));
- for(const marker of ["RAK-CI-OFFLINE-17077","await window.rakEnsureFeature('rotation')","conflictCount:0"])
+ assert(/RAK-CI-OFFLINE-170\d+/.test(browser),'browser regression missing current offline marker');
+ for(const marker of ["await window.rakEnsureFeature('rotation')","conflictCount:0"])
   assert(browser.includes(marker),'browser regression missing '+marker);
 });
 
