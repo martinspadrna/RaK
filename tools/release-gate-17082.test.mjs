@@ -9,6 +9,19 @@ test('1.7.82 identifies Rotation UI rehydration release',()=>{
   assert(metadata.buildId.includes('rotation-ui-rehydrate'));
 });
 
+test('Rotation name index is a shared offline dependency instead of a hidden Brusy prerequisite',()=>{
+  const app=read('app.js');
+  const sw=read('sw.js');
+  const shared=read('rotation-name-index.js');
+  assert(shared.includes('RAK_17082_ROTATION_INDEX_SHARED'));
+  assert(shared.includes('function buildNameIndex(rotation)'));
+  assert(shared.includes('root.buildNameIndex = buildNameIndex'));
+  assert(app.includes('"stats.js",\n    "rotation-name-index.js",\n    "rotace.js"'));
+  assert(app.includes('"rotation-name-index.js",\n    "brusy.js"'));
+  assert(sw.includes("'./rotation-name-index.js?v=1.7.0'"));
+  assert(sw.includes('warm67'));
+});
+
 test('sync cannot run before Rotation consumers are loaded',()=>{
   const app=read('app.js');
   assert(app.includes('RAK_17082_SYNC_REQUIRES_ROTATION_UI'));

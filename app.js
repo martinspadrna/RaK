@@ -109,6 +109,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   const rotationFeatureFiles = [
     "stats.js",
+    "rotation-name-index.js",
     "rotace.js",
     "rotation-tasks.js",
     "admin-daymods.js",
@@ -116,6 +117,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   ];
 
   const calculatorFeatureFiles = [
+    "rotation-name-index.js",
     "brusy.js",
     "soustruhy.js",
     "admin-fhb-calibration.js",
@@ -176,6 +178,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "payroll.js",
     "brusy.js",
     "stats.js",
+    "rotation-name-index.js",
     "dashboard.js",
     "soustruhy.js",
     "rotace.js",
