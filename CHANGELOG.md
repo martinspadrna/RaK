@@ -1,3 +1,10 @@
+## RaK 1.7.83 (development)
+
+- Stránka O aplikaci nově stručně vysvětluje, k čemu RaK slouží.
+- Přehled verze 1.7 doplňuje doložené změny zabezpečení, offline Rotace, reportů a bezpečného ZIP exportu.
+- Otevřené konfliktní scénáře synchronizace nejsou vydávány za dokončené.
+- Viditelná verze je 1.7.83; technická verze zůstává 1.7.0.
+
 ## RaK 1.7.78 (development)
 
 - ZIP export aplikace se při nedostupném čistém `index.html` bezpečně zastaví a nevytvoří archiv z právě zobrazené stránky.

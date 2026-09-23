@@ -53,6 +53,7 @@ jobs:
           node --test tools/release-gate-17080.test.mjs
           node --test tools/release-gate-17081.test.mjs
           node --test tools/release-gate-17082.test.mjs
+          node --test tools/release-gate-17083.test.mjs
           node --test tools/regression-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
