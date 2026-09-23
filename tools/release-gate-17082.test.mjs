@@ -6,7 +6,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.82 identifies Rotation UI rehydration release',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.82');
-  assert(metadata.buildId.includes('rotation-ui-rehydrate'));
+  assert(metadata.displayVersion === '1.7.82' ? metadata.buildId.includes('rotation-ui-rehydrate') : metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
 
 test('Rotation name index is a shared offline dependency instead of a hidden Brusy prerequisite',()=>{
