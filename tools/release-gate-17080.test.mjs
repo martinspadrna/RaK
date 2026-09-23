@@ -53,7 +53,7 @@ test('browser regression removes ordinary HTTP cache and proves self-hosted SDK 
   assert(browser.includes('supabaseSdkOffline:true'));
   assert(browser.includes("window.dispatchEvent(new Event('online'))"));
   assert(browser.includes("await until('!!window.supabase?.createClient'"));
-  assert(browser.includes("'[17052-browser] online recovery required a page reload'"));
+  assert(browser.includes('online recovery did not rehydrate Rotation-driven UI without reload'));
 });
 
 test('mandatory CI executes the 1.7.80 gate',()=>{

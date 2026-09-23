@@ -78,8 +78,10 @@ test('offline startup is read-only and reconnect refreshes appearance from serve
  assert(appearance.includes("changed && (typeof navigator === 'undefined' || navigator.onLine !== false)"));
  assert(app.includes("window.addEventListener('online', () => { void syncActiveAppearance('online'); });"));
  assert(/RAK-CI-OFFLINE-170\d+/.test(browser),'browser regression missing current offline marker');
- for(const marker of ["await window.rakEnsureFeature('rotation')","conflictCount:0"])
+ for(const marker of ["rotationReady:window.rakIsFeatureReady('rotation')","conflictCount:0"])
   assert(browser.includes(marker),'browser regression missing '+marker);
+ const offlineBlock=browser.slice(browser.indexOf('const offlineRotation=await check'),browser.indexOf('const offlineUi='));
+ assert(!offlineBlock.includes("await window.rakEnsureFeature('rotation')"),'successor cold boot must not need manual Rotation loading');
 });
 
 test('strict CI runs the semantic gate, real Chromium and two canonical builds',()=>{
