@@ -14,9 +14,9 @@
 
 | Bod | Výsledek | Procento | Povaha stavu |
 |---|---|---:|---|
-| P0.1 | Účty a data pracovníků | **60 % (3/5)** | Otevřeno, OS-only omezení trvá |
+| P0.1 | Účty a data pracovníků | **80 % (4/5)** | Otevřeno, OS-only omezení trvá |
 | P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno **pouze rozhodnutím o přijatém riziku** |
-| P0.3 | API, exporty a historické klienty | **60 % (3/5)** | Otevřeno |
+| P0.3 | API, exporty a historické klienty | **80 % (4/5)** | Otevřeno |
 | P0.4 | Role vlastníka a administrátorů | **80 % (4/5)** | Otevřeno |
 | P1.1 | Databázová oprávnění, RLS a RPC | **80 % (4/5)** | Otevřeno |
 | P1.2 | Administrátorské heslo, relace a zařízení | **80 % (4/5)** | Otevřeno |
@@ -34,13 +34,13 @@
 
 ## P0 · Bezpečnost a soukromí
 
-### P0.1 – Účty a data pracovníků · **60 % (3/5)**
+### P0.1 – Účty a data pracovníků · **80 % (4/5)**
 
 Cíl: omezit zbytečné zveřejňování osobních údajů bez změny vlastníkem schváleného přihlášení zaměstnanců.
 
 - [x] Zabránit anonymnímu čtení celého adresáře zaměstnanců; ověřeno dosavadními API a anonymními HTTP kontrolami.
 - [x] Omezit vyhledání účtu přes lookup v2 a zachovat běžné přihlášení výhradně OS číslem.
-- [ ] Projít staré exporty, předchozí PWA/service worker a zálohy z hlediska dostupnosti adresáře, kontaktů a citlivých metadat; zdokumentovat, co nelze vzít zpět z Git historie či už stažených kopií.
+- [x] Projít staré exporty, předchozí PWA/service worker a zálohy z hlediska dostupnosti adresáře, kontaktů a citlivých metadat; zdokumentovat, co nelze vzít zpět z Git historie či už stažených kopií.
 - [x] Ověřit povolené a zakázané datové cesty se skutečnými podepsanými owner/admin/deputy JWT i anonymní relací; nikdy nevystavovat token v logu.
 - [ ] Přidat dlouhodobé regresní kontroly rozsahu osobních polí v odpovědích a exportech, včetně negativních případů.
 
@@ -58,16 +58,16 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** rozhodnutí uzavřeno, **ne** tvrzení, že jména a absence jsou soukromé. Nový nález širšího úniku patří zpět do P0.1/P0.3/P1.1 a může vyžadovat nové rozhodnutí.
 
-### P0.3 – API, exporty a staré klienty · **60 % (3/5)**
+### P0.3 – API, exporty a staré klienty · **80 % (4/5)**
 
 - [x] Omezené login/legacy admin API, allowlist reportů a testovací HTTP sondy anonymního a neplatného JWT (dosavadní sada 18 kontrol).
 - [x] Kontroly formátu ZIP, manifestu, kontrolních součtů/CRC a povolených typů souborů existují.
 - [x] Reálně vyzkoušet owner/admin/deputy JWT, odmítnutí cizího účtu a přístup k privilegovaným exportům/API.
 - [ ] Ověřit soukromé stažení a otevření zálohy na skutečném iPhonu, bez úniku do veřejných umístění.
-- [ ] Prověřit staré PWA/cache, chování chráněné Vercel preview URL a API/exporty ze starších buildů; regresní testy nesmějí obejít autorizaci.
+- [x] Prověřit staré PWA/cache, chování chráněné Vercel preview URL a API/exporty ze starších buildů; regresní testy nesmějí obejít autorizaci.
 
 
-**Doplnění auditu starších preview 23. 9. 2026:** přes Vercel autentizovaný read-only HTTP přístup byly prověřeny čtyři READY development buildy `dpl_Hci5FbQCWFcehJTkfHkWCNGvM3ya` (`3c040643`), `dpl_C6fkkvMNdV9LSqcV9eHnxdi33dzX` (`cd6e8b89`), `dpl_Erg2nVhGsQtdgpRk81wBz7A9tPcy` (`445f6d18`) a `dpl_FKtZmysaTpjWibxTAzRyVP1shzkw` (`173d57fd`). Ve všech byl přítomen pouze TEST projekt `cgshssdjgzzuprlwnabl`, produkční `bkqamcbkiwumsvelahxr` chyběl a `/api/admin-users` i `/api/rotation-absence-calendar` vracely `410`; těla odpovědí nebyla logována. Tento vzorek neprokazuje stav všech dříve stažených ZIPů ani již nainstalovaných PWA cache, proto checkbox a P0.3 zůstávají otevřené na 40 %.
+**Kompletní audit zachovaných development preview, exportů a PWA 23. 9. 2026:** Vercel eviduje 34 deploymentů; z 18 development pokusů je 13 READY, čtyři ERROR a jeden CANCELED. Všech 13 READY buildů (`3c040643`, `cd6e8b89`, `630c1d0e`, `23b14e6b`, `2e710506`, `e0ea3d0a`, `445f6d18`, `173d57fd`, `b828a5e6`, `9eced072`, `50795a7c`, `7698b442`, `f2e064f8`) bylo prověřeno přes autentizovaný Vercel CLI bez shareable parametru: hlavní HTML, `sw.js`, manifest a `export.js` vracely HTTP 200; oba vyřazené endpointy `/api/admin-users` a `/api/rotation-absence-calendar` HTTP 410; konfigurace obsahovala pouze TEST `cgshssdjgzzuprlwnabl` a nikoli produkční `bkqamcbkiwumsvelahxr`. Přímý anonymní vstup na každý preview origin skončil HTTP 302 na `vercel.com/sso-api`; query parametry nebyly logovány. Starý i současný zdroj service workeru ignoruje cizí origin a `/api/`, necachuje odpovědi `no-store`/`private` a neobsahuje produkční ID ani Supabase runtime cache. Historické Vercel API před vyřazením ověřovalo bearer token přes `/auth/v1/user`, databázovou roli a owner gate. Běžný ZIP export balí zdroj aplikace a aktuální rotaci; při výjimečném selhání načtení čistého `index.html` může použít klon živého DOM, proto se i tento stažený ZIP musí považovat za soukromý. Owner disaster-recovery ZIP záměrně obsahuje provozní osobní data a sanitizované Auth údaje, je chráněn owner-only RPC a po stažení jej nelze vzdáleně odvolat. Stejně nelze přepsat Git historii ani prohlásit za smazané dříve stažené ZIPy či PWA cache na cizích zařízeních; žádné mazání historie nebo uživatelských dat neproběhlo. Tím jsou historické podmínky P0.1 a P0.3 doložené a oba body se zvyšují na 80 % (4/5). Automatická dlouhodobá regrese rozsahu osobních polí a fyzické soukromé otevření backup ZIPu na iPhonu zůstávají otevřené.
 **Dokončení:** každý export/API má zdokumentovaný datový rozsah a pozitivní i negativní test ve skutečném prostředí.
 
 ### P0.4 – Role vlastníka a administrátorů · **80 % (4/5)**
@@ -233,4 +233,3 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - **21. 9. 2026 – skutečná CI-before-deploy brána:** commit `50795a7cd13c0733523b0cb5decabeed00b838bf` vypnul automatické Vercel Git deploymenty pouze pro `development` a přidal kontrakt brány do povinného CI preflightu. Push nevytvořil žádný Vercel deployment; po Actions runu `35606650384` SUCCESS (run #135) byl ručně přes Vercel API založen preview `dpl_BY2VDD2WuiVkbpEDGToX2oLZZFWn`, který je READY na témže SHA, development alias má `aliasError: null` a odpovídá HTTP 200 (`text/html`, 53 265 B). P1.4 se zvyšuje na 67 % (4/6). Obecná branch/ruleset ochrana, odolnost proti změně workflow a automatické ukládání úplného důkazního řetězce budoucích releasů zůstávají otevřené. Produkční deployment zůstává READY na main SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`; produkční Supabase beze změn.
 - **21. 9. 2026 – stabilní opakovaný build a ověřený preview rollback:** development SHA `7698b442e8826cff94127611db62e459f70199fc`, Actions run `35601348892` SUCCESS; tři shodné build průchody doložily digest `3dd1b5351a3e695523e2cf07d050da624cf7bdcd77c8b995bf17f2f052b1fac1`. Vercel development deployment `dpl_CDWKvYAjTnA9kM4xe9SJweD3gQuW` je READY na stejném SHA. Izolovaný preview alias byl ověřen před rollbackem, během přepnutí na READY SHA `7c78d37936c4b66248213c835f4e7d6873c2b22c` i po návratu (vždy HTTP 200, `text/html`, 53 102 B) a následně odstraněn. P1.4 se zvyšuje na 50 % (3/6); striktní CI-before-deploy brána zůstává otevřená. `main` a produkční Supabase beze změn.
 - **21. 9. 2026 – nový měřitelný plán:** zachováno všech 13 oblastí; P1.3 zůstává otevřený; přidána kontrolovatelná podkritéria a procenta, S1–S6 mapovány dovnitř plánu. Nejedná se o dodání nové funkcionality ani o potvrzení opravy konfliktu. Další aktualizace zapisovat do tohoto souboru, s evidence pro změny `[x]` i procent.
-
