@@ -214,8 +214,9 @@ jobs:
             headers:{...auth,'content-type':'application/json'},
             body:JSON.stringify({override:{scope:'alias-protection-override',action:'create'}})
           });
-          if(!patchResponse.ok) throw new Error('Alias protection override failed with HTTP '+patchResponse.status);
-          console.log('[release] stable development alias protection override active');
+          if(!patchResponse.ok && patchResponse.status!==400) throw new Error('Alias protection override failed with HTTP '+patchResponse.status);
+          if(patchResponse.ok) console.log('[release] stable development alias protection override active');
+          else console.log('[release] alias override already active or not recreated; anonymous HTTP verification decides');
           NODE
       - name: Verify the stable development alias is publicly usable without Vercel auth
         if: steps.policy.outputs.deploy == 'true'
