@@ -32,28 +32,29 @@ Po této větě musí agent sám online zjistit aktuální SHA `development`, na
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální „opravu“.
 - Neoslabovat ani neobcházet testy. Opravovat skutečnou příčinu.
 - Technická/package verze zůstává `1.7.0`.
-- Současná viditelná verze je `1.7.82`; příští skutečný funkční release je `1.7.83`. Opravné commity před jeho deploymentem číslo znovu nezvyšují.
+- Současná viditelná verze je `1.7.83`; příští skutečný funkční release je `1.7.84`. Opravné commity před jeho deploymentem číslo znovu nezvyšují.
 - Dokumentační nebo čistě testovací změna bez změny aplikace nezvyšuje verzi a nevytváří Vercel deployment.
 - Větší tematické balíky, minimum commitů a jediný preview deployment až po úplně zeleném CI přesného SHA.
 
 ## Aktuální ověřený runtime
 
-- Poslední funkční runtime SHA: `1c6dc4e12eb4b1519e910a3b00bc64a1f5895767`
-- Viditelná verze: `1.7.82`
+- Poslední funkční runtime SHA: `7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`
+- Viditelná verze: `1.7.83`
 - Technická verze: `1.7.0`
-- Cache: `v1.7.82`
-- Build ID: `v1.7.82-rotation-ui-rehydrate1`
-- GitHub Actions: run #243, ID `35889947003`, SUCCESS
-- Actions URL: https://github.com/martinspadrna/RaK/actions/runs/35889947003
-- Poslední funkční release deployment: `dpl_6m3mDvWpRAXNRKhR1LaceaJnx7jd`, READY
-- Aktuální stabilní alias míří na jednorázově povolený dokumentační preview `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`, READY, commit `1baa9cdec9d5391bb91c4cb45bf4785c995757fa`; aplikační runtime a metadata zůstávají 1.7.82.
+- Cache: `v1.7.83`
+- Build ID: `v1.7.83-about-release1`
+- GitHub Actions: run #254, ID `35917440681`, SUCCESS
+- Actions URL: https://github.com/martinspadrna/RaK/actions/runs/35917440681
+- Poslední funkční release deployment: `dpl_5h3ivfYu3U8C9iHEYxLPyavacL5i`, READY
+- Aktuální stabilní alias míří na tento funkční deployment se stejným SHA.
 - Deployment SHA odpovídá přesně runtime SHA.
 - Stabilní development alias: `skoda-spada-git-development-martinspadrnas-projects.vercel.app`
-- Strojový artefakt: `rak-release-evidence-1c6dc4e12eb4b1519e910a3b00bc64a1f5895767`, výsledek PASS.
-- Immutable i stabilní HTTP ověřily HTML, `sw.js`, metadata a TEST konfiguraci; produkční Supabase ID ve výstupu není.
+- Strojový artefakt: `rak-release-evidence-7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`, ID `10775104700`, výsledek PASS.
+- Immutable i stabilní HTTP ověřily HTML, `sw.js`, metadata, kořenový Supabase vendor asset a TEST konfiguraci; produkční Supabase ID ve výstupu není.
 - `main` při releasu zůstal `ceca9f9644da3dc41059c5d232661d27bc6dba18`.
 - Produkční deployment zůstal při releasu beze změny.
-- Konkrétní nedestruktivní rollback cíl je uložen ve strojovém release artefaktu; před použitím se musí znovu ověřit READY stav a projektová identita.
+- Konkrétní nedestruktivní rollback cíl: READY `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`; před použitím znovu ověřit READY stav a projektovou identitu.
+- RaK 1.7.83 doplnila stránku „O aplikaci“ o stručný účel aplikace a doložené změny řady 1.7.
 
 Dokumentační commity nad tímto runtime standardně nemají vlastní nový Vercel deployment. Při prvním přidání tohoto dosud neznámého souboru fail-closed politika výjimečně vytvořila preview `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`; vlastník tento jediný deployment výslovně povolil. Commit `15a78a85afec80170440f6ff1dc36b87a8451cb4` přidal `RAK_HANDOFF.md` do přesného dokumentačního allowlistu a kontraktního testu. Ruční Actions #250 / run `35914753211` na témže SHA prošel bez release jobu. Další samostatná změna `RAK_HANDOFF.md` proto musí skončit dokumentačním skipem. Živý `development` HEAD se vždy zjišťuje online a může být novější než runtime SHA.
 
@@ -94,11 +95,12 @@ Bilance: 4/13 oblastí uzavřeny, 9/13 otevřených. Přesné checkboxy, jejich 
 
 ## Nejbližší bezpečné pokračování
 
-1. Neopakovat už uzavřenou offline hypotézu P2.3.
-2. Online lze pokračovat přípravou P2.4 a zbývajícího konfliktního workflow P2.3; serverový CAS vyžaduje návrh, TEST migraci, souběžné testy a reverzní postup, nikdy produkční migraci.
-3. P0.3, P0.4 a P1.2 čekají na konkrétní fyzické iPhone/Safari scénáře. Chromium se nesmí vydávat za jejich splnění.
-4. P1.5 může pokračovat kontrolou záloh a návrhem obnovy. Nový oddělený projekt nebo placená funkce není bez souhlasu povolena.
-5. P2.1/P2.2 pokračují měřenými a stabilními regresními testy až po prioritních bezpečnostních úkolech.
+1. Vlastník zvažuje posun ověřené verze do `main`. Před zápisem do `main` znovu vyžádat jednoznačné konečné potvrzení.
+2. Produkční příprava musí nejprve sladit pět commitů, kterými se `main` od společného předka liší, a ověřit produkční build/configurační transformaci. `development` nesmí být do `main` prostě přepsán, protože vývojový zdroj je záměrně svázán s TEST Supabase.
+3. Produkční Supabase `bkqamcbkiwumsvelahxr` ani produkční Vercel alias/deployment neměnit bez samostatného výslovného souhlasu; žádnou TEST migraci automaticky nepřenášet do produkce.
+4. Po případném produkčním vydání pokračovat se všemi dalšími úpravami zase pouze v `development`, TEST Supabase a development preview.
+5. Neopakovat už uzavřenou offline hypotézu P2.3. Online lze pokračovat P2.4, zbývajícím konfliktním workflow P2.3 a bezplatnou přípravou P1.5.
+6. P0.3, P0.4 a P1.2 čekají na konkrétní fyzické iPhone/Safari scénáře. Chromium se nesmí vydávat za jejich splnění.
 
 ## Povinná release brána
 
