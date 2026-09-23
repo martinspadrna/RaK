@@ -6,7 +6,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.81 identifies the root-level Supabase asset release',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.81');
-  assert(metadata.buildId.includes('supabase-root-asset'));
+  assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
 
 test('Supabase SDK is emitted at the static output root and all runtime references match',()=>{

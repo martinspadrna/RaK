@@ -257,7 +257,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const featureSpecs = Object.freeze({
     rotation: Object.freeze({ files: rotationFeatureFiles, dependencies: Object.freeze([]) }),
     calculators: Object.freeze({ files: calculatorFeatureFiles, dependencies: Object.freeze([]) }),
-    sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze([]) }),
+    // RAK_17082_SYNC_REQUIRES_ROTATION_UI: dashboard "kam jdu" and the first
+    // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
+    // before those consumers exist, especially on a cold offline iOS start.
+    sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, dependencies: Object.freeze([]) }),
     admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["menu", "sync"]) })
   });
@@ -395,6 +398,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function afterFeatureReady(name) {
     if (name === 'rotation') {
       try { if (typeof installRakRotationControlBindings === 'function') installRakRotationControlBindings(); } catch (err) { console.warn('Rotace bindings po lazy-loadu selhaly', err); }
+      // A snapshot may already be in app.rotation before this lazy group becomes
+      // available. Rehydrate all Rotation-driven UI immediately; do not wait for
+      // a page reopen or a full application restart.
+      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
+      try { if (typeof renderRakDashboardAnnouncement === 'function') renderRakDashboardAnnouncement(); } catch (err) {}
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
     } else if (name === 'sync') {

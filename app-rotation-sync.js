@@ -20,6 +20,15 @@ function applyRakRotationState(payload, options) {
   if (typeof app !== 'undefined' && app.selectedMonth && typeof renderMonth === 'function') renderMonth(app.selectedMonth);
   if (typeof app !== 'undefined' && app.selectedName && typeof renderPerson === 'function') renderPerson(app.selectedName);
   if (typeof updateImportBoxVisibility === 'function') updateImportBoxVisibility();
+
+  // RAK_17082_ROTATION_UI_REHYDRATE: applying cached/remote Rotation is a state
+  // transition for Home too. The dashboard uses Rotation helpers for "kam jdu",
+  // so refresh it in the same transaction instead of waiting for restart/focus.
+  try {
+    if (typeof updateDashboard === 'function') updateDashboard();
+    else if (typeof forceHomeRefresh === 'function') forceHomeRefresh();
+  } catch (err) {}
+  try { if (typeof renderRakDashboardAnnouncement === 'function') renderRakDashboardAnnouncement(); } catch (err) {}
   return next;
 }
 

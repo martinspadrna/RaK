@@ -144,18 +144,17 @@ try{
  const offline=await boot('offline reload',expected);
  assert(offline.controller,'[17052-browser] offline shell lost service worker');
  const offlineRotation=await check(`(async()=>{
-   await window.rakEnsureFeature('rotation');
-   await window.rakEnsureFeature('sync');
-   await window.syncRotationFromSupabase(false);
+   // RAK_17082: no manual feature/sync calls here. Cold offline boot itself must
+   // have loaded Rotation consumers and applied the persisted snapshot before ready.
    const marker=Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
    const cached=await window.RotationSupabaseBridge.loadBestOfflineRotationState({repair:true});
    const canonical=JSON.parse(localStorage.getItem('rotace_kalkulacky_state_v123')||'null');
    const snapshot=JSON.parse(localStorage.getItem('rotace_supabase_local_state_v1')||'null');
    const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
    const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
-   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
+   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:true},'[17052-browser] newest verified snapshot or self-hosted Supabase SDK was not available offline');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:true},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI before ready');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
@@ -171,8 +170,8 @@ try{
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await check(`(()=>{window.dispatchEvent(new Event('online'));return true})()`);
  await until('!!window.supabase?.createClient',20000);
- const reconnectWithoutReload=await check(`(()=>({sdk:!!window.supabase?.createClient,syncReady:window.rakIsFeatureReady('sync'),marker:Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'))}))()`);
- assert.deepEqual(reconnectWithoutReload,{sdk:true,syncReady:true,marker:true},'[17052-browser] online recovery required a page reload');
+ const reconnectWithoutReload=await check(`(()=>({sdk:!!window.supabase?.createClient,rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',marker:Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'))}))()`);
+ assert.deepEqual(reconnectWithoutReload,{sdk:true,rotationReady:true,syncReady:true,scheduleModel:true,dashboard:true,marker:true},'[17052-browser] online recovery did not rehydrate Rotation-driven UI without reload');
  await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);
  const recovered=await check(`(async()=>{
    await window.rakEnsureFeature('sync');
