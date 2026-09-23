@@ -27,6 +27,7 @@ test('verify job cannot deploy and release job depends on complete green verific
   assert(release.includes('VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}'),'encrypted Vercel credential missing');
   assert(release.includes('vercel@59.24.0'),'Vercel CLI must be pinned');
   assert(release.includes('vercel deploy --prebuilt --yes --target=preview'),'deployment must use verified prebuilt preview target');
+  assert(release.includes('vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl / --deployment "$DEPLOYMENT_ID"'),'Vercel authentication options must precede curl subcommand');
   assert(!/--prod\b|--target=production/.test(release),'production deployment is prohibited');
 });
 

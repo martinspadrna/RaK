@@ -177,10 +177,10 @@ jobs:
         if: steps.policy.outputs.deploy == 'true'
         run: |
           mkdir -p .rak-release-evidence/http/immutable
-          vercel curl / --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/index.headers --output .rak-release-evidence/http/immutable/index.body
-          vercel curl /sw.js --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/sw.headers --output .rak-release-evidence/http/immutable/sw.body
-          vercel curl /rak-release-metadata.js --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/metadata.headers --output .rak-release-evidence/http/immutable/metadata.body
-          vercel curl /supabase-config.js --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/supabase.headers --output .rak-release-evidence/http/immutable/supabase.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl / --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/index.headers --output .rak-release-evidence/http/immutable/index.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl /sw.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/sw.headers --output .rak-release-evidence/http/immutable/sw.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl /rak-release-metadata.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/metadata.headers --output .rak-release-evidence/http/immutable/metadata.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl /supabase-config.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/supabase.headers --output .rak-release-evidence/http/immutable/supabase.body
           node tools/release-evidence.mjs http-check immutable .rak-release-evidence/http/immutable .rak-release-evidence/http-immutable.json
       - name: Move only the stable development alias after immutable verification
         if: steps.policy.outputs.deploy == 'true'
@@ -192,10 +192,10 @@ jobs:
         if: steps.policy.outputs.deploy == 'true'
         run: |
           mkdir -p .rak-release-evidence/http/stable
-          vercel curl / --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/index.headers --output .rak-release-evidence/http/stable/index.body
-          vercel curl /sw.js --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/sw.headers --output .rak-release-evidence/http/stable/sw.body
-          vercel curl /rak-release-metadata.js --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/metadata.headers --output .rak-release-evidence/http/stable/metadata.body
-          vercel curl /supabase-config.js --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/supabase.headers --output .rak-release-evidence/http/stable/supabase.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl / --deployment "https://$STABLE_ALIAS" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/index.headers --output .rak-release-evidence/http/stable/index.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl /sw.js --deployment "https://$STABLE_ALIAS" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/sw.headers --output .rak-release-evidence/http/stable/sw.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl /rak-release-metadata.js --deployment "https://$STABLE_ALIAS" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/metadata.headers --output .rak-release-evidence/http/stable/metadata.body
+          vercel --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" curl /supabase-config.js --deployment "https://$STABLE_ALIAS" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/supabase.headers --output .rak-release-evidence/http/stable/supabase.body
           node tools/release-evidence.mjs http-check stable-alias .rak-release-evidence/http/stable .rak-release-evidence/http-stable-alias.json
       - name: Prove main and production remained unchanged and assemble release evidence
         if: steps.policy.outputs.deploy == 'true'
