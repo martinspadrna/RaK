@@ -14,7 +14,7 @@
 
 | Bod | Výsledek | Procento | Povaha stavu |
 |---|---|---:|---|
-| P0.1 | Účty a data pracovníků | **80 % (4/5)** | Otevřeno, OS-only omezení trvá |
+| P0.1 | Účty a data pracovníků | **100 % (5/5)** | Uzavřeno; dlouhodobé privacy/export regrese doložené na vydaném runtime |
 | P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno **pouze rozhodnutím o přijatém riziku** |
 | P0.3 | API, exporty a historické klienty | **80 % (4/5)** | Otevřeno |
 | P0.4 | Role vlastníka a administrátorů | **80 % (4/5)** | Otevřeno |
@@ -28,13 +28,13 @@
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
-**Bilance: 3/13 uzavřeny (P0.2 rozhodnutím o riziku, P1.3 a P1.4 technicky), 10/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 4/13 uzavřeny (P0.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 9/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
 ## P0 · Bezpečnost a soukromí
 
-### P0.1 – Účty a data pracovníků · **80 % (4/5)**
+### P0.1 – Účty a data pracovníků · **100 % (5/5)**
 
 Cíl: omezit zbytečné zveřejňování osobních údajů bez změny vlastníkem schváleného přihlášení zaměstnanců.
 
@@ -42,9 +42,11 @@ Cíl: omezit zbytečné zveřejňování osobních údajů bez změny vlastníke
 - [x] Omezit vyhledání účtu přes lookup v2 a zachovat běžné přihlášení výhradně OS číslem.
 - [x] Projít staré exporty, předchozí PWA/service worker a zálohy z hlediska dostupnosti adresáře, kontaktů a citlivých metadat; zdokumentovat, co nelze vzít zpět z Git historie či už stažených kopií.
 - [x] Ověřit povolené a zakázané datové cesty se skutečnými podepsanými owner/admin/deputy JWT i anonymní relací; nikdy nevystavovat token v logu.
-- [ ] Přidat dlouhodobé regresní kontroly rozsahu osobních polí v odpovědích a exportech, včetně negativních případů.
+- [x] Přidat dlouhodobé regresní kontroly rozsahu osobních polí v odpovědích a exportech, včetně negativních případů.
 
 **Dokončení:** všechny soukromé údaje mimo výslovně přijatý rozsah veřejné rotace chráněné a prověřené napříč novým i historickým klientem. **Omezení:** zaměstnancům nepřidávat hesla, e-maily, OTP ani vlastní Supabase Auth účty.
+
+**Důkaz uzavření P0.1 – vydaný runtime 1.7.82:** funkční změna od SHA `62ced2d549b76f190748b6bbc1c9f77106b71ad0` odstranila z běžného ZIP exportu fallback klonující živý DOM; při nedostupném čistém `index.html` se export zastaví ještě před vytvořením ZIPu. `runtime-vm-fixture.test.mjs` ověřuje záporný scénář včetně nulového vytvoření ZIPu a stažení, `security-current-smoke-1630.mjs` zakazuje návrat DOM fallbacku a `http-anon-audit-17050.mjs` rekurzivně odmítá vyjmenovaná osobní pole ve veřejných nastaveních a neplatných login odpovědích. Tyto kontroly prošly v povinném `npm run check` i živé TEST HTTP bráně releasu 1.7.82 na SHA `1c6dc4e12eb4b1519e910a3b00bc64a1f5895767`, Actions run #243 (`35889947003`). Strojový release artefakt je PASS, Vercel `dpl_6m3mDvWpRAXNRKhR1LaceaJnx7jd` je READY na témže SHA, alias i immutable HTTP mají TEST `cgshssdjgzzuprlwnabl`, produkční ID chybí a produkční deployment i `main` zůstaly beze změny. Tím je poslední checkbox P0.1 dlouhodobě a na konkrétním releasu doložen; P0.1 se zvyšuje na 100 % (5/5). Přijatý veřejný rozsah společné rotace z P0.2 se tím nemění.
 
 ### P0.2 – Sdílená rotace a soukromí · **100 % (5/5; rozhodnutí, ne technická ochrana)**
 
@@ -67,7 +69,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [x] Prověřit staré PWA/cache, chování chráněné Vercel preview URL a API/exporty ze starších buildů; regresní testy nesmějí obejít autorizaci.
 
 
-**Kompletní audit zachovaných development preview, exportů a PWA 23. 9. 2026:** Vercel eviduje 34 deploymentů; z 18 development pokusů je 13 READY, čtyři ERROR a jeden CANCELED. Všech 13 READY buildů (`3c040643`, `cd6e8b89`, `630c1d0e`, `23b14e6b`, `2e710506`, `e0ea3d0a`, `445f6d18`, `173d57fd`, `b828a5e6`, `9eced072`, `50795a7c`, `7698b442`, `f2e064f8`) bylo prověřeno přes autentizovaný Vercel CLI bez shareable parametru: hlavní HTML, `sw.js`, manifest a `export.js` vracely HTTP 200; oba vyřazené endpointy `/api/admin-users` a `/api/rotation-absence-calendar` HTTP 410; konfigurace obsahovala pouze TEST `cgshssdjgzzuprlwnabl` a nikoli produkční `bkqamcbkiwumsvelahxr`. Přímý anonymní vstup na každý preview origin skončil HTTP 302 na `vercel.com/sso-api`; query parametry nebyly logovány. Starý i současný zdroj service workeru ignoruje cizí origin a `/api/`, necachuje odpovědi `no-store`/`private` a neobsahuje produkční ID ani Supabase runtime cache. Historické Vercel API před vyřazením ověřovalo bearer token přes `/auth/v1/user`, databázovou roli a owner gate. Běžný ZIP export balí zdroj aplikace a aktuální rotaci; při výjimečném selhání načtení čistého `index.html` může použít klon živého DOM, proto se i tento stažený ZIP musí považovat za soukromý. Owner disaster-recovery ZIP záměrně obsahuje provozní osobní data a sanitizované Auth údaje, je chráněn owner-only RPC a po stažení jej nelze vzdáleně odvolat. Stejně nelze přepsat Git historii ani prohlásit za smazané dříve stažené ZIPy či PWA cache na cizích zařízeních; žádné mazání historie nebo uživatelských dat neproběhlo. Tím jsou historické podmínky P0.1 a P0.3 doložené a oba body se zvyšují na 80 % (4/5). Automatická dlouhodobá regrese rozsahu osobních polí a fyzické soukromé otevření backup ZIPu na iPhonu zůstávají otevřené.
+**Kompletní audit zachovaných development preview, exportů a PWA 23. 9. 2026:** Vercel eviduje 34 deploymentů; z 18 development pokusů je 13 READY, čtyři ERROR a jeden CANCELED. Všech 13 READY buildů (`3c040643`, `cd6e8b89`, `630c1d0e`, `23b14e6b`, `2e710506`, `e0ea3d0a`, `445f6d18`, `173d57fd`, `b828a5e6`, `9eced072`, `50795a7c`, `7698b442`, `f2e064f8`) bylo prověřeno přes autentizovaný Vercel CLI bez shareable parametru: hlavní HTML, `sw.js`, manifest a `export.js` vracely HTTP 200; oba vyřazené endpointy `/api/admin-users` a `/api/rotation-absence-calendar` HTTP 410; konfigurace obsahovala pouze TEST `cgshssdjgzzuprlwnabl` a nikoli produkční `bkqamcbkiwumsvelahxr`. Přímý anonymní vstup na každý preview origin skončil HTTP 302 na `vercel.com/sso-api`; query parametry nebyly logovány. Starý i současný zdroj service workeru ignoruje cizí origin a `/api/`, necachuje odpovědi `no-store`/`private` a neobsahuje produkční ID ani Supabase runtime cache. Historické Vercel API před vyřazením ověřovalo bearer token přes `/auth/v1/user`, databázovou roli a owner gate. Běžný ZIP export balí zdroj aplikace a aktuální rotaci; od 1.7.78 při selhání načtení čistého `index.html` bezpečně skončí před vytvořením ZIPu a nikdy nepoužije klon živého DOM. Úspěšně vytvořený ZIP s aktuální rotací je i nadále soukromý soubor. Owner disaster-recovery ZIP záměrně obsahuje provozní osobní data a sanitizované Auth údaje, je chráněn owner-only RPC a po stažení jej nelze vzdáleně odvolat. Stejně nelze přepsat Git historii ani prohlásit za smazané dříve stažené ZIPy či PWA cache na cizích zařízeních; žádné mazání historie nebo uživatelských dat neproběhlo. Tím jsou historické podmínky P0.1 a P0.3 doložené a oba body se zvyšují na 80 % (4/5). Dlouhodobá regrese rozsahu osobních polí je následně doložena vydaným runtime 1.7.82; otevřené zůstává pouze fyzické soukromé otevření backup ZIPu na iPhonu v P0.3.
 **Dokončení:** každý export/API má zdokumentovaný datový rozsah a pozitivní i negativní test ve skutečném prostředí.
 
 ### P0.4 – Role vlastníka a administrátorů · **80 % (4/5)**
@@ -214,6 +216,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **23. 9. 2026 – P0.1 uzavřeno na vydaném runtime 1.7.82:** povinné regrese nyní pokrývají rekurzivní osobní pole ve veřejných/neplatných HTTP odpovědích i záporný exportní scénář bez živého DOM fallbacku. Důkaz: SHA `1c6dc4e12eb4b1519e910a3b00bc64a1f5895767`, Actions #243 / run `35889947003` SUCCESS, Vercel `dpl_6m3mDvWpRAXNRKhR1LaceaJnx7jd` READY, TEST-only konfigurace. P0.1 se zvyšuje z 80 % (4/5) na 100 % (5/5); P0.3 zůstává 80 % kvůli fyzickému iPhone testu soukromé zálohy.
 
 - **23. 9. 2026 – fyzický iPhone PASS pro RaK 1.7.82:** bez mazání dat prošel online stav, cold-offline Dashboard „kam jdu“, offline Rotace i návrat online bez restartu. Falešný konflikt se nevrátil. P2.3 se posouvá z 25 % (2/8) na 63 % (5/8); zbývají už jen explicitní konfliktové/CAS položky, ne reprodukovaná mobilní offline chyba.
 
