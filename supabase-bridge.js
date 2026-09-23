@@ -1951,11 +1951,13 @@
   function saveLocalSnapshot(rotation, machineSettingsRows, rotationMeta) {
     const existing = readLocalSnapshot() || {};
     const explicitRotation = !!(rotation && typeof rotation === 'object' && rotation.months);
-    const legacyRotation = !explicitRotation && existing.rotation && typeof existing.rotation === 'object' && existing.rotation.months
+    const legacyRotation = existing.rotation && typeof existing.rotation === 'object' && existing.rotation.months
       ? existing.rotation
       : null;
     // RAK_17080_ROTATION_METADATA_ISOLATION: unrelated cache writes (for example
-    // machine settings) must never re-stamp or rewrite the canonical Rotation.
+    // machine settings) must never re-stamp or rewrite the canonical Rotation. The sole
+    // exception is an embedded legacy Rotation, which must still be migrated out of the
+    // duplicate LOCAL_STATE payload before a canonical write at storage quota.
     const candidateRotation = explicitRotation ? rotation : legacyRotation;
     const candidateFingerprint = rotationPayloadFingerprint(candidateRotation);
     const existingRotationMeta = candidateRotation
