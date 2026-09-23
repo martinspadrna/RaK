@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: rak-development-validation-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -26,38 +26,13 @@ jobs:
         with:
           node-version: '22'
       - name: Preflight isolated build policy and measured thirteen-point roadmap
-        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
+        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice
         run: |
           npm run vercel-build
           npm run vercel-build
-      # Exact historical version tests run in stages on BOTH builds before their next bump.
-      # node --test tools/release-gate-17043.test.mjs
-      # node --test tools/release-gate-17044.test.mjs
-      # node --test tools/release-gate-17045.test.mjs
-      # node --test tools/release-gate-17046.test.mjs
-      # node --test tools/release-gate-17047.test.mjs
-      # node --test tools/release-gate-17048.test.mjs
-      # node --test tools/release-gate-17049.test.mjs
-      # node --test tools/release-gate-17050.test.mjs
-      # node --test tools/release-gate-17051.test.mjs
-      # node --test tools/release-gate-17052.test.mjs
-      # node --test tools/release-gate-17053.test.mjs
-      # node --test tools/release-gate-17054.test.mjs
-      # node --test tools/release-gate-17055.test.mjs
-      # node --test tools/release-gate-17056.test.mjs
-      # node --test tools/release-gate-17057.test.mjs
-      # node --test tools/release-gate-17058.test.mjs
-      # node --test tools/release-gate-17059.test.mjs
-      # node --test tools/release-gate-17060.test.mjs
-      # node --test tools/release-gate-17061.test.mjs
-      # node --test tools/release-gate-17062.test.mjs
-      # node --test tools/release-gate-17063.test.mjs
-      # node --test tools/release-gate-17064.test.mjs
-      # node --test tools/release-gate-17065.test.mjs
-      # node --test tools/release-gate-17066.test.mjs
       - name: Verify final release and inherited quality gates
         working-directory: .rak-canonical-build/work
         run: |
@@ -104,12 +79,145 @@ jobs:
           node --test tools/canonical-build-contract.test.mjs
           test -f .rak-canonical-build/verified.json
           git diff --exit-code HEAD --
+      - name: Create fail-closed CI release proof
+        env:
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: node tools/release-evidence.mjs ci-proof
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-17077-isolated-build-${{ github.sha }}
+          name: rak-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
+      - name: Retain CI proof for the post-success deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-ci-proof-${{ github.sha }}
+          path: .rak-release-evidence/ci/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
 
+  release-preview:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development' && needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_SCOPE: martinspadrnas-projects
+      VERCEL_PROJECT_NAME: skoda-spada
+      STABLE_ALIAS: skoda-spada-git-development-martinspadrnas-projects.vercel.app
+      PRODUCTION_ALIAS: skoda-spada.vercel.app
+    steps:
+      - name: Check out the exact green SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Decide whether this exact green change requires a preview
+        id: policy
+        run: node tools/release-evidence.mjs policy
+      - name: Require the encrypted Vercel credential and exact project identity
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          test -n "$VERCEL_TOKEN"
+          test "$VERCEL_ORG_ID" = "team_wZkLmDlJZ9WUtm7IUU3i3tg4"
+          test "$VERCEL_PROJECT_ID" = "prj_Pv7eNEt5qGg2GX9l365fJnc0YUMF"
+      - name: Download proof produced by the successful verify job
+        if: steps.policy.outputs.deploy == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: rak-ci-proof-${{ github.sha }}
+          path: .rak-release-evidence/input
+      - name: Verify the downloaded CI and two-build proof
+        if: steps.policy.outputs.deploy == 'true'
+        run: node tools/release-evidence.mjs verify-ci .rak-release-evidence/input/ci-proof.json .rak-release-evidence/input/canonical-build-verified.json "$GITHUB_SHA"
+      - name: Install pinned Vercel CLI and pull preview settings
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          npm install --global vercel@59.24.0
+          vercel pull --yes --environment=preview --git-branch=development --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+          node -e "const p=require('./.vercel/project.json');if(p.orgId!==process.env.VERCEL_ORG_ID||p.projectId!==process.env.VERCEL_PROJECT_ID)throw Error('Vercel project identity mismatch')"
+      - name: Snapshot immutable refs, rollback target and production deployment
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          mkdir -p .rak-release-evidence
+          development_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)"
+          main_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)"
+          test "$development_sha" = "$GITHUB_SHA"
+          jq -n --arg development "$development_sha" --arg main "$main_sha" '{development:$development,main:$main}' > .rak-release-evidence/refs-before.json
+          vercel inspect "https://$STABLE_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/rollback-target.json
+          vercel inspect "https://$PRODUCTION_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/production-before.json
+      - name: Build exact SHA as a preview without touching production
+        if: steps.policy.outputs.deploy == 'true'
+        run: vercel build --yes --target=preview --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+      - name: Deploy prebuilt exact SHA only after the green verify job
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$GITHUB_SHA"
+          vercel deploy --prebuilt --yes --skip-domain --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"             --meta githubCommitSha="$GITHUB_SHA" --meta githubCommitRef=development             --meta githubRepo=RaK --meta githubOrg=martinspadrna > .rak-release-evidence/deploy-result.json
+          deployment_id="$(jq -r '.id // .deployment.id // empty' .rak-release-evidence/deploy-result.json)"
+          test -n "$deployment_id"
+          echo "DEPLOYMENT_ID=$deployment_id" >> "$GITHUB_ENV"
+          vercel inspect "$deployment_id" --wait --timeout 10m --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/deployment.json
+      - name: Verify immutable deployment HTTP, release metadata and TEST isolation
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          mkdir -p .rak-release-evidence/http/immutable
+          vercel curl / --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/index.headers --output .rak-release-evidence/http/immutable/index.body
+          vercel curl /sw.js --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/sw.headers --output .rak-release-evidence/http/immutable/sw.body
+          vercel curl /rak-release-metadata.js --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/metadata.headers --output .rak-release-evidence/http/immutable/metadata.body
+          vercel curl /supabase-config.js --deployment "$DEPLOYMENT_ID" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/supabase.headers --output .rak-release-evidence/http/immutable/supabase.body
+          node tools/release-evidence.mjs http-check immutable .rak-release-evidence/http/immutable .rak-release-evidence/http-immutable.json
+      - name: Move only the stable development alias after immutable verification
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$GITHUB_SHA"
+          vercel alias set "$DEPLOYMENT_ID" "$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+          vercel inspect "https://$STABLE_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/alias-after.json
+      - name: Verify the stable development alias through authenticated HTTP
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          mkdir -p .rak-release-evidence/http/stable
+          vercel curl / --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/index.headers --output .rak-release-evidence/http/stable/index.body
+          vercel curl /sw.js --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/sw.headers --output .rak-release-evidence/http/stable/sw.body
+          vercel curl /rak-release-metadata.js --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/metadata.headers --output .rak-release-evidence/http/stable/metadata.body
+          vercel curl /supabase-config.js --deployment "https://$STABLE_ALIAS" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/stable/supabase.headers --output .rak-release-evidence/http/stable/supabase.body
+          node tools/release-evidence.mjs http-check stable-alias .rak-release-evidence/http/stable .rak-release-evidence/http-stable-alias.json
+      - name: Prove main and production remained unchanged and assemble release evidence
+        if: steps.policy.outputs.deploy == 'true'
+        run: |
+          development_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)"
+          main_sha="$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)"
+          jq -n --arg development "$development_sha" --arg main "$main_sha" '{development:$development,main:$main}' > .rak-release-evidence/refs-after.json
+          vercel inspect "https://$PRODUCTION_ALIAS" --json --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" > .rak-release-evidence/production-after.json
+          node tools/release-evidence.mjs assemble
+      - name: Retain release evidence bound to the exact SHA
+        if: steps.policy.outputs.deploy == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-release-evidence-${{ github.sha }}
+          path: |
+            .rak-release-evidence/release-evidence.json
+            .rak-release-evidence/policy.json
+            .rak-release-evidence/http-immutable.json
+            .rak-release-evidence/http-stable-alias.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Report verified documentation-only skip
+        if: steps.policy.outputs.deploy != 'true'
+        run: echo "No Vercel deployment required; fail-closed policy result was ${{ steps.policy.outputs.reason }}."
