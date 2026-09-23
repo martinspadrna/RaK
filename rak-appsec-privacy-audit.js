@@ -64,7 +64,7 @@
     sriCandidates: [
       { id: 'xlsx', source: 'cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js', current: 'floating package path', safestNextStep: 'pin exact verze nebo lokální assets/vendor kopie; otestovat import/export Excelu' },
       { id: 'jszip', source: 'cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js', current: 'pinned minor asset path without SRI', safestNextStep: 'doplnit SRI nebo lokální assets/vendor kopie; otestovat export ZIPu' },
-      { id: 'supabase-js', source: 'cdn.jsdelivr.net/npm/@supabase/supabase-js@2', current: 'major-only pin without SRI', safestNextStep: 'pin exact verze nebo lokální assets/vendor kopie; otestovat online hry/heartbeat/realtime' },
+      { id: 'supabase-js', source: 'vendor/supabase-2.110.7.js', current: 'self-hosted exact 2.110.7 with build-time SHA-384 verification', safestNextStep: 'držet přesný pin, hash a offline precache gate; otestovat realtime a reconnect bez reloadu' },
       { id: 'google-fonts', source: 'fonts.googleapis.com/fonts.gstatic.com', current: 'external stylesheet/font', safestNextStep: 'ponechat s CSP allowlistem nebo lokální font fallback; SRI u dynamických Google Fonts není vhodný hlavní krok' }
     ]
   };

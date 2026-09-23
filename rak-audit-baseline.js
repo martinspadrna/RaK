@@ -36,8 +36,7 @@ function getRakReleaseReadinessHealth() {
   const currentVersion = String(window.APP_VERSION || '').trim();
   const expectedExternalScripts = [
     'cdn.jsdelivr.net/npm/xlsx',
-    'cdn.jsdelivr.net/npm/jszip@3.10.1',
-    'cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+    'cdn.jsdelivr.net/npm/jszip@3.10.1'
   ];
   const allowedExternalScriptHosts = ['cdn.jsdelivr.net'];
   let externalScripts = [];
@@ -152,7 +151,7 @@ function getRakReleaseReadinessHealth() {
   if (!('serviceWorker' in navigator)) warnings.push('service worker unsupported on this browser');
   if (typeof window.XLSX === 'undefined') warnings.push('XLSX CDN unavailable: Excel import/export může být omezený');
   if (typeof window.JSZip === 'undefined') warnings.push('JSZip CDN unavailable: ZIP export nebude dostupný');
-  if (typeof window.supabase === 'undefined') warnings.push('Supabase CDN unavailable: online sync poběží jen offline/fallback režimem');
+  if (typeof window.supabase === 'undefined') warnings.push('Lokální Supabase klient není dostupný: online sync poběží jen offline/fallback režimem');
   if (exportSmokeReport && exportSmokeReport.ok === false) {
     warnings.push('export smoke report failed: ' + String(exportSmokeReport.lastError || exportSmokeReport.status || 'kontrola'));
   }

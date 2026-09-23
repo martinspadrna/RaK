@@ -18,8 +18,17 @@ test('offline boot restores persisted Rotation before startup is declared ready'
   assert(restore.includes('navigator.onLine === false'));
 });
 
-test('Supabase SDK failure is recoverable without reloading the page',()=>{
+test('Supabase SDK is self-hosted and recoverable without reloading the page',()=>{
   const app=read('app.js');
+  const index=read('index.html');
+  const sw=read('sw.js');
+  const build=read('tools/canonical-build.mjs');
+  assert(index.includes('vendor/supabase-2.110.7.js'));
+  assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'));
+  assert(app.includes("const RAK_SUPABASE_SDK_URL = 'vendor/supabase-2.110.7.js'"));
+  assert(sw.includes("'./vendor/supabase-2.110.7.js'"));
+  assert(build.includes("SUPABASE_VENDOR_SHA384='hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"));
+  assert(build.includes('prepareVendor()'));
   assert(app.includes('function ensureRakSupabaseSdk(options = {})'));
   assert(app.includes('window.rakEnsureSupabaseSdk = ensureRakSupabaseSdk'));
   assert(app.includes("window.addEventListener('online'"));
@@ -38,10 +47,10 @@ test('live refresh waits for SDK and sync feature after network recovery',()=>{
   assert(live.includes("window.rakEnsureFeature('sync')"));
 });
 
-test('browser regression removes ordinary CDN cache and proves no-reload recovery',()=>{
+test('browser regression removes ordinary HTTP cache and proves self-hosted SDK plus no-reload recovery',()=>{
   const browser=read('tools/browser-offline-17052.mjs');
   assert(browser.includes("Network.clearBrowserCache"));
-  assert(browser.includes('supabaseSdkOffline:false'));
+  assert(browser.includes('supabaseSdkOffline:true'));
   assert(browser.includes("window.dispatchEvent(new Event('online'))"));
   assert(browser.includes("await until('!!window.supabase?.createClient'"));
   assert(browser.includes("'[17052-browser] online recovery required a page reload'"));

@@ -470,7 +470,8 @@ assert(lazyExternalLibs.includes('sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or
 assert(lazyExternalLibs.includes("deadGamePaths"), 'ZIP export nemá runtime cleanup odstraněných Games cest');
 assert(lazyExternalLibs.includes("'assets/rak-memory-total-time-fix.js'"), 'ZIP cleanup nevyřazuje starý Memory/Pexeso guard');
 assert(lazyExternalLibs.includes("window.EXPORT_JS_FILES.includes('rak-lazy-external-libs.js')"), 'ZIP export nearchivuje nový lazy loader');
-assert(indexHtml.includes('@supabase/supabase-js@2.110.7'), 'Supabase eager script zmizel z index.html');
+assert(indexHtml.includes('vendor/supabase-2.110.7.js'), 'Lokální Supabase startup script zmizel z index.html');
+assert(!indexHtml.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase startup se nesmí vrátit na externí CDN');
 if (String(process.env.VERCEL || '').trim()) {
   assert(!indexHtml.includes(xlsxUrl), 'V nasazovaném HTML zůstal eager XLSX');
   assert(!indexHtml.includes(jszipUrl), 'V nasazovaném HTML zůstal eager JSZip');

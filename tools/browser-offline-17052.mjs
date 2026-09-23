@@ -155,7 +155,7 @@ try{
    const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
    return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:false},'[17052-browser] newest verified snapshot was not selected/repaired offline without third-party SDK cache');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:true},'[17052-browser] newest verified snapshot or self-hosted Supabase SDK was not available offline');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');

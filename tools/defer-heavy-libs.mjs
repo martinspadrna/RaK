@@ -212,8 +212,8 @@ for (const file of idleDiagnosticFiles) {
     throw new Error('[defer-heavy-libs] Diagnostický modul zůstal v startup HTML: ' + file);
   }
 }
-if (!/@supabase\/supabase-js@2\.110\.7/.test(html)) {
-  throw new Error('[defer-heavy-libs] Supabase eager script se nesmí při této optimalizaci změnit.');
+if (!/vendor\/supabase-2\.110\.7\.js/.test(html)) {
+  throw new Error('[defer-heavy-libs] Lokální Supabase startup script se nesmí při této optimalizaci změnit.');
 }
 if (!/src="rak-dom-security-hardening\.js"/.test(html)) {
   throw new Error('[defer-heavy-libs] DOM security hardening musí zůstat v startup HTML.');

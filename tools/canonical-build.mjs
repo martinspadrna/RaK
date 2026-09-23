@@ -14,7 +14,10 @@ export const VARIABLE_OUTPUTS=Object.freeze(['rak-complete-backup-source.zip']);
 export const RELEASE=RELEASE_METADATA.displayVersion;
 export const BUILD_ID=RELEASE_METADATA.buildId;
 export const TECHNICAL_VERSION=RELEASE_METADATA.technicalVersion;
-const REQUIRED=Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-release-metadata.js','rak-complete-backup-source.zip']);
+const SUPABASE_VENDOR_RELATIVE='vendor/supabase-2.110.7.js';
+const SUPABASE_VENDOR_SOURCE=path.join(ROOT,'node_modules','@supabase','supabase-js','dist','umd','supabase.js');
+const SUPABASE_VENDOR_SHA384='hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
+const REQUIRED=Object.freeze(['index.html','sw.js','app.js','supabase-config.js','supabase-bridge.js','rak-release-metadata.js',SUPABASE_VENDOR_RELATIVE,'rak-complete-backup-source.zip']);
 const STATIC_EXT=/\.(?:js|mjs|css|html|json|webmanifest|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|zip)$/i;
 const STATIC_DIR=/^(?:assets|fonts|icons|images|vendor)\//;
 const SOURCE_ONLY_ROOT=new Set(['package.json','package-lock.json','vercel.json']);
@@ -76,6 +79,15 @@ function prepareWork(){
   fs.rmSync(WORK,{recursive:true,force:true});fs.mkdirSync(WORK,{recursive:true});
   for(const relative of trackedFiles())copy(relative,ROOT,WORK);
 }
+function prepareVendor(){
+  assert(fs.existsSync(SUPABASE_VENDOR_SOURCE),'pinned Supabase SDK missing from node_modules; run npm install');
+  const data=fs.readFileSync(SUPABASE_VENDOR_SOURCE);
+  const digest=crypto.createHash('sha384').update(data).digest('base64');
+  assert(digest===SUPABASE_VENDOR_SHA384,'pinned Supabase SDK SHA-384 mismatch');
+  const destination=path.join(WORK,SUPABASE_VENDOR_RELATIVE);
+  fs.mkdirSync(path.dirname(destination),{recursive:true});
+  fs.writeFileSync(destination,data);
+}
 function prepareBackup(){
   const commit=run('git',['rev-parse','HEAD']).trim();
   assert(/^[a-f0-9]{40}$/.test(commit),'invalid source commit');
@@ -96,6 +108,7 @@ function prepareBackup(){
 function publish(){
   fs.rmSync(OUTPUT,{recursive:true,force:true});fs.mkdirSync(OUTPUT,{recursive:true});
   const candidates=trackedFiles().filter(isStatic);
+  if(!candidates.includes(SUPABASE_VENDOR_RELATIVE))candidates.push(SUPABASE_VENDOR_RELATIVE);
   if(!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
   for(const relative of candidates.sort())if(fs.existsSync(path.join(WORK,relative)))copy(relative,WORK,OUTPUT);
   for(const required of REQUIRED)assert(fs.existsSync(path.join(OUTPUT,required)),'missing output '+required);
@@ -127,7 +140,7 @@ export function build(){
   fs.mkdirSync(STATE,{recursive:true});
   validateSourceTree('before build');
   const beforeFingerprint=sourceFingerprint();
-  prepareWork();prepareBackup();
+  prepareWork();prepareBackup();prepareVendor();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
   run(process.platform==='win32'?'npm.cmd':'npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
   publish();

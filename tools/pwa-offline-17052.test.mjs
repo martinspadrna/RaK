@@ -62,6 +62,7 @@ test('offline navigation uses current release only; update requires approval',as
 
 test('offline package prewarms Rotation and sync feature modules',()=>{
  for(const asset of [
+  './vendor/supabase-2.110.7.js',
   './stats.js?v=1.7.0','./rotace.js?v=1.7.0','./rotation-tasks.js?v=1.7.0',
   './admin-daymods.js?v=1.7.0','./app-rotation-controls.js?v=1.7.0',
   './supabase-bridge.js?v=1.7.0','./app-rotation-sync.js?v=1.7.0'

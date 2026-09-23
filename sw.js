@@ -14,7 +14,7 @@ const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-i
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
 const DEVELOPMENT_CACHE_TUNING_POLICY = 'normalize-update-navigation-cache;waituntil-runtime-write;cleanup-transient-nav';
 // Previous canonical warm-start budget before offline Rotace: const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
-const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm65;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
+const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm66;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
 const DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict';
 const DEVELOPMENT_STARTUP_EXECUTION_POLICY = 'mobile-layout-guard-idle;warm-cache-preserved;startup-files-15';
 const DEVELOPMENT_MUTATION_OBSERVER_POLICY = 'scoped-8;raf-coalesced-7;runtime-stability-targeted';
@@ -96,6 +96,7 @@ const CORE = [
 ];
 
 const WARM_START = [
+  './vendor/supabase-2.110.7.js',
   './app.js?v=1.7.0',
   './data.js',
   './module-readiness.js',
@@ -172,6 +173,7 @@ const WARM_START = [
 ];
 
 const OFFLINE_REQUIRED = Object.freeze([
+  './vendor/supabase-2.110.7.js',
   './app.js?v=1.7.0','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
   './core.js?v=1.7.0','./lifecycle.js?v=1.7.0','./app-runtime-guards.js?v=1.7.0','./ui.js?v=1.7.0',
   './app-navigation.js?v=1.7.0','./app-bottom-nav.js?v=1.7.0','./app-actions.js?v=1.7.0',
