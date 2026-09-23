@@ -45,7 +45,8 @@ Po této větě musí agent sám online zjistit aktuální SHA `development`, na
 - Build ID: `v1.7.82-rotation-ui-rehydrate1`
 - GitHub Actions: run #243, ID `35889947003`, SUCCESS
 - Actions URL: https://github.com/martinspadrna/RaK/actions/runs/35889947003
-- Vercel preview: `dpl_6m3mDvWpRAXNRKhR1LaceaJnx7jd`, READY
+- Poslední funkční release deployment: `dpl_6m3mDvWpRAXNRKhR1LaceaJnx7jd`, READY
+- Aktuální stabilní alias míří na jednorázově povolený dokumentační preview `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`, READY, commit `1baa9cdec9d5391bb91c4cb45bf4785c995757fa`; aplikační runtime a metadata zůstávají 1.7.82.
 - Deployment SHA odpovídá přesně runtime SHA.
 - Stabilní development alias: `skoda-spada-git-development-martinspadrnas-projects.vercel.app`
 - Strojový artefakt: `rak-release-evidence-1c6dc4e12eb4b1519e910a3b00bc64a1f5895767`, výsledek PASS.
@@ -54,7 +55,7 @@ Po této větě musí agent sám online zjistit aktuální SHA `development`, na
 - Produkční deployment zůstal při releasu beze změny.
 - Konkrétní nedestruktivní rollback cíl je uložen ve strojovém release artefaktu; před použitím se musí znovu ověřit READY stav a projektová identita.
 
-Dokumentační commity nad tímto runtime správně nemají vlastní nový Vercel deployment. Živý `development` HEAD se proto vždy zjišťuje online a může být novější než runtime SHA.
+Dokumentační commity nad tímto runtime standardně nemají vlastní nový Vercel deployment. Při prvním přidání tohoto dosud neznámého souboru fail-closed politika výjimečně vytvořila preview `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`; vlastník tento jediný deployment výslovně povolil. Commit `15a78a85afec80170440f6ff1dc36b87a8451cb4` přidal `RAK_HANDOFF.md` do přesného dokumentačního allowlistu a kontraktního testu. Ruční Actions #250 / run `35914753211` na témže SHA prošel bez release jobu. Další samostatná změna `RAK_HANDOFF.md` proto musí skončit dokumentačním skipem. Živý `development` HEAD se vždy zjišťuje online a může být novější než runtime SHA.
 
 ## Důležitý stav fyzického iPhonu
 
