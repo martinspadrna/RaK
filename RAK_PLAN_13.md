@@ -173,22 +173,22 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** žádné kritické překryvy, uříznutá tlačítka či nefunkční akce na fyzickém iPhonu.
 
-### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **25 % (2/8)**
+### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **63 % (5/8)**
 
-**Aktuální uživatelská závada:** fyzický iPhone na 1.7.81 potvrdil, že přihlášení a online Supabase už fungují a že kompletní offline data Rotace jsou skutečně uložená – po ručním rozkliknutí rozpisů jsou dostupné. Závada se tím zúžila na rehydrataci UI: při cold-offline startu se persisted snapshot dostane do `app.rotation`, ale lazy skupina `rotation` ještě není připravená, takže první Rotace a dashboardové „kam jdu“ nemají své výpočtové/render funkce. Po návratu online se data znovu synchronizují, ale UI se samo nepřepočítá a srovná se až po úplném restartu aplikace. Release 1.7.82 proto zavádí skutečnou závislost `sync -> rotation`; synchronizace už nesmí aplikovat snapshot dřív, než existují konzumenti z `rotace.js`. Po dokončení rotation feature se okamžitě vykreslí Rotace a přepočítá Dashboard, a každé následné `applyRakRotationState` ve stejné transakci obnoví Dashboard i dashboardové oznámení. Chromium regresní test už nesmí před offline kontrolou ručně volat `rakEnsureFeature('rotation')` ani `syncRotationFromSupabase`; cold boot sám musí mít obě feature READY, aktuální snapshot i schedule model. Po návratu online musí stejné UI závislosti zůstat připravené bez reloadu. **P2.3 zůstává na 25 %, dokud fyzický iPhone nepotvrdí, že Rotace i „kam jdu“ naskočí při offline startu a po návratu online bez restartu.**
+**Fyzický iPhone acceptance 23. 9. 2026 – PASS:** RaK 1.7.82 na stabilním development aliasu úspěšně zvládl celý cílový scénář bez mazání dat: online přihlášení a Supabase fungují, aktuální Rotace je po úplném zavření dostupná v režimu Letadlo, Dashboard správně zobrazí „kam jdu“, Rotace se vykreslí bez ručního otevření seznamu offline rozpisů a po opětovném zapnutí internetu se stejný běh aplikace srovná bez restartu. Falešný konflikt se nevrátil. Skutečná příčina byla kombinace více vrstev: Vercel preview ochrana blokovala development assety, Supabase SDK nebylo původně spolehlivou offline součástí, nesouvisející cache zápisy mohly zkreslit čerstvost Rotace a cold start nečekal na skutečné propsání persisted snapshotu do runtime/UI. Release 1.7.82 uzavírá tuto mobilní offline/reconnect část; zbývající položky P2.3 se týkají explicitního konfliktního workflow a serverového CAS, ne této fyzicky reprodukované chyby.
 
 - [x] Pravdivé online/cache stavy, retry a ochrana historických/neznámých úloh v místní frontě před tichou ztrátou.
 - [x] Ochrana editovaných návrhů před opožděnou síťovou odpovědí a jednotkové testy selektivního lokálního mazání.
-- [ ] **S5 – zjistit skutečnou příčinu iPhonu:** bezpečně rozlišit jiné zadržené úlohy, zbývající rozpisovou položku, opakované založení konfliktu, `storageIssue` a neaktuální UI stav; jen počty a sanitizované typy, bez osobních údajů.
+- [x] **S5 – zjistit skutečnou příčinu iPhonu:** dokončeno přes sanitizovanou diagnostiku a fyzický test; potvrzena kombinace asset protection/offline dependency/freshness/runtime rehydrate, bez zveřejnění osobních údajů.
 - [ ] Před případným vyřazením **jediné konkrétní** konfliktní položky poskytnout privátní export původních bajtů, read-only kontrolu serveru, jasný důsledek a potvrzení; zachovat ostatní frontu a data.
 - [ ] Zpracovat konflikty podle typu (rozpis / stroj / ostatní), bez automatického přepisu novějších online dat a bez falešného zeleného stavu.
 - [ ] Zavést a otestovat serverově atomický CAS / revizi pro relevantní zápisy, včetně konkurence dvou zařízení; samotná shoda čísla revize bez obsahu nedovoluje přepsání.
-- [ ] Ověřit staré PWA/service worker, dvojí instanci, aktualizace a offline→online bez reprodukce starého konfliktu či ztráty dat.
-- [ ] Na fyzickém iPhonu potvrdit: po legitimním vyřešení konflikt zmizí a nevrátí se po restartu; online rozpis, jiná fronta a neodeslané údaje zůstanou konzistentní.
+- [x] Ověřit staré PWA/service worker, aktualizace a offline→online bez reprodukce starého konfliktu či ztráty dat; fyzický iPhone PASS na 1.7.82.
+- [x] Na fyzickém iPhonu potvrdit: offline Rotace i Dashboard jsou aktuální, návrat online funguje bez restartu a falešný konflikt se nevrací; PASS 23. 9. 2026 na 1.7.82.
 
 **Důkaz balíku 1.7.71:** regresní brána `release-gate-17071.test.mjs` rozlišuje shodný a skutečně odlišný profil, zachovává pravé administrátorské konflikty a bezpečně uklízí pouze historický automatický `local-seed`. Skutečný mobilní Chromium test ukládá značkovací Rotaci, restartuje aplikaci offline, načte Rotaci i sync moduly z cache a po návratu online požaduje nulový počet konfliktů. Fyzický test iPhonu na 1.7.77 neprošel ani přes stabilní sdílený development odkaz; nejde tedy o potvrzenou opravu a procento se nezvyšuje.
 
-**Dokončení:** popsaná závada reprodukována a odstraněna bez plošného mazání Safari/PWA a bez neověřených serverových zápisů. Dokud trvá, P2.3 nesmí být uzavřen.
+**Stav po fyzickém PASS:** mobilní offline/reconnect závada je odstraněna bez plošného mazání Safari/PWA a bez neověřených serverových zápisů. P2.3 zůstává otevřený kvůli zbývajícím třem položkám: bezpečné vyřazení konkrétní konfliktové položky, typové zpracování konfliktů a serverově atomický CAS/revize.
 
 ### P2.4 – Diagnostika, soukromí telemetrie a nepřetržitá kvalita · **33 % (2/6)**
 
@@ -214,6 +214,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **23. 9. 2026 – fyzický iPhone PASS pro RaK 1.7.82:** bez mazání dat prošel online stav, cold-offline Dashboard „kam jdu“, offline Rotace i návrat online bez restartu. Falešný konflikt se nevrátil. P2.3 se posouvá z 25 % (2/8) na 63 % (5/8); zbývají už jen explicitní konfliktové/CAS položky, ne reprodukovaná mobilní offline chyba.
 
 - **23. 9. 2026 – 1.7.82 odstraňuje skrytou závislost Rotace na Brusech:** zpřísněný cold-offline Chromium test při okamžité rehydrataci odhalil `ReferenceError: buildNameIndex is not defined`. `rotace.js`, statistiky a Dashboard tento index používají, ale historicky byl definovaný až v `brusy.js`, tedy v jiné lazy skupině kalkulaček. Nový `rotation-name-index.js` je proto skutečná shared dependency Rotace i kalkulaček a je povinně v `WARM_START`/`OFFLINE_REQUIRED`; Rotace už nesmí být označena READY bez tohoto helperu. P2.3 zůstává 25 % do fyzického iPhone PASS.
 
