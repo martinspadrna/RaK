@@ -28,9 +28,7 @@ test('verify job cannot deploy and release job depends on complete green verific
   assert(release.includes('vercel@59.24.0'),'Vercel CLI must be pinned');
   assert(release.includes('vercel deploy --prebuilt --yes --target=preview'),'deployment must use verified prebuilt preview target');
   assert(release.includes('vercel curl / --deployment "$DEPLOYMENT_ID"'),'protected HTTP verification must target the immutable deployment');
-  assert(!/vercel[^
-]*curl[^
-]*--token/.test(release),'vercel curl must consume the masked VERCEL_TOKEN environment variable instead of forwarding a token flag');
+  assert(!release.split(String.fromCharCode(10)).filter(line=>line.includes('vercel curl ')).some(line=>line.includes('--token')),'vercel curl must consume the masked VERCEL_TOKEN environment variable instead of forwarding a token flag');
   assert(!/--prod\b|--target=production/.test(release),'production deployment is prohibited');
 });
 
