@@ -8,7 +8,7 @@ test('1.7.79 identifies the verified offline arbitration release',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.79');
   assert.equal(metadata.technicalVersion,'1.7.0');
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
-  assert(metadata.buildId.includes('pwa-durable-rotation-arbitration'));
+  assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
 
 test('online rotation persistence is verified and offline selection compares both stores',()=>{
