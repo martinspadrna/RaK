@@ -4,6 +4,7 @@ const RELEASE_BRANCHES = new Set(['development', 'main']);
 // Fail closed: only these exact documentation families are proven unable to change
 // runtime, CI execution or build output. Workflow and executable/test files build.
 const NON_RUNTIME_PATHS = [
+  /^RAK_HANDOFF\.md$/,
   /^RAK_PLAN_13\.md$/,
   /^RAK_PLAN_17\d+_STATUS\.md$/,
   /^RAK_STABILIZATION_PLAN\.md$/,
