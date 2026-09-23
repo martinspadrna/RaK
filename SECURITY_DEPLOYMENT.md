@@ -120,3 +120,31 @@ Oficiální omezení, která musí důkaz respektovat: [Database Backups](https:
 7. Spustit aplikační smoke proti recovery projektu bez změny stabilního development aliasu. Při neshodě výsledek označit jako neúspěšný, recovery projekt izolovat a zachovat auditní záznam; žádný automatický zásah do původního TEST ani produkce.
 
 Dokud není tento postup skutečně proveden a porovnán, P1.5 zůstává 43 % (3/7). Tento dokumentační balík nevytváří Vercel deployment a nezvyšuje verzi.
+
+## Podepsaná role matrix TEST – 2026-09-23
+
+Rozsah: přesný development SHA `72d1fd7870a917728967a1f1487c757e2b6684bc`, výhradně TEST `cgshssdjgzzuprlwnabl`. Čtyři náhodné dočasné Auth účty dostaly role owner/admin/deputy nebo žádný admin profil (cizí účet). Hesla, API klíče, access/refresh tokeny, JWT payloady a osobní odpovědi z exportu nebyly vypsány do logu ani uloženy do Git.
+
+- skutečně podepsané owner/admin/deputy JWT prošly `rak_admin_context` a vracely přesnou roli; cizí JWT a anonymní požadavek byly odmítnuty;
+- `rak_owner_list_admin_profiles` a `rak_owner_complete_backup_v1` byly povoleny pouze ownerovi; admin, deputy a cizí účet byly odmítnuty a obsah owner zálohy nebyl logován;
+- Edge Function `rak-admin-users` s akcí `list-admin-directory` povolila owner/admin a odmítla deputy/cizí účet;
+- owner odvolal dočasné deputy zařízení; původní podepsaný deputy JWT i pokus stejné relace znovu registrovat zařízení byly odmítnuty;
+- samostatná zkouška prokázala rozdíl mezi odvoláním relace a hesla: starý token zůstal odmítnutý, nové přihlášení stejným platným heslem vytvořilo nový token/session a nový session-device záznam byl povolen;
+- první rychlý doplňkový pokus vrátil owner kontext HTTP 401 před viditelností nové session; blok `finally` odstranil oba účty. Jediný řízený opakovaný pokus nejprve ověřil session v `auth.sessions` a pak prošel;
+- po obou zkouškách bylo znovu přesně 3 Auth uživatelů a 3 admin profilů; žádný dočasný účet ani profil nezůstal. Syntetický audit odvolání neobsahuje osobní údaje.
+
+```json
+{"schema":"rak.signed-role-matrix.v1","git_sha":"72d1fd7870a917728967a1f1487c757e2b6684bc","supabase_project":"cgshssdjgzzuprlwnabl","checks":20,"roles":["owner","admin","deputy","foreign","anonymous","revoked"],"owner_backup_body_logged":false,"jwt_logged":false,"temporary_auth_users_before":3,"temporary_auth_users_after":3,"temporary_profiles_before":3,"temporary_profiles_after":3,"relogin":{"old_revoked_token_denied":true,"same_password_new_session_allowed":true,"new_session_registered":true}}
+```
+
+### Navazující katalog a advisor
+
+Živý katalog potvrdil u všech 41 nalezených RaK `SECURITY DEFINER` funkcí vlastníka `postgres` a pevný prázdný `search_path`; jedna funkce bez textového volání standardního gate používá ekvivalentní `private.rak_is_admin()`. Security advisor vrátil 55 položek: 19 INFO `rls_enabled_no_policy`, 5 WARN pro záměrné anonymní `SECURITY DEFINER` endpointy, 30 WARN pro authenticated `SECURITY DEFINER` RPC a 1 WARN pro vypnutou ochranu uniklých hesel. Veřejný legacy admin-check je už na živé DB omezený na 300 požadavků/h globálně a 60/h na volajícího. Ochrana proti uniklým heslům je podle [Supabase Password Security](https://supabase.com/docs/guides/auth/password-security) dostupná až od Pro plánu; vlastník povolil jen bezplatné řešení, proto nebyla zapnuta.
+
+### Dopad do plánu
+
+- P0.1: 60 % (3/5); P0.3: 60 % (3/5).
+- P0.4: 80 % (4/5); zbývá fyzický Safari/PWA test.
+- P1.1: 80 % (4/5); zbývá pravidlo pro případné další nutné politiky/migrace, produkce beze změny.
+- P1.2: 80 % (4/5); zbývá fyzický Safari/PWA test relací a UX odmítnutí.
+- P1.5: 43 % (3/7). Dva vlastní Free projekty obsazují bezplatné sloty; dva další viditelné projekty patří jinému účtu. Nebyl vytvořen ani pozastaven projekt, větev, PITR nebo placený add-on.

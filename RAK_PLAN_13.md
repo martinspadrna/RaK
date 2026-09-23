@@ -14,12 +14,12 @@
 
 | Bod | Výsledek | Procento | Povaha stavu |
 |---|---|---:|---|
-| P0.1 | Účty a data pracovníků | **40 % (2/5)** | Otevřeno, OS-only omezení trvá |
+| P0.1 | Účty a data pracovníků | **60 % (3/5)** | Otevřeno, OS-only omezení trvá |
 | P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno **pouze rozhodnutím o přijatém riziku** |
-| P0.3 | API, exporty a historické klienty | **40 % (2/5)** | Otevřeno |
-| P0.4 | Role vlastníka a administrátorů | **40 % (2/5)** | Otevřeno |
-| P1.1 | Databázová oprávnění, RLS a RPC | **40 % (2/5)** | Otevřeno |
-| P1.2 | Administrátorské heslo, relace a zařízení | **40 % (2/5)** | Otevřeno |
+| P0.3 | API, exporty a historické klienty | **60 % (3/5)** | Otevřeno |
+| P0.4 | Role vlastníka a administrátorů | **80 % (4/5)** | Otevřeno |
+| P1.1 | Databázová oprávnění, RLS a RPC | **80 % (4/5)** | Otevřeno |
+| P1.2 | Administrátorské heslo, relace a zařízení | **80 % (4/5)** | Otevřeno |
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
@@ -34,14 +34,14 @@
 
 ## P0 · Bezpečnost a soukromí
 
-### P0.1 – Účty a data pracovníků · **40 % (2/5)**
+### P0.1 – Účty a data pracovníků · **60 % (3/5)**
 
 Cíl: omezit zbytečné zveřejňování osobních údajů bez změny vlastníkem schváleného přihlášení zaměstnanců.
 
 - [x] Zabránit anonymnímu čtení celého adresáře zaměstnanců; ověřeno dosavadními API a anonymními HTTP kontrolami.
 - [x] Omezit vyhledání účtu přes lookup v2 a zachovat běžné přihlášení výhradně OS číslem.
 - [ ] Projít staré exporty, předchozí PWA/service worker a zálohy z hlediska dostupnosti adresáře, kontaktů a citlivých metadat; zdokumentovat, co nelze vzít zpět z Git historie či už stažených kopií.
-- [ ] Ověřit povolené a zakázané datové cesty se skutečnými podepsanými owner/admin/deputy JWT i anonymní relací; nikdy nevystavovat token v logu.
+- [x] Ověřit povolené a zakázané datové cesty se skutečnými podepsanými owner/admin/deputy JWT i anonymní relací; nikdy nevystavovat token v logu.
 - [ ] Přidat dlouhodobé regresní kontroly rozsahu osobních polí v odpovědích a exportech, včetně negativních případů.
 
 **Dokončení:** všechny soukromé údaje mimo výslovně přijatý rozsah veřejné rotace chráněné a prověřené napříč novým i historickým klientem. **Omezení:** zaměstnancům nepřidávat hesla, e-maily, OTP ani vlastní Supabase Auth účty.
@@ -58,11 +58,11 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** rozhodnutí uzavřeno, **ne** tvrzení, že jména a absence jsou soukromé. Nový nález širšího úniku patří zpět do P0.1/P0.3/P1.1 a může vyžadovat nové rozhodnutí.
 
-### P0.3 – API, exporty a staré klienty · **40 % (2/5)**
+### P0.3 – API, exporty a staré klienty · **60 % (3/5)**
 
 - [x] Omezené login/legacy admin API, allowlist reportů a testovací HTTP sondy anonymního a neplatného JWT (dosavadní sada 18 kontrol).
 - [x] Kontroly formátu ZIP, manifestu, kontrolních součtů/CRC a povolených typů souborů existují.
-- [ ] Reálně vyzkoušet owner/admin/deputy JWT, odmítnutí cizího účtu a přístup k privilegovaným exportům/API.
+- [x] Reálně vyzkoušet owner/admin/deputy JWT, odmítnutí cizího účtu a přístup k privilegovaným exportům/API.
 - [ ] Ověřit soukromé stažení a otevření zálohy na skutečném iPhonu, bez úniku do veřejných umístění.
 - [ ] Prověřit staré PWA/cache, chování chráněné Vercel preview URL a API/exporty ze starších buildů; regresní testy nesmějí obejít autorizaci.
 
@@ -70,34 +70,34 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Doplnění auditu starších preview 23. 9. 2026:** přes Vercel autentizovaný read-only HTTP přístup byly prověřeny čtyři READY development buildy `dpl_Hci5FbQCWFcehJTkfHkWCNGvM3ya` (`3c040643`), `dpl_C6fkkvMNdV9LSqcV9eHnxdi33dzX` (`cd6e8b89`), `dpl_Erg2nVhGsQtdgpRk81wBz7A9tPcy` (`445f6d18`) a `dpl_FKtZmysaTpjWibxTAzRyVP1shzkw` (`173d57fd`). Ve všech byl přítomen pouze TEST projekt `cgshssdjgzzuprlwnabl`, produkční `bkqamcbkiwumsvelahxr` chyběl a `/api/admin-users` i `/api/rotation-absence-calendar` vracely `410`; těla odpovědí nebyla logována. Tento vzorek neprokazuje stav všech dříve stažených ZIPů ani již nainstalovaných PWA cache, proto checkbox a P0.3 zůstávají otevřené na 40 %.
 **Dokončení:** každý export/API má zdokumentovaný datový rozsah a pozitivní i negativní test ve skutečném prostředí.
 
-### P0.4 – Role vlastníka a administrátorů · **40 % (2/5)**
+### P0.4 – Role vlastníka a administrátorů · **80 % (4/5)**
 
 - [x] Existuje logika odvolávání autentizovaných relací a přístupové diagnostiky bez zveřejňování tokenů.
 - [x] Existuje testovací SQL matice oprávnění v rollback transakci / syntetických rolích.
-- [ ] Otestovat skutečné přihlášení owner, admin a deputy s platnými podepsanými relacemi.
-- [ ] Ověřit hranice rolí: cizí účet, běžný zaměstnanec, anonymní přístup a odvolaná relace nesmějí získat privilegované operace.
+- [x] Otestovat skutečné přihlášení owner, admin a deputy s platnými podepsanými relacemi.
+- [x] Ověřit hranice rolí: cizí účet, běžný zaměstnanec, anonymní přístup a odvolaná relace nesmějí získat privilegované operace.
 - [ ] Zopakovat přihlášení, správu a odvolání zařízení na skutečném iPhonu v Safari/PWA.
 
 **Dokončení:** pro každou roli doložené povolené i zakázané akce, bez změny OS-only režimu zaměstnanců.
 
 ## P1 · Architektura, spolehlivost a obnova
 
-### P1.1 – Databázová oprávnění, RLS a RPC · **40 % (2/5)**
+### P1.1 – Databázová oprávnění, RLS a RPC · **80 % (4/5)**
 
 - [x] Základní RLS a omezení veřejného přístupu nad současným souborem přibližně 20 tabulek; dosavadní testovací anonymní sondy.
 - [x] Syntetická SQL role matrix a kontrola privátních nastavení bez trvalých testovacích zápisů.
-- [ ] Provést autorizované pozitivní/negativní kontroly se skutečnými JWT všech privilegovaných rolí.
-- [ ] Zinventarizovat všechny privilegované RPC (včetně `SECURITY DEFINER`), `GRANT`, RLS a všechny veřejné cesty zapisující do provozních tabulek; vyhodnotit křížový přístup účtů.
+- [x] Provést autorizované pozitivní/negativní kontroly se skutečnými JWT všech privilegovaných rolí.
+- [x] Zinventarizovat všechny privilegované RPC (včetně `SECURITY DEFINER`), `GRANT`, RLS a všechny veřejné cesty zapisující do provozních tabulek; vyhodnotit křížový přístup účtů.
 - [ ] Každou nutnou úpravu politik nasadit nejprve do TEST s migrací, testem i reverzním postupem; ověřit, že nepoškodila běžný provoz.
 
 **Dokončení:** bezpečnost stojí na serverových pravidlech, nikoli jen na skrytých tlačítkách; přijatá výjimka veřejného čtení rozpisu je jasně oddělená. Produkční DB bez výslovného schválení neměnit.
 
-### P1.2 – Administrátorské heslo, relace a zařízení · **40 % (2/5)**
+### P1.2 – Administrátorské heslo, relace a zařízení · **80 % (4/5)**
 
 - [x] Oddělené administrátorské Auth relace navázané na uživatele, session a zařízení; omezený bootstrap.
 - [x] Obnovení již odvolané relace je blokováno.
-- [ ] Ověřit podpisy a expiraci na skutečných owner/admin/deputy relacích v TEST.
-- [ ] Ověřit odvolání na druhém zařízení a přesně rozlišit „odvolaná relace“ versus „nové přihlášení se stále platným heslem“.
+- [x] Ověřit podpisy a expiraci na skutečných owner/admin/deputy relacích v TEST.
+- [x] Ověřit odvolání na druhém zařízení a přesně rozlišit „odvolaná relace“ versus „nové přihlášení se stále platným heslem“.
 - [ ] Reálný Safari/PWA test relací, znovuotevření, offline→online a UX odmítnutí.
 
 **Dokončení:** konzistentní serverová ochrana i po restartu a odvolání, nikoli pouze klientský příznak `adminUnlocked`.
@@ -106,6 +106,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Společný bezpečnostní audit 23. 9. 2026:** proti přesnému SHA `b52745fe6c84a58b3187bc0f5fdd39593c9df59f` a výhradně TEST `cgshssdjgzzuprlwnabl` proběhla čtecí inventura 20 tabulek, 24 RPC vystavených typovým API, 48 migračních souborů a čtyř RaK Edge Functions. Actions run #202 na témže SHA doložil 18 anonymních/neplatných-JWT HTTP sond bez zápisu; navíc ruční sondy odmítly anonymní i záměrně neplatný JWT na `rak-admin-users` a `rak-absence-calendar` HTTP 401. Navazující živý katalogový audit na development HEAD `a9486dc5f38e06a2957d8a6d09c14b17eb346655` ověřil přímo v TEST `pg_catalog`, `pg_policies` a tabulková GRANT oprávnění: všech 20 veřejných tabulek má RLS zapnuté; `anon` ani `authenticated` nemají na veřejných tabulkách přímý `INSERT`/`UPDATE`/`DELETE`; anonymní RPC allowlist tvoří přesně šest funkcí. Pět z nich je záměrně veřejných `SECURITY DEFINER` endpointů (`rak_admin_account_requires_auth`, `rak_app_keepalive`, login V1/V2 a `rak_submit_bug_report_v2`), šestá `rak_admin_auth_capabilities` není SECURITY DEFINER. Drift testu byl opraven přidáním záměrně veřejného, rate-limitovaného `rak_lookup_account_for_login_v2`; opravená rollback-only matice byla před commitem spuštěna přímo proti TEST a prošla: anonymní i unsigned-authenticated kontext neviděl maskovaná admin nastavení, ověřená owner session se syntetickými request claims je viděla a transakce byla vrácena. Supabase security advisor tyto veřejné SECURITY DEFINER funkce správně hlásí jako body k vědomému posouzení; současný provozní model je používá jako omezené veřejné API a bez důkazu se jejich EXECUTE grant neruší. Skutečně podepsaná end-to-end role matrix owner/admin/deputy/cizí/odvolaná relace stále chybí, proto P0.1, P0.3, P0.4, P1.1 a P1.2 zůstávají procentně beze změny. Žádný platný JWT, service-role klíč ani osobní obsah nebyl zapsán do logu nebo repozitáře.
 
 **Doplnění bezpečnostního balíku 23. 9. 2026:** živé regresní matice odhalily skutečnou defense-in-depth mezeru: RLS už skryla vnořené `loginNumber`, ale zápisový guard veřejných `machine_settings` tento klíč ještě neodmítal. Kandidát byl nejprve ověřen v transakci s `ROLLBACK` a poté nasazen pouze do TEST migrací `20260923045532_rak_block_login_number_in_public_machine_settings`. Po změně je všech osm testovaných rekurzivních identit (`appAccounts`, `applicationAccounts`, `workers`, `loginNumber`, `accountNumber`, `roster`, `employees`, `staff`) odmítnuto už při zápisu do veřejné kategorie; soukromý `WORKER_ROSTER_SETTINGS` zůstává oddělený. Současně byly matice opraveny tak, aby neobcházely přísnější serverovou ochranu, veřejný RPC allowlist počítal šest záměrných funkcí a test už neobsahoval natvrdo konkrétní owner OS číslo. `security-recursive-worker-matrix.sql`, `security-public-data-matrix.sql`, `security-public-surface-matrix.sql` a upravená privacy matice prošly proti TEST; všechny testovací zápisy byly rollback-only. Procenta zůstávají beze změny, protože stále chybí skutečně podepsaná end-to-end role matrix.
+
+**Podepsaná TEST role matrix 23. 9. 2026:** na přesném development SHA `72d1fd7870a917728967a1f1487c757e2b6684bc` vznikly pouze po dobu testu náhodné Auth účty owner/admin/deputy/cizí účet a skutečné Supabase relace. Dvacet kontrol potvrdilo role v `rak_admin_context`, odmítnutí anonymního a cizího účtu, owner-only seznam profilů a kompletní owner zálohu, povolení `rak-admin-users` jen owner/admin a odmítnutí deputy/cizího účtu. Owner odvolal dočasné deputy zařízení; původní podepsaný token i jeho opětovná registrace byly odmítnuty. Doplňková zkouška po explicitním ověření existence session potvrdila, že nové přihlášení stejným stále platným heslem vytvoří novou povolenou relaci, zatímco starý token zůstane blokovaný. První rychlý doplňkový pokus narazil před viditelností session na HTTP 401, bezpečně uklidil oba účty a nebyl vydán za úspěch; jediný řízený opakovaný pokus prošel. Po každé zkoušce se Auth uživatelé i admin profily vrátili z 3 na 3. Klíče, hesla, JWT ani osobní odpovědi nebyly logovány. Běžný zaměstnanec zůstává OS-only bez Auth tokenu, takže pro privilegované RPC odpovídá již ověřenému anonymnímu kontextu. Tím se P0.1 a P0.3 zvyšují na 60 % a P0.4, P1.1 a P1.2 na 80 %; fyzický Safari/PWA test zůstává otevřený.
 
 ### P1.3 – Reprodukovatelný build, testy a jednotná verze · **100 % (6/6)**
 
@@ -145,6 +147,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Čtecí kontrola záloh TEST 23. 9. 2026:** `supabase backups list --project-ref cgshssdjgzzuprlwnabl` vrátil `backups=[]`, `pitr_enabled=false`, `walg_enabled=true`, region `eu-central-1`. Zapnutá interní WAL-G schopnost bez uvedené obnovitelné zálohy ani PITR není důkaz obnovy. Nebyl vytvořen nový projekt, nic nebylo obnoveno ani smazáno; P1.5 proto zůstává 43 %.
 
 **Připravenost oddělené obnovy 23. 9. 2026:** čtecí příkaz `supabase branches list --project-ref cgshssdjgzzuprlwnabl` vrátil `null`, tedy TEST nemá žádnou preview větev. Preview větev není náhradou plné obnovy: podle [Supabase Branching](https://supabase.com/docs/guides/deployment/branching) je ve výchozím stavu bez produkčních dat a bez Storage objektů a její provoz může být zpoplatněn. [Databázové zálohy](https://supabase.com/docs/guides/platform/backups) neobsahují samotné Storage objekty ani obnovitelné přihlašovací údaje vlastních rolí. [Obnova do nového projektu](https://supabase.com/docs/guides/platform/clone-project) je beta a vyžaduje samostatně obnovit Storage objekty, Edge Functions, Auth nastavení/API klíče, Realtime a další konfiguraci. Proto je předem připravená schvalovací brána: po výslovném souhlasu vytvořit nový oddělený recovery projekt, zachovat originální TEST beze změny, obnovit a porovnat DB/Auth/Storage/role; větev lze použít nanejvýš k doplňkovému testu schématu. Bez skutečného výsledku se checkboxy ani 43 % nemění.
+
+**Rozhodnutí o nákladech 23. 9. 2026:** vlastník povolil pouze bezplatnou variantu. Dva vlastní aktivní Free projekty už obsazují oba bezplatné sloty; další dva viditelné projekty patří jinému účtu a nejsou recovery cílem RaK. Žádný nový projekt, placená větev, PITR ani add-on proto nevznikl a žádný existující projekt nebude kvůli testu pozastaven. P1.5 zůstává 43 %.
 **Dokončení:** lze doložit, že jsme obnovili použitelnou oddělenou instanci, ne pouze vygenerovali ZIP nebo spustili transakci ROLLBACK.
 
 ## P2 · Mobil, offline a provozní kvalita
