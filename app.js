@@ -269,6 +269,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const featurePromises = new Map();
   const featureState = Object.create(null);
   let remoteSyncActivationPromise = null;
+  let rakBootLocalHydrationInProgress = false;
   const bootStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
   function normalizeScriptPath(value) {
@@ -407,7 +408,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
     } else if (name === 'sync') {
-      void activateRemoteSync();
+      // RAK_17082_BOOT_SYNC_ORDER: when startup is loading sync only to hydrate
+      // persisted Rotation, do not race that hydration with remote activation.
+      if (!rakBootLocalHydrationInProgress) void activateRemoteSync();
     } else if (name === 'menu') {
       reapplyMoreSinglePassAfterLazyMenu();
       try { if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu(); } catch (err) {}
@@ -537,10 +540,22 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
   try { if (typeof window.__rakSyncActiveAppearance === 'function') void window.__rakSyncActiveAppearance('startup'); } catch (err) {}
 
-  // RAK_17080_OFFLINE_BOOT_RESTORE: on a cold offline start, do not wait for idle warmup.
-  // Load the same-origin sync layer now and finish applying the newest persisted Rotation
-  // before declaring startup ready. Supabase SDK itself is intentionally not required offline.
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+  // RAK_17080_OFFLINE_BOOT_RESTORE / RAK_17082_RETURNING_SW_HYDRATION:
+  // navigator.onLine can lag on iOS. Every returning service-worker-controlled
+  // startup therefore hydrates persisted Rotation before startupReady, even when
+  // navigator temporarily claims "online". The first uncached online visit keeps
+  // the fast lazy path because it has no controlling service worker yet.
+  const rakReturningServiceWorkerStart = !!(
+    typeof navigator !== 'undefined' &&
+    navigator.serviceWorker &&
+    navigator.serviceWorker.controller
+  );
+  const rakMustHydrateRotationBeforeReady = !!(
+    (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+    rakReturningServiceWorkerStart
+  );
+  if (rakMustHydrateRotationBeforeReady) {
+    rakBootLocalHydrationInProgress = true;
     try {
       await ensureFeature('sync');
       // RAK_17082_AWAIT_RUNTIME_HYDRATION: cache arbitration alone is not enough;
@@ -548,9 +563,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       if (typeof window.hydrateRakRotationFromOfflineCache === 'function') {
         await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true });
       }
-      await activateRemoteSync();
     } catch (err) {
-      console.warn('Offline Rotation restore during boot failed', err);
+      console.warn('Persisted Rotation restore during boot failed', err);
+    } finally {
+      rakBootLocalHydrationInProgress = false;
+    }
+    // Remote sync is deliberately after local hydration and never blocks startupReady.
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+      void activateRemoteSync().catch((err) => console.warn('Post-hydration online sync failed', err));
     }
   }
 

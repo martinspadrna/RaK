@@ -34,6 +34,17 @@ test('cold boot has an explicit awaited runtime hydration contract',()=>{
   assert(boot.includes("await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true })"));
 });
 
+test('returning service-worker startup hydrates before remote sync regardless of navigator.onLine',()=>{
+  const app=read('app.js');
+  assert(app.includes('RAK_17082_RETURNING_SW_HYDRATION'));
+  assert(app.includes('navigator.serviceWorker.controller'));
+  assert(app.includes('rakBootLocalHydrationInProgress = true'));
+  assert(app.includes("if (!rakBootLocalHydrationInProgress) void activateRemoteSync()"));
+  const boot=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
+  assert(boot.indexOf("await window.hydrateRakRotationFromOfflineCache") < boot.indexOf('void activateRemoteSync()'));
+  assert(!boot.includes('await activateRemoteSync()'));
+});
+
 test('every applied Rotation snapshot refreshes Rotation-driven Home UI',()=>{
   const sync=read('app-rotation-sync.js');
   const apply=sync.slice(sync.indexOf('function applyRakRotationState'),sync.indexOf('// RAK_17057_BADGE_GUARD'));
