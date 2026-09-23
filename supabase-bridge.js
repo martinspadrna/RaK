@@ -1950,37 +1950,50 @@
 
   function saveLocalSnapshot(rotation, machineSettingsRows, rotationMeta) {
     const existing = readLocalSnapshot() || {};
-    const hasRotation = !!(rotation && typeof rotation === 'object' && rotation.months);
-    const candidateRotation = hasRotation ? rotation
-      : (existing.rotation && typeof existing.rotation === 'object' ? existing.rotation : readCanonicalRotationState());
+    const explicitRotation = !!(rotation && typeof rotation === 'object' && rotation.months);
+    const legacyRotation = !explicitRotation && existing.rotation && typeof existing.rotation === 'object' && existing.rotation.months
+      ? existing.rotation
+      : null;
+    // RAK_17080_ROTATION_METADATA_ISOLATION: unrelated cache writes (for example
+    // machine settings) must never re-stamp or rewrite the canonical Rotation.
+    const candidateRotation = explicitRotation ? rotation : legacyRotation;
     const candidateFingerprint = rotationPayloadFingerprint(candidateRotation);
     const existingRotationMeta = candidateRotation
-      ? normalizeRotationPersistenceMeta(existing.rotationMeta || {}, existing.rotationSavedAt || existing.updatedAt || 0, candidateRotation)
+      ? normalizeRotationPersistenceMeta(existing.rotationMeta || {}, Object.prototype.hasOwnProperty.call(existing, 'rotationSavedAt') ? existing.rotationSavedAt : existing.updatedAt || 0, candidateRotation)
       : null;
     const canReuseMeta = !!(existingRotationMeta && existingRotationMeta.fingerprint === candidateFingerprint);
-    const nextRotationMeta = candidateRotation
-      ? normalizeRotationPersistenceMeta(rotationMeta || (canReuseMeta ? existingRotationMeta : {}), canReuseMeta ? existingRotationMeta.savedAt : Date.now(), candidateRotation)
+    let nextRotationMeta = existing.rotationMeta && typeof existing.rotationMeta === 'object'
+      ? existing.rotationMeta
       : null;
+    if (candidateRotation) {
+      nextRotationMeta = normalizeRotationPersistenceMeta(
+        rotationMeta || (canReuseMeta ? existingRotationMeta : {}),
+        canReuseMeta ? existingRotationMeta.savedAt : Date.now(),
+        candidateRotation
+      );
+    }
+
     const hasMachineSettings = Array.isArray(machineSettingsRows) && machineSettingsRows.length > 0;
     const nextMachineSettings = hasMachineSettings ? machineSettingsRows : (Array.isArray(existing.machineSettingsRows) ? existing.machineSettingsRows : []);
     const nextAnnouncements = Array.isArray(state.announcements) && state.announcements.length
       ? state.announcements : (Array.isArray(existing.announcements) ? existing.announcements : []);
-    const rotationSavedAt = nextRotationMeta ? nextRotationMeta.savedAt : Math.max(0, Number(existing.rotationSavedAt || 0) || 0);
+    const rotationSavedAt = nextRotationMeta
+      ? Math.max(0, Number(nextRotationMeta.savedAt || 0) || 0)
+      : Math.max(0, Number(Object.prototype.hasOwnProperty.call(existing, 'rotationSavedAt') ? existing.rotationSavedAt : 0) || 0);
     const lean = { updatedAt: Date.now(), rotation: null, rotationKey: LOCAL_ROTATION_KEY, rotationSavedAt };
-    const compact = Object.assign({}, lean, { rotationMeta: nextRotationMeta });
+    const compact = Object.assign({}, lean);
+    if (nextRotationMeta) compact.rotationMeta = nextRotationMeta;
     if (nextMachineSettings.length) compact.machineSettingsRows = nextMachineSettings;
     if (nextAnnouncements.length) compact.announcements = nextAnnouncements;
 
-    let canonicalStored = !candidateRotation;
-    if (candidateRotation && existing.rotation) {
+    let canonicalStored = true;
+    if (candidateRotation && legacyRotation) {
       // RAK_17079_QUOTA_MIGRATION: free the duplicate legacy payload BEFORE growing
       // the canonical key. Keep this transitional record intentionally tiny so a full
       // iOS/WebKit localStorage can still migrate without deleting the only good payload.
       const released = safeWriteJson(LOCAL_STATE_KEY, lean);
-      if (released) {
-        canonicalStored = writeCanonicalRotationState(candidateRotation);
-        if (canonicalStored) state.cacheGuard.rotationCacheMigrations = Number(state.cacheGuard.rotationCacheMigrations || 0) + 1;
-      }
+      canonicalStored = released && writeCanonicalRotationState(candidateRotation);
+      if (canonicalStored) state.cacheGuard.rotationCacheMigrations = Number(state.cacheGuard.rotationCacheMigrations || 0) + 1;
     } else if (candidateRotation) {
       canonicalStored = writeCanonicalRotationState(candidateRotation);
     }
@@ -1989,6 +2002,7 @@
       state.cacheGuard.rotationCacheWriteErrors = Number(state.cacheGuard.rotationCacheWriteErrors || 0) + 1;
       state.cacheGuard.rotationStorageError = 'rotation-cache-write-failed';
       const fallback = Object.assign({}, lean, { rotation: candidateRotation || null, rotationKey: '' });
+      if (nextRotationMeta) fallback.rotationMeta = nextRotationMeta;
       safeWriteJson(LOCAL_STATE_KEY, fallback);
       return fallback;
     }
@@ -2023,7 +2037,7 @@
     const rotation = readCanonicalRotationState();
     if (!rotation) return null;
     const actualFingerprint = rotationPayloadFingerprint(rotation);
-    let meta = normalizeRotationPersistenceMeta(snapshot && snapshot.rotationMeta ? snapshot.rotationMeta : {}, snapshot && (snapshot.rotationSavedAt || snapshot.updatedAt) ? (snapshot.rotationSavedAt || snapshot.updatedAt) : 0, rotation);
+    let meta = normalizeRotationPersistenceMeta(snapshot && snapshot.rotationMeta ? snapshot.rotationMeta : {}, snapshot ? (Object.prototype.hasOwnProperty.call(snapshot, 'rotationSavedAt') ? snapshot.rotationSavedAt : snapshot.updatedAt || 0) : 0, rotation);
     if (snapshot && snapshot.rotationMeta && snapshot.rotationMeta.fingerprint && String(snapshot.rotationMeta.fingerprint) !== actualFingerprint) {
       state.cacheGuard.rotationLocalFingerprintMismatches = Number(state.cacheGuard.rotationLocalFingerprintMismatches || 0) + 1;
       meta = normalizeRotationPersistenceMeta({ source: 'local-cache-unverified', fingerprint: actualFingerprint }, 0, rotation);
@@ -2036,7 +2050,11 @@
     if (!a) return b ? -1 : 0;
     if (!b) return 1;
     const ar = Math.max(0, Number(a.revision || 0) || 0), br = Math.max(0, Number(b.revision || 0) || 0);
-    if (ar > 0 && br > 0 && ar !== br) return ar - br;
+    if (ar !== br) {
+      if (ar > 0 && br === 0) return 1;
+      if (br > 0 && ar === 0) return -1;
+      if (ar > 0 && br > 0) return ar - br;
+    }
     const at = Math.max(0, Number(a.meta && a.meta.savedAt || a.updatedAt || 0) || 0);
     const bt = Math.max(0, Number(b.meta && b.meta.savedAt || b.updatedAt || 0) || 0);
     if (at !== bt) return at - bt;
