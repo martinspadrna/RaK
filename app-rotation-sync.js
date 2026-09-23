@@ -94,6 +94,7 @@ async function syncRotationFromSupabase(force) {
   const fingerprint=editor?rakRotationEditorFingerprint(editor):null;
   if(editor && fingerprint===null) return null;
   try {
+    // RAK_17067_SKIP_CACHE_ON_FORCE: manual online reload MUST NOT replace a draft with stale offline cache.
     // RAK_17082_BOOT_HYDRATE: cached state has its own awaited contract so cold
     // startup can complete runtime hydration before startupReady.
     if (force !== 'discard-draft') await hydrateRakRotationFromOfflineCache({ repair: true, force: false });
