@@ -94,3 +94,29 @@ Read-only kontrola proběhla po bezpečnostním balíku na development HEAD `3c0
 Výsledek dokládá izolaci a uzavření starých API u tohoto konkrétního vzorku online buildů. Nedokládá obsah všech historických stažených archivů ani cache PWA, která už byla nainstalována na cizím zařízení; tyto kopie nelze vzdáleně odvolat. P0.3 se proto nezvyšuje.
 
 Read-only Supabase CLI kontrola TEST projektu `cgshssdjgzzuprlwnabl` vrátila prázdný seznam dostupných záloh, vypnuté PITR, `walg_enabled=true` a region `eu-central-1`. Tento stav nelze vydávat za dostupný bod obnovy. Neproběhl restore, nevznikl nový projekt a produkční Supabase nebyla dotčena. P1.5 zůstává 43 %; jeho další uzavření vyžaduje předem schválený oddělený projekt, skutečnou obnovu a porovnání dat/Auth/Storage/rolí.
+
+## Připravenost oddělené obnovy TEST – 2026-09-23
+
+Čtecí inventář nezměnil žádný Supabase zdroj. `supabase backups list --project-ref cgshssdjgzzuprlwnabl` vrátil `backups=[]`, `pitr_enabled=false`, `walg_enabled=true`, region `eu-central-1`; `supabase branches list --project-ref cgshssdjgzzuprlwnabl` vrátil `null`. TEST tedy nemá dostupný deklarovaný bod obnovy, PITR ani preview větev. Produkční projekt `bkqamcbkiwumsvelahxr` nebyl čten ani měněn.
+
+### Volba bezpečného cíle
+
+| Cíl | Co může prokázat | Omezení | Rozhodnutí |
+|---|---|---|---|
+| nový oddělený recovery projekt | nezávislou obnovu databáze, Auth, Storage, funkcí a konfigurace | může vytvořit náklady; vytvoření vyžaduje výslovný souhlas vlastníka | jediný přijatelný cíl pro uzavření P1.5 |
+| Supabase preview větev | migrace a schéma v izolaci | podle dokumentace je ve výchozím stavu bez dat a Storage objektů; používání větví je zpoplatněná funkcionalita | pouze doplňková zkouška, nikoli plná obnova |
+| původní TEST projekt | žádný nezávislý důkaz obnovy | zásah by mohl přepsat jediný existující TEST stav | nepoužívat jako cíl restore |
+
+Oficiální omezení, která musí důkaz respektovat: [Database Backups](https://supabase.com/docs/guides/platform/backups) nezahrnují samotné Storage objekty a stažené fyzické zálohy neobnovují hesla vlastních databázových rolí. [Restore to a New Project](https://supabase.com/docs/guides/platform/clone-project) je beta; po klonu je nutné samostatně znovu nastavit Storage objekty, Edge Functions, Auth/API klíče, Realtime, rozšíření a další konfiguraci. Branching je podle [dokumentace](https://supabase.com/docs/guides/deployment/branching) data-less a storage-less ve výchozím stavu a podle [účtování](https://supabase.com/docs/guides/platform/manage-your-usage/branching) může přidat hodinové náklady.
+
+### Připravený nedestruktivní postup po schválení
+
+1. Na přesném schváleném Git SHA zaznamenat seznam migrací, tabulek, funkcí, RLS/policies, Auth profilů, Storage bucketů a objektů; do logů nepsat tajné klíče, hesla ani podepsané JWT.
+2. Vytvořit nový oddělený recovery projekt pouze po výslovném souhlasu s případným nákladem. Původní TEST zůstane zdrojem jen pro čtení a nebude se mazat ani přepisovat.
+3. Aplikovat migrace z přesného SHA a obnovit databázová data. Auth identity znovu bezpečně založit nebo převést podle podporovaného postupu; hesla, tokeny a aktivní relace nepovažovat za součást owner ZIP.
+4. Storage objekty přenést samostatně a porovnat jejich názvy, velikosti a hashe; databázová záloha sama přenáší nanejvýš metadata.
+5. Nasadit Edge Functions a znovu nastavit Auth, API klíče, Realtime a ostatní projektovou konfiguraci pouze pro recovery projekt.
+6. Porovnat počty a deterministické hashe kritických tabulek, migrace, revize rotace, role/RLS a Storage. Spustit negativní anonymní/neplatný JWT test a pozitivní role matrix owner/admin/deputy/cizí účet/odvolaná relace bez zveřejnění tokenů.
+7. Spustit aplikační smoke proti recovery projektu bez změny stabilního development aliasu. Při neshodě výsledek označit jako neúspěšný, recovery projekt izolovat a zachovat auditní záznam; žádný automatický zásah do původního TEST ani produkce.
+
+Dokud není tento postup skutečně proveden a porovnán, P1.5 zůstává 43 % (3/7). Tento dokumentační balík nevytváří Vercel deployment a nezvyšuje verzi.

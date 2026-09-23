@@ -143,6 +143,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 
 **Čtecí kontrola záloh TEST 23. 9. 2026:** `supabase backups list --project-ref cgshssdjgzzuprlwnabl` vrátil `backups=[]`, `pitr_enabled=false`, `walg_enabled=true`, region `eu-central-1`. Zapnutá interní WAL-G schopnost bez uvedené obnovitelné zálohy ani PITR není důkaz obnovy. Nebyl vytvořen nový projekt, nic nebylo obnoveno ani smazáno; P1.5 proto zůstává 43 %.
+
+**Připravenost oddělené obnovy 23. 9. 2026:** čtecí příkaz `supabase branches list --project-ref cgshssdjgzzuprlwnabl` vrátil `null`, tedy TEST nemá žádnou preview větev. Preview větev není náhradou plné obnovy: podle [Supabase Branching](https://supabase.com/docs/guides/deployment/branching) je ve výchozím stavu bez produkčních dat a bez Storage objektů a její provoz může být zpoplatněn. [Databázové zálohy](https://supabase.com/docs/guides/platform/backups) neobsahují samotné Storage objekty ani obnovitelné přihlašovací údaje vlastních rolí. [Obnova do nového projektu](https://supabase.com/docs/guides/platform/clone-project) je beta a vyžaduje samostatně obnovit Storage objekty, Edge Functions, Auth nastavení/API klíče, Realtime a další konfiguraci. Proto je předem připravená schvalovací brána: po výslovném souhlasu vytvořit nový oddělený recovery projekt, zachovat originální TEST beze změny, obnovit a porovnat DB/Auth/Storage/role; větev lze použít nanejvýš k doplňkovému testu schématu. Bez skutečného výsledku se checkboxy ani 43 % nemění.
 **Dokončení:** lze doložit, že jsme obnovili použitelnou oddělenou instanci, ne pouze vygenerovali ZIP nebo spustili transakci ROLLBACK.
 
 ## P2 · Mobil, offline a provozní kvalita
