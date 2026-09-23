@@ -234,6 +234,18 @@ function installPwaAndConnectivityHooks() {
 
     liveRefreshPromise = (async () => {
       try {
+        if (navigator.onLine && typeof window.rakEnsureSupabaseSdk === 'function') {
+          await window.rakEnsureSupabaseSdk({ force: true }).catch((err) => {
+            console.warn('Supabase SDK live recovery failed', err);
+            return null;
+          });
+        }
+        if (navigator.onLine && typeof window.rakEnsureFeature === 'function') {
+          await window.rakEnsureFeature('sync').catch((err) => {
+            console.warn('Sync feature live recovery failed', err);
+            return null;
+          });
+        }
         if (navigator.onLine && typeof refreshPublicData === 'function') {
           await refreshPublicData();
         }

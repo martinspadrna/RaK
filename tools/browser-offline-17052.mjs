@@ -135,6 +135,10 @@ try{
  assert.equal(persisted.diag?.durable?.present,true,'[17052-browser] durable rotation snapshot missing');
  assert.equal(persisted.diag?.equivalent,true,'[17052-browser] persistence stores diverged');
  const before=httpFailures.length;
+ // RAK_17080: remove ordinary browser HTTP cache so the offline reload cannot reuse
+ // the previously fetched third-party Supabase SDK. Service-worker CacheStorage and
+ // application storage intentionally remain intact.
+ await send('Network.clearBrowserCache');
  await send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
  await send('Page.reload',{ignoreCache:false});
  const offline=await boot('offline reload',expected);
@@ -149,9 +153,9 @@ try{
    const snapshot=JSON.parse(localStorage.getItem('rotace_supabase_local_state_v1')||'null');
    const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
    const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
-   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent};
+   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,selectedRevision:17079,equivalent:true},'[17052-browser] newest verified snapshot was not selected/repaired offline');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:false},'[17052-browser] newest verified snapshot was not selected/repaired offline without third-party SDK cache');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
@@ -165,6 +169,10 @@ try{
  assert.deepEqual(offlineIcons.broken,[],'[17052-browser] offline dashboard/navigation icons missing');
  assert.equal(httpFailures.length,before,'[17052-browser] offline shell/rotation caused HTTP errors');
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+ await check(`(()=>{window.dispatchEvent(new Event('online'));return true})()`);
+ await until('!!window.supabase?.createClient',20000);
+ const reconnectWithoutReload=await check(`(()=>({sdk:!!window.supabase?.createClient,syncReady:window.rakIsFeatureReady('sync'),marker:Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'))}))()`);
+ assert.deepEqual(reconnectWithoutReload,{sdk:true,syncReady:true,marker:true},'[17052-browser] online recovery required a page reload');
  await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);
  const recovered=await check(`(async()=>{
    await window.rakEnsureFeature('sync');

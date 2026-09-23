@@ -1,0 +1,55 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+
+test('1.7.80 identifies offline boot and reconnect hardening',()=>{
+  const metadata=assertCurrentReleaseIdentity(read,'1.7.80');
+  assert(metadata.buildId.includes('offline-boot-supabase-reconnect'));
+});
+
+test('offline boot restores persisted Rotation before startup is declared ready',()=>{
+  const app=read('app.js');
+  assert(app.includes('RAK_17080_OFFLINE_BOOT_RESTORE'));
+  const restore=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
+  assert(restore.includes("await ensureFeature('sync')"));
+  assert(restore.includes('await activateRemoteSync()'));
+  assert(restore.includes('navigator.onLine === false'));
+});
+
+test('Supabase SDK failure is recoverable without reloading the page',()=>{
+  const app=read('app.js');
+  assert(app.includes('function ensureRakSupabaseSdk(options = {})'));
+  assert(app.includes('window.rakEnsureSupabaseSdk = ensureRakSupabaseSdk'));
+  assert(app.includes("window.addEventListener('online'"));
+  assert(app.includes("then(() => ensureFeature('sync'))"));
+  assert(app.includes("then(() => activateRemoteSync())"));
+  assert(app.includes("supabaseSdkLoadPromise = null"));
+  const activation=app.slice(app.indexOf('function activateRemoteSync()'),app.indexOf('function afterFeatureReady'));
+  assert(activation.includes('if (remoteSyncActivationPromise) return remoteSyncActivationPromise'));
+  assert(activation.includes('if (remoteSyncActivationPromise === run) remoteSyncActivationPromise = null'));
+});
+
+test('live refresh waits for SDK and sync feature after network recovery',()=>{
+  const pwa=read('app-pwa-connectivity.js');
+  const live=pwa.slice(pwa.indexOf('const runLiveRefresh'),pwa.indexOf('const signalStateChange'));
+  assert(live.includes('window.rakEnsureSupabaseSdk'));
+  assert(live.includes("window.rakEnsureFeature('sync')"));
+});
+
+test('browser regression removes ordinary CDN cache and proves no-reload recovery',()=>{
+  const browser=read('tools/browser-offline-17052.mjs');
+  assert(browser.includes("Network.clearBrowserCache"));
+  assert(browser.includes('supabaseSdkOffline:false'));
+  assert(browser.includes("window.dispatchEvent(new Event('online'))"));
+  assert(browser.includes("await until('!!window.supabase?.createClient'"));
+  assert(browser.includes("'[17052-browser] online recovery required a page reload'"));
+});
+
+test('mandatory CI executes the 1.7.80 gate',()=>{
+  const workflow=read('.github/workflows/rak-development-validation.yml');
+  const pkg=JSON.parse(read('package.json'));
+  assert(workflow.includes('node --test tools/release-gate-17080.test.mjs'));
+  assert(pkg.scripts.check.includes('tools/release-gate-17080.test.mjs'));
+});

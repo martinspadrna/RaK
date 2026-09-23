@@ -10,6 +10,67 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const RAK_DEV_UPDATE_BUILD = releaseMetadata.buildId;
   window.RAK_RELEASE_VERSION = releaseMetadata.displayVersion;
   const RAK_BOOT_V2_ENABLED = true;
+  const RAK_SUPABASE_SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.js';
+  const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
+  let supabaseSdkLoadPromise = null;
+
+  function hasRakSupabaseSdk() {
+    return !!(window.supabase && typeof window.supabase.createClient === 'function');
+  }
+
+  function noteRakSupabaseSdk(status) {
+    try {
+      if (typeof window.rakNoteExternalDependency === 'function') window.rakNoteExternalDependency('supabase', status, RAK_SUPABASE_SDK_URL);
+    } catch (_) {}
+  }
+
+  function findRakSupabaseSdkScript() {
+    try {
+      return Array.from(document.scripts || []).find((script) => String(script.src || '').includes('/@supabase/supabase-js@2.110.7/dist/umd/supabase.js')) || null;
+    } catch (_) { return null; }
+  }
+
+  function ensureRakSupabaseSdk(options = {}) {
+    if (hasRakSupabaseSdk()) {
+      noteRakSupabaseSdk('loaded');
+      return Promise.resolve(window.supabase);
+    }
+    const force = !!options.force;
+    if (!force && typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve(null);
+    if (supabaseSdkLoadPromise) return supabaseSdkLoadPromise;
+
+    supabaseSdkLoadPromise = new Promise((resolve, reject) => {
+      let script = findRakSupabaseSdkScript();
+      if (script) {
+        try { script.remove(); } catch (_) {}
+      }
+      script = document.createElement('script');
+      script.src = RAK_SUPABASE_SDK_URL;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.integrity = RAK_SUPABASE_SDK_INTEGRITY;
+      script.dataset.rakSupabaseSdkRetry = '1';
+      noteRakSupabaseSdk('loading');
+      script.onload = () => {
+        if (!hasRakSupabaseSdk()) {
+          const error = new Error('Supabase SDK se stáhlo, ale klient není dostupný.');
+          noteRakSupabaseSdk('failed');
+          reject(error);
+          return;
+        }
+        noteRakSupabaseSdk('loaded');
+        resolve(window.supabase);
+      };
+      script.onerror = () => {
+        noteRakSupabaseSdk('failed');
+        reject(new Error('Supabase SDK se nepodařilo načíst.'));
+      };
+      document.head.appendChild(script);
+    }).finally(() => { supabaseSdkLoadPromise = null; });
+    return supabaseSdkLoadPromise;
+  }
+
+  window.rakEnsureSupabaseSdk = ensureRakSupabaseSdk;
   window.RAK_PWA_BUILD = RAK_DEV_UPDATE_BUILD;
   window.RAK_BOOT_V2_ENABLED = RAK_BOOT_V2_ENABLED;
 
@@ -294,7 +355,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function activateRemoteSync() {
     if (remoteSyncActivationPromise) return remoteSyncActivationPromise;
-    remoteSyncActivationPromise = (async () => {
+    const run = (async () => {
+      try {
+        if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+          await ensureRakSupabaseSdk({ force: true });
+        }
+      } catch (err) {
+        console.warn('Supabase SDK recovery failed', err);
+      }
       try {
         if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.init === 'function') {
           await window.RotationSupabaseBridge.init();
@@ -310,8 +378,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       try { if (typeof forceHomeRefresh === 'function') forceHomeRefresh(); } catch (err) {}
       return true;
     })();
-    return remoteSyncActivationPromise;
+    remoteSyncActivationPromise = run;
+    run.finally(() => {
+      if (remoteSyncActivationPromise === run) remoteSyncActivationPromise = null;
+    });
+    return run;
   }
+
+  window.addEventListener('online', () => {
+    void ensureRakSupabaseSdk({ force: true })
+      .then(() => ensureFeature('sync'))
+      .then(() => activateRemoteSync())
+      .catch((err) => console.warn('Supabase reconnect without reload failed', err));
+  });
 
   function afterFeatureReady(name) {
     if (name === 'rotation') {
@@ -448,6 +527,18 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu();
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
   try { if (typeof window.__rakSyncActiveAppearance === 'function') void window.__rakSyncActiveAppearance('startup'); } catch (err) {}
+
+  // RAK_17080_OFFLINE_BOOT_RESTORE: on a cold offline start, do not wait for idle warmup.
+  // Load the same-origin sync layer now and finish applying the newest persisted Rotation
+  // before declaring startup ready. Supabase SDK itself is intentionally not required offline.
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    try {
+      await ensureFeature('sync');
+      await activateRemoteSync();
+    } catch (err) {
+      console.warn('Offline Rotation restore during boot failed', err);
+    }
+  }
 
   const startupReadyAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   window.__rakBootV2StartupReady = true;
