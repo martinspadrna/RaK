@@ -937,6 +937,451 @@ function ensureFoodScheduleModal() {
 
 
 
+const RAK_NATIVE_CALENDAR_WEEKDAYS = Object.freeze(['Po','Út','St','Čt','Pá','So','Ne']);
+const RAK_NATIVE_CALENDAR_TIMEZONE = 'Europe/Prague';
+
+function rakNativeCalendarSourceIds(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  try {
+    const normalized = typeof normalizeRakGoogleCalendarUrl === 'function' ? normalizeRakGoogleCalendarUrl(raw) : raw;
+    const url = new URL(normalized || raw);
+    if (url.hostname !== 'calendar.google.com') return [];
+    if (/^\/calendar\/embed\/?$/.test(url.pathname)) {
+      return Array.from(new Set(url.searchParams.getAll('src').map((src) => String(src || '').trim()).filter(Boolean))).slice(0, 8);
+    }
+    const match = url.pathname.match(/^\/calendar\/ical\/([^/]+)\/public\/basic\.ics$/);
+    if (!match) return [];
+    try { return [decodeURIComponent(match[1] || '').trim()].filter(Boolean); }
+    catch (_) { return []; }
+  } catch (_) {
+    return [];
+  }
+}
+
+function rakNativeCalendarDecodeText(value) {
+  return String(value || '')
+    .replace(/\\n/gi, '\n')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\\\/g, '\\')
+    .trim();
+}
+
+function rakNativeCalendarProperties(block, wantedName) {
+  const wanted = String(wantedName || '').toUpperCase();
+  return String(block || '').replace(/\r?\n[ \t]/g, '').split(/\r?\n/).flatMap((line) => {
+    const split = line.indexOf(':');
+    if (split < 0) return [];
+    const left = line.slice(0, split);
+    const parts = left.split(';');
+    if (String(parts.shift() || '').toUpperCase() !== wanted) return [];
+    const params = {};
+    parts.forEach((part) => {
+      const idx = part.indexOf('=');
+      if (idx > 0) params[String(part.slice(0, idx)).toUpperCase()] = part.slice(idx + 1);
+    });
+    return [{ key: left, params, value: line.slice(split + 1) }];
+  });
+}
+
+function rakNativeCalendarPragueParts(date) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: RAK_NATIVE_CALENDAR_TIMEZONE,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(date).reduce((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+    return {
+      key: String(parts.year) + '-' + String(parts.month) + '-' + String(parts.day),
+      time: String(parts.hour) + ':' + String(parts.minute)
+    };
+  } catch (_) {
+    return { key: '', time: '' };
+  }
+}
+
+function rakNativeCalendarDateValue(prop) {
+  const value = String(prop && prop.value || '').trim();
+  const match = value.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?)?(Z)?$/);
+  if (!match) return null;
+  const allDay = String(prop && prop.params && prop.params.VALUE || '').toUpperCase() === 'DATE' || !match[4];
+  const rawKey = match[1] + '-' + match[2] + '-' + match[3];
+  if (allDay) return { key: rawKey, time: '', allDay: true };
+  if (match[7] === 'Z') {
+    const utc = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0)));
+    const local = rakNativeCalendarPragueParts(utc);
+    return { key: local.key || rawKey, time: local.time || (match[4] + ':' + match[5]), allDay: false };
+  }
+  return { key: rawKey, time: match[4] + ':' + match[5], allDay: false };
+}
+
+function rakNativeCalendarDateFromKey(key) {
+  const match = String(key || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function rakNativeCalendarKey(date) {
+  return date && Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : '';
+}
+
+function rakNativeCalendarAddDays(date, amount) {
+  const next = new Date(date.getTime());
+  next.setUTCDate(next.getUTCDate() + Number(amount || 0));
+  return next;
+}
+
+function rakNativeCalendarDaysBetween(a, b) {
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function rakNativeCalendarWeekdayToken(date) {
+  return ['SU','MO','TU','WE','TH','FR','SA'][date.getUTCDay()];
+}
+
+function rakNativeCalendarRule(value) {
+  const rule = {};
+  String(value || '').split(';').forEach((part) => {
+    const split = part.indexOf('=');
+    if (split > 0) rule[String(part.slice(0, split)).toUpperCase()] = String(part.slice(split + 1));
+  });
+  return rule;
+}
+
+function rakNativeCalendarWeekStart(date, token) {
+  const index = { SU:0, MO:1, TU:2, WE:3, TH:4, FR:5, SA:6 }[String(token || 'MO').toUpperCase()];
+  const wanted = Number.isInteger(index) ? index : 1;
+  const diff = (date.getUTCDay() - wanted + 7) % 7;
+  return rakNativeCalendarAddDays(date, -diff);
+}
+
+function rakNativeCalendarMonthlyByDay(date, token) {
+  const match = String(token || '').toUpperCase().match(/^([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)$/);
+  if (!match || rakNativeCalendarWeekdayToken(date) !== match[2]) return false;
+  if (!match[1]) return true;
+  const ordinal = Number(match[1]);
+  const day = date.getUTCDate();
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  const occurrence = Math.floor((day - 1) / 7) + 1;
+  const reverse = -(Math.floor((lastDay - day) / 7) + 1);
+  return ordinal > 0 ? occurrence === ordinal : reverse === ordinal;
+}
+
+function rakNativeCalendarMatchesRule(rule, date, base) {
+  if (!rule || !rule.FREQ || date < base) return false;
+  const interval = Math.max(1, Number(rule.INTERVAL || 1) || 1);
+  const diffDays = rakNativeCalendarDaysBetween(base, date);
+  const byMonth = String(rule.BYMONTH || '').split(',').map(Number).filter(Boolean);
+  if (byMonth.length && !byMonth.includes(date.getUTCMonth() + 1)) return false;
+  const byMonthDay = String(rule.BYMONTHDAY || '').split(',').map(Number).filter(Boolean);
+  const byDay = String(rule.BYDAY || '').split(',').filter(Boolean);
+  const freq = String(rule.FREQ).toUpperCase();
+
+  if (freq === 'DAILY') {
+    if (diffDays % interval !== 0) return false;
+    if (byDay.length && !byDay.some((token) => rakNativeCalendarMonthlyByDay(date, token.replace(/^[+-]?\d+/, '')))) return false;
+    return !byMonthDay.length || byMonthDay.includes(date.getUTCDate());
+  }
+
+  if (freq === 'WEEKLY') {
+    const startWeek = rakNativeCalendarWeekStart(base, rule.WKST || 'MO');
+    const dateWeek = rakNativeCalendarWeekStart(date, rule.WKST || 'MO');
+    const weeks = Math.round((dateWeek.getTime() - startWeek.getTime()) / (7 * 86400000));
+    if (weeks < 0 || weeks % interval !== 0) return false;
+    const allowedDays = byDay.length ? byDay.map((token) => token.replace(/^[+-]?\d+/, '').toUpperCase()) : [rakNativeCalendarWeekdayToken(base)];
+    return allowedDays.includes(rakNativeCalendarWeekdayToken(date));
+  }
+
+  if (freq === 'MONTHLY') {
+    const months = (date.getUTCFullYear() - base.getUTCFullYear()) * 12 + date.getUTCMonth() - base.getUTCMonth();
+    if (months < 0 || months % interval !== 0) return false;
+    if (byMonthDay.length && !byMonthDay.includes(date.getUTCDate())) return false;
+    if (byDay.length && !byDay.some((token) => rakNativeCalendarMonthlyByDay(date, token))) return false;
+    if (!byMonthDay.length && !byDay.length && date.getUTCDate() !== base.getUTCDate()) return false;
+    if (rule.BYSETPOS && byDay.length) {
+      const positions = String(rule.BYSETPOS).split(',').map(Number).filter(Boolean);
+      const matching = [];
+      const last = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+      for (let d = 1; d <= last; d += 1) {
+        const candidate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), d));
+        if (byDay.some((token) => rakNativeCalendarMonthlyByDay(candidate, token))) matching.push(d);
+      }
+      const selected = positions.flatMap((pos) => pos > 0 ? [matching[pos - 1]] : [matching[matching.length + pos]]).filter(Boolean);
+      if (!selected.includes(date.getUTCDate())) return false;
+    }
+    return true;
+  }
+
+  if (freq === 'YEARLY') {
+    const years = date.getUTCFullYear() - base.getUTCFullYear();
+    if (years < 0 || years % interval !== 0) return false;
+    if (!byMonth.length && date.getUTCMonth() !== base.getUTCMonth()) return false;
+    if (byMonthDay.length && !byMonthDay.includes(date.getUTCDate())) return false;
+    if (byDay.length && !byDay.some((token) => rakNativeCalendarMonthlyByDay(date, token))) return false;
+    if (!byMonthDay.length && !byDay.length && date.getUTCDate() !== base.getUTCDate()) return false;
+    return true;
+  }
+
+  return false;
+}
+
+function rakNativeCalendarParseIcs(text, sourceLabel) {
+  const unfolded = String(text || '').replace(/\r?\n[ \t]/g, '');
+  if (!unfolded.includes('BEGIN:VCALENDAR')) return [];
+  const blocks = unfolded.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
+  return blocks.flatMap((block, index) => {
+    const startProp = rakNativeCalendarProperties(block, 'DTSTART')[0];
+    const start = rakNativeCalendarDateValue(startProp);
+    if (!start) return [];
+    const end = rakNativeCalendarDateValue(rakNativeCalendarProperties(block, 'DTEND')[0]);
+    const recurrence = rakNativeCalendarDateValue(rakNativeCalendarProperties(block, 'RECURRENCE-ID')[0]);
+    const exdates = new Set();
+    rakNativeCalendarProperties(block, 'EXDATE').forEach((prop) => {
+      String(prop.value || '').split(',').forEach((value) => {
+        const parsed = rakNativeCalendarDateValue({ params: prop.params, value });
+        if (parsed && parsed.key) exdates.add(parsed.key);
+      });
+    });
+    return [{
+      uid: rakNativeCalendarDecodeText(rakNativeCalendarProperties(block, 'UID')[0]?.value || ('event-' + index)),
+      summary: rakNativeCalendarDecodeText(rakNativeCalendarProperties(block, 'SUMMARY')[0]?.value || 'Událost'),
+      description: rakNativeCalendarDecodeText(rakNativeCalendarProperties(block, 'DESCRIPTION')[0]?.value || ''),
+      location: rakNativeCalendarDecodeText(rakNativeCalendarProperties(block, 'LOCATION')[0]?.value || ''),
+      start,
+      end,
+      recurrenceKey: recurrence && recurrence.key || '',
+      rrule: rakNativeCalendarProperties(block, 'RRULE')[0]?.value || '',
+      exdates,
+      cancelled: /^CANCELLED$/i.test(String(rakNativeCalendarProperties(block, 'STATUS')[0]?.value || '').trim()),
+      sourceLabel: String(sourceLabel || '').trim()
+    }];
+  });
+}
+
+function rakNativeCalendarAppendOccurrence(target, event, dateKey) {
+  const startDate = rakNativeCalendarDateFromKey(dateKey);
+  if (!startDate) return;
+  let durationDays = 1;
+  if (event.start && event.start.allDay && event.end && event.end.key) {
+    const endDate = rakNativeCalendarDateFromKey(event.end.key);
+    if (endDate && endDate > startDate) durationDays = Math.max(1, Math.min(31, rakNativeCalendarDaysBetween(startDate, endDate)));
+  }
+  for (let i = 0; i < durationDays; i += 1) {
+    target.push({
+      dateKey: rakNativeCalendarKey(rakNativeCalendarAddDays(startDate, i)),
+      time: event.start && event.start.time || '',
+      allDay: !!(event.start && event.start.allDay),
+      summary: event.summary || 'Událost',
+      description: event.description || '',
+      location: event.location || '',
+      sourceLabel: event.sourceLabel || ''
+    });
+  }
+}
+
+function rakNativeCalendarExpand(events, rangeStartKey, rangeEndKey) {
+  const rangeStart = rakNativeCalendarDateFromKey(rangeStartKey);
+  const rangeEnd = rakNativeCalendarDateFromKey(rangeEndKey);
+  if (!rangeStart || !rangeEnd) return [];
+  const result = [];
+  const exceptionKeys = new Set((events || []).filter((event) => event && event.recurrenceKey).map((event) => String(event.uid || '') + '|' + event.recurrenceKey));
+
+  (events || []).forEach((event) => {
+    if (!event || !event.start || !event.start.key) return;
+    if (event.recurrenceKey) {
+      if (!event.cancelled && event.start.key >= rangeStartKey && event.start.key <= rangeEndKey) rakNativeCalendarAppendOccurrence(result, event, event.start.key);
+      return;
+    }
+    if (event.cancelled) return;
+
+    if (!event.rrule) {
+      if (event.start.key <= rangeEndKey && (!event.end || !event.end.key || event.end.key >= rangeStartKey)) rakNativeCalendarAppendOccurrence(result, event, event.start.key);
+      return;
+    }
+
+    const baseDate = rakNativeCalendarDateFromKey(event.start.key);
+    const rule = rakNativeCalendarRule(event.rrule);
+    if (!baseDate || !rule.FREQ) return;
+    const untilMatch = String(rule.UNTIL || '').match(/^(\d{4})(\d{2})(\d{2})/);
+    const untilKey = untilMatch ? untilMatch[1] + '-' + untilMatch[2] + '-' + untilMatch[3] : '';
+    const maxCount = Math.max(0, Number(rule.COUNT || 0) || 0);
+    let occurrenceCount = 0;
+    let cursor = new Date(baseDate.getTime());
+    let safety = 0;
+
+    while (cursor <= rangeEnd && safety < 12000) {
+      const key = rakNativeCalendarKey(cursor);
+      if (untilKey && key > untilKey) break;
+      if (rakNativeCalendarMatchesRule(rule, cursor, baseDate)) {
+        occurrenceCount += 1;
+        if (maxCount && occurrenceCount > maxCount) break;
+        if (key >= rangeStartKey && !event.exdates.has(key) && !exceptionKeys.has(String(event.uid || '') + '|' + key)) {
+          rakNativeCalendarAppendOccurrence(result, event, key);
+        }
+      }
+      cursor = rakNativeCalendarAddDays(cursor, 1);
+      safety += 1;
+    }
+  });
+
+  return result.filter((event) => event.dateKey >= rangeStartKey && event.dateKey <= rangeEndKey)
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || String(a.time || '99:99').localeCompare(String(b.time || '99:99')) || a.summary.localeCompare(b.summary, 'cs'));
+}
+
+function rakNativeCalendarMonthRange(year, month) {
+  const first = new Date(Date.UTC(year, month, 1));
+  const offset = (first.getUTCDay() + 6) % 7;
+  const start = rakNativeCalendarAddDays(first, -offset);
+  return { start, end: rakNativeCalendarAddDays(start, 41) };
+}
+
+function rakNativeCalendarTodayKey() {
+  const now = new Date();
+  return String(now.getFullYear()) + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+}
+
+function rakNativeCalendarMonthLabel(year, month) {
+  try { return new Intl.DateTimeFormat('cs-CZ', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, month, 1))); }
+  catch (_) { return String(month + 1) + '/' + String(year); }
+}
+
+function rakNativeCalendarDayLabel(key) {
+  const date = rakNativeCalendarDateFromKey(key);
+  if (!date) return key;
+  try { return new Intl.DateTimeFormat('cs-CZ', { weekday: 'long', day: 'numeric', month: 'numeric', timeZone: 'UTC' }).format(date); }
+  catch (_) { return key; }
+}
+
+function rakNativeCalendarRender(content) {
+  const host = content && content.querySelector('.calendarNativeHost');
+  const state = content && content.__rakCalendarState;
+  if (!host || !state) return false;
+  if (state.loading) {
+    host.innerHTML = '<div class="calendarNativeStatus" aria-live="polite"><span class="calendarNativeSpinner" aria-hidden="true"></span>Načítám veřejný kalendář…</div>';
+    return true;
+  }
+  if (state.error) {
+    const external = state.externalUrl ? '<a class="appMenuAction calendarNativeExternal" href="' + escapeHtml(state.externalUrl) + '" target="_blank" rel="noopener noreferrer">Otevřít v prohlížeči</a>' : '';
+    host.innerHTML = '<div class="calendarNativeError"><b>Kalendář se nepodařilo načíst.</b><span>RaK používá veřejný ICS bez Google cookies. Zkus načtení znovu.</span><button type="button" class="appMenuAction isActive" data-calendar-retry>Načíst znovu</button>' + external + '</div>';
+    return true;
+  }
+
+  const range = rakNativeCalendarMonthRange(state.year, state.month);
+  const rangeStartKey = rakNativeCalendarKey(range.start);
+  const rangeEndKey = rakNativeCalendarKey(range.end);
+  const expanded = rakNativeCalendarExpand(state.events, rangeStartKey, rangeEndKey);
+  const byDay = new Map();
+  expanded.forEach((event) => {
+    if (!byDay.has(event.dateKey)) byDay.set(event.dateKey, []);
+    byDay.get(event.dateKey).push(event);
+  });
+
+  const currentMonthPrefix = String(state.year) + '-' + String(state.month + 1).padStart(2, '0') + '-';
+  const todayKey = rakNativeCalendarTodayKey();
+  if (!state.selectedKey || state.selectedKey < rangeStartKey || state.selectedKey > rangeEndKey) {
+    state.selectedKey = todayKey.startsWith(currentMonthPrefix) ? todayKey : currentMonthPrefix + '01';
+  }
+
+  const days = [];
+  for (let i = 0; i < 42; i += 1) {
+    const date = rakNativeCalendarAddDays(range.start, i);
+    const key = rakNativeCalendarKey(date);
+    const events = byDay.get(key) || [];
+    const chips = events.slice(0, 2).map((event) => '<span class="calendarNativeChip">' + escapeHtml((event.time ? event.time + ' ' : '') + event.summary) + '</span>').join('');
+    const more = events.length > 2 ? '<span class="calendarNativeMore">+' + String(events.length - 2) + '</span>' : '';
+    const classes = [
+      'calendarNativeDay',
+      key.startsWith(currentMonthPrefix) ? '' : 'isOutside',
+      key === todayKey ? 'isToday' : '',
+      key === state.selectedKey ? 'isSelected' : '',
+      events.length ? 'hasEvents' : ''
+    ].filter(Boolean).join(' ');
+    days.push('<button type="button" class="' + classes + '" data-calendar-day="' + key + '" aria-pressed="' + String(key === state.selectedKey) + '"><span class="calendarNativeDayNumber">' + String(date.getUTCDate()) + '</span><span class="calendarNativeDayEvents">' + chips + more + '</span></button>');
+  }
+
+  const selectedEvents = byDay.get(state.selectedKey) || [];
+  const agenda = selectedEvents.length
+    ? selectedEvents.map((event) => [
+        '<div class="calendarNativeAgendaItem">',
+        '<div class="calendarNativeAgendaTime">' + escapeHtml(event.allDay ? 'celý den' : (event.time || '')) + '</div>',
+        '<div class="calendarNativeAgendaText"><b>' + escapeHtml(event.summary) + '</b>',
+        event.location ? '<span>' + escapeHtml(event.location) + '</span>' : '',
+        event.description ? '<small>' + escapeHtml(event.description) + '</small>' : '',
+        '</div></div>'
+      ].join('')).join('')
+    : '<div class="calendarNativeAgendaEmpty">Žádné události.</div>';
+
+  const warning = state.partialError ? '<div class="calendarNativeWarning">Část zdrojů se nepodařilo načíst.</div>' : '';
+  host.innerHTML = [
+    '<div class="calendarNative">',
+    '<div class="calendarNativeToolbar">',
+    '<button type="button" class="calendarNativeNav" data-calendar-nav="-1" aria-label="Předchozí měsíc">‹</button>',
+    '<div class="calendarNativeMonthTitle">' + escapeHtml(rakNativeCalendarMonthLabel(state.year, state.month)) + '</div>',
+    '<button type="button" class="calendarNativeNav" data-calendar-nav="1" aria-label="Další měsíc">›</button>',
+    '<button type="button" class="calendarNativeToday" data-calendar-today>Dnes</button>',
+    '</div>',
+    warning,
+    '<div class="calendarNativeWeekdays">' + RAK_NATIVE_CALENDAR_WEEKDAYS.map((day) => '<span>' + day + '</span>').join('') + '</div>',
+    '<div class="calendarNativeGrid">' + days.join('') + '</div>',
+    '<div class="calendarNativeAgenda"><div class="calendarNativeAgendaTitle">' + escapeHtml(rakNativeCalendarDayLabel(state.selectedKey)) + '</div>' + agenda + '</div>',
+    '</div>'
+  ].join('');
+  return true;
+}
+
+async function rakNativeCalendarLoad(content, index) {
+  const calendars = content && Array.isArray(content.__rakCalendars) ? content.__rakCalendars : [];
+  const selected = calendars[Number(index) || 0];
+  if (!content || !selected) return false;
+  const state = content.__rakCalendarState || {};
+  const token = Number(state.token || 0) + 1;
+  const now = new Date();
+  Object.assign(state, {
+    token,
+    calendarIndex: Number(index) || 0,
+    year: Number.isInteger(state.year) ? state.year : now.getFullYear(),
+    month: Number.isInteger(state.month) ? state.month : now.getMonth(),
+    selectedKey: state.selectedKey || rakNativeCalendarTodayKey(),
+    loading: true,
+    error: '',
+    partialError: false,
+    externalUrl: selected.url,
+    events: []
+  });
+  content.__rakCalendarState = state;
+  rakNativeCalendarRender(content);
+
+  const sources = rakNativeCalendarSourceIds(selected.url);
+  if (!sources.length) {
+    state.loading = false;
+    state.error = 'invalid_source';
+    rakNativeCalendarRender(content);
+    return false;
+  }
+
+  const settled = await Promise.allSettled(sources.map(async (source, sourceIndex) => {
+    const response = await fetch('/api/public-calendar?src=' + encodeURIComponent(source), { credentials: 'same-origin' });
+    if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
+    const text = await response.text();
+    return rakNativeCalendarParseIcs(text, sources.length > 1 ? (selected.label + ' ' + String(sourceIndex + 1)) : selected.label);
+  }));
+
+  if (!content.__rakCalendarState || content.__rakCalendarState.token !== token) return false;
+  const successful = settled.filter((item) => item.status === 'fulfilled').flatMap((item) => item.value || []);
+  state.loading = false;
+  state.partialError = settled.some((item) => item.status === 'rejected');
+  if (!successful.length) state.error = 'calendar_unavailable';
+  else state.events = successful;
+  rakNativeCalendarRender(content);
+  return !state.error;
+}
+
+
 function hideCalendarModal() {
   const overlay = document.getElementById('calendarModal');
   if (!overlay) return;
@@ -959,6 +1404,7 @@ function renderCalendarModalContent(overlay) {
   if (!calendars.length) {
     content.innerHTML = '<div class="appMenuText">Pro směnu ' + escapeHtml(team) + ' není nastavený žádný kalendář.</div>';
     content.__rakCalendars = [];
+    content.__rakCalendarState = null;
     return true;
   }
   const buttons = calendars.length > 1
@@ -966,15 +1412,11 @@ function renderCalendarModalContent(overlay) {
         '<button type="button" class="appMenuAction calendarModalChoice' + (index === 0 ? ' isActive' : '') + '" data-calendar-choice-index="' + String(index) + '">' + escapeHtml(entry.label || ('Kalendář ' + String(index + 1))) + '</button>'
       )).join('') + '</div>'
     : '';
-  const firstUrl = normalizeExternalTileUrl(calendars[0].url, 'calendarModalFrame');
-  content.innerHTML = [
-    buttons,
-    '<div class="calendarModalFrameWrap">',
-    firstUrl ? '<iframe class="calendarModalFrame" title="' + escapeHtml(calendars[0].label || 'Google kalendář') + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(firstUrl) + '"></iframe>' : '<div class="appMenuText">Kalendář má neplatný odkaz.</div>',
-    '</div>'
-  ].join('');
+  content.innerHTML = buttons + '<div class="calendarNativeHost"></div>';
   content.dataset.calendarTeam = team;
   content.__rakCalendars = calendars;
+  content.__rakCalendarState = null;
+  void rakNativeCalendarLoad(content, 0);
   return true;
 }
 
@@ -997,18 +1439,63 @@ function ensureCalendarModal() {
         hideCalendarModal();
         return;
       }
-      const choice = event.target && event.target.closest ? event.target.closest('[data-calendar-choice-index]') : null;
-      if (!choice) return;
       const content = overlay.querySelector('#calendarModalContent');
-      const calendars = content && Array.isArray(content.__rakCalendars) ? content.__rakCalendars : [];
-      const index = Number(choice.getAttribute('data-calendar-choice-index'));
-      const selected = Number.isInteger(index) ? calendars[index] : null;
-      const frame = overlay.querySelector('.calendarModalFrame');
-      const target = selected ? normalizeExternalTileUrl(selected.url, 'calendarModalFrame') : '';
-      if (!frame || !target) return;
-      frame.setAttribute('src', target);
-      frame.setAttribute('title', String(selected.label || 'Google kalendář'));
-      overlay.querySelectorAll('[data-calendar-choice-index]').forEach((button) => button.classList.toggle('isActive', button === choice));
+      const choice = event.target && event.target.closest ? event.target.closest('[data-calendar-choice-index]') : null;
+      if (choice) {
+        const calendars = content && Array.isArray(content.__rakCalendars) ? content.__rakCalendars : [];
+        const index = Number(choice.getAttribute('data-calendar-choice-index'));
+        if (!Number.isInteger(index) || !calendars[index]) return;
+        overlay.querySelectorAll('[data-calendar-choice-index]').forEach((button) => button.classList.toggle('isActive', button === choice));
+        if (content.__rakCalendarState) {
+          const now = new Date();
+          content.__rakCalendarState.year = now.getFullYear();
+          content.__rakCalendarState.month = now.getMonth();
+          content.__rakCalendarState.selectedKey = rakNativeCalendarTodayKey();
+        }
+        void rakNativeCalendarLoad(content, index);
+        return;
+      }
+
+      const navButton = event.target && event.target.closest ? event.target.closest('[data-calendar-nav]') : null;
+      if (navButton && content && content.__rakCalendarState) {
+        const delta = Number(navButton.getAttribute('data-calendar-nav')) || 0;
+        const state = content.__rakCalendarState;
+        const next = new Date(Date.UTC(state.year, state.month + delta, 1));
+        state.year = next.getUTCFullYear();
+        state.month = next.getUTCMonth();
+        state.selectedKey = String(state.year) + '-' + String(state.month + 1).padStart(2, '0') + '-01';
+        rakNativeCalendarRender(content);
+        return;
+      }
+
+      const todayButton = event.target && event.target.closest ? event.target.closest('[data-calendar-today]') : null;
+      if (todayButton && content && content.__rakCalendarState) {
+        const now = new Date();
+        content.__rakCalendarState.year = now.getFullYear();
+        content.__rakCalendarState.month = now.getMonth();
+        content.__rakCalendarState.selectedKey = rakNativeCalendarTodayKey();
+        rakNativeCalendarRender(content);
+        return;
+      }
+
+      const dayButton = event.target && event.target.closest ? event.target.closest('[data-calendar-day]') : null;
+      if (dayButton && content && content.__rakCalendarState) {
+        const key = String(dayButton.getAttribute('data-calendar-day') || '');
+        if (!rakNativeCalendarDateFromKey(key)) return;
+        content.__rakCalendarState.selectedKey = key;
+        const date = rakNativeCalendarDateFromKey(key);
+        if (date) {
+          content.__rakCalendarState.year = date.getUTCFullYear();
+          content.__rakCalendarState.month = date.getUTCMonth();
+        }
+        rakNativeCalendarRender(content);
+        return;
+      }
+
+      const retryButton = event.target && event.target.closest ? event.target.closest('[data-calendar-retry]') : null;
+      if (retryButton && content && content.__rakCalendarState) {
+        void rakNativeCalendarLoad(content, content.__rakCalendarState.calendarIndex || 0);
+      }
     });
 
     overlay.querySelector('.calendarModalClose')?.addEventListener('click', hideCalendarModal);

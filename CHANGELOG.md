@@ -1,3 +1,11 @@
+## RaK 1.7.90 (development)
+
+- Dashboard kalendář už nepoužívá vložený Google Calendar iframe, který iOS/PWA blokoval kvůli third-party cookies. Veřejný Google Calendar ICS se načítá přes úzký RaK endpoint a vykresluje přímo v aplikaci.
+- Nový endpoint přijímá pouze ID Google kalendáře a sám sestaví cestu `calendar.google.com/.../public/basic.ics`; nepřijímá libovolnou URL, soukromé private ICS nepodporuje a omezuje velikost odpovědi.
+- Nativní kalendář má měsíční mřížku, předchozí/další měsíc, návrat na dnešek, výběr dne a denní seznam událostí. Parser podporuje běžné RRULE opakování, EXDATE a RECURRENCE-ID výjimky.
+- A/B/C/D mapování účtu z 1.7.89 zůstává zachované; řešení nevyžaduje novou Supabase migraci ani mazání lokálních dat.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.90; SW cache je v1.7.90.
+
 ## RaK 1.7.89 (development)
 
 - Opraveno mapování kalendáře podle účtu: běžný klient už nemusí číst soukromý seznam pracovníků; verzovaný login RPC vrací pouze směnu právě nalezeného účtu a profil ji ukládá i pro další/offline start.

@@ -48,6 +48,7 @@
     "admin-service-usage.js",
     "api/_admin-auth.js",
     "api/admin-users.js",
+    "api/public-calendar.js",
     "api/rotation-absence-calendar.js",
     "app-actions.js",
     "app-admin-unlock.js",
