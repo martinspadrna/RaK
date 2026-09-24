@@ -1,3 +1,10 @@
+## RaK 1.7.93 (development)
+
+- Nativní směnový kalendář má nově světlý vzhled inspirovaný přehledností původního Google kalendáře, ale stále používá bezpečný RaK public-ICS renderer bez Google iframe, cookies nebo přihlášení.
+- Měsíční mřížka zůstává stručná. Klepnutí na datum se směnou otevře světlé vyskakovací okno s datem, názvem směny a celým intervalem `od–do`; volitelné místo a popis se zobrazí až v detailu.
+- Popup lze zavřít křížkem nebo klepnutím mimo kartu. Přechod na jiný měsíc, tlačítko Dnes nebo změna kalendáře detail bezpečně zavře.
+- Supabase ani produkce se nemění.
+
 ## RaK 1.7.92 (development)
 
 - Denní přehled po kliknutí na datum v nativním kalendáři nově zobrazuje celý časový interval události, např. `06:00–18:00`, `18:00–06:00` nebo `22:00–06:00`, místo samotného začátku.

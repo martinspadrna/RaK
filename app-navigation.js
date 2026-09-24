@@ -1258,6 +1258,13 @@ function rakNativeCalendarDayLabel(key) {
   catch (_) { return key; }
 }
 
+function rakNativeCalendarDetailDateLabel(key) {
+  const date = rakNativeCalendarDateFromKey(key);
+  if (!date) return key;
+  try { return new Intl.DateTimeFormat('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date); }
+  catch (_) { return key; }
+}
+
 function rakNativeCalendarDisplaySummary(event) {
   const summary = String(event && event.summary || '').trim() || 'Událost';
   const normalized = summary.toLocaleLowerCase('cs-CZ').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1323,17 +1330,27 @@ function rakNativeCalendarRender(content) {
     days.push('<button type="button" class="' + classes + '" data-calendar-day="' + key + '" aria-pressed="' + String(key === state.selectedKey) + '"><span class="calendarNativeDayNumber">' + String(date.getUTCDate()) + '</span><span class="calendarNativeDayEvents">' + chips + more + '</span></button>');
   }
 
-  const selectedEvents = byDay.get(state.selectedKey) || [];
-  const agenda = selectedEvents.length
-    ? selectedEvents.map((event) => [
-        '<div class="calendarNativeAgendaItem">',
-        '<div class="calendarNativeAgendaTime">' + escapeHtml(rakNativeCalendarAgendaTime(event)) + '</div>',
-        '<div class="calendarNativeAgendaText"><b>' + escapeHtml(rakNativeCalendarDisplaySummary(event)) + '</b>',
-        event.location ? '<span>' + escapeHtml(event.location) + '</span>' : '',
-        event.description ? '<small>' + escapeHtml(event.description) + '</small>' : '',
-        '</div></div>'
-      ].join('')).join('')
-    : '<div class="calendarNativeAgendaEmpty">Žádné události.</div>';
+  const detailEvents = state.detailKey ? (byDay.get(state.detailKey) || []) : [];
+  const detail = state.detailKey && detailEvents.length
+    ? [
+        '<div class="calendarNativeDetailBackdrop" data-calendar-detail-backdrop>',
+        '<section class="calendarNativeDetail" role="dialog" aria-modal="true" aria-label="Detail směny">',
+        '<button type="button" class="calendarNativeDetailClose" data-calendar-detail-close aria-label="Zavřít detail">×</button>',
+        '<div class="calendarNativeDetailDate">' + escapeHtml(rakNativeCalendarDetailDateLabel(state.detailKey)) + '</div>',
+        '<div class="calendarNativeDetailEvents">',
+        detailEvents.map((event) => [
+          '<div class="calendarNativeDetailEvent">',
+          '<span class="calendarNativeDetailDot" aria-hidden="true"></span>',
+          '<div class="calendarNativeDetailText">',
+          '<b>' + escapeHtml(rakNativeCalendarDisplaySummary(event)) + '</b>',
+          '<span class="calendarNativeDetailTime">' + escapeHtml(rakNativeCalendarAgendaTime(event)) + '</span>',
+          event.location ? '<span class="calendarNativeDetailMeta">' + escapeHtml(event.location) + '</span>' : '',
+          event.description ? '<small class="calendarNativeDetailMeta">' + escapeHtml(event.description) + '</small>' : '',
+          '</div></div>'
+        ].join('')).join(''),
+        '</div></section></div>'
+      ].join('')
+    : '';
 
   const warning = state.partialError ? '<div class="calendarNativeWarning">Část zdrojů se nepodařilo načíst.</div>' : '';
   host.innerHTML = [
@@ -1347,7 +1364,7 @@ function rakNativeCalendarRender(content) {
     warning,
     '<div class="calendarNativeWeekdays">' + RAK_NATIVE_CALENDAR_WEEKDAYS.map((day) => '<span>' + day + '</span>').join('') + '</div>',
     '<div class="calendarNativeGrid">' + days.join('') + '</div>',
-    '<div class="calendarNativeAgenda"><div class="calendarNativeAgendaTitle">' + escapeHtml(rakNativeCalendarDayLabel(state.selectedKey)) + '</div>' + agenda + '</div>',
+    detail,
     '</div>'
   ].join('');
   return true;
@@ -1366,6 +1383,7 @@ async function rakNativeCalendarLoad(content, index) {
     year: Number.isInteger(state.year) ? state.year : now.getFullYear(),
     month: Number.isInteger(state.month) ? state.month : now.getMonth(),
     selectedKey: state.selectedKey || rakNativeCalendarTodayKey(),
+    detailKey: '',
     loading: true,
     error: '',
     partialError: false,
@@ -1470,8 +1488,17 @@ function ensureCalendarModal() {
           content.__rakCalendarState.year = now.getFullYear();
           content.__rakCalendarState.month = now.getMonth();
           content.__rakCalendarState.selectedKey = rakNativeCalendarTodayKey();
+          content.__rakCalendarState.detailKey = '';
         }
         void rakNativeCalendarLoad(content, index);
+        return;
+      }
+
+      const detailClose = event.target && event.target.closest ? event.target.closest('[data-calendar-detail-close]') : null;
+      const detailBackdrop = event.target && event.target.matches ? event.target.matches('[data-calendar-detail-backdrop]') : false;
+      if ((detailClose || detailBackdrop) && content && content.__rakCalendarState) {
+        content.__rakCalendarState.detailKey = '';
+        rakNativeCalendarRender(content);
         return;
       }
 
@@ -1483,6 +1510,7 @@ function ensureCalendarModal() {
         state.year = next.getUTCFullYear();
         state.month = next.getUTCMonth();
         state.selectedKey = String(state.year) + '-' + String(state.month + 1).padStart(2, '0') + '-01';
+        state.detailKey = '';
         rakNativeCalendarRender(content);
         return;
       }
@@ -1493,6 +1521,7 @@ function ensureCalendarModal() {
         content.__rakCalendarState.year = now.getFullYear();
         content.__rakCalendarState.month = now.getMonth();
         content.__rakCalendarState.selectedKey = rakNativeCalendarTodayKey();
+        content.__rakCalendarState.detailKey = '';
         rakNativeCalendarRender(content);
         return;
       }
@@ -1502,6 +1531,7 @@ function ensureCalendarModal() {
         const key = String(dayButton.getAttribute('data-calendar-day') || '');
         if (!rakNativeCalendarDateFromKey(key)) return;
         content.__rakCalendarState.selectedKey = key;
+        content.__rakCalendarState.detailKey = key;
         const date = rakNativeCalendarDateFromKey(key);
         if (date) {
           content.__rakCalendarState.year = date.getUTCFullYear();
