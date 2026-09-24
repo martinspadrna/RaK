@@ -3,6 +3,9 @@ import RELEASE_METADATA from '../rak-release-metadata.js';
 
 export {RELEASE_METADATA};
 
+const buildTarget=String(process.env.RAK_BUILD_TARGET||'test').trim();
+assert(['test','production'].includes(buildTarget),'RAK_BUILD_TARGET must be test or production');
+
 function patch(version){
   const match=String(version||'').match(/^1\.7\.(\d+)$/);
   assert(match,'invalid display version');
@@ -32,7 +35,8 @@ export function assertCurrentReleaseIdentity(read,minimumVersion){
   assert(config.includes('const rakReleaseMetadata = window.RAK_RELEASE_METADATA;'));
   assert(config.includes('window.RAK_RELEASE_VERSION = rakReleaseMetadata.displayVersion;'));
   assert(config.includes('window.RAK_PWA_BUILD = rakReleaseMetadata.buildId;'));
-  assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+  if(buildTarget==='production') assert(config.includes('bkqamcbkiwumsvelahxr')&&!config.includes('cgshssdjgzzuprlwnabl'));
+  else assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
 
   const sw=read('sw.js');
   assert(sw.indexOf("importScripts('./rak-release-metadata.js')")<sw.indexOf('const CACHE_VERSION'));
