@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export const BOOT_LABELS=Object.freeze(['cold mobile','offline reload','online recovery']);
@@ -42,7 +43,7 @@ export function assessBootSamples(samples,budgets=BUDGET_MS){
 function benchmark(){
  assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8')).version,'1.7.0','built technical version required');
  const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'TEST configuration required');
+ assertSupabaseTarget(config,'PWA benchmark runtime');
  const samples=[];
  for(let round=1;round<=ROUNDS;round++){
   const run=spawnSync(process.execPath,[path.join(ROOT,'tools/browser-offline-17052.mjs')],{

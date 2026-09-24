@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {BUILD_TARGET,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 
 const run=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',maxBuffer:128*1024*1024}).trim();
 const archive='rak-complete-backup-source.zip';
@@ -13,13 +14,14 @@ const gitRoot=run('git',['rev-parse','--show-toplevel']);
 const git=args=>execFileSync('git',['-C',gitRoot,...args],{encoding:'utf8',maxBuffer:128*1024*1024}).trim();
 const sha=git(['rev-parse','HEAD']);
 assert.match(sha,/^[a-f0-9]{40}$/,'exact Git SHA is required');
+const expectedBranch=BUILD_TARGET==='production'?'main':'development';
 for(const [environment,ref] of [['GitHub',process.env.GITHUB_REF_NAME],['Vercel',process.env.VERCEL_GIT_COMMIT_REF]]){
-  if(ref)assert.equal(ref,'development',`${environment}: never rehearse main`);
+  if(ref)assert.equal(ref,expectedBranch,`${environment}: branch must match ${BUILD_TARGET} target`);
 }
 if(process.env.GITHUB_SHA)assert.equal(process.env.GITHUB_SHA,sha,'workflow is not building its exact commit');
 if(process.env.VERCEL_GIT_COMMIT_SHA)assert.equal(process.env.VERCEL_GIT_COMMIT_SHA,sha,'Vercel build SHA mismatch');
 const config=fs.readFileSync('supabase-config.js','utf8');
-assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'only the TEST configuration is supported');
+assertSupabaseTarget(config,'source restore rehearsal');
 const backup=fs.readFileSync('rak-complete-backup.js','utf8');
 assert(backup.includes(`const RAK_COMPLETE_BACKUP_BUILD_SHA = '${sha}';`),'backup UI refers to another Git commit');
 const found=backup.match(/const RAK_COMPLETE_BACKUP_REPO_FILES = Object\.freeze\((\[[\s\S]*?\])\);/);
