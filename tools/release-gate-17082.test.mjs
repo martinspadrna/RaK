@@ -18,7 +18,7 @@ test('Rotation name index is a shared offline dependency instead of a hidden Bru
   assert(shared.includes('root.buildNameIndex = buildNameIndex'));
   assert(app.includes('"stats.js",\n    "rotation-name-index.js",\n    "rotace.js"'));
   assert(app.includes('"rotation-name-index.js",\n    "brusy.js"'));
-  assert(sw.includes("'./rotation-name-index.js?v=1.7.0'"));
+  assert(sw.includes("'./rotation-name-index.js?v="+assertCurrentReleaseIdentity(read,'1.7.82').moduleCacheVersion+"'"));
   assert(sw.includes('warm67'));
 });
 

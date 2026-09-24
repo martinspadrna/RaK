@@ -43,9 +43,9 @@ test('1.7.71 and verified successors use canonical release metadata and TEST Sup
 test('service worker prewarms complete Rotation and sync runtime before offline start',()=>{
  const sw=read('sw.js');
  for(const asset of [
-  './stats.js?v=1.7.0','./rotace.js?v=1.7.0','./rotation-tasks.js?v=1.7.0',
-  './admin-daymods.js?v=1.7.0','./app-rotation-controls.js?v=1.7.0',
-  './supabase-bridge.js?v=1.7.0','./app-rotation-sync.js?v=1.7.0'
+  './stats.js?v='+RELEASE_METADATA.moduleCacheVersion,'./rotace.js?v='+RELEASE_METADATA.moduleCacheVersion,'./rotation-tasks.js?v='+RELEASE_METADATA.moduleCacheVersion,
+  './admin-daymods.js?v='+RELEASE_METADATA.moduleCacheVersion,'./app-rotation-controls.js?v='+RELEASE_METADATA.moduleCacheVersion,
+  './supabase-bridge.js?v='+RELEASE_METADATA.moduleCacheVersion,'./app-rotation-sync.js?v='+RELEASE_METADATA.moduleCacheVersion
  ]) assert(sw.includes(asset),asset+' missing from offline package');
  assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict'"));
 });

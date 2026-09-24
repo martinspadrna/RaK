@@ -727,7 +727,7 @@ function installPwaAndConnectivityHooks() {
     if (!('serviceWorker' in navigator)) return null;
     if (swRegistrationPromise) return swRegistrationPromise;
 
-    swRegistrationPromise = navigator.serviceWorker.register('sw.js', { scope: './' }).then(async (registration) => {
+    swRegistrationPromise = navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).then(async (registration) => {
       swRegistrationInstance = registration || null;
       if (registration && !registration.__rotaceUpdateHooked) {
         registration.__rotaceUpdateHooked = true;

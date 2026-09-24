@@ -5,9 +5,10 @@ import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const {displayVersion:VERSION}=RELEASE_METADATA;
 
-test('1.7.76 and verified successors keep one release identity with technical 1.7.0 and TEST Supabase',()=>{
+test('1.7.76 and verified successors keep one unified release identity and TEST Supabase',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.76');
-  assert.equal(metadata.technicalVersion,'1.7.0');
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
   assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });
@@ -16,7 +17,10 @@ test('runtime and canonical build consume metadata instead of copying the curren
   const current=[RELEASE_METADATA.displayVersion,RELEASE_METADATA.buildId];
   for(const file of ['index.html','app.js','sw.js','supabase-config.js','tools/canonical-build.mjs']){
     const source=read(file);
-    for(const literal of current)assert(!source.includes(literal),file+' duplicates '+literal);
+    for(const literal of current){
+      if((file==='index.html'||file==='sw.js')&&literal===RELEASE_METADATA.displayVersion) continue;
+      assert(!source.includes(literal),file+' duplicates '+literal);
+    }
   }
   const build=read('tools/canonical-build.mjs');
   assert(build.includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
@@ -27,7 +31,7 @@ test('runtime and canonical build consume metadata instead of copying the curren
 test('metadata loads before the first version decision and is available offline',()=>{
   const index=read('index.html'),sw=read('sw.js');
   assert(index.indexOf('<script src="rak-release-metadata.js"></script>')<index.indexOf('rak-dev-17001-update-unblock'));
-  assert(sw.indexOf("importScripts('./rak-release-metadata.js')")<sw.indexOf('const CACHE_VERSION'));
+  assert(sw.indexOf("importScripts('./rak-release-metadata.js?sw=")<sw.indexOf('const CACHE_VERSION'));
   const core=sw.slice(sw.indexOf('const CORE = ['),sw.indexOf('const WARM_START = ['));
   assert(core.includes("'./rak-release-metadata.js'"));
 });

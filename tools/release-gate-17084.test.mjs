@@ -5,10 +5,10 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.84 identifies the local-first account sync release',()=>{
+test('release does not regress below the 1.7.84 local-first account sync milestone',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.84');
-  assert.equal(metadata.displayVersion,'1.7.84');
-  assert.equal(metadata.buildId,'v1.7.84-local-first-account-sync1');
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
 });
 
 test('returning startup restores Rotation locally before remote sync and measures usable Dashboard paint',()=>{
@@ -81,9 +81,9 @@ test('shift/roster placement cannot mutate owner or authenticated account identi
   assert.equal(app.activeAccountId,account);
 });
 
-test('mandatory CI and npm check execute the 1.7.84 gate',()=>{
+test('npm check retains the 1.7.84 milestone and CI executes the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17084.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17084.test.mjs'));
+  assert(/node --test tools\/release-gate-1708\d\.test\.mjs/.test(workflow));
 });

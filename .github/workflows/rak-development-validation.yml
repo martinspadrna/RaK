@@ -53,7 +53,7 @@ jobs:
           node --test tools/release-gate-17080.test.mjs
           node --test tools/release-gate-17081.test.mjs
           node --test tools/release-gate-17082.test.mjs
-          node --test tools/release-gate-17084.test.mjs
+          node --test tools/release-gate-17085.test.mjs
           node --test tools/regression-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
@@ -91,7 +91,7 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-17084-isolated-build-${{ github.sha }}
+          name: rak-17085-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
@@ -242,7 +242,8 @@ jobs:
           fetch_public "/sw.js" "sw"
           fetch_public "/rak-release-metadata.js" "metadata"
           fetch_public "/supabase-config.js" "supabase"
-          fetch_public "/app.js?v=1.7.0" "app"
+          DISPLAY_VERSION="$(node --input-type=module -e "import metadata from './rak-release-metadata.js'; process.stdout.write(metadata.displayVersion)")"
+          fetch_public "/app.js?v=$DISPLAY_VERSION" "app"
           fetch_public "/supabase-vendor-2.110.7.js" "vendor"
           test -s .rak-release-evidence/http/stable/app.body
           test -s .rak-release-evidence/http/stable/vendor.body

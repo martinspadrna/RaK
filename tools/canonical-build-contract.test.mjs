@@ -22,7 +22,8 @@ test('Vercel may normalize only JSON formatting before the isolated build',()=>{
 
 test('the public build is isolated and the historical rewrite chain is legacy-only',()=>{
   const pkg=JSON.parse(read('package.json'));
-  assert.equal(pkg.version,'1.7.0');
+  assert.equal(pkg.version,RELEASE_METADATA.technicalVersion);
+  assert.equal(pkg.version,RELEASE_METADATA.displayVersion);
   assert.equal(pkg.scripts['vercel-build'],'node tools/canonical-build.mjs build');
   assert.match(pkg.scripts['legacy:vercel-build'],/development-version-17048|shift-report-mo-hotfix-170/);
   assert.equal(pkg.scripts['test:canonical-build'],'node --test tools/canonical-build-contract.test.mjs');
@@ -75,7 +76,7 @@ test('build evidence proves two stable passes without source changes when presen
   assert.match(value.stableDigest,/^[a-f0-9]{64}$/);
   assert.deepEqual(value.variableOutputs,['rak-complete-backup-source.zip']);
   assert(read('.rak-dist/index.html').includes('<script src="rak-release-metadata.js"></script>'));
-  assert(read('.rak-dist/sw.js').includes("importScripts('./rak-release-metadata.js')"));
+  assert(read('.rak-dist/sw.js').includes("importScripts('./rak-release-metadata.js?sw="+RELEASE_METADATA.displayVersion+"')"));
   assert.equal(read('.rak-dist/rak-release-metadata.js'),read('rak-release-metadata.js'));
   assert(fs.existsSync(path.join(ROOT,'.rak-dist','supabase-vendor-2.110.7.js')),'self-hosted Supabase SDK missing from public output');
   const vendor=fs.readFileSync(path.join(ROOT,'.rak-dist','supabase-vendor-2.110.7.js'));

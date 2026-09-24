@@ -44,7 +44,8 @@ test('release job proves exact SHA, HTTP TEST isolation, rollback and durable ev
   assert(release.includes('Verify the stable development alias is publicly usable without Vercel auth'));
   assert(release.includes('curl --silent --show-error --max-redirs 0'),'stable alias must be checked anonymously without Vercel credentials');
   assert(release.includes('/supabase-vendor-2.110.7.js'),'public verification must cover the self-hosted Supabase SDK');
-  assert(release.includes('/app.js?v=1.7.0'),'public verification must cover the application runtime');
+  assert(release.includes('fetch_public "/app.js?v=$DISPLAY_VERSION" "app"'),'public verification must cover the current application runtime');
+  assert(release.includes("metadata.displayVersion"),'public runtime verification must derive the version from release metadata');
   assert(release.includes('test -s ".vercel/output/static/supabase-vendor-2.110.7.js"'),'prebuilt output must contain the self-hosted Supabase SDK before deployment');
   assert(release.includes('/rak-release-metadata.js'));
   assert(release.includes('/supabase-config.js'));

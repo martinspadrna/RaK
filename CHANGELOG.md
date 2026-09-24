@@ -1,3 +1,10 @@
+## RaK 1.7.85 (development)
+
+- Všechna aktuální čísla verze jsou sjednocená na 1.7.85: viditelná verze, technická verze, module cache i package verze; SW cache je v1.7.85.
+- Oprava doručování PWA aktualizace na iOS: každá verze nově mění přímo zdroj service workeru a jeho vlastní release marker.
+- Service worker importuje release metadata přes verzovanou URL a registrace používá updateViaCache: none, takže kontrola aktualizace nemá použít starou HTTP cache.
+- Zachovává local-first start, oddělení účtů a account-scoped CAS synchronizaci vzhledu z 1.7.84.
+
 ## RaK 1.7.84 (development)
 
 - Start na dříve použitém zařízení obnovuje ověřený lokální rozpis před spuštěním Supabase synchronizace, takže Dashboard může zobrazit dnešní nebo další směnu bez čekání na síť.

@@ -98,7 +98,8 @@ test('network error cannot clear a protected draft or apply stale cache',async()
 test('1.7.68 and verified successors keep TEST-only release and historical gates',()=>{
   assertCurrentReleaseIdentity(read,'1.7.68');
   const pkg=JSON.parse(read('package.json'));
-  assert.equal(pkg.version,'1.7.0');
+  assert.equal(pkg.version,RELEASE_METADATA.technicalVersion);
+  assert.equal(pkg.version,RELEASE_METADATA.displayVersion);
   const config=read('supabase-config.js');assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
   const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17067.mjs');"));assert(chain.includes("await import('./development-version-17068.mjs');"));
   if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
