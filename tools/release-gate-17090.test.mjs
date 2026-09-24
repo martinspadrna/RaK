@@ -111,7 +111,7 @@ test('native calendar UI is mobile-safe and the new endpoint is part of complete
   const backup=read('rak-complete-backup.js');
   assert(css.includes('.calendarNativeGrid'));
   assert(css.includes('grid-template-columns:repeat(7,minmax(0,1fr))'));
-  assert(css.includes('.calendarNativeAgenda'));
+  assert(css.includes('.calendarNativeDetail'));
   assert(css.includes('@media(prefers-reduced-motion:reduce)'));
   assert(backup.includes('"api/public-calendar.js"'));
 });

@@ -38,6 +38,7 @@ test('date click opens an in-app detail popup with full time range and close aff
   assert(nav.includes('rakNativeCalendarDetailDateLabel(state.detailKey)'));
   assert(nav.includes('rakNativeCalendarAgendaTime(event)'));
   assert(nav.includes("content.__rakCalendarState.detailKey = ''"));
+  assert(nav.includes("if (state.detailKey && !detailEvents.length) state.detailKey = ''"));
   assert(!nav.includes('<div class="calendarNativeAgenda"><div class="calendarNativeAgendaTitle">'));
 });
 

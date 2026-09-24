@@ -1331,6 +1331,7 @@ function rakNativeCalendarRender(content) {
   }
 
   const detailEvents = state.detailKey ? (byDay.get(state.detailKey) || []) : [];
+  if (state.detailKey && !detailEvents.length) state.detailKey = '';
   const detail = state.detailKey && detailEvents.length
     ? [
         '<div class="calendarNativeDetailBackdrop" data-calendar-detail-backdrop>',
