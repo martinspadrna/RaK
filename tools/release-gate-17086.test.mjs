@@ -19,7 +19,7 @@ test('1.7.86 shift-calendar milestone remains active in verified successors',()=
 test('shift calendars keep Google embed allowed while rejecting private and foreign URLs',()=>{
   const core=read('core.js');
   const {api}=runNamedDeclarations({
-    modules:[{source:core,names:['isRakAllowedGoogleCalendarUrl']}],
+    modules:[{source:core,names:['normalizeRakGoogleCalendarUrl','isRakAllowedGoogleCalendarUrl']}],
     globals:{window:{},URL},
     exports:{valid:'isRakAllowedGoogleCalendarUrl'}
   });
