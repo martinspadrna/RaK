@@ -3503,28 +3503,41 @@
               state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
               continue;
             }
-            const profile = await runSupabaseOperation('queue.game_ui.version', () => client.from('game_stats').select('account_number,wins,losses,points,last_played_at,updated_at').eq('account_number', account).eq('game_type', GAME_UI_SETTINGS_TYPE).order('updated_at', { ascending: false }).limit(1), { mode: 'read', attempts: 1 });
-            if (profile.error) throw profile.error;
-            const remoteRow = profile.data && profile.data[0] ? decodeGameUiSettingsRow(profile.data[0]) : null;
-            const queuedUi = normalizeGameUiSettings(task.entry || {});
-            const sameAppearance = !!(remoteRow
-              && queuedUi.theme_id === remoteRow.theme_id
-              && queuedUi.background_id === remoteRow.background_id);
-            // RAK_17071_SEMANTIC_UI_RECONCILIATION: timestamps alone must not create
-            // a conflict when both sides already contain the same appearance.
+            const queuedUi = normalizeGameUiSettings(entry);
+            const remoteUi = await loadGameAccountUiSettingsDirect(client, account);
+            const sameAppearance = !!(remoteUi && queuedUi.appearance_id === remoteUi.appearance_id);
             if (sameAppearance) {
+              writeTimedCache(gameUiSettingsCacheKey(account), [remoteUi], 'ui');
               flushed += 1;
               continue;
             }
-            const remoteAt = Date.parse(String(remoteRow && remoteRow.updated_at || ''));
-            if (Number.isFinite(remoteAt) && remoteAt > queuedAt) {
-              // Appearance is a non-critical preference. A newer verified server value wins
-              // and an older automatic/offline preference must never become a global conflict.
-              writeTimedCache(gameUiSettingsCacheKey(account), [remoteRow], 'ui');
-              state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
-              flushed += 1;
-              continue;
-            }            await saveGameAccountUiSettingsDirect(client, task.entry);
+
+            const localAt = Date.parse(String(queuedUi.updated_at || '')) || queuedAt;
+            const remoteAt = Date.parse(String(remoteUi && remoteUi.updated_at || '')) || 0;
+            const remoteRevision = Math.max(0, Number(remoteUi && remoteUi.revision || 0) || 0);
+            if (remoteUi && remoteRevision > queuedUi.expected_revision) {
+              if (localAt <= remoteAt) {
+                writeTimedCache(gameUiSettingsCacheKey(account), [remoteUi], 'ui');
+                state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
+                flushed += 1;
+                continue;
+              }
+              queuedUi.expected_revision = remoteRevision;
+            }
+
+            let savedUi = await saveGameAccountUiSettingsDirect(client, queuedUi);
+            if (savedUi && savedUi.conflict === true) {
+              const conflictAt = Date.parse(String(savedUi.updated_at || '')) || 0;
+              const conflictRevision = Math.max(0, Number(savedUi.revision || 0) || 0);
+              if (localAt > conflictAt && conflictRevision > queuedUi.expected_revision) {
+                queuedUi.expected_revision = conflictRevision;
+                savedUi = await saveGameAccountUiSettingsDirect(client, queuedUi);
+              }
+              if (savedUi && savedUi.conflict === true) {
+                writeTimedCache(gameUiSettingsCacheKey(account), [savedUi], 'ui');
+                state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
+              }
+            }
             flushed += 1;
           } else if (task.type === 'game_session') {
             const code = task.inviteCode || task.code;
@@ -4586,120 +4599,81 @@
 
   function normalizeGameUiSettings(entry) {
     const accountNumber = String(entry && (entry.account_number || entry.accountNumber) || '').trim();
-    const themeDefs = Array.isArray(window.RAK_THEME_DEFS) ? window.RAK_THEME_DEFS : [];
-    const bgDefs = Array.isArray(window.RAK_BACKGROUND_DEFS) ? window.RAK_BACKGROUND_DEFS : [];
-    const themeIdRaw = String(entry && (entry.theme_id || entry.themeId || entry.theme) || '').trim();
-    const backgroundIdRaw = String(entry && (entry.background_id || entry.backgroundId || entry.background) || '').trim();
-    const themeIndex = getGameUiDefinitionIndex(themeDefs, themeIdRaw, 'default');
-    const backgroundIndex = getGameUiDefinitionIndex(bgDefs, backgroundIdRaw, 'ios-mesh');
-    const themeId = getGameUiDefinitionId(themeDefs, themeIndex, 'default') || 'default';
-    const backgroundId = getGameUiDefinitionId(bgDefs, backgroundIndex, 'ios-mesh') || 'ios-mesh';
+    const appearanceRaw = String(entry && (entry.appearance_id || entry.appearanceId || entry.theme_id || entry.themeId || entry.background_id || entry.backgroundId) || '').trim();
+    const appearance = appearanceRaw || 'obsidian';
     return {
       account_number: accountNumber,
-      theme_id: themeId,
-      background_id: backgroundId,
-      theme_index: themeIndex,
-      background_index: backgroundIndex,
-      encoded_points: (themeIndex * 1000) + backgroundIndex,
-      updated_at: entry && (entry.updated_at || entry.updatedAt) ? String(entry.updated_at || entry.updatedAt) : new Date().toISOString()
+      appearance_id: appearance,
+      theme_id: appearance,
+      background_id: appearance,
+      expected_revision: Math.max(0, Number(entry && (entry.expected_revision ?? entry.serverRevision ?? entry.revision) || 0) || 0),
+      revision: Math.max(0, Number(entry && (entry.revision ?? entry.serverRevision ?? entry.expected_revision) || 0) || 0),
+      updated_at: String(entry && (entry.updated_at || entry.updatedAt) || new Date().toISOString())
     };
   }
 
   function decodeGameUiSettingsRow(row) {
-    if (!row) return null;
-    const themeDefs = Array.isArray(window.RAK_THEME_DEFS) ? window.RAK_THEME_DEFS : [];
-    const bgDefs = Array.isArray(window.RAK_BACKGROUND_DEFS) ? window.RAK_BACKGROUND_DEFS : [];
-    const encoded = Number(row.points || 0) || 0;
-    const themeIndex = Number.isFinite(Number(row.wins)) ? Number(row.wins) : Math.floor(encoded / 1000);
-    const backgroundIndex = Number.isFinite(Number(row.losses)) ? Number(row.losses) : (encoded % 1000);
+    if (!row || typeof row !== 'object') return null;
+    const appearance = String(row.appearance_id || row.appearanceId || row.theme_id || row.themeId || row.background_id || row.backgroundId || '').trim();
+    if (!appearance) return null;
     return {
-      account_number: String(row.account_number || '').trim(),
-      theme_id: getGameUiDefinitionId(themeDefs, themeIndex, 'default') || 'default',
-      background_id: getGameUiDefinitionId(bgDefs, backgroundIndex, 'ios-mesh') || 'ios-mesh',
-      updated_at: row.updated_at || row.last_played_at || null,
-      source: 'game_stats_profile_ui'
+      ok: row.ok !== false,
+      conflict: row.conflict === true,
+      reason: String(row.reason || ''),
+      account_number: String(row.account_number || row.accountNumber || '').trim(),
+      appearance_id: appearance,
+      theme_id: appearance,
+      background_id: appearance,
+      revision: Math.max(0, Number(row.revision || 0) || 0),
+      updated_at: row.updated_at || row.updatedAt || null,
+      source: 'account_ui_preferences_rpc'
     };
   }
 
   async function loadGameAccountUiSettingsDirect(client, accountNumber) {
     const account = String(accountNumber || '').trim();
     if (!account) return null;
-    const cacheKey = gameUiSettingsCacheKey(account);
-    const cache = readTimedCache(cacheKey, SUPABASE_GAME_CACHE_TTL_MS);
-    if (cache && cache.fresh && cache.rows && cache.rows[0]) {
-      rememberTimedCacheHit('ui', cache);
-      return cache.rows[0];
-    }
-    try {
-      const { data, error } = await runSharedSupabaseRead('game_ui_settings.load:' + account, () => runSupabaseOperation('game_ui_settings.load', () => client
-        .from('game_stats')
-        .select('id,account_number,game_type,games_played,wins,losses,draws,points,last_played_at,updated_at')
-        .eq('account_number', account)
-        .eq('game_type', GAME_UI_SETTINGS_TYPE)
-        .order('updated_at', { ascending: false })
-        .limit(1), { mode: 'read' }));
-      if (error) throw error;
-      const row = Array.isArray(data) && data.length ? decodeGameUiSettingsRow(data[0]) : null;
-      if (row) writeTimedCache(cacheKey, [row], 'ui');
-      state.cacheGuard.uiSettingsLoads += 1;
-      return row;
-    } catch (err) {
-      if (cache && cache.rows && cache.rows[0]) {
-        state.cacheGuard.uiSettingsLoadFallbacks += 1;
-        rememberTimedCacheHit('ui', cache);
-        return cache.rows[0];
-      }
-      throw err;
-    }
+    const { data, error } = await runSharedSupabaseRead('account_ui_preferences.load:' + account, () => runSupabaseOperation('account_ui_preferences.load', () => client
+      .rpc('rak_load_account_ui_preferences', { p_account_number: account }), { mode: 'read' }));
+    if (error) throw error;
+    const row = decodeGameUiSettingsRow(data);
+    if (row) writeTimedCache(gameUiSettingsCacheKey(account), [row], 'ui');
+    state.cacheGuard.uiSettingsLoads += 1;
+    return row;
   }
 
-
-  async function trySaveGameUiSettingsViaRpc(client, normalized) {
-    if (!client || typeof client.rpc !== 'function' || !normalized || !normalized.account_number) return null;
+  async function saveGameAccountUiSettingsDirect(client, entry) {
+    const normalized = normalizeGameUiSettings(entry);
+    if (!normalized.account_number) throw new Error('Chybí účet pro uložení vzhledu.');
     try {
       rememberGameUiRpcSmoke('attempt');
-      const { data, error } = await runSupabaseOperation('game_ui_settings.rpc_save', () => client.rpc('rak_save_game_ui_settings', {
+      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => client.rpc('rak_save_account_ui_preferences', {
         p_account_number: normalized.account_number,
-        p_theme_index: Math.max(0, Math.min(999, Math.round(getSafeGameStatNumber(normalized.theme_index, 0)))),
-        p_background_index: Math.max(0, Math.min(999, Math.round(getSafeGameStatNumber(normalized.background_index, 0)))),
-        p_points: Math.max(0, Math.min(999999, Math.round(getSafeGameStatNumber(normalized.encoded_points, 0))))
+        p_appearance_id: normalized.appearance_id,
+        p_expected_revision: normalized.expected_revision
       }), { mode: 'write', attempts: 1 });
       if (error) throw error;
+      const decoded = decodeGameUiSettingsRow(data);
+      if (!decoded) throw new Error('Uložení vzhledu nevrátilo platný stav.');
+      if (decoded.conflict || decoded.ok === false) {
+        rememberGameUiRpcSmoke('fallback', 'cas-conflict');
+        writeTimedCache(gameUiSettingsCacheKey(normalized.account_number), [decoded], 'ui');
+        return decoded;
+      }
       rememberGameUiRpcSmoke('success');
-      return data || null;
+      writeTimedCache(gameUiSettingsCacheKey(normalized.account_number), [decoded], 'ui');
+      state.cacheGuard.uiSettingsSaves += 1;
+      return decoded;
     } catch (err) {
       if (isSupabaseRpcUnavailableError(err)) {
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableAt = new Date().toISOString();
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableMessage = String(err && err.message ? err.message : err);
         rememberGameUiRpcSmoke('fallback', 'rpc-unavailable');
-        return null;
+      } else {
+        rememberGameUiRpcSmoke('fallback', err && err.message ? err.message : err);
       }
-      rememberGameUiRpcSmoke('fallback', err && err.message ? err.message : err);
-      console.warn('rak_save_game_ui_settings failed; direct game_stats __profile_ui fallback should be blocked after v824', err);
-      return null;
+      throw err;
     }
-  }
-
-  async function saveGameAccountUiSettingsDirect(client, entry) {
-    const normalized = normalizeGameUiSettings(entry);
-    if (!normalized.account_number) throw new Error('Chybí herní účet pro uložení vzhledu.');
-    const rpcSaved = await trySaveGameUiSettingsViaRpc(client, normalized);
-    if (rpcSaved) {
-      const decodedRpc = decodeGameUiSettingsRow(rpcSaved) || {
-        account_number: normalized.account_number,
-        theme_id: normalized.theme_id,
-        background_id: normalized.background_id,
-        updated_at: rpcSaved.updated_at || rpcSaved.last_played_at || new Date().toISOString(),
-        source: 'game_stats_profile_ui_rpc'
-      };
-      writeTimedCache(gameUiSettingsCacheKey(normalized.account_number), [decodedRpc], 'ui');
-      state.cacheGuard.uiSettingsSaves += 1;
-      return decodedRpc;
-    }
-
-    // RaK 1.2 (1.155): profile UI fallback do game_stats už nespouštět.
-    // DB má pro vzhled profilu vlastní RPC rak_save_game_ui_settings; přímý zápis je po v824 správně blokovaný RLS.
-    throw createGameUiSettingsRpcRequiredError(normalized.account_number);
   }
 
   async function loadRotationState() {

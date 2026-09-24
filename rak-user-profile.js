@@ -14,7 +14,7 @@
     return {
       id,
       name: String(name || id).trim() || id,
-      uiSettings: { themeId: '', backgroundId: '', updatedAt: 0 },
+      uiSettings: { themeId: '', backgroundId: '', updatedAt: 0, serverRevision: 0, serverUpdatedAt: '', dirty: false },
       updatedAt: 0
     };
   }
@@ -71,6 +71,30 @@
     } catch (err) { return null; }
   }
 
+  function resetRuntimeForAccountSwitch(nextAccountNumber) {
+    const nextId = String(nextAccountNumber || '').trim();
+    const current = window.__RAK_USER_PROFILE__ && typeof window.__RAK_USER_PROFILE__ === 'object' ? window.__RAK_USER_PROFILE__ : read();
+    const currentId = String(current && current.accountNumber || '').trim();
+    if (!nextId || !currentId || currentId === nextId) return false;
+    window.__RAK_USER_PROFILE__ = null;
+    window.__RAK_EARLY_USER_PROFILE__ = null;
+    try {
+      if (typeof app === 'object' && app) {
+        app.activeAccountId = '';
+        app.activeAccountName = '';
+        const gamesProfile = typeof gamesGetProfile === 'function' ? gamesGetProfile() : app.gamesProfile;
+        if (gamesProfile && typeof gamesProfile === 'object') {
+          gamesProfile.activeAccountId = '';
+          if (typeof gamesSaveProfile === 'function') gamesSaveProfile(gamesProfile);
+          app.gamesProfile = gamesProfile;
+        }
+      }
+    } catch (err) {}
+    try { if (typeof applyAppearancePreference === 'function') applyAppearancePreference('obsidian', true, { skipProfile: true, skipRemote: true }); } catch (err) {}
+    try { syncSettingsProfileCard(null); } catch (err) {}
+    return true;
+  }
+
   function write(profile) {
     const src = profile && typeof profile === 'object' ? profile : {};
     const next = {
@@ -79,6 +103,7 @@
       updatedAt: Date.now()
     };
     if (!next.accountNumber || !next.fullName) return false;
+    resetRuntimeForAccountSwitch(next.accountNumber);
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(next)); } catch (err) { return false; }
     window.__RAK_USER_PROFILE__ = next;
     window.__RAK_EARLY_USER_PROFILE__ = next;
@@ -149,7 +174,7 @@
         if (gamesProfile && gamesProfile.accounts) {
           const makeAccount = typeof gamesMakeAccountEntry === 'function'
             ? gamesMakeAccountEntry(accountNumber, fullName)
-            : { id: accountNumber, name: fullName, uiSettings: { themeId: '', backgroundId: '', updatedAt: 0 } };
+            : { id: accountNumber, name: fullName, uiSettings: { themeId: '', backgroundId: '', updatedAt: 0, serverRevision: 0, serverUpdatedAt: '', dirty: false } };
           gamesProfile.accounts[accountNumber] = Object.assign({}, makeAccount, gamesProfile.accounts[accountNumber] || {}, { id: accountNumber, name: fullName });
           const accountUi = gamesProfile.accounts[accountNumber].uiSettings && typeof gamesProfile.accounts[accountNumber].uiSettings === 'object'
             ? gamesProfile.accounts[accountNumber].uiSettings
@@ -306,6 +331,7 @@
 
   window.rakUserProfileRead = read;
   window.rakUserProfileWrite = write;
+  window.rakUserProfileResetForAccountSwitch = resetRuntimeForAccountSwitch;
   window.rakUserProfileGet = get;
   window.rakUserProfileClear = clear;
   window.rakUserProfileEscape = esc;

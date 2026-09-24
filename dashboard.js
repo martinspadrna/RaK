@@ -1296,9 +1296,11 @@ window.__rotaceBootHomeRefreshLate = bootHomeRefreshLate;
       } catch (checkErr) {
         renderDashboardFallback(checkErr);
       }
+      try { if (typeof window.rakMarkFirstUsableRender === 'function') window.rakMarkFirstUsableRender('dashboard'); } catch (err) {}
       return result;
     } catch (err) {
       renderDashboardFallback(err);
+      try { if (typeof window.rakMarkFirstUsableRender === 'function') window.rakMarkFirstUsableRender('dashboard-fallback'); } catch (metricErr) {}
       return null;
     }
   };

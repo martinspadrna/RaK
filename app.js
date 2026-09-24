@@ -274,6 +274,105 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   let remoteSyncActivationPromise = null;
   let rakBootLocalHydrationInProgress = false;
   const bootStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  window.__rakBootV2StartedAt = bootStartedAt;
+
+  // RAK_17084_LOCAL_FIRST_BOOT: read the verified Rotation snapshot without loading
+  // Supabase. Returning/offline starts can paint "kam jdu" before any remote work.
+  const RAK_BOOT_ROTATION_LOCAL_KEY = 'rotace_kalkulacky_state_v123';
+  const RAK_BOOT_ROTATION_META_KEY = 'rotace_supabase_local_state_v1';
+  const RAK_BOOT_ROTATION_DURABLE_CACHE = 'rotace-offline-data-v1';
+  const RAK_BOOT_ROTATION_DURABLE_REQUEST = './__rak/offline/rotation-state-v1.json';
+
+  function rakBootRotationFingerprint(rotation) {
+    let json = '';
+    try { json = JSON.stringify(rotation); } catch (_) { return ''; }
+    let hash = 2166136261;
+    for (let i = 0; i < json.length; i += 1) {
+      hash ^= json.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return json.length.toString(36) + ':' + (hash >>> 0).toString(36);
+  }
+
+  function rakBootRotationCandidate(payload, meta, source, strictFingerprint) {
+    if (!payload || typeof payload !== 'object' || !payload.months) return null;
+    const safeMeta = meta && typeof meta === 'object' ? meta : {};
+    const actualFingerprint = rakBootRotationFingerprint(payload);
+    const storedFingerprint = String(safeMeta.fingerprint || '');
+    const verified = !storedFingerprint || storedFingerprint === actualFingerprint;
+    if (!verified && strictFingerprint) return null;
+    return {
+      payload,
+      source: verified ? String(source || 'local-cache') : String(source || 'local-cache') + '-unverified',
+      revision: verified ? Math.max(0, Number(safeMeta.revision || 0) || 0) : 0,
+      savedAt: verified ? Math.max(0, Number(safeMeta.savedAt || safeMeta.updatedAt || 0) || 0) : 0,
+      fingerprint: actualFingerprint,
+      verified
+    };
+  }
+
+  function rakReadBootLocalRotationCandidate() {
+    try {
+      const localMeta = JSON.parse(localStorage.getItem(RAK_BOOT_ROTATION_META_KEY) || 'null');
+      const canonical = JSON.parse(localStorage.getItem(RAK_BOOT_ROTATION_LOCAL_KEY) || 'null');
+      const legacy = localMeta && localMeta.rotation && typeof localMeta.rotation === 'object' ? localMeta.rotation : null;
+      const payload = canonical && canonical.months ? canonical : (legacy && legacy.months ? legacy : null);
+      if (!payload) return null;
+      const meta = Object.assign({}, localMeta && localMeta.rotationMeta || {});
+      if (!meta.savedAt && localMeta) meta.savedAt = Number(localMeta.rotationSavedAt || localMeta.updatedAt || 0) || 0;
+      return rakBootRotationCandidate(payload, meta, 'local-cache', false);
+    } catch (_) { return null; }
+  }
+
+  async function rakReadBootDurableRotationCandidate() {
+    if (typeof caches === 'undefined') return null;
+    try {
+      const cache = await caches.open(RAK_BOOT_ROTATION_DURABLE_CACHE);
+      const requestUrl = new URL(RAK_BOOT_ROTATION_DURABLE_REQUEST, window.location.href).href;
+      const response = await cache.match(requestUrl);
+      if (!response) return null;
+      const stored = await response.json();
+      return rakBootRotationCandidate(stored && stored.payload, stored, 'durable-cache', true);
+    } catch (_) { return null; }
+  }
+
+  function rakCompareBootRotationCandidates(a, b) {
+    if (!a) return b ? -1 : 0;
+    if (!b) return 1;
+    if (a.revision !== b.revision) {
+      if (a.revision > 0 && b.revision === 0) return 1;
+      if (b.revision > 0 && a.revision === 0) return -1;
+      if (a.revision > 0 && b.revision > 0) return a.revision - b.revision;
+    }
+    if (a.savedAt !== b.savedAt) return a.savedAt - b.savedAt;
+    if (a.verified !== b.verified) return Number(a.verified) - Number(b.verified);
+    return Number(a.source === 'durable-cache') - Number(b.source === 'durable-cache');
+  }
+
+  async function hydrateRakRotationLocalFirst() {
+    const local = rakReadBootLocalRotationCandidate();
+    const durable = await rakReadBootDurableRotationCandidate();
+    let selected = local || durable;
+    if (local && durable && rakCompareBootRotationCandidates(durable, local) > 0) selected = durable;
+    if (!selected || !selected.payload) return null;
+    try {
+      if (typeof app === 'object' && app) app.rotation = selected.payload;
+      window.__rakBootLocalFirstRotation = {source:selected.source,revision:selected.revision,savedAt:selected.savedAt,verified:selected.verified,at:Date.now()};
+    } catch (_) {}
+    return selected;
+  }
+
+  window.rakMarkFirstUsableRender = function rakMarkFirstUsableRender(source) {
+    if (Number(window.__rakFirstUsableRenderMs || 0) > 0) return window.__rakFirstUsableRenderMs;
+    const hasRotation = !!(typeof app === 'object' && app && app.rotation && app.rotation.months);
+    if (!hasRotation) return null;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const elapsed = Math.max(0, Math.round(now - bootStartedAt));
+    window.__rakFirstUsableRenderMs = elapsed;
+    window.__rakFirstUsableRenderSource = String(source || 'dashboard');
+    window.__rakFirstUsableRenderHasRotation = true;
+    return elapsed;
+  };
 
   function normalizeScriptPath(value) {
     return String(value || '').replace(/^\.\//, '').split('?')[0].trim();
@@ -496,6 +595,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       version: RAK_MODULE_CACHE_VERSION,
       startupReady: !!window.__rakBootV2StartupReady,
       startupReadyMs: Number(window.__rakBootV2StartupReadyMs || 0),
+      firstUsableRenderMs: Number(window.__rakFirstUsableRenderMs || 0) || null,
+      firstUsableRenderSource: String(window.__rakFirstUsableRenderSource || ''),
+      localFirstRotation: window.__rakBootLocalFirstRotation || null,
       elapsedMs: Math.max(0, Math.round(now - bootStartedAt)),
       loadedModuleCount: modulePromises.size,
       features: Object.keys(featureSpecs).reduce((out, key) => {
@@ -543,11 +645,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
   try { if (typeof window.__rakSyncActiveAppearance === 'function') void window.__rakSyncActiveAppearance('startup'); } catch (err) {}
 
-  // RAK_17080_OFFLINE_BOOT_RESTORE / RAK_17082_RETURNING_SW_HYDRATION:
-  // navigator.onLine can lag on iOS. Every returning service-worker-controlled
-  // startup therefore hydrates persisted Rotation before startupReady, even when
-  // navigator temporarily claims "online". The first uncached online visit keeps
-  // the fast lazy path because it has no controlling service worker yet.
+  // RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine is only a hint. Returning
+  // installations first restore the newest verified local Rotation and load only
+  // Rotation UI helpers; Supabase activation remains an idle/post-ready concern.
   const rakReturningServiceWorkerStart = !!(
     typeof navigator !== 'undefined' &&
     navigator.serviceWorker &&
@@ -560,20 +660,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   if (rakMustHydrateRotationBeforeReady) {
     rakBootLocalHydrationInProgress = true;
     try {
-      await ensureFeature('sync');
-      // RAK_17082_AWAIT_RUNTIME_HYDRATION: cache arbitration alone is not enough;
-      // app.rotation and its dependent UI must be updated before startupReady.
-      if (typeof window.hydrateRakRotationFromOfflineCache === 'function') {
-        await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true });
-      }
+      await hydrateRakRotationLocalFirst();
+      await ensureFeature('rotation');
+      try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
     } catch (err) {
-      console.warn('Persisted Rotation restore during boot failed', err);
+      console.warn('Local-first Rotation restore during boot failed', err);
     } finally {
       rakBootLocalHydrationInProgress = false;
-    }
-    // Remote sync is deliberately after local hydration and never blocks startupReady.
-    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
-      void activateRemoteSync().catch((err) => console.warn('Post-hydration online sync failed', err));
     }
   }
 

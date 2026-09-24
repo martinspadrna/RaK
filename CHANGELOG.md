@@ -1,3 +1,11 @@
+## RaK 1.7.84 (development)
+
+- Start na dříve použitém zařízení obnovuje ověřený lokální rozpis před spuštěním Supabase synchronizace, takže Dashboard může zobrazit dnešní nebo další směnu bez čekání na síť.
+- Diagnostika nově měří první použitelný render Dashboardu s dostupným rozpisem.
+- Přepnutí účtu před aplikací nového profilu odstraní aktivní identitu předchozího účtu; per-account cache vzhledu zůstává oddělená.
+- Synchronizace vzhledu už nepoužívá zrušené herní statistiky. Nové úložiště používá revize a compare-and-swap, je oddělené podle účtu a při konfliktu neblokuje globální synchronizaci.
+- Přesun účtu mezi směnami/rozpisem zůstává pouze provozním nastavením a nemění jeho autentizační ani owner/admin identitu.
+
 ## RaK 1.7.83 (development)
 
 - Stránka O aplikaci nově stručně vysvětluje, k čemu RaK slouží.
