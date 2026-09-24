@@ -53,8 +53,8 @@ test('rotation and absence choices use anchored filtered pickers and save valida
   const css=read('styles-admin-rotation-editor.css');
   assert(rotation.includes('function adminRotationSuggestionContext(root)'));
   assert(rotation.includes('[data-rot-field^="cell-"]'));
-  assert(rotation.includes("input.matches('[data-note-field="date"]')"));
-  assert(rotation.includes("input.matches('[data-note-field="person"]')"));
+  assert(rotation.includes('[data-note-field="date"]'));
+  assert(rotation.includes('[data-note-field="person"]'));
   assert(rotation.includes('!scheduled.has(name) && !absent.has(name)'));
   assert(rotation.includes('adminRotationChoicePicker'));
   assert(css.includes('.adminRotationChoicePicker{'));
