@@ -2745,6 +2745,17 @@
     const text = String(source.text || source.message || '').trim().slice(0, 4000);
     const route = [String(source.page || '').trim(), String(source.game || '').trim()].filter(Boolean).join(' · ').slice(0, 300);
     const legacyAppearanceId = String(source.theme || source.background || '').trim();
+    const screenshotSource = source.screenshot && typeof source.screenshot === 'object' ? source.screenshot : null;
+    const screenshotBase64 = screenshotSource ? String(screenshotSource.base64 || '').trim() : '';
+    const screenshotMime = screenshotSource ? String(screenshotSource.mime || '').trim().toLowerCase() : '';
+    const screenshotWidth = screenshotSource ? Math.max(0, Math.floor(Number(screenshotSource.width || 0) || 0)) : 0;
+    const screenshotHeight = screenshotSource ? Math.max(0, Math.floor(Number(screenshotSource.height || 0) || 0)) : 0;
+    const screenshot = screenshotBase64 ? {
+      base64: screenshotBase64.slice(0, 1000000),
+      mime: screenshotMime,
+      width: screenshotWidth,
+      height: screenshotHeight
+    } : null;
     const deviceInfo = {
       appearanceId: String(source.appearanceId || source.appearance || legacyAppearanceId || '').slice(0, 80),
       appearanceLabel: String(source.appearanceLabel || '').slice(0, 120),
@@ -2762,6 +2773,7 @@
       route: route || null,
       user_agent: String(source.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '').slice(0, 1000) || null,
       device_info: deviceInfo,
+      screenshot,
       status: 'new'
     };
   }
@@ -2769,7 +2781,8 @@
   async function saveBugReportDirect(client, entry) {
     const row = normalizeBugReportPayload(entry);
     if (!client || typeof client.rpc !== 'function') throw new Error('bug report RPC unavailable');
-    const { data: rpcData, error: rpcError } = await runSupabaseOperation('bug_reports.rpc_insert_v2', () => client.rpc('rak_submit_bug_report_v2', {
+    const screenshot = row.screenshot && typeof row.screenshot === 'object' ? row.screenshot : null;
+    const { data: rpcData, error: rpcError } = await runSupabaseOperation('bug_reports.rpc_insert_v3', () => client.rpc('rak_submit_bug_report_v3', {
       p_account_number: row.account_number,
       p_player_name: row.player_name,
       p_report_type: row.report_type,
@@ -2777,10 +2790,14 @@
       p_app_version: row.app_version,
       p_route: row.route,
       p_user_agent: row.user_agent,
-      p_device_info: row.device_info
+      p_device_info: row.device_info,
+      p_screenshot_base64: screenshot ? screenshot.base64 : null,
+      p_screenshot_mime: screenshot ? screenshot.mime : null,
+      p_screenshot_width: screenshot ? screenshot.width : null,
+      p_screenshot_height: screenshot ? screenshot.height : null
     }), { mode: 'write', attempts: 1 });
     if (rpcError) throw rpcError;
-    return Object.assign({ ok: true, row }, rpcData || {});
+    return Object.assign({ ok: true, row: Object.assign({}, row, { screenshot: screenshot ? { mime: screenshot.mime, width: screenshot.width, height: screenshot.height } : null }) }, rpcData || {});
   }
 
   function isBugReportUuid(value) {
@@ -2805,6 +2822,17 @@
     }), { mode: 'read', attempts: 1 });
     if (error) throw error;
     return { ok: true, rows: Array.isArray(data) ? data : [] };
+  }
+
+  async function loadBugReportScreenshotDirect(client, id) {
+    const reportId = String(id || '').trim();
+    if (!reportId || !isBugReportUuid(reportId)) return { ok: false, reason: 'invalid-report-id' };
+    if (!hasSecureAdminContext()) throw new Error('admin authentication required');
+    const { data, error } = await runSupabaseOperation('bug_reports.rpc_screenshot_v3', () => client.rpc('rak_admin_get_bug_report_screenshot_v3', {
+      p_id: reportId
+    }), { mode: 'read', attempts: 1 });
+    if (error) throw error;
+    return data && typeof data === 'object' ? data : { ok: false, reason: 'invalid-response' };
   }
 
   async function updateBugReportStatusDirect(client, id, status, note = '') {
@@ -5478,16 +5506,21 @@
     },
     submitBugReport: async (payload) => {
       const client = getClient();
-      if (!client || !navigator.onLine) return await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload });
+      const hasScreenshot = !!(payload && payload.screenshot && String(payload.screenshot.base64 || '').trim());
+      if (!client || !navigator.onLine) {
+        if (hasScreenshot) return { ok: false, queued: false, reason: 'screenshot-online-required' };
+        return await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload });
+      }
       try {
-        if (shouldDeferOnlineWrite()) return Object.assign(await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload }), { deferred: true });
-        const result = await runOptimizedSupabaseWrite('bug_report.save:' + String(payload && payload.id || Date.now()), payload, () => saveBugReportDirect(client, payload), { windowMs: 500 });
+        if (shouldDeferOnlineWrite() && !hasScreenshot) return Object.assign(await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload }), { deferred: true });
+        const result = await runOptimizedSupabaseWrite('bug_report.save:' + String(payload && payload.id || Date.now()), payload, () => saveBugReportDirect(client, payload), { windowMs: hasScreenshot ? 0 : 500 });
         state.lastError = null;
         await flushPendingWrites();
         return Object.assign({ ok: true, queued: false }, result || {});
       } catch (err) {
         state.lastError = err;
         console.error('Bug report save failed', err);
+        if (hasScreenshot) return { ok: false, queued: false, reason: 'screenshot-upload-failed', error: err };
         if (isLikelyTransientError(err)) return await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload });
         return { ok: false, error: err };
       }
@@ -5503,6 +5536,19 @@
         state.lastError = err;
         console.error('Bug reports load failed', err);
         return { ok: false, error: err, rows: [] };
+      }
+    },
+    loadBugReportScreenshot: async (id) => {
+      const client = getClient();
+      if (!client || !navigator.onLine) return { ok: false, reason: 'offline-or-missing-client' };
+      try {
+        const result = await loadBugReportScreenshotDirect(client, id);
+        state.lastError = null;
+        return result;
+      } catch (err) {
+        state.lastError = err;
+        console.error('Bug report screenshot load failed', err);
+        return { ok: false, error: err };
       }
     },
     updateBugReportStatus: async (id, status, note = '') => {

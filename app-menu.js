@@ -947,6 +947,12 @@ function bindAppMenuHandlers(body) {
         downloadAdminBugReports();
         return;
       }
+      if (adminAction === 'report-screenshot') {
+        const reportId = target.getAttribute('data-report-id') || target.closest('[data-report-id]')?.getAttribute('data-report-id') || '';
+        const result = typeof openAdminBugReportScreenshot === 'function' ? await openAdminBugReportScreenshot(reportId) : { ok: false, reason: 'missing-viewer' };
+        if (!result || result.ok === false) throw (result && result.error ? result.error : new Error('Screenshot reportu se nepodařilo načíst.'));
+        return;
+      }
       if (adminAction === 'report-delete') {
         const reportId = target.getAttribute('data-report-id') || target.closest('[data-report-id]')?.getAttribute('data-report-id') || '';
         const result = await deleteAdminBugReport(reportId);

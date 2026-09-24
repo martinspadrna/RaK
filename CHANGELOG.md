@@ -1,3 +1,11 @@
+## RaK 1.7.99 (development)
+
+- „Pošli mi chybu“ umí volitelně připojit jeden screenshot. JPG/PNG/WebP se na zařízení načte, zmenší na max. 1400 px, znovu překóduje do JPEG bez původních metadat a po kompresi musí mít nejvýše 650 kB.
+- Screenshot se nikdy neukládá do lokální fronty ani do běžného exportu reportů. Při offline režimu se report se screenshotem zastaví s vysvětlením; po odebrání obrázku funguje textový offline report stejně jako dřív.
+- TEST Supabase ukládá obrázek odděleně v RLS-uzamčené tabulce bez přímých práv anon/auth. Veřejné v3 RPC dovoluje jen omezený insert, admin screenshot načítá pouze přes zvláštní RPC chráněné `rak_require_admin(false)`.
+- Server znovu kontroluje MIME, magic bytes, rozměry a limit 750 kB. Smazání reportu zároveň maže jeho přílohu. Žádný veřejný/private Storage bucket nevzniká; staré v2 report RPC zůstává rollbackem.
+- Negativní TEST důkazy ověřují zákaz anonymního čtení, nepovolený typ, nadlimitní payload a nulovou perzistenci při odmítnutí. Produkce ani produkční Supabase se nemění.
+
 ## RaK 1.7.98 (development)
 
 - Úplná záloha RaK už nestaví všechny veřejné tabulky v jednom monolitickém SQL JSONu. TEST Supabase dostává owner-only manifest RPC a owner-only tabulkové RPC; staré `rak_owner_complete_backup_v1` zůstává nedotčené jako rollback.

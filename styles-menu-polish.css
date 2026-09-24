@@ -121,3 +121,45 @@
 #appMenuBody > .appMenuThemeCardWrap + .appMenuStandaloneBack{
   margin-top:10px !important;
 }
+
+/* RaK 1.7.99 – volitelný screenshot reportu: lokální náhled bez ukládání base64 do fronty. */
+#menu .appMenuReportFile{
+  display:block;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  margin:4px 0 6px;
+  padding:10px 11px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:14px;
+  background:rgba(255,255,255,.06);
+  color:var(--soft,#f4fff6);
+  font:inherit;
+}
+#menu .appMenuReportPrivacy{margin:0 0 6px;line-height:1.4;}
+#menu .appMenuReportScreenshotStatus{min-height:1.3em;margin:0 0 6px;}
+#menu .appMenuReportScreenshotPreview{
+  display:grid;
+  gap:8px;
+  margin:6px 0 10px;
+  padding:9px;
+  border:1px solid rgba(124,255,124,.16);
+  border-radius:16px;
+  background:rgba(0,0,0,.16);
+}
+#menu .appMenuReportScreenshotPreview[hidden]{display:none!important;}
+#menu .appMenuReportScreenshotPreview img{
+  display:block;
+  width:100%;
+  max-height:240px;
+  object-fit:contain;
+  border-radius:12px;
+  background:#111;
+}
+#menu .appMenuReportScreenshotPreview>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+}

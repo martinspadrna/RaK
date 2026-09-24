@@ -1,10 +1,10 @@
 (function installRakReleaseMetadata(root) {
   const metadata = Object.freeze({
-    displayVersion: '1.7.98',
-    technicalVersion: '1.7.98',
-    moduleCacheVersion: '1.7.98',
-    cacheVersion: 'v1.7.98',
-    buildId: 'v1.7.98-chunked-complete-backup1'
+    displayVersion: '1.7.99',
+    technicalVersion: '1.7.99',
+    moduleCacheVersion: '1.7.99',
+    cacheVersion: 'v1.7.99',
+    buildId: 'v1.7.99-bug-report-screenshot1'
   });
   if (root) root.RAK_RELEASE_METADATA = metadata;
   if (typeof module !== 'undefined' && module.exports) module.exports = metadata;

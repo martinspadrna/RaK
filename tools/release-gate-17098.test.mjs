@@ -4,20 +4,17 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.98 uses one unified release identity',()=>{
+test('1.7.98 chunked-backup milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.98');
-  assert.equal(metadata.displayVersion,'1.7.98');
-  assert.equal(metadata.technicalVersion,'1.7.98');
-  assert.equal(metadata.moduleCacheVersion,'1.7.98');
-  assert.equal(metadata.cacheVersion,'v1.7.98');
-  assert.equal(metadata.buildId,'v1.7.98-chunked-complete-backup1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.98');
-  assert(read('index.html').includes('app.js?v=1.7.98'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.98');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.98';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('complete backup uses bounded manifest/table RPCs and keeps legacy only as rollback metadata',()=>{
   const app=read('rak-complete-backup.js');
   assert(app.includes("const MANIFEST_RPC_NAME = 'rak_owner_complete_backup_manifest_v2'"));
@@ -52,10 +49,9 @@ test('runtime VM regression exercises chunk assembly and forbidden-table failure
   assert(unit.includes("await assert.rejects"));
 });
 
-test('mandatory CI and npm check execute the 1.7.98 gate',()=>{
+test('npm check retains 1.7.98 while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17098.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17098.test.mjs'));
-  assert(workflow.includes('rak-17098-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(/node --test tools\/release-gate-1709\d\.test\.mjs/.test(workflow));
 });
