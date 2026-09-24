@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {RELEASE_METADATA,assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
+import {RELEASE_METADATA,assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import {extractConditionalBlock,extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const storage=(initial={})=>{
@@ -79,10 +79,10 @@ test('real admin button confirms before fetching; rejects cache/offline/race and
  assert(!/\.saveRotationState\(|\.saveRotationMonthEntries\(|\.rpc\(|\.delete\(|\.update\(/.test(code),'cleanup must never write to Supabase');
  assert(menu.includes("if(adminAction==='discard-local-rotation-drafts')"));
 });
-test('1.7.69 and verified canonical successors keep TEST-only release and historical gates',()=>{
+test('1.7.69 and verified canonical successors keep release-target isolation and historical gates',()=>{
  assertCurrentReleaseIdentity(read,'1.7.69');
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'),'1.7.69 gate');
  const chain=read('tools/development-version-17048.mjs');
  assert(chain.includes("await import('./development-version-17069.mjs');"));
  const pkg=JSON.parse(read('package.json'));

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {RELEASE_METADATA,assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
+import {RELEASE_METADATA,assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 function fixture({dirty=true,allow=true,editorValid=true}={}){
@@ -95,11 +95,11 @@ test('network error cannot clear a protected draft or apply stale cache',async()
  assert.equal(await pending,null);assert.equal(f.app.adminRotationDirty,true);
  assert.deepEqual(f.counters(),{applied:0,cache:0,guarded:1,requests:1});
 });
-test('1.7.68 and verified successors keep TEST-only release and historical gates',()=>{
+test('1.7.68 and verified successors keep release-target isolation and historical gates',()=>{
   assertCurrentReleaseIdentity(read,'1.7.68');
   const pkg=JSON.parse(read('package.json'));
   assert.equal(pkg.version,'1.7.0');
-  const config=read('supabase-config.js');assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+  const config=read('supabase-config.js');assertSupabaseTarget(config,'1.7.68 gate');
   const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17067.mjs');"));assert(chain.includes("await import('./development-version-17068.mjs');"));
   if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
     const compiler=read('tools/development-version-17068.mjs');
