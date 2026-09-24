@@ -600,21 +600,30 @@ export default {
 
 ~~~
 
-## Vlastníkem schválený úklid vyřazeného Gomoku – čeká na zelené CI
+## Vlastníkem schválený úklid vyřazeného Gomoku – aplikováno po zeleném CI
 
 Produkční fáze B uzavřela veškerý klientský přístup k historické tabulce `gomoku_wins` a zachovala 101 řádků. Vlastník 24. 9. 2026 následně výslovně povolil jejich smazání, protože Hry už v RaK nejsou. Samostatná migrace je fail-closed: očekává přesně 101 řádků, nulový anon/authenticated SELECT i zápis, nulové klientské EXECUTE na legacy zápisový RPC a žádnou RLS policy; smaže pouze řádky `public.gomoku_wins`, zachová uzamčenou tabulku a ověří nezměněný počet `public.game_accounts`.
 
 ~~~json
 {
   "schema": "rak.retired-gomoku-cleanup.v1",
-  "status": "PREPARED_PENDING_CI",
+  "status": "APPLIED_VERIFIED",
+  "source_development_sha": "8956893f160c05805b2cad7eb7467bed8e42f3e8",
+  "actions_run": 35989913390,
+  "production_migration_version": "20260924105811",
   "authorized_at": "2026-09-24",
   "production_project": "bkqamcbkiwumsvelahxr",
   "path": "supabase/migrations/20260924110000_rak_delete_retired_gomoku_history.sql",
   "sha256": "57e1f5e42d04112a8e4df575f5cc8c1865edf366c49539ec751f044e9139461d",
   "expected_rows": 101,
+  "deleted_rows": 101,
+  "remaining_rows": 0,
+  "game_accounts_after": 11,
   "preserve_table": true,
   "preserve_game_accounts": true
 }
 ~~~
 
+
+
+**Důkaz aplikace:** [Actions #269](https://github.com/martinspadrna/RaK/actions/runs/35989913390) je SUCCESS na přesném SHA `8956893f160c05805b2cad7eb7467bed8e42f3e8`. Produkční migrace `20260924105811_rak_delete_retired_gomoku_history_17083` skončila úspěšně. SQL postkontrola: `gomoku_wins=0`, `game_accounts=11`, anon/authenticated SELECT i zápisy uzavřené, žádná klientská policy. Produkční Vercel, alias a `main` nebyly změněny.
