@@ -3,11 +3,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const buildTarget=String(process.env.RAK_BUILD_TARGET||'test').trim();
 
 test('development waits for an explicit post-CI preview while main policy is untouched',()=>{
   const config=JSON.parse(read('vercel.json'));
-  assert.deepEqual(config.git?.deploymentEnabled,{development:false},'only development automatic Git deployments may be disabled');
-  assert.equal(Object.hasOwn(config.git.deploymentEnabled,'main'),false,'development must not change the main deployment policy');
+  if(buildTarget==='production') {
+    assert.deepEqual(config.git?.deploymentEnabled,{development:false,main:false},'production release must disable automatic Git deployments on both protected branches');
+  } else {
+    assert.deepEqual(config.git?.deploymentEnabled,{development:false},'only development automatic Git deployments may be disabled');
+    assert.equal(Object.hasOwn(config.git.deploymentEnabled,'main'),false,'development must not change the main deployment policy');
+  }
   assert.equal(config.ignoreCommand,'node tools/vercel-ignore-build.mjs','fail-closed non-runtime skip policy remains active');
 });
 

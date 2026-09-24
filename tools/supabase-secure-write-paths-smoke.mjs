@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import RELEASE_METADATA from '../rak-release-metadata.js';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
+const buildTarget = String(process.env.RAK_BUILD_TARGET || 'test').trim();
+assert(['test', 'production'].includes(buildTarget), 'RAK_BUILD_TARGET must be test or production');
 const sync = read('app-rotation-sync.js');
 const bridge = read('supabase-bridge.js');
 const app = read('app.js');
@@ -59,8 +61,13 @@ if(canonical){
   assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
   assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03-stats1";'), 'development PWA build marker must identify stats hotfix');
 }
-assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
-assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
+if (buildTarget === 'production') {
+  assert(config.includes('https://bkqamcbkiwumsvelahxr.supabase.co'), 'production must use production Supabase ref');
+  assert(!config.includes('cgshssdjgzzuprlwnabl'), 'TEST Supabase ref must not enter production runtime config');
+} else {
+  assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
+  assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
+}
 
 assert(exportJs.includes('"supabase-bridge.js": "src-supabase-bridge-js"'), 'export inventory must still include Supabase bridge');
 assert(exportJs.includes('"app-rotation-sync.js": "src-app-rotation-sync-js"'), 'export inventory must still include rotation sync/security gate source');

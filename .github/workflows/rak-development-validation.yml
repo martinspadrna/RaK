@@ -14,6 +14,9 @@ concurrency:
   group: rak-development-validation-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  RAK_BUILD_TARGET: ${{ github.ref_name == 'main' && 'production' || 'test' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest

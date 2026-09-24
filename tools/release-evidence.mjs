@@ -104,7 +104,8 @@ function prop(source,name){
   const match=source.match(new RegExp(name+'\\s*:\\s*[\\\'"]([^\\\'"]+)[\\\'"]'));
   return match?match[1]:'';
 }
-export function validateHttpFolder(label,folder){
+export function validateHttpFolder(label,folder,target='test'){
+  ok(['test','production'].includes(target),label+' unknown Supabase target');
   const entries={};
   for(const name of ['index','sw','metadata','supabase']){
     const body=fs.readFileSync(path.join(folder,name+'.body'));
@@ -119,10 +120,13 @@ export function validateHttpFolder(label,folder){
   ok(/<!doctype html/i.test(index)&&index.includes('rak-release-metadata.js'),label+' main HTML invalid');
   ok(sw.includes('rak-release-metadata.js')||sw.includes(RELEASE_METADATA.cacheVersion),label+' service worker metadata link missing');
   for(const key of ['displayVersion','technicalVersion','cacheVersion','buildId'])ok(prop(metadata,key)===RELEASE_METADATA[key],label+' '+key+' mismatch');
-  ok(supabase.includes(TEST_SUPABASE),label+' TEST Supabase missing');
-  ok(!supabase.includes(PROD_SUPABASE),label+' production Supabase detected');
-  return {schema:'rak-http-release-proof-v1',label,result:'PASS',entries,release:{...RELEASE_METADATA},
-    supabase:{testProject:TEST_SUPABASE,productionProjectAbsent:true}};
+  const expected=target==='production'?PROD_SUPABASE:TEST_SUPABASE;
+  const forbidden=target==='production'?TEST_SUPABASE:PROD_SUPABASE;
+  ok(supabase.includes(expected),label+' '+target+' Supabase missing');
+  ok(!supabase.includes(forbidden),label+' opposite Supabase detected');
+  const proof={target,project:expected,oppositeProjectAbsent:true};
+  if(target==='test'){proof.testProject=TEST_SUPABASE;proof.productionProjectAbsent=true;}
+  return {schema:'rak-http-release-proof-v1',label,result:'PASS',entries,release:{...RELEASE_METADATA},supabase:proof};
 }
 
 function deployment(raw){
@@ -184,7 +188,7 @@ function assemble(){
   console.log('[release-evidence] PASS '+sha+' -> '+current.id+'; rollback '+rollback.id);
 }
 
-function httpCheck(){const [,,,label,folder,out]=process.argv;ok(label&&folder&&out,'usage: http-check label folder output');writeJson(path.resolve(out),validateHttpFolder(label,path.resolve(folder)));console.log('[release-evidence] HTTP '+label+' PASS');}
+function httpCheck(){const [,,,label,folder,out,target='test']=process.argv;ok(label&&folder&&out,'usage: http-check label folder output [test|production]');writeJson(path.resolve(out),validateHttpFolder(label,path.resolve(folder),target));console.log('[release-evidence] HTTP '+label+' '+target+' PASS');}
 function verifyCi(){const [,,,proofFile,buildFile,sha]=process.argv;validateCiProof(json(proofFile),sha);validateBuildProof(json(buildFile),sha);console.log('[release-evidence] downloaded CI proof PASS for '+sha);}
 
 const mode=process.argv[2];

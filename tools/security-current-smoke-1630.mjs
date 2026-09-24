@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
+const buildTarget = String(process.env.RAK_BUILD_TARGET || 'test').trim();
+assert(['test', 'production'].includes(buildTarget), 'RAK_BUILD_TARGET must be test or production');
 const index = read('index.html');
 const vercel = JSON.parse(read('vercel.json'));
 const bridge = read('supabase-bridge.js');
@@ -26,7 +28,13 @@ assert(index.includes('supabase-vendor-2.110.7.js'), 'Self-hosted pinned Supabas
 assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
 assert(!index.includes('xlsx.full.min.js'), 'XLSX must stay lazy after build transforms');
 assert(!index.includes('jszip.min.js'), 'JSZip must stay lazy after build transforms');
-assert(config.includes('cgshssdjgzzuprlwnabl.supabase.co'), 'Development Supabase isolation changed');
+if (buildTarget === 'production') {
+  assert(config.includes('bkqamcbkiwumsvelahxr.supabase.co'), 'Production Supabase binding missing');
+  assert(!config.includes('cgshssdjgzzuprlwnabl'), 'TEST Supabase leaked into production runtime');
+} else {
+  assert(config.includes('cgshssdjgzzuprlwnabl.supabase.co'), 'Development Supabase isolation changed');
+  assert(!config.includes('bkqamcbkiwumsvelahxr'), 'Production Supabase leaked into TEST runtime');
+}
 assert(!adminUnlock.includes('RAK_OWNER_ADMIN_PASSWORD'), 'Client contains owner password constant');
 assert(!bridge.includes('p_admin_pin'), 'Legacy admin PIN write path returned');
 assert(bridge.includes("client.rpc('rak_submit_bug_report_v2'"), 'Bug reports must use RPC');

@@ -29,29 +29,35 @@ test('only public runtime file extensions and directories enter the canonical ov
  for(const p of ['.env','.env.production.js','tools/release.mjs','supabase/schema.sql','.github/workflows/check.yml','RAK_PLAN_13.md','rak-complete-backup-source.zip','package-lock.json','api/../../.env','node_modules/a.js'])assert(!isRuntimePath(p),p);
 });
 test('snapshot reads the real tracked HEAD, only changed runtime paths, exact release and TEST configuration',t=>{
- const root=fixture(t),manifest=capture(root);
+ const root=fixture(t),manifest=capture(root,'test');
  assert.equal(manifest.schema,SNAPSHOT_SCHEMA);assert.match(manifest.sourceCommit,/^[a-f0-9]{40}$/);
  assert(manifest.files.some(f=>f.path==='api/endpoint.js'));
  assert(!manifest.files.some(f=>f.path==='tools/private.js' || f.path==='supabase/secret.sql'));
  assert(manifest.changedPaths.includes('app.js'));
  assert(!manifest.changedPaths.includes('index.html'));
- assert(compareManifests(manifest,capture(root)));
+ assert(compareManifests(manifest,capture(root,'test')));
  fs.appendFileSync(path.join(root,'rotace.js'),'regression');
- assert.throws(()=>compareManifests(manifest,capture(root)),/runtime differs.*rotace\.js/s);
+ assert.throws(()=>compareManifests(manifest,capture(root,'test')),/runtime differs.*rotace\.js/s);
 });
 test('wrong release, production DB or malformed package fails closed',t=>{
  const root=fixture(t);
  fs.writeFileSync(path.join(root,'supabase-config.js'),'bkqamcbkiwumsvelahxr');
- assert.throws(()=>capture(root),/not TEST Supabase/);
+ assert.throws(()=>capture(root,'test'),/not TEST Supabase/);
  fs.writeFileSync(path.join(root,'supabase-config.js'),'cgshssdjgzzuprlwnabl');
  fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({version:'1.6.0'}));
- assert.throws(()=>capture(root),/technical version/);
+ assert.throws(()=>capture(root,'test'),/technical version/);
  fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({version:'1.7.0'}));
  fs.writeFileSync(path.join(root,'index.html'),"var build='bad';");
- assert.throws(()=>capture(root),/wrong HTML build/);
+ assert.throws(()=>capture(root,'test'),/wrong HTML build/);
 });
 test('different SHA and different transformed set cannot pass by matching file count',t=>{
- const a=capture(fixture(t));
+ const a=capture(fixture(t),'test');
  assert.throws(()=>compareManifests(a,{...a,sourceCommit:'0'.repeat(40)}),/HEAD changed/);
  assert.throws(()=>compareManifests(a,{...a,changedPaths:[]}),/changed-path list differs/);
+});
+test('production snapshot accepts only production Supabase',t=>{
+ const root=fixture(t);
+ fs.writeFileSync(path.join(root,'supabase-config.js'),'bkqamcbkiwumsvelahxr');
+ assert.doesNotThrow(()=>capture(root,'production'));
+ assert.throws(()=>capture(root,'test'),/not TEST Supabase/);
 });

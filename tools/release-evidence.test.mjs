@@ -62,11 +62,13 @@ function httpFixture({production=false}={}){
   return folder;
 }
 
-test('HTTP proof accepts only complete TEST output',()=>{
-  const good=httpFixture();
-  assert.equal(validateHttpFolder('fixture',good).supabase.productionProjectAbsent,true);
-  const bad=httpFixture({production:true});
-  assert.throws(()=>validateHttpFolder('fixture',bad),/TEST Supabase missing|production Supabase detected/);
+test('HTTP proof accepts only the requested isolated Supabase target',()=>{
+  const testFolder=httpFixture();
+  assert.equal(validateHttpFolder('fixture',testFolder,'test').supabase.productionProjectAbsent,true);
+  const productionFolder=httpFixture({production:true});
+  assert.equal(validateHttpFolder('fixture',productionFolder,'production').supabase.project,PROD_SUPABASE);
+  assert.throws(()=>validateHttpFolder('fixture',productionFolder,'test'),/test Supabase missing|opposite Supabase detected/i);
+  assert.throws(()=>validateHttpFolder('fixture',testFolder,'production'),/production Supabase missing|opposite Supabase detected/i);
 });
 
 test('CLI argument routing verifies downloaded CI proof and HTTP files',()=>{
