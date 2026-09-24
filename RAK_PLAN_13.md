@@ -43,7 +43,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
 - Produkční Vercel: `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, READY, přesně na main SHA; produkční alias na něj ukazuje.
 - Produkční metadata: viditelná `1.7.83`, technická `1.7.0`, cache `v1.7.83`, build `v1.7.83-about-release1`.
-- Produkční Supabase zůstává `bkqamcbkiwumsvelahxr`. Aplikována je pouze zpětně kompatibilní fáze A.
+- Produkční Supabase zůstává `bkqamcbkiwumsvelahxr`. Fáze A i schválená atomická fáze B jsou aplikované; fáze B je migrace `20260924104723_rak_production_phase_b_17083`.
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
@@ -56,9 +56,11 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 RaK 1.7.82 prošla 23. 9. 2026 fyzickým iPhone testem bez mazání dat: online přihlášení a TEST fungovaly, cold offline start načetl Dashboard, Rotaci i rozpis, návrat online fungoval bez restartu a falešný konflikt se nevrátil. Tuto závadu znovu neotvírat bez nové reprodukovatelné regrese.
 
-Dne 24. 9. 2026 vlastník následně výslovně požádal pokračovat „Plánem B“. Souhlas s konkrétním produkčním krokem je tím udělen, ale dosud nebyl výslovně potvrzen celý předepsaný fyzický iPhone checklist verze 1.7.83. Produkční zápis proto zůstává fail-closed pozastavený do jediného potvrzení, že prošlo: běžné přihlášení, owner/admin přihlášení a zařízení, Dashboard, Rotace, „O aplikaci“ a restart instalované PWA bez mazání dat.
+Dne 24. 9. 2026 vlastník výslovně potvrdil celý fyzický iPhone checklist verze 1.7.83: běžné přihlášení, owner/admin přihlášení a zařízení, Dashboard, Rotaci, „O aplikaci“ i restart instalované PWA bez mazání dat. Chromium výsledek se za tento fyzický test nevydává.
 
-Čtecí produkční preflight na `bkqamcbkiwumsvelahxr` potvrdil zdravý projekt, aplikovanou fázi A, Edge Function `rak-admin-users` ACTIVE v8 a všechny vstupní podmínky kromě původního předpokladu prázdné legacy tabulky `gomoku_wins`. Obsahuje 101 historických řádků z 26. 5.–23. 6. 2026; vlastník potvrdil, že pocházejí z již odstraněných Her. Žádný řádek nebyl smazán ani změněn. Commit `9b6780b05c1d0f2e6149e7839ff3bc91b9a2488c` reviduje pouze fail-closed guard: před uzavřením veřejného SELECT vyžaduje nulové anon/authenticated zápisové granty i nulové EXECUTE na legacy zápisové RPC a zachovává historii pro service-role/owner zálohu. [Actions #266](https://github.com/martinspadrna/RaK/actions/runs/35984992508) je SUCCESS a jeho preview `dpl_E7fCLqBf6t26i6RzagVCNyMxGwqt` je READY; produkční fáze B stále nebyla provedena.
+Po druhém výslovném souhlasu byla na zdravou produkční Supabase `bkqamcbkiwumsvelahxr` aplikována jediná atomická migrace `20260924104723_rak_production_phase_b_17083`, složená z 25 manifestem ověřených souborů development SHA `87a16c3433b371241991a59e756b2a10ea42b372`. Po změně zůstalo 101 řádků `gomoku_wins`, 11 účtů, 52 nastavení, 14 oznámení, 106 rotačních záloh, 153 keepalive zařízení, dva admin profily a jedna aktivní rotace; 12 `importMeta` záznamů se přesunulo do soukromé tabulky. Veřejné čtení legacy month/entry tabulek, adresáře účtů a Gomoku historie je uzavřené, veřejná společná `rotation_state` zůstává úmyslně dostupná podle přijatého OS-only rozhodnutí P0.2. Browser smoke načetl produkční HTML, manifest, `sw.js`, metadata `1.7.83` / `1.7.0` / `v1.7.83-about-release1`, produkční Supabase a bezpečnou odpověď „Účet nebyl nalezen“ pro neexistující číslo; konzole neměla chybu. Vercel deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, produkční alias, `main` a Edge Functions se nezměnily.
+
+Supabase security advisor po fázi B hlásí očekávaně 19 INFO tabulek s RLS bez politiky namísto 13, protože šest nově/nově uzavřených tabulek nemá žádnou klientskou cestu; anonymních `SECURITY DEFINER` funkcí zůstává šest a authenticated počet se zvýšil z 30 na 31 pouze o záměrný ověřený rotační reader. Varování ochrany uniklých hesel zůstává otevřené. Vlastník následně výslovně povolil smazání 101 historických výsledků již odstraněného Gomoku; připravená migrace `20260924110000_rak_delete_retired_gomoku_history.sql` smaže jen tyto řádky, zachová tabulku i `game_accounts` a smí se použít až po zeleném CI přesného SHA.
 
 ## Povinná release brána
 
@@ -78,7 +80,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 
 **Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Při založení šlo o změnu plánu, nikoli dokončenou opravu aplikace; aktuální produkční stav je vždy uveden v následujícím odstavci a v nejnovějším záznamu aktualizací. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
 
-**Aktuální online stav k 24. 9. 2026:** produkční předání 1.7.83 je dokončeno v první, zpětně kompatibilní fázi. `main` je `de443b771bb7e7dd5fefa498883fdd220a78f07d`; povinná validace [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587) je SUCCESS a ruční [produkční release #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867) je SUCCESS. Vercel deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` je READY na přesném main SHA a produkční alias na něj ukazuje; metadata jsou `1.7.83` / `1.7.0` / cache `v1.7.83` / build `v1.7.83-about-release1`. Produkční Supabase zůstává projekt `bkqamcbkiwumsvelahxr`; byla aplikována pouze schválená kompatibilní fáze A a `rak-admin-users` je ACTIVE ve verzi 8 s `verify_jwt=true`. Fáze B nebyla provedena; výslovný souhlas je zaznamenán, ale před produkčním zápisem stále chybí potvrzení úplného fyzického checklistu 1.7.83. Vývojové práce pokračují pouze na `development`; další funkční změny nejprve do TEST `cgshssdjgzzuprlwnabl`.
+**Aktuální online stav k 24. 9. 2026:** produkční předání 1.7.83 včetně schválené bezpečnostní fáze B je dokončeno. `main` je `de443b771bb7e7dd5fefa498883fdd220a78f07d`; povinná validace [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587) je SUCCESS a ruční [produkční release #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867) je SUCCESS. Vercel deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` je READY na přesném main SHA a produkční alias na něj ukazuje; metadata jsou `1.7.83` / `1.7.0` / cache `v1.7.83` / build `v1.7.83-about-release1`. Produkční Supabase zůstává projekt `bkqamcbkiwumsvelahxr`; fáze A i atomická fáze B `20260924104723_rak_production_phase_b_17083` jsou aplikované a `rak-admin-users` je ACTIVE ve verzi 8 s `verify_jwt=true`. Úplný fyzický checklist 1.7.83 je potvrzený. Následný úklid 101 uzavřených historických řádků Gomoku je vlastníkem schválený, ale čeká na zelené CI připravené samostatné migrace. Vývojové práce pokračují pouze na `development`; další funkční změny nejprve do TEST `cgshssdjgzzuprlwnabl`.
 
 ## 0. Jak budeme počítat a aktualizovat procenta
 
@@ -96,7 +98,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno **pouze rozhodnutím o přijatém riziku** |
 | P0.3 | API, exporty a historické klienty | **80 % (4/5)** | Otevřeno |
 | P0.4 | Role vlastníka a administrátorů | **80 % (4/5)** | Otevřeno |
-| P1.1 | Databázová oprávnění, RLS a RPC | **80 % (4/5)** | Otevřeno |
+| P1.1 | Databázová oprávnění, RLS a RPC | **100 % (5/5)** | Uzavřeno; fáze B nasazena atomicky po TEST, CI, fyzické přejímce a dvojím souhlasu |
 | P1.2 | Administrátorské heslo, relace a zařízení | **80 % (4/5)** | Otevřeno |
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
@@ -106,7 +108,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
-**Bilance: 4/13 uzavřeny (P0.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 9/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 5/13 uzavřeno (P0.1, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 8/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
@@ -162,13 +164,13 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ## P1 · Architektura, spolehlivost a obnova
 
-### P1.1 – Databázová oprávnění, RLS a RPC · **80 % (4/5)**
+### P1.1 – Databázová oprávnění, RLS a RPC · **100 % (5/5)**
 
 - [x] Základní RLS a omezení veřejného přístupu nad současným souborem přibližně 20 tabulek; dosavadní testovací anonymní sondy.
 - [x] Syntetická SQL role matrix a kontrola privátních nastavení bez trvalých testovacích zápisů.
 - [x] Provést autorizované pozitivní/negativní kontroly se skutečnými JWT všech privilegovaných rolí.
 - [x] Zinventarizovat všechny privilegované RPC (včetně `SECURITY DEFINER`), `GRANT`, RLS a všechny veřejné cesty zapisující do provozních tabulek; vyhodnotit křížový přístup účtů.
-- [ ] Každou nutnou úpravu politik nasadit nejprve do TEST s migrací, testem i reverzním postupem; ověřit, že nepoškodila běžný provoz.
+- [x] Každou nutnou úpravu politik nasadit nejprve do TEST s migrací, testem i reverzním postupem; fáze B byla po zeleném CI, fyzické přejímce a dvojím souhlasu atomicky přenesena do produkce a ověřena SQL i browser smokem.
 
 **Dokončení:** bezpečnost stojí na serverových pravidlech, nikoli jen na skrytých tlačítkách; přijatá výjimka veřejného čtení rozpisu je jasně oddělená. Produkční DB bez výslovného schválení neměnit.
 
@@ -365,6 +367,8 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+- **24. 9. 2026 – produkční bezpečnostní fáze B dokončena, P1.1 uzavřeno; připraven schválený úklid Gomoku:** vlastník potvrdil celý fyzický iPhone checklist 1.7.83 a následně výslovně schválil produkční migraci. Přes development SHA `87a16c3433b371241991a59e756b2a10ea42b372` byla atomicky aplikována migrace `20260924104723_rak_production_phase_b_17083` z 25 ověřených souborů. Počty provozních dat zůstaly zachované; 12 importních metadat se přesunulo do soukromé tabulky. SQL postkontroly potvrdily uzavření legacy čtení a browser smoke produkční runtime 1.7.83 / 1.7.0 i bezpečný login lookup. Produkční Vercel `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, alias, `main` a Edge Functions se nezměnily. P1.1 se zvyšuje z 80 % (4/5) na 100 % (5/5); ostatní body se nemění. Vlastník navíc schválil smazání přesně 101 historických řádků odstraněného Gomoku. Připravená fail-closed migrace `20260924110000_rak_delete_retired_gomoku_history.sql` (SHA-256 `57e1f5e42d04112a8e4df575f5cc8c1865edf366c49539ec751f044e9139461d`) nesmí změnit `game_accounts`, tabulku nemaže a do produkce smí až po zeleném CI.
+
 
 - **24. 9. 2026 – produkční fáze B: preflight opraven bez mazání historie; nový backlog vzhledu účtu:** vlastník výslovně požádal pokračovat Plánem B a potvrdil, že 101 řádků `gomoku_wins` je historie již odstraněných Her. Čtecí produkční kontrola nic nezměnila a odhalila, že původní migrace správně fail-closed očekávala prázdnou tabulku. Development commit `9b6780b05c1d0f2e6149e7839ff3bc91b9a2488c` proto mění pouze guard: historické řádky zachová, před uzavřením veřejného čtení ověří nepřístupnost legacy zápisů a po změně kontroluje skutečné odebrání SELECT/policy. SHA-256 manifest byl aktualizován a regresní test zakazuje `DELETE`/`TRUNCATE`/`UPDATE` této tabulky. [Actions #266](https://github.com/martinspadrna/RaK/actions/runs/35984992508) je SUCCESS. Viditelná verze zůstala `1.7.83` a technická `1.7.0`. Po zeleném CI byl vytvořen jeden READY preview `dpl_E7fCLqBf6t26i6RzagVCNyMxGwqt` a stabilní development alias byl přesunut na tento přesný SHA; produkční Vercel `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, `main` i produkční Supabase zůstaly beze změny. Produkční zápis čeká na výslovné potvrzení celého fyzického iPhone checklistu 1.7.83. Do prvního nového TEST balíku byl přidán účetní sync vzhledu mezi zařízeními s lokálním offline startem, serverovou revizí/CAS a izolací různých účtů. Jde o otevřený požadavek, proto se checkboxy ani procenta 13 oblastí nemění. Následná kanonická aktualizace plánu na commitu `f8cd8fca0633aba81f084fb6b75365391b860365` prošla [Actions #267](https://github.com/martinspadrna/RaK/actions/runs/35985430722) SUCCESS a jako dokumentační změna nevytvořila další deployment.
 

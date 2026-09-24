@@ -40,3 +40,18 @@ test('Phase B preserves historical Gomoku rows and closes only inactive client a
   const guide=read('SECURITY_DEPLOYMENT.md');
   assert(guide.includes('"sha256": "dd8ebf4e9f40c835f32373155e5e52bf20bf324f97bdaf675d3f6e756ca23431"'));
 });
+
+test('owner-authorized retired Gomoku cleanup is exact and fail-closed',()=>{
+  const sql=read('supabase/migrations/20260924110000_rak_delete_retired_gomoku_history.sql');
+  assert(sql.includes('IF v_rows_before <> 101 THEN'));
+  assert(sql.includes("has_table_privilege('anon', 'public.gomoku_wins', 'SELECT')"));
+  assert(sql.includes("has_table_privilege('authenticated', 'public.gomoku_wins', 'DELETE')"));
+  assert(sql.includes("has_function_privilege('anon', v_submit, 'EXECUTE')"));
+  assert(sql.includes('DELETE FROM public.gomoku_wins;'));
+  assert(sql.includes('GET DIAGNOSTICS v_rows_deleted = ROW_COUNT;'));
+  assert(sql.includes('(SELECT count(*) FROM public.game_accounts) <> v_accounts_before'));
+  assert(!/\b(?:drop\s+table|truncate)\b/i.test(sql));
+  assert(!/\b(?:delete|update|insert\s+into)\s+(?:table\s+)?public\.game_accounts\b/i.test(sql));
+  const guide=read('SECURITY_DEPLOYMENT.md');
+  assert(guide.includes('"sha256": "57e1f5e42d04112a8e4df575f5cc8c1865edf366c49539ec751f044e9139461d"'));
+});
