@@ -11,7 +11,7 @@ function buildAppMenuAboutHistoryHtml() {
       lines: [
         'Rychlejší PWA s odolným offline startem, bezpečnějším přihlášením a synchronizací pracovních dat.',
         'Rozpisy, absence, pracovníci, správci a report směny mají sjednocenější mobilní ovládání a přesnější výrobní logiku.',
-        'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se průběžně rozšiřují bez zásahu do ověřené produkce.',
+        'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se průběžně rozšiřují; odstraněné zbytky Her zůstávají pryč.',
         'Kalendář podle směny A/B/C/D používá přímo Google Calendar a po prvním načtení se znovu využívá pro rychlé otevření.'
       ]
     },
