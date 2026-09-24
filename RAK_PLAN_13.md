@@ -1,6 +1,8 @@
 # RaK – závazný plán 13 oblastí, kontrolní úkoly a průběžný postup
 
-**Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Tento dokument je změna plánu, **nikoli dokončená oprava aplikace nebo nový release**. `main` a produkční Supabase beze změn. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
+**Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Při založení šlo o změnu plánu, nikoli dokončenou opravu aplikace; aktuální produkční stav je vždy uveden v následujícím odstavci a v nejnovějším záznamu aktualizací. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
+
+**Aktuální online stav k 24. 9. 2026:** produkční předání 1.7.83 je dokončeno v první, zpětně kompatibilní fázi. `main` je `de443b771bb7e7dd5fefa498883fdd220a78f07d`; povinná validace [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587) je SUCCESS a ruční [produkční release #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867) je SUCCESS. Vercel deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` je READY na přesném main SHA a produkční alias na něj ukazuje; metadata jsou `1.7.83` / `1.7.0` / cache `v1.7.83` / build `v1.7.83-about-release1`. Produkční Supabase zůstává projekt `bkqamcbkiwumsvelahxr`; byla aplikována pouze schválená kompatibilní fáze A a `rak-admin-users` je ACTIVE ve verzi 8 s `verify_jwt=true`. Fáze B nebyla provedena a vyžaduje nový výslovný souhlas až po fyzické přejímce. Vývojové práce pokračují pouze na `development`; další funkční změny nejprve do TEST `cgshssdjgzzuprlwnabl`.
 
 ## 0. Jak budeme počítat a aktualizovat procenta
 
@@ -135,6 +137,9 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** vadný commit se nesmí automaticky nasadit před úspěšným CI; rollback je prakticky vyzkoušen, ne jen popsán.
 
+
+**Produkční důkaz 1.7.83 – 24. 9. 2026:** main SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d` prošel [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587) včetně dvou čistých kanonických buildů, `npm run check`, ZIP/CRC, Chromium offline/online, tří měřených startů a 18 živých TEST HTTP sond. Ruční [produkční release #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867) vytvořil až poté jediný kandidát `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, ověřil READY, přesné SHA, produkční metadata a konfiguraci bez TEST ID a následně přesunul pouze produkční alias. Artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d` (ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`) je uložen 90 dní. Nedestruktivní rollback cíl je READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`; fáze A záměrně zachovává jeho legacy čtení. Stabilní development alias zůstal na `dpl_5h3ivfYu3U8C9iHEYxLPyavacL5i` / SHA `7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`.
+
 ### P1.5 – Úplné zálohy a ověřitelná obnova · **43 % (3/7)**
 
 - [x] Záloha zdrojů a owner ZIP mají inventář, manifest a CRC; zahrnuta kontrola zdrojových Git blobů.
@@ -151,6 +156,9 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Připravenost oddělené obnovy 23. 9. 2026:** čtecí příkaz `supabase branches list --project-ref cgshssdjgzzuprlwnabl` vrátil `null`, tedy TEST nemá žádnou preview větev. Preview větev není náhradou plné obnovy: podle [Supabase Branching](https://supabase.com/docs/guides/deployment/branching) je ve výchozím stavu bez produkčních dat a bez Storage objektů a její provoz může být zpoplatněn. [Databázové zálohy](https://supabase.com/docs/guides/platform/backups) neobsahují samotné Storage objekty ani obnovitelné přihlašovací údaje vlastních rolí. [Obnova do nového projektu](https://supabase.com/docs/guides/platform/clone-project) je beta a vyžaduje samostatně obnovit Storage objekty, Edge Functions, Auth nastavení/API klíče, Realtime a další konfiguraci. Proto je předem připravená schvalovací brána: po výslovném souhlasu vytvořit nový oddělený recovery projekt, zachovat originální TEST beze změny, obnovit a porovnat DB/Auth/Storage/role; větev lze použít nanejvýš k doplňkovému testu schématu. Bez skutečného výsledku se checkboxy ani 43 % nemění.
 
 **Rozhodnutí o nákladech 23. 9. 2026:** vlastník povolil pouze bezplatnou variantu. Dva vlastní aktivní Free projekty už obsazují oba bezplatné sloty; další dva viditelné projekty patří jinému účtu a nejsou recovery cílem RaK. Žádný nový projekt, placená větev, PITR ani add-on proto nevznikl a žádný existující projekt nebude kvůli testu pozastaven. P1.5 zůstává 43 %.
+
+**Nový provozní nález k úplné záloze:** vlastník na produkční aplikaci obdržel chybu `canceling statement due to statement timeout`. Dokud nebude proti TEST bezpečně reprodukováno, zda timeout vzniká v owner RPC, sestavení archivu nebo přenosu, nesmí být záloha vydána za funkční. Oprava má upřednostnit stránkování/dávkování nebo bezpečné rozdělení exportu, zachovat owner-only kontrolu a datový allowlist a nesmí slepě vypnout časové limity. Následně je nutný test integrity ZIPu a soukromé stažení/otevření na iPhonu; procento P1.5 se zatím nemění.
+
 **Dokončení:** lze doložit, že jsme obnovili použitelnou oddělenou instanci, ne pouze vygenerovali ZIP nebo spustili transakci ROLLBACK.
 
 ## P2 · Mobil, offline a provozní kvalita
@@ -205,6 +213,64 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ---
 
+## Funkční backlog přijatý 24. 9. 2026 – seskupení do stávajících bodů
+
+Následující požadavky jsou otevřený realizační backlog uvnitř stávajících 13 oblastí. Nejsou novými čtrnáctými a dalšími body a samy o sobě nemění bezpečnostní akceptační zlomky ani procenta, dokud není tematický balík implementován, vydán a doložen příslušnými testy. Každý funkční release zvyšuje viditelnou verzi právě jednou; další práce probíhá nejprve na TEST a produkce se bez nového souhlasu nemění.
+
+### A. Lokální start a dostupnost aplikace · P2.1 / P2.3
+
+- Dashboard má hned po startu zobrazit „kam jdu dnes / příští směnu“ z ověřené lokální Rotace a po dokončení online synchronizace údaj bezpečně aktualizovat.
+- Navigace a běžné lokální funkce nesmějí být několik sekund zablokované jen proto, že se čeká na stav online; oprava nesmí znovu zavést falešný konflikt ani ztrátu fronty.
+- Přidat měření prvního použitelného vykreslení a cílený fyzický iPhone test studeného, teplého a offline startu.
+
+### B. Kalendáře podle směny · P2.2 / P0.3
+
+- V Administraci → Informace pro zaměstnance vytvořit samostatné nastavení kalendářů, nikoli položku schovanou mezi obecnými odkazy.
+- U každé směny umožnit přiřadit jeden nebo více Google kalendářů. Dashboard po klepnutí na kalendář otevře jen kalendář či výběr kalendářů určený pro směnu přihlášeného člověka.
+- Pracovníci vedení v rozpisu dědí směnu z rozpisu; účty mimo rozpis dostanou explicitně nastavitelnou směnu. Výchozí provozní pravidlo pro skupinu pracovníků se musí nastavit v administraci, ne natvrdo podle osobních identifikátorů.
+- Odkazy musí mít validační allowlist a nesmějí se objevit v soukromých logách, exportech nebo cache mimo určený veřejný konfigurační rozsah.
+
+### C. Rotace, rozpisy a absence · P2.2 / P2.3
+
+- Odstranit nápovědu „3× klepni na kartu člověka…“.
+- Z Administrace → Rozpisy odstranit UI „Místní neuložené návrhy rozpisů“, bez plošného mazání existujících dat nebo fronty.
+- Přehled jmen a skupin strojů ponechat ve výchozím stavu rozbalený a zúžit sloupce pro mobil; v tomto přehledu používat kompaktní popisky `tnkso1 → tnk`, `tpkw01 → w01`, `tpkw02 → w02`, aniž se změní uložené klíče strojů.
+- Kliknutí na obsazené jméno má nabídnout stabilní a zřetelnou akci odebrání. Kliknutí na prázdné místo má nabídnout jen osoby, které daný den nejsou ani v rozpisu, ani v absenci; nabídka nesmí odskakovat mimo cílovou buňku.
+- U absence má datum přednostně nabízet dny s chybějícím člověkem bez záznamu absence a jméno osoby chybějící ve zvoleném dni. Datum i jméno musí zůstat ručně editovatelné a serverová validace musí odmítnout nekonzistentní zápis.
+
+### D. Účty, pracovníci, správci a relace · P0.1 / P0.4 / P1.2 / P2.2
+
+- Po odhlášení a přihlášení jiného účtu nesmí Nastavení ani první vykreslení krátce ukazovat jméno předchozího účtu; cache a stav účtu musí být jmenně oddělené a vyčištěné bez mazání nesouvisejících dat.
+- V Administraci → Pracovníci odstranit blok „Stav pracovníků“, zúžit sloupec jméno/číslo přibližně o 30 % a u účtů mimo rozpis zobrazovat jen existující řádky plus vždy jeden prázdný řádek; po jeho vyplnění se automaticky připraví další jediný prázdný řádek.
+- Needitovatelný seznam účtů pod formulářem zkompaktnit: sloupec jména přibližně o 40 % a osobního čísla přibližně o 80 %, s ověřením čitelnosti na mobilu.
+- V Administraci → Správci použít stejný vzor „existující + právě jeden prázdný řádek“ a celou stránku vizuálně sjednotit.
+- Regresně ověřit, že přesun vlastního účtu mimo rozpis nijak nemění jeho Supabase Auth identitu, owner profil ani owner oprávnění. Konkrétní osobní číslo se do veřejných testů ani logů nezapisuje.
+
+### E. Přehlednost administrace a kalkulaček · P2.2
+
+- Pravidla generátoru, Nastavení strojů, Kantýnu/Jídelnu a Správce sjednotit do přehledných mobilních karet se stejnou hierarchií ovládacích prvků.
+- „Upozornění v kalendáři“ přesunout z Nastavení strojů ke kalendářům a odstranit funkci „pondělí – brus(y) – spálení“ včetně nepoužívané konfigurace a regresí, teprve po ověření, že ji nic dalšího nečte.
+- V Kalkulačkách → Korekce brusů přidat přepínač `+` / `−` stejně jako u frézek a soustruhů; stejný vzor použít v administraci korekcí pro frézky i brusy a otestovat znaménko, desetinné vstupy a klávesnici iPhonu.
+
+### F. Hlášení chyb se screenshotem · P2.4 / P0.3
+
+- „Pošli mi chybu“ může volitelně připojit jeden obrázek; bez obrázku musí fungovat stejně jako dnes.
+- Před implementací stanovit podporované typy, maximální rozměry/velikost, zmenšení na klientu, owner/admin přístup, retenční a mazací pravidla a oddělené soukromé Storage umístění. Obrázek, token ani osobní obsah se nesmí objevit v CI/logu nebo veřejném exportu.
+- Negativní testy musí odmítnout anonymní čtení, neplatný JWT, nepovolený typ a nadlimitní soubor; žádný produkční bucket ani migraci nevytvářet bez samostatného schválení.
+
+### G. Obsah a drobné mobilní UX · P2.2
+
+- Z „O aplikaci“ odstranit úvodní větu „RaK spojuje…“ a historii verzí, hlavně řadu 1.7, výrazně zkompaktnit bez tvrzení nedoložených výsledků.
+- Opravit skloňování odpočtu na „do Vánoc“.
+- Vynucený portrétní režim má při otočení telefonu zobrazit animovaného raka z přihlašovací obrazovky místo současné statické výzvy; respektovat omezení pohybu a nezvětšit kritický start.
+- V Reportu směny opravit pravý okraj rámečku pole data, který zasahuje do nastavení směny, a přidat vizuální regresi pro mobilní šířku.
+
+### H. Úplná záloha RaK · P1.5 / P0.3
+
+- Reprodukovat timeout úplné owner zálohy bezpečně proti TEST, změřit, která část dotazu/exportu limit překračuje, a opravit skutečnou příčinu dávkováním nebo optimalizací.
+- Zachovat owner-only autorizaci, současný privacy allowlist, kontrolu manifestu/CRC a fail-closed chování; timeout nesmí vést k neúplnému ZIPu vydávanému za úspěch.
+- Po opravě ověřit malý i plný dataset, stažení/otevření na iPhonu a nedestruktivní rollback; placený recovery projekt zůstává mimo rozsah bez nového souhlasu.
+
 ## Pořadí práce – žádné další vrstvení záplat
 
 1. **P1.4 dokončeno:** automatický důkazní řetězec releasu je povinnou fail-closed bránou každého dalšího funkčního releasu.
@@ -212,10 +278,18 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 3. **P1.5:** pokračovat přípravou obnovy a kontrolami záloh; placený nebo nový oddělený projekt až po předchozím souhlasu vlastníka.
 4. **P2.3 znovu aktivováno pokynem vlastníka 23. 9. 2026:** opravit persistence/arbitráž jako jednu klientskou vrstvu, nemazat frontu ani uživatelská data a nevydávat stav za opravený bez fyzického iPhone testu.
 5. **P2.1/P2.2/P2.4:** měřené Safari, vizuální a provozní regrese a bezpečná diagnostika po prioritním bezpečnostním balíku.
+6. **Nejdřív produkční přejímka fáze A:** fyzický iPhone online login běžného účtu, owner/admin login a zařízení, Rotace, Dashboard, „O aplikaci“ a restart PWA bez mazání dat. Fázi B neprovádět bez dalšího souhlasu.
+7. **První nový TEST balík:** lokální-first Dashboard/start, oddělení stavu účtů a owner invariant při přesunu účtu mimo rozpis; jde o nejvyšší provozní rizika z nového backlogu.
+8. **Druhý TEST balík:** směnové kalendáře a jejich bezpečné mapování na rozpis/účty mimo rozpis.
+9. **Třetí TEST balík:** Rozpisy/absence, Pracovníci/Správci a sjednocení administrace; změny dodat společně s reálným mobilním browser testem.
+10. **Čtvrtý TEST balík:** kalkulačky, „O aplikaci“, Vánoce, landscape overlay a Report směny.
+11. **Samostatné bezpečnostní balíky:** volitelný screenshot u chyb a timeout úplné zálohy; oba vyžadují privacy, oprávnění a rollback důkaz před releasem.
 
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **24. 9. 2026 – produkční předání 1.7.83 fáze A dokončeno a nový funkční backlog zařazen:** main SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d` prošel Actions #261 / run `35957793587` SUCCESS a ručním produkčním releasem #1 / run `35958452867` SUCCESS. Vercel `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` je READY na přesném SHA, produkční alias je přepnutý až po HTTP důkazu a strojový artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d` je uložen. Produkční Supabase `bkqamcbkiwumsvelahxr` obdržela jen kompatibilní fázi A; `rak-admin-users` je ACTIVE v8, anonymní i neplatný JWT vrací 401 a fáze B zůstává mimo souhlas. Nové požadavky vlastníka jsou seskupeny do P0.1/P0.3/P0.4/P1.2/P1.5/P2.1–P2.4; jde o otevřený backlog, proto se procenta 13 oblastí zatím nemění. Tato následná aktualizace plánu je dokumentační změna na `development` a nevytváří nový deployment ani verzi.
 
 - **24. 9. 2026 – připraven dvoufázový produkční release bundle 1.7.83, bez produkčního zápisu:** `SECURITY_DEPLOYMENT.md` nyní obsahuje přesné vstupní SHA, SHA-256 všech použitelných migrací, kompatibilní fázi A zachovávající staré čtení, fázi B až po fyzické přejímce a druhém potvrzení, produkční CI/Vercel pořadí, fail-closed preflight, rollback na `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` a zachycený zdroj aktivní produkční Edge Function verze 7. Dokumentační merge připojuje dosavadní `main` jako druhého rodiče a tím zachovává jeho pět commitů bez přepsání development stromu. `main`, produkční Supabase i produkční Vercel zůstaly beze změny; verze a procenta všech 13 bodů se nemění.
 
