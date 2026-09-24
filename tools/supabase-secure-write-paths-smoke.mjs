@@ -32,7 +32,8 @@ assert(bridge.includes("client.rpc('rak_admin_save_machine_settings_v2'"), 'secu
 assert(bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'"), 'secure rotation month RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_save_announcement_v2'"), 'secure announcement save RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_clear_announcement_v2'"), 'secure announcement clear RPC missing');
-assert(bridge.includes("client.rpc('rak_submit_bug_report_v2'"), 'public bug report submission RPC missing');
+assert(bridge.includes("client.rpc('rak_submit_bug_report_v3'"), 'public screenshot-aware bug report submission RPC missing');
+assert(!/\.from\(['"]bug_reports['"]\)/.test(bridge), 'bug report direct table write/read path returned');
 assert(bridge.includes("client.rpc('rak_admin_list_bug_reports_v2'"), 'secure bug report list RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_update_bug_report_v2'"), 'secure bug report update RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_delete_bug_report_v2'"), 'secure bug report delete RPC missing');
