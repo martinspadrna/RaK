@@ -58,7 +58,7 @@ test('rotation and absence choices use anchored filtered pickers and save valida
   assert(rotation.includes('!scheduled.has(name) && !absent.has(name)'));
   assert(rotation.includes('adminRotationChoicePicker'));
   assert(css.includes('.adminRotationChoicePicker{'));
-  assert(editor.includes("addIssue('error', 'absence-conflict'"));
+  assert(rotation.includes("addIssue('error', 'absence-conflict'"));
   assert(editor.includes('if (top + pickerHeight > vh - 8)'));
 });
 
