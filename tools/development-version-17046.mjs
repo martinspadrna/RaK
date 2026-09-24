@@ -17,7 +17,7 @@ function swap(source,before,after,label){
   return source;
 }
 function change(file,fn){const before=read(file),after=fn(before);if(before!==after)fs.writeFileSync(file,after,'utf8');return after;}
-const migration=read('supabase/migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql');
+const migration=read('supabase/history/non-production-migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql');
 const matrix=read('tools/telemetry-backup-matrix-17046.sql');
 assert(migration.includes('telemetry-keepalive-global-v1') && migration.includes('v_hits > 6000') && migration.includes('rak_rotation_backup_structure_v1'), '[17046] SQL protections absent');
 assert(migration.includes("'15 seconds'") && migration.includes("'build','online','reason','timezone','transport'"), '[17046] telemetry allowlist missing');

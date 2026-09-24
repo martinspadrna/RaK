@@ -3,7 +3,6 @@
 
 alter table public.rotation_state
   add column if not exists revision bigint not null default 0;
-
 create or replace function private.rak_json_number(p_value text)
 returns numeric
 language sql
@@ -17,7 +16,6 @@ as $$
     else null
   end
 $$;
-
 create or replace function private.rak_machine_setting_is_protected(p_row jsonb)
 returns boolean
 language sql
@@ -33,7 +31,6 @@ as $$
     or coalesce(p_row -> 'settings_json' ->> 'admin_settings_key', '') = 'ADMIN_ACCOUNTS_SETTINGS'
     or coalesce(p_row -> 'settings_json' ->> 'admin_settings_key', '') like 'ADMIN_FULL_SETTINGS_BACKUP_%'
 $$;
-
 create or replace function private.rak_upsert_machine_settings(p_rows jsonb)
 returns integer
 language plpgsql
@@ -109,7 +106,6 @@ begin
   return saved_count;
 end;
 $$;
-
 create or replace function public.rak_admin_save_machine_settings_v2(
   p_rows jsonb,
   p_reason text default 'admin-save'
@@ -134,7 +130,6 @@ begin
   return jsonb_build_object('ok', true, 'saved_count', saved_count, 'saved_at', now());
 end;
 $$;
-
 create or replace function public.rak_admin_save_rotation_v2(
   p_key text,
   p_payload jsonb,
@@ -234,7 +229,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.rak_admin_list_rotation_backups_v2(p_limit integer default 30)
 returns table (
   id uuid,
@@ -268,7 +262,6 @@ begin
   limit greatest(1, least(coalesce(p_limit, 30), 100));
 end;
 $$;
-
 create or replace function public.rak_admin_restore_rotation_backup_v2(
   p_backup_id uuid,
   p_expected_revision bigint,
@@ -299,7 +292,6 @@ begin
   return jsonb_build_object('ok', true, 'row', result, 'backup_id', backup.id);
 end;
 $$;
-
 create or replace function public.rak_owner_create_settings_backup_v2(
   p_snapshot jsonb,
   p_source text default 'manual',
@@ -361,7 +353,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.rak_owner_list_settings_backups_v2(p_limit integer default 50)
 returns table (
   id uuid,
@@ -393,7 +384,6 @@ begin
   limit greatest(1, least(coalesce(p_limit, 50), 100));
 end;
 $$;
-
 create or replace function public.rak_owner_get_settings_backup_v2(p_backup_id uuid)
 returns jsonb
 language plpgsql
@@ -421,7 +411,6 @@ begin
   );
 end;
 $$;
-
 revoke all on function private.rak_json_number(text) from public, anon, authenticated;
 revoke all on function private.rak_machine_setting_is_protected(jsonb) from public, anon, authenticated;
 revoke all on function private.rak_upsert_machine_settings(jsonb) from public, anon, authenticated;
@@ -432,7 +421,6 @@ revoke all on function public.rak_admin_restore_rotation_backup_v2(uuid, bigint,
 revoke all on function public.rak_owner_create_settings_backup_v2(jsonb, text, text, uuid, text) from public;
 revoke all on function public.rak_owner_list_settings_backups_v2(integer) from public;
 revoke all on function public.rak_owner_get_settings_backup_v2(uuid) from public;
-
 grant execute on function public.rak_admin_save_machine_settings_v2(jsonb, text) to authenticated;
 grant execute on function public.rak_admin_save_rotation_v2(text, jsonb, jsonb, bigint) to authenticated;
 grant execute on function public.rak_admin_list_rotation_backups_v2(integer) to authenticated;
@@ -440,7 +428,6 @@ grant execute on function public.rak_admin_restore_rotation_backup_v2(uuid, bigi
 grant execute on function public.rak_owner_create_settings_backup_v2(jsonb, text, text, uuid, text) to authenticated;
 grant execute on function public.rak_owner_list_settings_backups_v2(integer) to authenticated;
 grant execute on function public.rak_owner_get_settings_backup_v2(uuid) to authenticated;
-
 -- Preserve existing full settings backups without leaving them as the long-term
 -- storage mechanism. This runs only when the owner profile is already present.
 insert into public.rak_admin_settings_backups (

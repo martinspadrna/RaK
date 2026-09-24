@@ -11,7 +11,7 @@ function swap(source,before,after,label){
  if(source.includes(before)){assert.equal(source.split(before).length,2,'[17036] duplicate anchor '+label);return source.replace(before,after);}
  assert(source.includes(after),'[17036] missing anchor '+label);return source;
 }
-const migration=read('supabase/migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql');
+const migration=read('supabase/history/non-production-migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql');
 const matrix=read('tools/security-rotation-public-field-matrix.sql');
 const policy=read('EMPLOYEE_AUTH_CUTOVER.md');
 const privacy=read('PUBLIC_ROTATION_PRIVACY.md');

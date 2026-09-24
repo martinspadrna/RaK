@@ -49,7 +49,6 @@ begin
   return to_jsonb(saved);
 end;
 $$;
-
 create or replace function public.rak_admin_clear_announcement_v2()
 returns jsonb
 language plpgsql
@@ -67,7 +66,6 @@ begin
   return jsonb_build_object('ok', true, 'count', changed);
 end;
 $$;
-
 create or replace function public.rak_admin_save_rotation_month_entries_v2(
   p_month_start date,
   p_label text,
@@ -118,7 +116,6 @@ begin
   return jsonb_build_object('ok', true, 'inserted', inserted, 'month_start', p_month_start);
 end;
 $$;
-
 create or replace function public.rak_admin_cleanup_expired_game_invites_v2()
 returns jsonb
 language plpgsql
@@ -133,7 +130,6 @@ begin
   return jsonb_build_object('ok', true, 'at', now());
 end;
 $$;
-
 create or replace function public.rak_submit_gomoku_win_v2(
   p_player_name text,
   p_difficulty text,
@@ -190,7 +186,6 @@ begin
   return to_jsonb(saved);
 end;
 $$;
-
 create or replace function private.rak_prune_rotation_backups_v2()
 returns trigger
 language plpgsql
@@ -207,7 +202,6 @@ begin
   return new;
 end;
 $$;
-
 create or replace function private.rak_prune_settings_backups_v2()
 returns trigger
 language plpgsql
@@ -224,17 +218,14 @@ begin
   return new;
 end;
 $$;
-
 drop trigger if exists rak_prune_rotation_backups_v2 on public.rak_rotation_backups_v2;
 create trigger rak_prune_rotation_backups_v2
 after insert on public.rak_rotation_backups_v2
 for each statement execute function private.rak_prune_rotation_backups_v2();
-
 drop trigger if exists rak_prune_settings_backups_v2 on public.rak_admin_settings_backups;
 create trigger rak_prune_settings_backups_v2
 after insert on public.rak_admin_settings_backups
 for each statement execute function private.rak_prune_settings_backups_v2();
-
 revoke all on function public.rak_admin_save_announcement_v2(text, text, boolean, timestamptz, timestamptz, boolean, text) from public;
 revoke all on function public.rak_admin_clear_announcement_v2() from public;
 revoke all on function public.rak_admin_save_rotation_month_entries_v2(date, text, jsonb) from public;
@@ -242,7 +233,6 @@ revoke all on function public.rak_admin_cleanup_expired_game_invites_v2() from p
 revoke all on function public.rak_submit_gomoku_win_v2(text, text, integer, text, timestamptz, integer, text, integer, integer, text) from public;
 revoke all on function private.rak_prune_rotation_backups_v2() from public, anon, authenticated;
 revoke all on function private.rak_prune_settings_backups_v2() from public, anon, authenticated;
-
 grant execute on function public.rak_admin_save_announcement_v2(text, text, boolean, timestamptz, timestamptz, boolean, text) to authenticated;
 grant execute on function public.rak_admin_clear_announcement_v2() to authenticated;
 grant execute on function public.rak_admin_save_rotation_month_entries_v2(date, text, jsonb) to authenticated;

@@ -23,7 +23,7 @@ function swap(source, oldText, newText, label) {
   assert(source.includes(newText), '[17042] missing anchor ' + label);
   return source;
 }
-const migration = read('supabase/migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql');
+const migration = read('supabase/history/non-production-migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql');
 const regression = read('tools/private-import-backup-17042.sql');
 const design = read('PRIVATE_IMPORT_BACKUP_17042.md');
 assert(migration.includes('rak_require_admin(true)') && migration.includes('rak_rotation_import_metadata_v1')

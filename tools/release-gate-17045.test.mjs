@@ -7,7 +7,7 @@ const version = '1.7.45';
 const build = 'v1.7.45-logingate1';
 
 test('bounded v2 login combines the admin prompt, old PWA oracle fails closed', () => {
-  const migration = read('supabase/migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql');
+  const migration = read('supabase/history/non-production-migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql');
   assert(migration.includes('CREATE OR REPLACE FUNCTION public.rak_lookup_account_for_login_v2(p_last4 text)'));
   assert(migration.includes('public.rak_lookup_account_for_login_v1(p_last4)'));
   assert(migration.includes("'requiresAdminAuth'"));

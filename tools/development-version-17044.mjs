@@ -21,7 +21,7 @@ function change(file, transform) {
   if (next !== original) fs.writeFileSync(file, next, 'utf8');
   return next;
 }
-const migration = read('supabase/migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql');
+const migration = read('supabase/history/non-production-migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql');
 const regression = read('tools/rotation-public-guard-17044.sql');
 assert(migration.includes('rak_rotation_has_restricted_public_value') && migration.includes('osobn[íi]')
   && migration.includes('Existing rotation violates 1.7.44 guard'), '[17044] protective migration incomplete');

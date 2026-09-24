@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
-const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const {displayVersion:VERSION}=RELEASE_METADATA;
 
 test('1.7.76 and verified successors keep one release identity with technical 1.7.0 and TEST Supabase',()=>{

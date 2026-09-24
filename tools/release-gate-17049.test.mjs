@@ -22,7 +22,7 @@ test('exact preview version, TEST Supabase, PWA cache and unchanged technical ve
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
 });
 test('public report metadata is allowlisted in DB trigger, not only filtered in client',()=>{
- const sql=read('supabase/migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql');
+ const sql=read('supabase/history/non-production-migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql');
  for(const marker of ['private.rak_bug_report_device_info_allowlist_v1','private.rak_bug_report_device_info_guard_v1',
   'NEW.device_info := private.rak_bug_report_device_info_allowlist_v1(NEW.device_info)',
   'BEFORE INSERT OR UPDATE ON public.bug_reports','REVOKE ALL ON FUNCTION',

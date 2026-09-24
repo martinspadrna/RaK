@@ -27,8 +27,8 @@ test('RaK 1.7.48 all release markers, test DB, OS-only employees and technical v
 });
 
 test('admin device migration retains each Auth session and revokes all physical-device sessions',()=>{
- const initial=read('supabase/migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql');
- const fix=read('supabase/migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql');
+ const initial=read('supabase/history/non-production-migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql');
+ const fix=read('supabase/history/non-production-migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql');
  for(const marker of ['DROP CONSTRAINT rak_admin_devices_user_id_device_id_key',
   'rak_admin_devices_user_session_device_key UNIQUE (user_id, session_id, device_id)',
   "INTERVAL '10 minutes'",'session.created_at', 'device.revoked_at IS NOT NULL',

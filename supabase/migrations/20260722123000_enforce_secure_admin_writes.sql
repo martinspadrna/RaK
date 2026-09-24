@@ -2,7 +2,6 @@
 -- deployed and verified. Ordinary read-only application data stays public.
 
 grant execute on function private.rak_is_admin() to authenticated;
-
 do $$
 declare
   table_name text;
@@ -38,7 +37,6 @@ begin
   end loop;
 end;
 $$;
-
 grant select on table public.announcements to anon, authenticated;
 grant select on table public.machine_settings to anon, authenticated;
 grant select on table public.rotation_state to anon, authenticated;
@@ -49,10 +47,8 @@ grant select on table public.game_invites to anon, authenticated;
 grant select on table public.game_sessions to anon, authenticated;
 grant select on table public.game_stats to anon, authenticated;
 grant select on table public.gomoku_wins to anon, authenticated;
-
 create policy rak_announcements_public_read_v2 on public.announcements
 for select to anon, authenticated using (true);
-
 create policy rak_machine_settings_safe_read_v2 on public.machine_settings
 for select to anon, authenticated
 using (
@@ -63,10 +59,8 @@ using (
   and coalesce(settings_json ->> 'admin_settings_key', '') <> 'ADMIN_ACCOUNTS_SETTINGS'
   and coalesce(settings_json ->> 'admin_settings_key', '') not like 'ADMIN_FULL_SETTINGS_BACKUP_%'
 );
-
 create policy rak_machine_settings_admin_read_v2 on public.machine_settings
 for select to authenticated using (private.rak_is_admin());
-
 create policy rak_rotation_state_public_read_v2 on public.rotation_state
 for select to anon, authenticated using (true);
 create policy rak_rotation_months_public_read_v2 on public.rotation_months
@@ -83,7 +77,6 @@ create policy rak_game_stats_public_read_v2 on public.game_stats
 for select to anon, authenticated using (true);
 create policy rak_gomoku_wins_public_read_v2 on public.gomoku_wins
 for select to anon, authenticated using (true);
-
 do $$
 begin
   if to_regclass('public.game_ui_settings') is not null then
@@ -92,7 +85,6 @@ begin
   end if;
 end;
 $$;
-
 -- Credential hashes and old full backups have already been migrated into their
 -- dedicated protected tables. Do not leave a second public copy behind.
 delete from public.machine_settings
@@ -102,7 +94,6 @@ where category in ('admin_accounts_settings', 'admin_full_settings_backup')
    or settings_json ->> 'stored_category' in ('admin_accounts_settings', 'admin_full_settings_backup')
    or settings_json ->> 'admin_settings_key' = 'ADMIN_ACCOUNTS_SETTINGS'
    or settings_json ->> 'admin_settings_key' like 'ADMIN_FULL_SETTINGS_BACKUP_%';
-
 -- Retire PIN-based and otherwise broad legacy admin RPCs. The v2 functions are
 -- deliberately not included in this list.
 do $$
@@ -134,7 +125,6 @@ begin
   end loop;
 end;
 $$;
-
 create or replace function public.rak_admin_auth_capabilities()
 returns jsonb
 language sql
@@ -149,6 +139,5 @@ as $$
     'provider', 'supabase-auth'
   )
 $$;
-
 revoke all on function public.rak_admin_auth_capabilities() from public;
 grant execute on function public.rak_admin_auth_capabilities() to anon, authenticated;

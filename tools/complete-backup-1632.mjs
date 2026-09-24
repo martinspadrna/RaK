@@ -67,7 +67,7 @@ const sha = gitSha();
 const repoFiles = walk(root).sort();
 assert(repoFiles.length > 80, 'repository inventory unexpectedly small: ' + repoFiles.length);
 assert(repoFiles.includes('rak-complete-backup.js'), 'complete backup module missing from repository inventory');
-assert(repoFiles.includes('supabase/migrations/20260915133113_rak_owner_complete_backup_v1.sql'), 'complete backup migration missing from repository inventory');
+assert(repoFiles.includes('supabase/history/non-production-migrations/20260915133113_rak_owner_complete_backup_v1.sql'), 'complete backup migration missing from repository inventory');
 
 let moduleJs = read('rak-complete-backup.js');
 const fileLines = repoFiles.map((file) => '    ' + JSON.stringify(file)).join(',\n');

@@ -15,7 +15,7 @@ function swap(source,before,after,label){
  assert(source.includes(after),'[17034] missing anchor '+label);
  return source;
 }
-const migration=read('supabase/migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql');
+const migration=read('supabase/history/non-production-migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql');
 const matrix=read('tools/security-worker-email-recovery-matrix.sql');
 const runbook=read('EMPLOYEE_AUTH_CUTOVER.md');
 assert(migration.includes('private.rak_worker_email_ready')&&migration.includes('worker.email_confirmed_at,worker.is_anonymous')&&migration.includes('u.email,u.email_confirmed_at,u.is_anonymous')&&migration.includes("<> 'worker.rak.local'")&&migration.includes('requires_recovery_delivery_smoke')&&migration.includes('legacy rotation regression'),'[17034] verified-email migration incomplete');

@@ -25,7 +25,7 @@ test('final version, PWA, test Supabase and OS-only employee login stay aligned'
 });
 
 test('two RESTRICTIVE RLS policies protect mixed-case private machine settings',()=>{
- const sql=read('supabase/migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql');
+ const sql=read('supabase/history/non-production-migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql');
  for(const marker of ['CREATE POLICY rak_machine_settings_anon_casefold_private_v10',
   'CREATE POLICY rak_machine_settings_authenticated_casefold_private_v10',
   'AS RESTRICTIVE FOR SELECT TO anon','AS RESTRICTIVE FOR SELECT TO authenticated',

@@ -21,7 +21,7 @@ test('exact release, test Supabase, and technical version',()=>{
  assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
 test('bounded public telemetry and structural backup constraint recorded',()=>{
- const sql=read('supabase/migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql');
+ const sql=read('supabase/history/non-production-migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql');
  for(const marker of ['telemetry-keepalive-global-v1','6000','15 seconds','jsonb_object_agg','rak_rotation_backup_structure_v1','revision>=0',"'build','online','reason','timezone','transport'",'REVOKE ALL ON FUNCTION public.rak_app_keepalive','GRANT EXECUTE ON FUNCTION public.rak_app_keepalive'])
   assert(sql.includes(marker),`missing ${marker}`);
 });

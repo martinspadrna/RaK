@@ -8,7 +8,7 @@ const version = config.match(/^window\.RAK_RELEASE_VERSION = "([^"]+)";/m)?.[1] 
 const build = config.match(/^window\.RAK_PWA_BUILD = "([^"]+)";/m)?.[1] || 'v1.7.44-publicguard1';
 
 test('public rotation guard is bounded and protects contextual identifiers', () => {
-  const sql = read('supabase/migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql');
+  const sql = read('supabase/history/non-production-migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql');
   assert(sql.includes('CREATE OR REPLACE FUNCTION private.rak_rotation_has_restricted_public_value'));
   assert(sql.includes("~* '(^|[^[:digit:]])([+]420|00420)"), 'phone country prefix must have digit boundary');
   assert(sql.includes('(telefon|tel[.]?|mobil|sms|kontakt)'), 'national phone guard missing');

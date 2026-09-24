@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
-const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 const normalize=value=>String(value).replace(/\u00a0/g,' ');
 const fixture={

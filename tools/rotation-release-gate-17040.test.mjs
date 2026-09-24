@@ -12,7 +12,7 @@ function fixture() {
     'supabase-bridge.js':".select('id,key,payload,meta,revision,updated_at').eq('key', 'main').maybeSingle()",
     'package.json':JSON.stringify({version:'1.7.0'}),
     'tools/shift-report-mo-hotfix-170-smoke.mjs':'RAK_17040_TWO_PASS_GUARD',
-    'supabase/migrations/20260919111542_rak_rotation_archive_import_provenance.sql':'private.rak_rotation_import_metadata_v1',
+    'supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql':'private.rak_rotation_import_metadata_v1',
     'tools/security-rotation-minimization-17040.sql':'ROLLBACK;',
     'PUBLIC_ROTATION_MINIMIZATION_17040.md':'offline',
     'RAK_PLAN_13.md':'OS číslo 0/13 importMeta\n'+tasks.map(id=>`| ${id} | item |`).join('\n')

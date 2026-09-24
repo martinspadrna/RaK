@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: '22'
       - name: Preflight isolated build policy and measured thirteen-point roadmap
-        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-release-workflow.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
+        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-release-workflow.test.mjs tools/production-migration-history.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice

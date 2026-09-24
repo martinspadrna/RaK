@@ -19,7 +19,7 @@ const policy=read('EMPLOYEE_AUTH_CUTOVER.md');
 const matrix=read('tools/security-employee-os-only-matrix.sql');
 assert(policy.includes('OS_ONLY_POLICY_20260919')&&policy.includes('pouze OS číslo')&&policy.includes('Nevytvářet jim Supabase Auth účty')&&policy.includes('nikoli autentizační faktor')&&policy.includes('zrušeného zadání')&&policy.includes('9/9')&&policy.includes('main'),'[17035] employee OS-only decision not documented');
 assert(matrix.includes('rak_lookup_account_for_login_v1(text)')&&matrix.includes("has_table_privilege('anon','public.rotation_state','SELECT')")&&matrix.includes('Unexpected employee Auth links')&&matrix.includes('Worker roster exposed anonymously')&&matrix.includes('ROLLBACK;'),'[17035] OS-only role and legacy regressions missing');
-for(const path of ['supabase/migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql','supabase/migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql'])assert(fs.existsSync(path),'[17035] applied migration history unexpectedly removed: '+path);
+for(const path of ['supabase/history/non-production-migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql','supabase/history/non-production-migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql'])assert(fs.existsSync(path),'[17035] applied migration history unexpectedly removed: '+path);
 change('tools/shift-report-mo-hotfix-170-smoke.mjs',source=>{
  if(source.includes('// RAK_17035_TWO_PASS_GUARD'))return source;
  source=swap(source,

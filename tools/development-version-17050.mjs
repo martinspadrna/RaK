@@ -19,7 +19,7 @@ function edit(file,pairs){
  for(const [before,after,label] of pairs)source=replaceOnce(source,before,after,label||file);
  fs.writeFileSync(file,source,'utf8');
 }
-const migration=read('supabase/migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql');
+const migration=read('supabase/history/non-production-migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql');
 const matrix=read('tools/machine-private-casefold-17050.sql');
 const http=read('tools/http-anon-audit-17050.mjs');
 for(const marker of ['AS RESTRICTIVE FOR SELECT TO anon','AS RESTRICTIVE FOR SELECT TO authenticated',

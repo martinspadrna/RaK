@@ -29,7 +29,7 @@ function change(path, transform) {
   if (old !== next) fs.writeFileSync(path, next, 'utf8');
   return next;
 }
-const migrationPath = 'supabase/migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql';
+const migrationPath = 'supabase/history/non-production-migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql';
 const migration = read(migrationPath);
 const matrix = read('tools/privacy-backup-matrix-17047.sql');
 for (const marker of ['private.rak_rotation_has_restricted_public_key', "'accountnumber'", "'osnumber'",

@@ -15,8 +15,8 @@ function swap(source,before,after,label){
  assert(source.includes(after),'[17033] missing anchor '+label);
  return source;
 }
-const employee=read('supabase/migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql');
-const notices=read('supabase/migrations/20260919060210_rak_announcements_only_live_public_read.sql');
+const employee=read('supabase/history/non-production-migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql');
+const notices=read('supabase/history/non-production-migrations/20260919060210_rak_announcements_only_live_public_read.sql');
 const employeesMatrix=read('tools/security-employee-rotation-matrix.sql');
 const noticeMatrix=read('tools/security-announcement-live-matrix.sql');
 const publicMatrix=read('tools/security-public-data-matrix.sql');

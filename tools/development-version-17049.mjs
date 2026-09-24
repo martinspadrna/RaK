@@ -35,7 +35,7 @@ function swapVersion(path,pairs){
  for(const [oldValue,newValue] of pairs)src=once(src,oldValue,newValue,path);
  if(src!==read(path))fs.writeFileSync(path,src,'utf8');
 }
-const migration=read('supabase/migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql');
+const migration=read('supabase/history/non-production-migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql');
 const matrix=read('tools/bug-report-rls-matrix-17049.sql');
 for(const marker of ['rak_bug_report_device_info_allowlist_v1','rak_bug_report_device_info_guard_v1',
  'REVOKE ALL','NEW.device_info','appearanceId','appearanceLabel','createdAtLocal','sourceId','viewport','online'])

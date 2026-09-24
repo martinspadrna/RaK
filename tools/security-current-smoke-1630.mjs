@@ -10,7 +10,7 @@ const vercel = JSON.parse(read('vercel.json'));
 const bridge = read('supabase-bridge.js');
 const adminUnlock = read('app-admin-unlock.js');
 const config = read('supabase-config.js');
-const migration = read('supabase/migrations/20260915144000_audit_keepalive_rpc_only.sql');
+const migration = read('supabase/history/non-production-migrations/20260915144000_audit_keepalive_rpc_only.sql');
 const exportJs = read('export.js');
 assert(!exportJs.includes('document.documentElement.cloneNode'), 'ZIP export must never clone live DOM');
 assert(!exportJs.includes('používám DOM kopii'), 'ZIP export DOM fallback returned');
@@ -66,8 +66,9 @@ assert(adminApi.includes('String(profile.user_id || \'\') !== String(user.id)'),
 assert(adminApi.includes('options.ownerOnly && profile.role !== \'owner\''),
   'Owner-only API must retain the owner gate');
 const policyFiles = fs.readdirSync('supabase/migrations')
-  .filter((name) => name.endsWith('_rak_machine_settings_protect_admin_json_types.sql'));
-assert.equal(policyFiles.length, 1, 'Admin JSON guard must have exactly one migration');
+  .filter((name) => name.endsWith('.sql'))
+  .filter((name) => read('supabase/migrations/' + name).includes('rak_machine_settings_anon_admin_json_type_v6'));
+assert.equal(policyFiles.length, 1, 'Admin JSON guard must exist exactly once in production migrations');
 const payloadPolicy = read('supabase/migrations/' + policyFiles[0]);
 assert(payloadPolicy.includes('rak_machine_settings_anon_admin_json_type_v6') &&
   payloadPolicy.includes('rak_machine_settings_authenticated_admin_json_type_v6'),
@@ -84,13 +85,13 @@ assert(publicSurface.includes('rak_admin_account_requires_auth') &&
 
 // P0: Keep the already-applied test privacy cutovers in the source package and
 // fail Vercel builds if their migration/test files vanish or get weakened.
-const workerRoster = read('supabase/migrations/20260918214441_rak_hide_worker_roster_from_public_reads.sql');
+const workerRoster = read('supabase/history/non-production-migrations/20260918214441_rak_hide_worker_roster_from_public_reads.sql');
 assert(workerRoster.includes('rak_machine_settings_anon_no_worker_roster_v7') &&
   workerRoster.includes('rak_machine_settings_authenticated_worker_roster_admin_only_v7') &&
   workerRoster.includes("settings_json->>'type'") &&
   workerRoster.includes("machine_key,'') <> 'WORKER_ROSTER_SETTINGS'"),
   'Worker roster / login-number read protection missing');
-const announcementsPrivacy = read('supabase/migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql');
+const announcementsPrivacy = read('supabase/history/non-production-migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql');
 assert(announcementsPrivacy.includes('DROP POLICY rak_announcements_public_read_v2') &&
   announcementsPrivacy.includes('rak_announcements_active_public_read_v3') &&
   announcementsPrivacy.includes('rak_announcements_active_or_admin_read_v3') &&

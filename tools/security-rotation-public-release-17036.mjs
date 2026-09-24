@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const read = p => fs.readFileSync(p,'utf8');
-const migration=read('supabase/migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql');
+const migration=read('supabase/history/non-production-migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql');
 const sql=read('tools/security-rotation-public-field-matrix.sql');
 const policy=read('EMPLOYEE_AUTH_CUTOVER.md');
 assert(migration.includes('rak_rotation_no_public_secret_fields_v1'));

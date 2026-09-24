@@ -15,7 +15,7 @@ function swap(source,before,after,label){
  assert(source.includes(after),'[17038] missing anchor '+label);
  return source;
 }
-const migration=read('supabase/migrations/20260919085101_rak_public_rotation_remove_admin_actor_metadata.sql');
+const migration=read('supabase/history/non-production-migrations/20260919085101_rak_public_rotation_remove_admin_actor_metadata.sql');
 const matrix=read('tools/security-rotation-public-actor-matrix.sql');
 const policy=read('EMPLOYEE_AUTH_CUTOVER.md');
 const doc=read('PUBLIC_ROTATION_ACTOR_PRIVACY.md');

@@ -15,7 +15,7 @@ function swap(source,before,after,label){
  assert(source.includes(after),'[17032] missing anchor '+label);
  return source;
 }
-const migration=read('supabase/migrations/20260919054241_rak_recursive_worker_privacy_and_profile_based_admin_lookup.sql');
+const migration=read('supabase/history/non-production-migrations/20260919054241_rak_recursive_worker_privacy_and_profile_based_admin_lookup.sql');
 const matrix=read('tools/security-recursive-worker-matrix.sql');
 assert(migration.includes('rak_machine_settings_anon_no_recursive_identity_v9')&&migration.includes('rak_machine_settings_authenticated_recursive_identity_admin_only_v9')&&migration.includes("'$.**.loginNumber'")&&migration.includes("'$.**.workers'")&&migration.includes("'$.**.appAccounts'"),'[17032] recursive privacy migration missing');
 assert(migration.includes('CREATE OR REPLACE FUNCTION public.rak_admin_account_requires_auth')&&migration.includes('profile.enabled')&&!migration.includes("= '9811'"),'[17032] disabled admin profile must not be bypassed');

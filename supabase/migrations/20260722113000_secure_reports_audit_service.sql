@@ -30,7 +30,6 @@ begin
   return jsonb_build_object('ok', true, 'created_at', now());
 end;
 $$;
-
 create or replace function public.rak_admin_list_audit_v2(p_limit integer default 100)
 returns table (
   id bigint,
@@ -55,7 +54,6 @@ begin
   limit greatest(1, least(coalesce(p_limit, 100), 300));
 end;
 $$;
-
 create or replace function public.rak_submit_bug_report_v2(
   p_account_number text,
   p_player_name text,
@@ -118,7 +116,6 @@ begin
   return jsonb_build_object('ok', true, 'id', saved_id);
 end;
 $$;
-
 create or replace function public.rak_admin_list_bug_reports_v2(
   p_status text default 'all',
   p_limit integer default 40
@@ -140,7 +137,6 @@ begin
   limit greatest(1, least(coalesce(p_limit, 40), 80));
 end;
 $$;
-
 create or replace function public.rak_admin_update_bug_report_v2(
   p_id uuid,
   p_status text,
@@ -178,7 +174,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.rak_admin_delete_bug_report_v2(p_id uuid)
 returns jsonb
 language plpgsql
@@ -201,7 +196,6 @@ begin
   return jsonb_build_object('ok', true, 'id', saved.id, 'soft_deleted', true);
 end;
 $$;
-
 create or replace function public.rak_admin_service_snapshot_v2()
 returns jsonb
 language plpgsql
@@ -229,7 +223,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.rak_admin_usage_presence_v2(p_limit integer default 80)
 returns jsonb
 language plpgsql
@@ -247,7 +240,6 @@ begin
   return rows;
 end;
 $$;
-
 revoke all on function public.rak_admin_write_audit_v2(text, text, text, text) from public;
 revoke all on function public.rak_admin_list_audit_v2(integer) from public;
 revoke all on function public.rak_submit_bug_report_v2(text, text, text, text, text, text, text, jsonb) from public;
@@ -256,7 +248,6 @@ revoke all on function public.rak_admin_update_bug_report_v2(uuid, text, text) f
 revoke all on function public.rak_admin_delete_bug_report_v2(uuid) from public;
 revoke all on function public.rak_admin_service_snapshot_v2() from public;
 revoke all on function public.rak_admin_usage_presence_v2(integer) from public;
-
 grant execute on function public.rak_submit_bug_report_v2(text, text, text, text, text, text, text, jsonb) to anon, authenticated;
 grant execute on function public.rak_admin_write_audit_v2(text, text, text, text) to authenticated;
 grant execute on function public.rak_admin_list_audit_v2(integer) to authenticated;
@@ -265,7 +256,6 @@ grant execute on function public.rak_admin_update_bug_report_v2(uuid, text, text
 grant execute on function public.rak_admin_delete_bug_report_v2(uuid) to authenticated;
 grant execute on function public.rak_admin_service_snapshot_v2() to authenticated;
 grant execute on function public.rak_admin_usage_presence_v2(integer) to authenticated;
-
 alter table public.bug_reports enable row level security;
 revoke select, insert, update, delete on table public.bug_reports from anon, authenticated;
 revoke execute on function public.rak_usage_presence_admin(integer) from anon;

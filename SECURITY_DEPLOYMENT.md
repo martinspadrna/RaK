@@ -253,143 +253,143 @@ ALTER TABLE public.rak_admin_profiles
   },
   "phase_a": [
     {
-      "path": "supabase/migrations/20260918162343_rak_security_remove_bootstrap_and_bound_keepalive.sql",
+      "path": "supabase/history/non-production-migrations/20260918162343_rak_security_remove_bootstrap_and_bound_keepalive.sql",
       "sha256": "7dfc274cf588df2d1844c99a30fc23dbde6942bac9bbcaa541e238693915fbac"
     },
     {
-      "path": "supabase/migrations/20260918163543_rak_limit_anonymous_reports_and_keepalive_devices.sql",
+      "path": "supabase/history/non-production-migrations/20260918163543_rak_limit_anonymous_reports_and_keepalive_devices.sql",
       "sha256": "b4648e8b5166d07a49094a7bdb03120e6f5fae6671742c3bdd0c65f2e33b8732"
     },
     {
-      "path": "supabase/migrations/20260918164116_rak_admin_context_require_verified_session.sql",
+      "path": "supabase/history/non-production-migrations/20260918164116_rak_admin_context_require_verified_session.sql",
       "sha256": "80f734b5c2649e31e1e981515d16bd0e2bf4035ce1eb839f02e5f0e3108f7cc1"
     },
     {
-      "path": "supabase/migrations/20260918171858_rak_login_and_admin_directory_rpcs_stage.sql",
+      "path": "supabase/history/non-production-migrations/20260918171858_rak_login_and_admin_directory_rpcs_stage.sql",
       "sha256": "65290cbe1d60f6fac986abf042bdf4f7a1c216228ca9c5a2772540a6fdd2617b"
     },
     {
-      "path": "supabase/migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql",
+      "path": "supabase/history/non-production-migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql",
       "take_before": "-- Eliminate unrestricted REST/GraphQL bulk reads; admin RPC remains role+session checked.",
       "sha256": "72b5bd408e421a79aeb79a29033eecef2cfb483cf9897d993760cdb62cc5f7b5",
       "bytes": 4328
     },
     {
-      "path": "supabase/migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql",
+      "path": "supabase/history/non-production-migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql",
       "sha256": "3688af74fbd7947fac7385ad0ede0893214bfa2d4b8572c579d92d0056e8253b"
     },
     {
-      "path": "supabase/migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql",
+      "path": "supabase/history/non-production-migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql",
       "sha256": "c78fcbf8573442fdbcefa4551418e3d821b95a90d7172379ddd23657e9d75f51"
     },
     {
-      "path": "supabase/migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql",
+      "path": "supabase/history/non-production-migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql",
       "sha256": "cab84188a67517f6d0a691a94f3a734a9cec269d13c17c3d48886275a76694bc"
     },
     {
-      "path": "supabase/migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql",
+      "path": "supabase/history/non-production-migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql",
       "sha256": "03977a3ddce431454f2c5775a504f0925c53e8e0244f9f90db20d8098c4c8c4d"
     }
   ],
   "phase_b": [
     {
-      "path": "supabase/migrations/20260918174200_close_unused_rotation_month_entry_reads.sql",
+      "path": "supabase/history/non-production-migrations/20260918174200_close_unused_rotation_month_entry_reads.sql",
       "sha256": "c302fcf56217ba4460cb29371ea910ad68fb2af7b60c8a52226b91fefa2b673d"
     },
     {
-      "path": "supabase/migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql",
+      "path": "supabase/history/non-production-migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql",
       "sha256": "2bc9bde83ae072d007c9a4d8d6b82cf4cd71d5d699828226113de4c86ea466aa"
     },
     {
-      "path": "supabase/migrations/20260918193324_rak_close_retired_gomoku_public_read.sql",
+      "path": "supabase/history/non-production-migrations/20260918193324_rak_close_retired_gomoku_public_read.sql",
       "sha256": "e5a08c40b66681bb548c64738cf320a3799f9374c081b76dc5158e7e1ffd1843"
     },
     {
-      "path": "supabase/migrations/20260918195107_rak_stage_verified_employee_rotation_reader.sql",
+      "path": "supabase/history/non-production-migrations/20260918195107_rak_stage_verified_employee_rotation_reader.sql",
       "sha256": "fc772c5ae2c7945265f36f5cb6d0dc4ff384ee6c4e9cecf48836951523e45ac8"
     },
     {
-      "path": "supabase/migrations/20260918200612_rak_hide_legacy_rotation_backups_from_public_reads.sql",
+      "path": "supabase/history/non-production-migrations/20260918200612_rak_hide_legacy_rotation_backups_from_public_reads.sql",
       "sha256": "3fa30258bfbfc3033e63b2565042feeeb1fffa42e08373d0f0b725834993d706"
     },
     {
-      "path": "supabase/migrations/20260918203159_rak_hide_legacy_admin_change_log_from_public_reads.sql",
+      "path": "supabase/history/non-production-migrations/20260918203159_rak_hide_legacy_admin_change_log_from_public_reads.sql",
       "sha256": "9f2388a3782b1f376fbf9ef7f7a494f77f8c2e352fb441454df2b731f1980399"
     },
     {
-      "path": "supabase/migrations/20260918204000_rak_whitelist_owner_backup_auth_metadata.sql",
+      "path": "supabase/history/non-production-migrations/20260918204000_rak_whitelist_owner_backup_auth_metadata.sql",
       "sha256": "e7d15c61925c2d5420073f697e9c69c343a336eefe902347466250a4e36eea19"
     },
     {
-      "path": "supabase/migrations/20260918211310_rak_machine_settings_protect_admin_json_types.sql",
+      "path": "supabase/history/non-production-migrations/20260918211310_rak_machine_settings_protect_admin_json_types.sql",
       "sha256": "0f02813a28736052005a1b32a3719bd7faf066d09ef194f83162fdf9d2fd6ae7"
     },
     {
-      "path": "supabase/migrations/20260918214441_rak_hide_worker_roster_from_public_reads.sql",
+      "path": "supabase/history/non-production-migrations/20260918214441_rak_hide_worker_roster_from_public_reads.sql",
       "sha256": "9f7f6fcc549da08de35ab16bdfb3e4ae6040c2f58820da5d871a3751745851bf"
     },
     {
-      "path": "supabase/migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql",
+      "path": "supabase/history/non-production-migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql",
       "sha256": "4ac7a4c030525d5ff427bc016fa4bdf1e0166217cab59d219d076af54e96e1bc"
     },
     {
-      "path": "supabase/migrations/20260918220817_rak_machine_settings_hide_disguised_roster_payloads.sql",
+      "path": "supabase/history/non-production-migrations/20260918220817_rak_machine_settings_hide_disguised_roster_payloads.sql",
       "sha256": "df85a1d2f60e2ae6373b454062de9031831bc79db1140018083258da75dc133d"
     },
     {
-      "path": "supabase/migrations/20260919054241_rak_recursive_worker_privacy_and_profile_based_admin_lookup.sql",
+      "path": "supabase/history/non-production-migrations/20260919054241_rak_recursive_worker_privacy_and_profile_based_admin_lookup.sql",
       "sha256": "91b38fdae597379efd503b2e2ebfaa4b57c0dc42103876f4eb7c853c07544d7e"
     },
     {
-      "path": "supabase/migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql",
+      "path": "supabase/history/non-production-migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql",
       "sha256": "266089cc952a115766bdb9f61b5e3718dc33a542b884112f8ffedddb58f777e7"
     },
     {
-      "path": "supabase/migrations/20260919060210_rak_announcements_only_live_public_read.sql",
+      "path": "supabase/history/non-production-migrations/20260919060210_rak_announcements_only_live_public_read.sql",
       "sha256": "d11759c96df83d9391f8be91080e9e8fc7b98a7ac4565161430b6a5c6d608fef"
     },
     {
-      "path": "supabase/migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql",
+      "path": "supabase/history/non-production-migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql",
       "sha256": "04a77f17bd149bb16c820f09a8f3d7049da44a788f361da9bd633eda6158c488"
     },
     {
-      "path": "supabase/migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql",
+      "path": "supabase/history/non-production-migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql",
       "sha256": "19fb991ef8eec8d5f21de604f6276b106dada90c4c0cb02de0976d36141a1195"
     },
     {
-      "path": "supabase/migrations/20260919081521_rak_public_rotation_reject_secret_text_values.sql",
+      "path": "supabase/history/non-production-migrations/20260919081521_rak_public_rotation_reject_secret_text_values.sql",
       "sha256": "1f19c97c76133f94440788f9cde6f79e5dd5dfee48bebc6575050dd3838b84da"
     },
     {
-      "path": "supabase/migrations/20260919085101_rak_public_rotation_remove_admin_actor_metadata.sql",
+      "path": "supabase/history/non-production-migrations/20260919085101_rak_public_rotation_remove_admin_actor_metadata.sql",
       "sha256": "8aa45e4483ac80aa7be0e3aafc05054da531332846712e19299960ac1d7c1c33"
     },
     {
-      "path": "supabase/migrations/20260919111542_rak_rotation_archive_import_provenance.sql",
+      "path": "supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql",
       "sha256": "95085f897a3a11a97fd0d2b58ee326703e60cb559edf0a25925131d70aa3568a"
     },
     {
-      "path": "supabase/migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql",
+      "path": "supabase/history/non-production-migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql",
       "sha256": "d78f23ede03cedda160dc9e9514f831b9893e798a9c7efc6c3ff115c6d7254f9"
     },
     {
-      "path": "supabase/migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql",
+      "path": "supabase/history/non-production-migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql",
       "sha256": "31136345c31de05d93b77fcfdd289c9a025199f345a7397b7dfe08d8f9ee5d29"
     },
     {
-      "path": "supabase/migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql",
+      "path": "supabase/history/non-production-migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql",
       "sha256": "3a2bbd491b1f2dfeb1505ed17a7b7f29324f561003784e85398ac4f2e1c97541"
     },
     {
-      "path": "supabase/migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql",
+      "path": "supabase/history/non-production-migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql",
       "sha256": "6db9a6538e5b92621a89fb10e588195664f2026552a0a53b982b50257bcd4fd1"
     },
     {
-      "path": "supabase/migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql",
+      "path": "supabase/history/non-production-migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql",
       "sha256": "fee7b20d1ba13e35e42790e91387d55bda2b6369a9d25b913b5fe8b1701b5c0d"
     },
     {
-      "path": "supabase/migrations/20260923045532_rak_block_login_number_in_public_machine_settings.sql",
+      "path": "supabase/history/non-production-migrations/20260923045532_rak_block_login_number_in_public_machine_settings.sql",
       "sha256": "33ae1a1879a1489b8add38c5c1976b13589cf7f53f8dd4e2bcd6ba5c755f78fc"
     }
   ],

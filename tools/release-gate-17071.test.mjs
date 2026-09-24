@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {extractNamedDeclaration,evaluateExpression} from './runtime-vm-fixture.mjs';
 import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-test-helper.mjs';
-const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 function flushFixture(task,remoteRow){
  let queue=[structuredClone(task)],saves=0,cacheWrites=0;
