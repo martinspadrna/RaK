@@ -42,8 +42,24 @@ assert(!domAudit.includes("'home', 'rotace', 'kalkulacky', 'games', 'menu'"), 'R
 
 // P0: Retired server endpoints must never reactivate an old database access path.
 const apiFiles = fs.readdirSync('api').filter((name) => name.endsWith('.js')).sort();
-assert.deepEqual(apiFiles, ['_admin-auth.js', 'admin-users.js', 'rotation-absence-calendar.js'],
+assert.deepEqual(apiFiles, ['_admin-auth.js', 'admin-users.js', 'public-calendar.js', 'rotation-absence-calendar.js'],
   'New server API endpoint requires a security review');
+
+const publicCalendarApi = read('api/public-calendar.js');
+assert(publicCalendarApi.includes("const GOOGLE_CALENDAR_HOST = 'calendar.google.com'"),
+  'Public calendar endpoint must stay pinned to calendar.google.com');
+assert(publicCalendarApi.includes("'/public/basic.ics'") && !publicCalendarApi.includes('/private/'),
+  'Public calendar endpoint must only construct public/basic.ics paths');
+assert(publicCalendarApi.includes('MAX_ICS_BYTES = 2 * 1024 * 1024') &&
+  publicCalendarApi.includes('AbortSignal.timeout(12000)'),
+  'Public calendar endpoint must keep bounded response size and timeout');
+assert(publicCalendarApi.includes("req.method !== 'GET' && req.method !== 'HEAD'"),
+  'Public calendar endpoint must remain read-only');
+assert(!publicCalendarApi.includes('req.query.url') &&
+  !publicCalendarApi.includes('SUPABASE') &&
+  !publicCalendarApi.includes('service_role'),
+  'Public calendar endpoint must not become an arbitrary proxy or privileged data path');
+
 for (const file of ['api/admin-users.js', 'api/rotation-absence-calendar.js']) {
   const source = read(file);
   assert(/res\.status\(410\)\.json\(/.test(source), `${file} must return 410`);
