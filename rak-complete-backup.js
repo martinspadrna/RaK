@@ -492,9 +492,12 @@
     "ui.js",
     "vercel.json"
   ]);
-  const RPC_NAME = 'rak_owner_complete_backup_v1';
+  const MANIFEST_RPC_NAME = 'rak_owner_complete_backup_manifest_v2';
+  const TABLE_RPC_NAME = 'rak_owner_complete_backup_table_v2';
+  const LEGACY_RPC_NAME = 'rak_owner_complete_backup_v1';
   const STATUS_ID = 'adminCompleteBackupStatus';
   const MAX_PARALLEL_FETCHES = 5;
+  const MAX_PARALLEL_DB_FETCHES = 2;
 
   function status(text) {
     try {
@@ -547,16 +550,12 @@
     return token;
   }
 
-  async function fetchCompleteSnapshot(token) {
-    const cfg = window.SUPABASE_CONFIG || {};
-    const base = String(cfg.url || '').replace(/\/$/, '');
-    const key = String(cfg.publishableKey || '');
-    if (!base || !key) throw new Error('Chybí veřejná Supabase konfigurace.');
-    const response = await fetch(base + '/rest/v1/rpc/' + RPC_NAME, {
+  async function postBackupRpc(base, key, token, rpcName, body) {
+    const response = await fetch(base + '/rest/v1/rpc/' + rpcName, {
       method: 'POST',
       cache: 'no-store',
       headers: { apikey: key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: '{}'
+      body: JSON.stringify(body || {})
     });
     let payload = null;
     try { payload = await response.json(); } catch (_) {}
@@ -564,8 +563,56 @@
       const message = payload && (payload.message || payload.error_description || payload.hint);
       throw new Error('Databázová záloha selhala' + (message ? ': ' + message : ' (HTTP ' + response.status + ')'));
     }
-    if (!payload || payload.format !== 'rak-complete-backup-v1') throw new Error('Supabase vrátila nečekaný formát úplné zálohy.');
     return payload;
+  }
+
+  async function fetchCompleteSnapshot(token) {
+    const cfg = window.SUPABASE_CONFIG || {};
+    const base = String(cfg.url || '').replace(/\/$/, '');
+    const key = String(cfg.publishableKey || '');
+    if (!base || !key) throw new Error('Chybí veřejná Supabase konfigurace.');
+
+    const manifest = await postBackupRpc(base, key, token, MANIFEST_RPC_NAME, {});
+    if (!manifest || manifest.format !== 'rak-complete-backup-manifest-v2') {
+      throw new Error('Supabase vrátila nečekaný manifest úplné zálohy.');
+    }
+    const tableNames = Array.isArray(manifest.public_tables) ? manifest.public_tables.map((name) => String(name || '').trim()) : [];
+    if (!tableNames.length
+      || new Set(tableNames).size !== tableNames.length
+      || tableNames.some((name) => !/^[a-z_][a-z0-9_]*$/i.test(name) || name === 'rak_admin_secrets')) {
+      throw new Error('Manifest úplné zálohy obsahuje neplatný seznam tabulek.');
+    }
+
+    const tableParts = new Array(tableNames.length);
+    let completed = 0;
+    await mapConcurrent(tableNames, MAX_PARALLEL_DB_FETCHES, async (tableName, index) => {
+      const part = await postBackupRpc(base, key, token, TABLE_RPC_NAME, { p_table: tableName });
+      if (!part || part.format !== 'rak-complete-backup-table-v2'
+        || part.table !== tableName || !Array.isArray(part.rows)) {
+        throw new Error('Supabase vrátila neplatnou část tabulky ' + tableName + '.');
+      }
+      tableParts[index] = part.rows;
+      completed += 1;
+      status('Supabase tabulky: ' + completed + '/' + tableNames.length);
+    });
+
+    const publicData = {};
+    tableNames.forEach((tableName, index) => { publicData[tableName] = tableParts[index]; });
+    const manifestData = manifest.data && typeof manifest.data === 'object' ? manifest.data : {};
+    return {
+      format: 'rak-complete-backup-v1',
+      generated_at: manifest.generated_at,
+      database: manifest.database,
+      data: {
+        public: publicData,
+        private: manifestData.private,
+        auth: manifestData.auth,
+        storage: manifestData.storage,
+        redacted: manifestData.redacted
+      },
+      schema: manifest.schema,
+      sensitive_exclusions: manifest.sensitive_exclusions
+    };
   }
 
   async function fetchArrayBuffer(url, label) {
@@ -862,7 +909,7 @@
 
   window.rakCreateCompleteBackup = createCompleteBackup;
   window.getRakCompleteBackupHealth = function getRakCompleteBackupHealth() {
-    return { ready: typeof window.rakCreateCompleteBackup === 'function', repositoryFileCount: RAK_COMPLETE_BACKUP_REPO_FILES.length, buildSha: RAK_COMPLETE_BACKUP_BUILD_SHA, rpc: RPC_NAME, secretRedaction: true, storageBytesRequired: true, mode: 'one-click-disaster-recovery-v1' };
+    return { ready: typeof window.rakCreateCompleteBackup === 'function', repositoryFileCount: RAK_COMPLETE_BACKUP_REPO_FILES.length, buildSha: RAK_COMPLETE_BACKUP_BUILD_SHA, rpc: MANIFEST_RPC_NAME, tableRpc: TABLE_RPC_NAME, legacyRpc: LEGACY_RPC_NAME, dbParallelism: MAX_PARALLEL_DB_FETCHES, secretRedaction: true, storageBytesRequired: true, mode: 'one-click-disaster-recovery-v1-chunked-v2' };
   };
 
   document.addEventListener('click', (event) => {

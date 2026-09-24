@@ -4,20 +4,17 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.97 uses one unified release identity',()=>{
+test('1.7.97 calculator-mobile milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.97');
-  assert.equal(metadata.displayVersion,'1.7.97');
-  assert.equal(metadata.technicalVersion,'1.7.97');
-  assert.equal(metadata.moduleCacheVersion,'1.7.97');
-  assert.equal(metadata.cacheVersion,'v1.7.97');
-  assert.equal(metadata.buildId,'v1.7.97-calculators-mobile-polish1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.97');
-  assert(read('index.html').includes('app.js?v=1.7.97'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.97');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.97';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('grinder and admin correction inputs share explicit plus-minus controls',()=>{
   const grinder=read('brusy-fhb-correction.js');
   const millAdmin=read('admin-fhb-calibration.js');
@@ -67,10 +64,9 @@ test('shift report mobile geometry has an explicit gap and is covered by real Ch
   assert(workflow.includes('node tools/browser-fourth-bundle-17097.mjs'));
 });
 
-test('mandatory CI and npm check execute the 1.7.97 gate',()=>{
+test('npm check retains 1.7.97 while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17097.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17097.test.mjs'));
-  assert(workflow.includes('rak-17097-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(/node --test tools\/release-gate-1709\d\.test\.mjs/.test(workflow));
 });

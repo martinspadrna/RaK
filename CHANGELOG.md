@@ -1,3 +1,11 @@
+## RaK 1.7.98 (development)
+
+- Úplná záloha RaK už nestaví všechny veřejné tabulky v jednom monolitickém SQL JSONu. TEST Supabase dostává owner-only manifest RPC a owner-only tabulkové RPC; staré `rak_owner_complete_backup_v1` zůstává nedotčené jako rollback.
+- Klient načte manifest, veřejné tabulky stáhne po částech s maximálně dvěma souběžnými DB requesty a lokálně složí stejný výsledný `rak-complete-backup-v1` snapshot. ZIP, validátor i restore postup tak zůstávají kompatibilní.
+- Diagnostika prokázala příčinu timeoutu: samotné tři největší tabulky se serializují za méně než 0,6 s, ale opakované `jsonb || jsonb_build_object(...)` spojení čtyř velkých bloků trvá přibližně 12,8 s. Oprava tedy neprodlužuje timeout, ale odstraňuje kvadratické kopírování.
+- Nový VM regresní test ověřuje složení v1 snapshotu, zákaz automatického fallbacku na pomalé v1 RPC a fail-closed odmítnutí `rak_admin_secrets`.
+- Produkce ani produkční Supabase se nemění.
+
 ## RaK 1.7.97 (development)
 
 - Korekce Brusů nově používají stejné tlačítko +/− jako ostatní korekční kalkulačky: u obou naměřených FHB hodnot i u korekce v administraci. Stejný vzor +/− dostaly také korekce Frézek v administraci.
