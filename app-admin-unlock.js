@@ -953,6 +953,38 @@ function buildAdminAccountsStatusHtml(source) {
   ].join('');
 }
 
+function buildAdminAccountEditableRowHtml(entry) {
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  return [
+    '<tr data-admin-account-row>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(safe.accountId || '') + '" placeholder="os. c."></td>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(safe.label || '') + '" placeholder="jmeno / poznamka"></td>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" value="" placeholder="' + (safe.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
+    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (safe.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (safe.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
+    '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (safe.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
+    '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
+    '</tr>'
+  ].join('');
+}
+
+function ensureAdminAccountsBlankRow(root, preferredRow) {
+  const scope = root && root.querySelector ? root : document;
+  const tbody = scope.querySelector('.adminAccountsTable tbody');
+  if (!tbody) return false;
+  const rows = Array.from(tbody.querySelectorAll('tr[data-admin-account-row]'));
+  const isBlank = (row) => !String(row.querySelector('[data-admin-account-id]')?.value || '').trim()
+    && !String(row.querySelector('[data-admin-account-label]')?.value || '').trim()
+    && !String(row.querySelector('[data-admin-account-password]')?.value || '').trim();
+  const blanks = rows.filter(isBlank);
+  let keep = preferredRow && blanks.includes(preferredRow) ? preferredRow : (blanks[blanks.length - 1] || null);
+  blanks.forEach((row) => { if (row !== keep) row.remove(); });
+  if (!keep) {
+    tbody.insertAdjacentHTML('beforeend', buildAdminAccountEditableRowHtml({ accountId: '', label: '', passwordHash: '', enabled: true, role: 'admin' }));
+    keep = tbody.lastElementChild;
+  }
+  return !!keep;
+}
+
 function buildAdminAccountsSettingsHtml() {
   if (!rakAdminCanManageAdmins()) {
     const settings = rakAdminGetAccountsSettings();
@@ -982,23 +1014,14 @@ function buildAdminAccountsSettingsHtml() {
     ].join('');
   }
   const settings = rakAdminGetAccountsSettings();
-  const rows = settings.admins.concat(Array.from({ length: 4 }, () => ({ accountId: '', label: '', passwordHash: '', enabled: true })));
+  const rows = settings.admins.concat([{ accountId: '', label: '', passwordHash: '', enabled: true, role: 'admin' }]);
   const roster=typeof getRakWorkerRosterSettings==='function'?getRakWorkerRosterSettings():null;
   const availableAccounts=[].concat(Array.isArray(roster&&roster.workers)?roster.workers:[],
     Array.isArray(roster&&roster.appAccounts)?roster.appAccounts:[])
     .filter(row=>row&&/^\d{4}$/.test(String(row.loginNumber||'')));
   const accountOptions='<datalist id="rakAdminExistingAccounts17024">'+availableAccounts.map(row=>
     '<option value="'+escapeHtml(row.loginNumber)+'" label="'+escapeHtml(row.name)+'"></option>').join('')+'</datalist>';
-  const body = rows.map((entry) => [
-    '<tr data-admin-account-row>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(entry.accountId || '') + '" placeholder="os. c."></td>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(entry.label || '') + '" placeholder="jmeno / poznamka"></td>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" value="" placeholder="' + (entry.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
-    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (entry.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (entry.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
-    '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (entry.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
-    '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
-    '</tr>'
-  ].join('')).join('');
+  const body = rows.map(buildAdminAccountEditableRowHtml).join('');
   return [
     buildAdminAccountsStatusHtml({ rows }),
     accountOptions,
@@ -1232,6 +1255,7 @@ try {
   window.rakAdminRevokePersistentSession = rakAdminRevokePersistentSession;
   window.rakAdminLock = rakAdminLock;
   window.rakAdminCanOpenAdmin = rakAdminCanOpenAdmin;
+window.ensureAdminAccountsBlankRow = ensureAdminAccountsBlankRow;
   window.rakAdminCanOpenShiftReport = rakAdminCanOpenShiftReport;
   window.rakAdminIsDeputy = rakAdminIsDeputy;
   window.rakAdminLoadAccountsDirectoryForViewer = rakAdminLoadAccountsDirectoryForViewer;

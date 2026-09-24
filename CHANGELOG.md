@@ -1,3 +1,16 @@
+## RaK 1.7.96 (development)
+
+- Třetí TEST balík podle 13bodového plánu: Rozpisy/absence + Pracovníci/Správci + sjednocení provozní administrace.
+- Rozpisy: odstraněna viditelná nápověda o trojkliku a karta „Místní neuložené návrhy rozpisů“; samotné místní návrhy/fronta ani bezpečné recovery/cleanup funkce se nemažou.
+- Přehled měsíce zůstává otevřený a používá kratší hlavičky `TNK`, `W01`, `W02` pouze pro zobrazení; uložené klíče strojů se nemění.
+- Prázdná buňka rozpisu používá vlastní picker ukotvený k buňce a nabízí jen lidi, kteří nejsou ve stejném dni už v rozpisu ani v absenci. Obsazená buňka dál nabízí stabilní Odebrat a nově se umí přesunout nad pole, když dole není místo.
+- Absence: prázdné datum nabízí přednostně dny s chybějícím člověkem bez už zadané absence; jméno nabízí chybějící lidi pro vybraný den. Ruční editace zůstává a povinná validace před uložením dál blokuje konflikt „absence + současně v rozpisu“.
+- Pracovníci: odstraněn blok „Stav pracovníků“, sloupce jméno/přihlašovací číslo jsou užší. Účty mimo rozpis zobrazují existující řádky + přesně jeden prázdný a po jeho vyplnění vznikne další jediný prázdný.
+- Správci používají stejný princip existující + jeden prázdný řádek. Nastavení strojů, Kantýna/Jídelna, Pravidla generátoru a Správci dostaly jednotnou mobilní hierarchii akcí.
+- Spodní read-only adresář účtů je výrazně kompaktnější.
+- Odstraněna stará poznámka/přepínač „Pondělí – Brusy: spálení“ po ověření, že měla jen jediného aktivního čtenáře. „První ranní – Roznýtování laborka“ zůstává.
+- Supabase schéma ani produkce se nemění.
+
 ## RaK 1.7.95 (development)
 
 - Kalendář se vrací ke skutečnému Google Calendar iframe stejně jako v produkčním `main`, místo vlastní nativní napodobeniny. Díky tomu má přesně Google vzhled i jeho detail události.

@@ -526,7 +526,7 @@ function renderUpcomingShiftsPreview(limit = 10) {
     '<div class="rotacePersonHeader rotaceOverviewHeader">',
     '  <div class="rotacePersonTitle">' + escapeHtml(headerText) + '</div>',
     '</div>',
-    '<div class="rotacePersonMeta rotaceOverviewMeta">Přítomno ' + String(presentCount) + ' z ' + String(totalPeople) + ' lidí · ' + escapeHtml(missingText) + '<br><span class="rotaceTaskHint">3× klepni na kartu člověka pro jeho úkol.</span></div>',
+    '<div class="rotacePersonMeta rotaceOverviewMeta">Přítomno ' + String(presentCount) + ' z ' + String(totalPeople) + ' lidí · ' + escapeHtml(missingText) + '<br></div>',
     '<div class="rotaceQuickCards rotacePreviewGrid rotaceOverviewGrid">',
     presentEntries.length ? presentEntries.map(entry => [
       '<div class="rotaceMiniCard rotaceOverviewCard rotaceShiftTaskCard" role="button" tabindex="0" data-rotation-task-person="' + escapeHtml(entry.name || '') + '" data-rotation-task-date="' + escapeHtml(entry.dateLabel || '') + '" data-rotation-task-shift="' + escapeHtml(entry.shift || '') + '" data-rotation-task-machine="' + escapeHtml(entry.target || '') + '" aria-label="3× klepni pro úkol: ' + escapeHtml(entry.name || '') + '">',

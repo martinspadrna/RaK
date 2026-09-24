@@ -204,8 +204,12 @@ function bindAppMenuHandlers(body) {
     if (target && target.matches && target.matches('#adminAnnouncementTitle, #adminAnnouncementMessage, #adminAnnouncementStart, #adminAnnouncementEnd') && typeof adminAnnouncementRefreshStatus === 'function') {
       adminAnnouncementRefreshStatus(body);
     }
-    if (target && target.matches && target.matches('[data-admin-account-field]') && typeof adminAccountsRefreshStatus === 'function') {
-      adminAccountsRefreshStatus(body);
+    if (target && target.matches && target.matches('[data-app-account-field]') && typeof ensureAdminAppAccountBlankRow === 'function') {
+      ensureAdminAppAccountBlankRow(body, target.closest('tr[data-app-account-row]'));
+    }
+    if (target && target.matches && target.matches('[data-admin-account-field]')) {
+      if (typeof ensureAdminAccountsBlankRow === 'function') ensureAdminAccountsBlankRow(body, target.closest('tr[data-admin-account-row]'));
+      if (typeof adminAccountsRefreshStatus === 'function') adminAccountsRefreshStatus(body);
     }
     if (target && target.matches && target.matches('[data-generator-settings-field]') && typeof adminRotationRefreshGeneratorSettingsStatus === 'function') {
       adminRotationRefreshGeneratorSettingsStatus(body);
@@ -246,8 +250,12 @@ function bindAppMenuHandlers(body) {
     if (target.matches('[data-app-contact-field]') && typeof adminAppContactRefreshStatus === 'function') {
       adminAppContactRefreshStatus(body);
     }
-    if (target.matches('[data-admin-account-field]') && typeof adminAccountsRefreshStatus === 'function') {
-      adminAccountsRefreshStatus(body);
+    if (target.matches('[data-app-account-field]') && typeof ensureAdminAppAccountBlankRow === 'function') {
+      ensureAdminAppAccountBlankRow(body, target.closest('tr[data-app-account-row]'));
+    }
+    if (target.matches('[data-admin-account-field]')) {
+      if (typeof ensureAdminAccountsBlankRow === 'function') ensureAdminAccountsBlankRow(body, target.closest('tr[data-admin-account-row]'));
+      if (typeof adminAccountsRefreshStatus === 'function') adminAccountsRefreshStatus(body);
     }
     if (target.matches('[data-generator-settings-field]') && typeof adminRotationRefreshGeneratorSettingsStatus === 'function') {
       adminRotationRefreshGeneratorSettingsStatus(body);

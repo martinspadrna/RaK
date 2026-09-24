@@ -907,12 +907,21 @@ function buildAdminAbsenceSummaryHtml(month) {
 }
 
 
+function adminRotationCompactMachineLabel(machine) {
+  const raw = String(machine || '').trim();
+  const key = raw.toUpperCase();
+  if (key === 'TNKS01' || key === 'TNKSO1') return 'TNK';
+  if (key === 'TPKW01') return 'W01';
+  if (key === 'TPKW02') return 'W02';
+  return raw;
+}
+
 function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines) {
   const renderSection = (title, rows, machines) => {
     const safeRows = Array.isArray(rows) ? rows : [];
     const safeMachines = Array.isArray(machines) ? machines : [];
     if (!safeRows.length) return '';
-    const head = '<tr><th>Den</th>' + safeMachines.map((m) => '<th>' + escapeHtml(String(m || '')) + '</th>').join('') + '</tr>';
+    const head = '<tr><th>Den</th>' + safeMachines.map((m) => '<th title="' + escapeHtml(String(m || '')) + '">' + escapeHtml(adminRotationCompactMachineLabel(m)) + '</th>').join('') + '</tr>';
     const body = safeRows.map((row) => {
       const date = adminRotationDateLabel(row && row.date ? row.date : '') || String(row && row.date ? row.date : '');
       const cells = Array.isArray(row && row.cells) ? row.cells : [];
@@ -997,7 +1006,6 @@ function buildAdminRotationTableHtml(monthKey) {
       ? 'Je zobrazený nový vygenerovaný návrh. Online rozpis se nezmění, dokud nekliknete na Uložit rozpis.'
       : 'Stejný rozpis, jen editovatelný. Změny zůstávají rozepsané lokálně a do Supabase jdou až po kliknutí na Uložit rozpis.') + '</div>',
     rakAdminMonthDraftRecoveryHtml(monthKey),
-    rakAdminLocalDraftCleanupHtml(),
     '  <div class="adminRotationSaveDock">',
     '    <div class="adminRotationSaveActions">',
     '      <button type="button" class="appMenuAction adminRotationSelectedRemoveBtn" data-admin-selected-remove hidden>Odebrat vybrané</button>',
@@ -1395,7 +1403,10 @@ function adminShowRotationQuickRemove(input) {
     if (txt) txt.textContent = 'Jméno: ' + value;
     const rect = input.getBoundingClientRect();
     const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
-    const top = Math.max(8, Math.round(rect.bottom + 6));
+    const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
+    const pickerHeight = 48;
+    let top = Math.round(rect.bottom + 6);
+    if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
     const left = Math.max(8, Math.min(vw - 196, Math.round(rect.left + (rect.width / 2) - 94)));
     box.style.top = String(top) + 'px';
     box.style.left = String(left) + 'px';

@@ -867,16 +867,16 @@
 .adminSpecialDaysDateCol{width:104px;}
 .adminSpecialDaysTypeCol{width:110px;}
 .adminSpecialDaysNameCol{width:149px;}
-.adminWorkerRosterTable{min-width:520px !important;}
-.adminWorkerNameCol{width:120px;}
-.adminWorkerLoginCol{width:90px;}
+.adminWorkerRosterTable{min-width:457px !important;}
+.adminWorkerNameCol{width:84px;}
+.adminWorkerLoginCol{width:63px;}
 .adminWorkerMachinesCol{width:310px;}
 .adminWorkerMachineChecks{display:flex;flex-wrap:wrap;gap:4px 10px;}
 .adminWorkerMachineCheck{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;}
 .adminWorkerMachineCheck input{width:16px;height:16px;flex:0 0 auto;}
-.adminAppAccountsTable{width:240px !important;min-width:240px !important;max-width:100%;table-layout:fixed;}
-.adminAppAccountNameCol{width:90px;}
-.adminAppAccountLoginCol{width:45px;}
+.adminAppAccountsTable{width:204px !important;min-width:204px !important;max-width:100%;table-layout:fixed;}
+.adminAppAccountNameCol{width:63px;}
+.adminAppAccountLoginCol{width:36px;}
 .adminAppAccountScopeCol{width:105px;}
 .adminAppAccountsTable .appMenuInlineInput{width:100% !important;min-width:0 !important;padding:6px 4px;}
 .adminAppAccountLoginInput{text-align:center;}
@@ -2447,4 +2447,34 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
 }
 #appMenuBody[data-admin-view="calendars"] .adminShiftCalendarAdd{
   text-align:left !important;
+}
+
+
+/* RaK 1.7.96 – sjednocená mobilní hierarchie hlavních provozních admin karet. */
+#appMenuBody .adminOpsUnifiedCard{
+  display:grid !important;
+  gap:10px !important;
+}
+#appMenuBody .adminOpsUnifiedCard > .appMenuCardTitle{
+  margin:0 !important;
+}
+#appMenuBody .adminOpsUnifiedCard > .appMenuText{
+  margin:0 0 2px !important;
+}
+#appMenuBody .adminOpsUnifiedCard > .appMenuActionRow{
+  margin-top:4px !important;
+  padding-top:10px !important;
+  border-top:1px solid rgba(255,255,255,.10) !important;
+}
+@media(max-width:560px){
+  #appMenuBody .adminOpsUnifiedCard > .appMenuActionRow{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:7px !important;
+  }
+  #appMenuBody .adminOpsUnifiedCard > .appMenuActionRow .appMenuAction{
+    width:100% !important;
+    min-height:40px !important;
+    margin:0 !important;
+  }
 }

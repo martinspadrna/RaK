@@ -77,6 +77,10 @@
       .rakAccountDirectoryNote{margin-bottom:10px}
       .rakAccountDirectoryBlock td:first-child{font-weight:750}
       .rakAccountDirectoryBlock td:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+      .rakAccountDirectoryTable{width:220px!important;min-width:220px!important;max-width:100%;table-layout:fixed}
+      .rakAccountDirectoryNameCol{width:160px}
+      .rakAccountDirectoryNumberCol{width:60px}
+      .rakAccountDirectoryTable th,.rakAccountDirectoryTable td{padding-left:5px!important;padding-right:5px!important;overflow:hidden;text-overflow:ellipsis}
     `;
     document.head.appendChild(style);
   }
@@ -297,7 +301,7 @@
       '<div class="rakAccountDirectoryBlock" id="rakAccountDirectoryBlock">',
       '  <div class="appMenuSubTitle">Účty aplikace</div>',
       '  <div class="smallText rakAccountDirectoryNote">Celé jméno a OS číslo slouží pro přihlášení do RaK. Tento spodní seznam je oddělený od rozpisu — do rozpisu, generátoru a statistik se počítají pouze lidé v horní tabulce Pracovníci. Mistr nebo jiný účet bez práce na stroji tedy rozpis neovlivní.</div>',
-      '  <div class="tableWrap appMenuTableWrap"><table class="appMenuTable appMenuAdminTable appMenuAdminTableDense"><thead><tr><th>Celé jméno</th><th>OS číslo</th></tr></thead><tbody>' + body + '</tbody></table></div>',
+      '  <div class="tableWrap appMenuTableWrap"><table class="appMenuTable appMenuAdminTable appMenuAdminTableDense rakAccountDirectoryTable"><colgroup><col class="rakAccountDirectoryNameCol"><col class="rakAccountDirectoryNumberCol"></colgroup><thead><tr><th>Celé jméno</th><th>OS číslo</th></tr></thead><tbody>' + body + '</tbody></table></div>',
       '</div>'
     ].join('');
   }

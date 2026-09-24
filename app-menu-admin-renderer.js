@@ -81,7 +81,7 @@ function renderAdminMenuBody(body, section) {
     .map(def => '<button type="button" class="appMenuAction appMenuSettingBtn" data-admin-action="toggle-calendar-note" data-calendar-note-id="' + escapeHtml(def.id) + '">' + (calendarNotePrefs[def.id] ? '✓ ' : '') + escapeHtml(def.label) + '</button>')
     .join('');
   const machinesHtml = [
-    '<div class="appMenuCard appMenuAdminCard adminMachinesCard">',
+    '<div class="appMenuCard appMenuAdminCard adminMachinesCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Nastavení strojů</div>',
     '  <div class="appMenuText">',
     '    <div>Každý stroj je jeden řádek. U brusů se zapisuje stroj + index + parametry.</div>',
@@ -97,7 +97,7 @@ function renderAdminMenuBody(body, section) {
   ].join('');
 
   const foodHtml = [
-    '<div class="appMenuCard appMenuAdminCard adminFoodScheduleCard">',
+    '<div class="appMenuCard appMenuAdminCard adminFoodScheduleCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Kantýna / jídelna</div>',
     '  <div class="appMenuText">',
     '    <div>Tady si nastavíš běžnou otevírací dobu a přesčasovou dobu kantýny/jídelny. Které neděle jsou přesčasové se nastavuje v Provoz / Přesčasy.</div>',
@@ -182,7 +182,7 @@ function renderAdminMenuBody(body, section) {
   ].join('');
 
   const generatorSettingsHtml = [
-    '<div class="appMenuCard appMenuAdminCard adminGeneratorSettingsCard">',
+    '<div class="appMenuCard appMenuAdminCard adminGeneratorSettingsCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Pravidla generátoru</div>',
     '  <div class="appMenuText">',
     '    <div>Tady nastavuješ pořadí lidí a strojů, podle kterých se skládá nový návrh rozpisu. Bez uložené změny zůstávají původní pravidla.</div>',
@@ -258,7 +258,7 @@ function renderAdminMenuBody(body, section) {
 
   const adminAccountsCanManage = typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins();
   const adminAccountsHtml = [
-    '<div class="appMenuCard appMenuAdminCard adminAccountsCard">',
+    '<div class="appMenuCard appMenuAdminCard adminAccountsCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Správci</div>',
     '  <div class="appMenuText">',
     '    <div>' + (adminAccountsCanManage ? 'Tady hlavní admin nastaví další admin účty.' : 'Tady můžeš zkontrolovat správce a změnit pouze svoje heslo.') + ' Běžní uživatelé tuhle sekci neuvidí.</div>',

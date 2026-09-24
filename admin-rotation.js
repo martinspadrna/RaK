@@ -284,33 +284,170 @@ function buildAdminStatsAnomalyHtml(year) {
   ].join('');
 }
 
+function adminRotationSuggestionContext(root) {
+  const knownNames = adminGetKnownNames();
+  const scheduleByDate = new Map();
+  const absenceByDate = new Map();
+  const labelByDate = new Map();
+  const dateOrder = [];
+  const keyFor = (value) => adminRotationDateBaseKey(value) || adminRotationDateLabel(value);
+  const register = (value) => {
+    const label = adminRotationDateLabel(value);
+    const key = keyFor(value);
+    if (!key) return '';
+    if (!labelByDate.has(key)) {
+      labelByDate.set(key, label || String(value || '').trim());
+      dateOrder.push(key);
+    }
+    return key;
+  };
+  const add = (map, date, name) => {
+    const key = register(date);
+    const person = String(name || '').trim();
+    if (!key || !person) return;
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(person);
+  };
+  root.querySelectorAll('tr[data-rotation-section]').forEach((tr) => {
+    const date = tr.querySelector('[data-rot-field="date"]')?.value || '';
+    register(date);
+    tr.querySelectorAll('[data-rot-field^="cell-"]').forEach((field) => {
+      const name = String(field && field.value || '').trim();
+      if (name && !adminRotationIsRemoveValue(name)) add(scheduleByDate, date, name);
+    });
+  });
+  root.querySelectorAll('tr[data-note-row-index]').forEach((tr) => {
+    const date = tr.querySelector('[data-note-field="date"]')?.value || '';
+    adminSplitPeopleList(tr.querySelector('[data-note-field="person"]')?.value || '')
+      .forEach((name) => add(absenceByDate, date, name));
+  });
+  return { knownNames, scheduleByDate, absenceByDate, labelByDate, dateOrder, keyFor };
+}
+
+function adminRotationChoiceOptions(input, root) {
+  const ctx = adminRotationSuggestionContext(root);
+  if (input.matches('[data-rot-field^="cell-"]')) {
+    const row = input.closest('tr[data-rotation-section]');
+    const date = row && row.querySelector('[data-rot-field="date"]')?.value || '';
+    const key = ctx.keyFor(date);
+    const scheduled = ctx.scheduleByDate.get(key) || new Set();
+    const absent = ctx.absenceByDate.get(key) || new Set();
+    return {
+      title: 'Volní pro tento den',
+      values: ctx.knownNames.filter((name) => !scheduled.has(name) && !absent.has(name))
+    };
+  }
+  if (input.matches('[data-note-field="date"]')) {
+    const values = ctx.dateOrder.filter((key) => {
+      const scheduled = ctx.scheduleByDate.get(key) || new Set();
+      const absent = ctx.absenceByDate.get(key) || new Set();
+      return ctx.knownNames.some((name) => !scheduled.has(name) && !absent.has(name));
+    }).map((key) => ctx.labelByDate.get(key) || key);
+    return { title: 'Dny s chybějícím člověkem', values };
+  }
+  if (input.matches('[data-note-field="person"]')) {
+    const row = input.closest('tr[data-note-row-index]');
+    const date = row && row.querySelector('[data-note-field="date"]')?.value || '';
+    const key = ctx.keyFor(date);
+    if (!key) return { title: 'Chybějící lidé', values: [] };
+    const scheduled = ctx.scheduleByDate.get(key) || new Set();
+    const absent = ctx.absenceByDate.get(key) || new Set();
+    return {
+      title: 'Chybějící lidé pro ' + (ctx.labelByDate.get(key) || adminRotationDateLabel(date) || date),
+      values: ctx.knownNames.filter((name) => !scheduled.has(name) && !absent.has(name))
+    };
+  }
+  return { title: '', values: [] };
+}
+
+function adminCloseRotationChoicePicker() {
+  const box = document.getElementById('adminRotationChoicePicker');
+  if (box) box.remove();
+  window.__rakAdminRotationChoiceInput = null;
+}
+
+function adminShowRotationChoicePicker(input) {
+  try {
+    const body = document.getElementById('appMenuBody');
+    if (!body || body.dataset.adminView !== 'rotation' || !input || !body.contains(input)) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    if (!input.matches('[data-rot-field^="cell-"], [data-note-field="date"], [data-note-field="person"]')) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    if (String(input.value || '').trim()) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    const suggestion = adminRotationChoiceOptions(input, body);
+    const values = Array.from(new Set((suggestion.values || []).map((value) => String(value || '').trim()).filter(Boolean)));
+    if (!values.length) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    adminCloseRotationChoicePicker();
+    const box = document.createElement('div');
+    box.id = 'adminRotationChoicePicker';
+    box.className = 'adminRotationChoicePicker';
+    box.innerHTML = '<div class="adminRotationChoicePickerTitle">' + escapeHtml(suggestion.title || 'Nabídka') + '</div>'
+      + '<div class="adminRotationChoicePickerGrid">'
+      + values.map((value) => '<button type="button" class="adminRotationChoiceChip" data-rotation-choice="' + escapeHtml(value) + '">' + escapeHtml(value) + '</button>').join('')
+      + '</div>';
+    document.body.appendChild(box);
+    window.__rakAdminRotationChoiceInput = input;
+    box.addEventListener('pointerdown', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-rotation-choice]') : null;
+      if (!button) return;
+      event.preventDefault();
+      const target = window.__rakAdminRotationChoiceInput;
+      const value = String(button.getAttribute('data-rotation-choice') || '').trim();
+      if (target && target.isConnected && value) {
+        target.value = value;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+        try { target.focus({ preventScroll: true }); } catch (_) { try { target.focus(); } catch (_) {} }
+      }
+      adminCloseRotationChoicePicker();
+    });
+    const rect = input.getBoundingClientRect();
+    const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
+    const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
+    const pickerWidth = Math.min(292, vw - 16);
+    const pickerHeight = Math.min(264, Math.max(96, 42 + Math.ceil(values.length / 2) * 38));
+    let top = Math.round(rect.bottom + 6);
+    if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
+    const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
+    box.style.width = String(pickerWidth) + 'px';
+    box.style.top = String(top) + 'px';
+    box.style.left = String(left) + 'px';
+    box.classList.add('isVisible');
+    if (!window.__rakAdminRotationChoiceOutsideBound) {
+      window.__rakAdminRotationChoiceOutsideBound = true;
+      document.addEventListener('pointerdown', (event) => {
+        const current = document.getElementById('adminRotationChoicePicker');
+        const target = window.__rakAdminRotationChoiceInput;
+        if (!current) return;
+        if (event.target === target || current.contains(event.target)) return;
+        adminCloseRotationChoicePicker();
+      }, true);
+      window.addEventListener('scroll', () => adminCloseRotationChoicePicker(), true);
+    }
+  } catch (err) {
+    console.warn('Admin rotation choice picker failed', err);
+  }
+}
+
 function adminAttachRotationAvailableDatalist(input) {
   try {
     const body = document.getElementById('appMenuBody');
     if (!body || body.dataset.adminView !== 'rotation' || !input || !body.contains(input)) return;
-    if (!input.matches('[data-rot-field^="cell-"]')) return;
-    const currentValue = String(input.value || '').trim();
-    if (currentValue) {
-      input.removeAttribute('list');
-      return;
-    }
-    const row = input.closest('tr[data-rotation-section]');
-    const dateKey = adminRotationDateLabel(row && row.querySelector('[data-rot-field="date"]') ? row.querySelector('[data-rot-field="date"]').value : '');
-    const used = dateKey ? (adminBuildUsedNamesByDate(body).get(dateKey) || new Set()) : new Set();
-    const names = adminGetKnownNames().filter((name) => !used.has(name));
-    const listId = 'adminRotationSuggest-' + Math.random().toString(36).slice(2, 9);
-    const datalist = document.createElement('datalist');
-    datalist.id = listId;
-    datalist.setAttribute('data-admin-rotation-suggest', '1');
-    names.forEach((name) => {
-      const option = document.createElement('option');
-      option.value = name;
-      datalist.appendChild(option);
-    });
-    body.appendChild(datalist);
-    input.setAttribute('list', listId);
+    input.removeAttribute('list');
+    body.querySelectorAll('datalist[data-admin-rotation-suggest]').forEach((list) => list.remove());
+    adminShowRotationChoicePicker(input);
   } catch (err) {
-    console.warn('Admin rotation datalist failed', err);
+    console.warn('Admin rotation picker failed', err);
   }
 }
 

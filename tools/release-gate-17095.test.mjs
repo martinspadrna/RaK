@@ -5,20 +5,17 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.95 uses one unified release identity',()=>{
+test('1.7.95 Google shift iframe milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.95');
-  assert.equal(metadata.displayVersion,'1.7.95');
-  assert.equal(metadata.technicalVersion,'1.7.95');
-  assert.equal(metadata.moduleCacheVersion,'1.7.95');
-  assert.equal(metadata.cacheVersion,'v1.7.95');
-  assert.equal(metadata.buildId,'v1.7.95-google-shift-iframe1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.95');
-  assert(read('index.html').includes('app.js?v=1.7.95'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.95');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.95';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('shift calendars combine into one Google embed with main-style controls',()=>{
   const nav=read('app-navigation.js');
   const {api}=runNamedDeclarations({
@@ -62,10 +59,9 @@ test('calendar iframe is prewarmed in idle time and keeps account-shift routing'
   assert(core.includes('calendars: getRakShiftCalendarsForTeam(team)'));
 });
 
-test('mandatory CI and npm check execute the 1.7.95 gate',()=>{
+test('npm check retains 1.7.95 while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17095.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17095.test.mjs'));
-  assert(workflow.includes('rak-17095-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(/node --test tools\/release-gate-1709\d\.test\.mjs/.test(workflow));
 });

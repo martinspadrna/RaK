@@ -370,7 +370,6 @@ function mergeRakSpecialDaysSettingsRows(settings) {
 const RAK_CALENDAR_NOTES_SETTINGS_KEY = 'CALENDAR_NOTES_SETTINGS';
 const RAK_CALENDAR_NOTES_SETTINGS_CATEGORY = 'calendar_notes_settings';
 const RAK_CALENDAR_NOTE_DEFS = [
-  { id: 'mondayBurn', label: 'Pondělí – Brusy: spálení' },
   { id: 'firstMorningRivet', label: 'První ranní v měsíci – Roznýtování laborka' }
 ];
 window.RAK_CALENDAR_NOTES_SETTINGS_KEY = RAK_CALENDAR_NOTES_SETTINGS_KEY;
@@ -1065,9 +1064,8 @@ function buildAdminWorkerRosterSettingsHtml() {
   const rows = workers.map(buildAdminWorkerRosterRowHtml).join('')
     + Array.from({ length: 3 }, () => buildAdminWorkerRosterRowHtml({ name: '', loginNumber: '', machines: [] })).join('');
   const appAccountRows = appAccounts.map(buildAdminApplicationAccountRowHtml).join('')
-    + Array.from({ length: 3 }, () => buildAdminApplicationAccountRowHtml({ name: '', loginNumber: '' })).join('');
+    + buildAdminApplicationAccountRowHtml({ name: '', loginNumber: '' });
   return [
-    buildAdminWorkerRosterStatusHtml(workers.map((w) => w.name)),
     '<div class="tableWrap appMenuTableWrap">',
     '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminWorkerRosterTable">',
     '    <colgroup><col class="adminWorkerNameCol"><col class="adminWorkerLoginCol"><col class="adminWorkerMachinesCol"></colgroup>',
@@ -1087,6 +1085,23 @@ function buildAdminWorkerRosterSettingsHtml() {
     '</div>',
     '<div class="smallText uMt8">Vyplň jméno a poslední 4 číslice osobního čísla. Stejné přihlašovací číslo nemůže být u pracovníka i samostatného účtu.</div>'
   ].join('');
+}
+
+function ensureAdminAppAccountBlankRow(root, preferredRow) {
+  const scope = root && root.querySelector ? root : document;
+  const tbody = scope.querySelector('.adminAppAccountsTable tbody');
+  if (!tbody) return false;
+  const rows = Array.from(tbody.querySelectorAll('tr[data-app-account-row]'));
+  const isBlank = (row) => !String(row.querySelector('[data-app-account-field="name"]')?.value || '').trim()
+    && !String(row.querySelector('[data-app-account-field="loginNumber"]')?.value || '').trim();
+  const blanks = rows.filter(isBlank);
+  let keep = preferredRow && blanks.includes(preferredRow) ? preferredRow : (blanks[blanks.length - 1] || null);
+  blanks.forEach((row) => { if (row !== keep) row.remove(); });
+  if (!keep) {
+    tbody.insertAdjacentHTML('beforeend', buildAdminApplicationAccountRowHtml({ name: '', loginNumber: '' }));
+    keep = tbody.lastElementChild;
+  }
+  return !!keep;
 }
 
 function readAdminWorkerRosterSettingsFromDom() {
@@ -1121,6 +1136,7 @@ function readAdminWorkerRosterSettingsFromDom() {
 
 window.getRakWorkerRosterSettings = getRakWorkerRosterSettings;
 window.buildAdminWorkerRosterSettingsHtml = buildAdminWorkerRosterSettingsHtml;
+window.ensureAdminAppAccountBlankRow = ensureAdminAppAccountBlankRow;
 window.readAdminWorkerRosterSettingsFromDom = readAdminWorkerRosterSettingsFromDom;
 
 function getSpecialWorkInfo(now) {
