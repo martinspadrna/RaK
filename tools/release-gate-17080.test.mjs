@@ -11,6 +11,15 @@ test('1.7.80 identifies offline boot and reconnect hardening',()=>{
 
 test('offline boot restores persisted Rotation before startup is declared ready',()=>{
   const app=read('app.js');
+  if(app.includes('RAK_17084_LOCAL_FIRST_BOOT')){
+    const restore=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
+    assert(restore.includes("await hydrateRakRotationLocalFirst();"));
+    assert(restore.includes("await ensureFeature('rotation');"));
+    assert(restore.includes('navigator.onLine === false'));
+    assert(!restore.includes("await ensureFeature('sync')"));
+    assert(!restore.includes('activateRemoteSync()'));
+    return;
+  }
   assert(app.includes('RAK_17080_OFFLINE_BOOT_RESTORE'));
   const restore=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(restore.includes("await ensureFeature('sync')"));

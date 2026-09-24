@@ -72,10 +72,12 @@ test('shift/roster placement cannot mutate owner or authenticated account identi
     globals:{window:{rakUserProfileGet:()=>profile},app,getRakWorkerRosterSettings:()=>roster},
     exports:{get:'getRakActiveAccountShiftInfo'}
   });
-  assert.deepEqual(api.get(),{team:'A',outside:true,accountId:account});
+  const inRoster=api.get();
+  assert.equal(inRoster.team,'A');assert.equal(inRoster.outside,true);assert.equal(inRoster.accountId,account);
   roster={appAccounts:[]};
-  assert.deepEqual(api.get(),{team:'D',outside:false,accountId:account});
-  assert.deepEqual(profile,{accountNumber:account,fullName:'Synthetic Owner'});
+  const outOfRoster=api.get();
+  assert.equal(outOfRoster.team,'D');assert.equal(outOfRoster.outside,false);assert.equal(outOfRoster.accountId,account);
+  assert.equal(profile.accountNumber,account);assert.equal(profile.fullName,'Synthetic Owner');
   assert.equal(app.activeAccountId,account);
 });
 

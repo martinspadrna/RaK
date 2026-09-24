@@ -29,10 +29,14 @@ test('offline profile reads are read-only and older appearance tasks cannot crea
   assert(bridge.includes("return { __rakUnavailable: true, reason: navigator.onLine ? 'missing-client' : 'offline-cache-miss' };"));
   assert(appearance.includes('remote && remote.__rakUnavailable === true'));
   assert(bridge.includes('state.syncGuard.uiSettingsRemoteWins'));
-  const start=bridge.indexOf('if (Number.isFinite(remoteAt) && remoteAt > queuedAt)');
-  const remoteWins=bridge.slice(start,bridge.indexOf('await saveGameAccountUiSettingsDirect',start));
+  const start=bridge.indexOf('if (remoteUi && remoteRevision > queuedUi.expected_revision)');
+  const remoteWins=bridge.slice(start,bridge.indexOf('let savedUi = await saveGameAccountUiSettingsDirect',start));
+  assert(remoteWins.includes('localAt <= remoteAt'));
   assert(remoteWins.includes('flushed += 1'));
+  assert(remoteWins.includes('state.syncGuard.uiSettingsRemoteWins'));
   assert(!remoteWins.includes("conflict: 'newer-online-state'"));
+  assert(appearance.includes('serverRevision'));
+  assert(appearance.includes('expected_revision'));
 });
 
 test('Vercel skip policy is fail closed for workflow and executable filename changes',()=>{

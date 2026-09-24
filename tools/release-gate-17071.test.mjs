@@ -7,15 +7,10 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 function flushFixture(task,remoteRow){
  let queue=[structuredClone(task)],saves=0,cacheWrites=0;
- const query={
-  select(){return this;},eq(){return this;},order(){return this;},
-  async limit(){return {data:remoteRow?[structuredClone(remoteRow)]:[],error:null};},
-  async maybeSingle(){return {data:remoteRow?structuredClone(remoteRow):null,error:null};}
- };
  const context={
   flushPromise:null,navigator:{onLine:true},document:{visibilityState:'visible'},
-  state:{queueGuard:{storageError:''},syncGuard:{queueFlushRuns:0,queueFlushErrors:0,queueFlushEmptyRuns:0,queueFlushSuccesses:0,queueConflictHolds:0}},
-  getClient:()=>({from:()=>query}),readQueue:()=>queue.map(item=>structuredClone(item)),
+  state:{queueGuard:{storageError:''},syncGuard:{queueFlushRuns:0,queueFlushErrors:0,queueFlushEmptyRuns:0,queueFlushSuccesses:0,queueConflictHolds:0,uiSettingsRemoteWins:0}},
+  getClient:()=>({}),readQueue:()=>queue.map(item=>structuredClone(item)),
   writeQueue:value=>{queue=value.map(item=>structuredClone(item));return true;},
   rememberQueueHealth:value=>({length:value.length}),shouldDeferQueueFlushForHiddenPage:()=>false,
   SUPABASE_QUEUE_FLUSH_BATCH_SIZE:8,SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS:1200,SUPABASE_QUEUE_HIDDEN_RETRY_DELAY_MS:1800,
@@ -23,11 +18,15 @@ function flushFixture(task,remoteRow){
   markQueuedTaskAttempt:value=>({...value,lastTriedAt:Date.now()}),
   markQueuedTaskFailure:(value,error)=>({...value,retryCount:(value.retryCount||0)+1,lastErrorMessage:error.message}),
   isLikelyPermanentQueueError:()=>false,isLikelyOfflineError:()=>false,scheduleSupabaseQueueFlush:()=>true,
-  runSupabaseOperation:async(_name,action)=>await action(),GAME_UI_SETTINGS_TYPE:'__profile_ui',
-  normalizeGameUiSettings:entry=>({account_number:String(entry.account_number||''),theme_id:String(entry.theme_id||''),background_id:String(entry.background_id||''),updated_at:entry.updated_at||null}),
-  decodeGameUiSettingsRow:row=>row?{account_number:String(row.account_number||''),theme_id:String(row.theme_id||''),background_id:String(row.background_id||''),updated_at:row.updated_at||null}:null,
+  normalizeGameUiSettings:entry=>({
+    account_number:String(entry.account_number||''),
+    appearance_id:String(entry.appearance_id||entry.theme_id||entry.background_id||''),
+    expected_revision:Math.max(0,Number(entry.expected_revision||0)||0),
+    updated_at:entry.updated_at||null
+  }),
+  loadGameAccountUiSettingsDirect:async()=>remoteRow?structuredClone(remoteRow):null,
   gameUiSettingsCacheKey:account=>'ui:'+account,writeTimedCache:()=>{cacheWrites+=1;return true;},
-  saveGameAccountUiSettingsDirect:async()=>{saves+=1;return {ok:true};},
+  saveGameAccountUiSettingsDirect:async(_client,entry)=>{saves+=1;return {ok:true,account_number:entry.account_number,appearance_id:entry.appearance_id,revision:(entry.expected_revision||0)+1,updated_at:new Date().toISOString()};},
   window:{__rakRefreshSyncBadgeTruth:()=>{}},console:{warn:()=>{}},Date,JSON,Promise,Map,Set,structuredClone
  };
  const fn=extractNamedDeclaration(read('supabase-bridge.js'),'flushPendingWrites');
@@ -47,8 +46,8 @@ test('service worker prewarms complete Rotation and sync runtime before offline 
 
 test('already-conflicted same profile appearance is rechecked and acknowledged without write',async()=>{
  const queuedAt='2026-09-22T08:00:00.000Z';
- const fixture=flushFixture({id:'same-ui',type:'game_ui_settings',queuedAt,conflict:'newer-online-state',entry:{account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:queuedAt}},
-  {account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:'2026-09-22T09:00:00.000Z'});
+ const fixture=flushFixture({id:'same-ui',type:'game_ui_settings',queuedAt,entry:{account_number:'1234',appearance_id:'laser',expected_revision:1,updated_at:queuedAt}},
+  {account_number:'1234',appearance_id:'laser',revision:2,updated_at:'2026-09-22T09:00:00.000Z'});
  const result=await fixture.run();
  assert.equal(result.ok,true);assert.equal(result.flushed,1);assert.equal(result.held,0);
  assert.equal(fixture.queue().length,0);assert.equal(fixture.saves(),0);
@@ -56,8 +55,8 @@ test('already-conflicted same profile appearance is rechecked and acknowledged w
 
 test('different newer profile appearance accepts verified server value without write or global conflict',async()=>{
  const queuedAt='2026-09-22T08:00:00.000Z';
- const fixture=flushFixture({id:'different-ui',type:'game_ui_settings',queuedAt,conflict:'newer-online-state',entry:{account_number:'1234',theme_id:'laser',background_id:'laser',updated_at:queuedAt}},
-  {account_number:'1234',theme_id:'light',background_id:'light',updated_at:'2026-09-22T09:00:00.000Z'});
+ const fixture=flushFixture({id:'different-ui',type:'game_ui_settings',queuedAt,entry:{account_number:'1234',appearance_id:'laser',expected_revision:1,updated_at:queuedAt}},
+  {account_number:'1234',appearance_id:'light',revision:2,updated_at:'2026-09-22T09:00:00.000Z'});
  const result=await fixture.run();
  assert.equal(result.ok,true);assert.equal(result.flushed,1);assert.equal(result.held,0);
  assert.equal(fixture.queue().length,0);assert.equal(fixture.saves(),0);assert.equal(fixture.cacheWrites(),1);

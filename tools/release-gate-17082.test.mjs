@@ -42,6 +42,13 @@ test('cold boot has an explicit awaited runtime hydration contract',()=>{
   assert(sync.includes('async function hydrateRakRotationFromOfflineCache(options)'));
   assert(sync.includes('window.hydrateRakRotationFromOfflineCache = hydrateRakRotationFromOfflineCache'));
   assert(sync.includes('await hydrateRakRotationFromOfflineCache({ repair: true, force: false })'));
+  if(app.includes('RAK_17084_LOCAL_FIRST_BOOT')){
+    const boot=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
+    assert(boot.includes('await hydrateRakRotationLocalFirst()'));
+    assert(boot.includes("await ensureFeature('rotation')"));
+    assert(!boot.includes("await ensureFeature('sync')"));
+    return;
+  }
   const boot=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(boot.includes('RAK_17082_AWAIT_RUNTIME_HYDRATION'));
   assert(boot.includes("await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true })"));
@@ -49,9 +56,20 @@ test('cold boot has an explicit awaited runtime hydration contract',()=>{
 
 test('returning service-worker startup hydrates before remote sync regardless of navigator.onLine',()=>{
   const app=read('app.js');
-  assert(app.includes('RAK_17082_RETURNING_SW_HYDRATION'));
   assert(app.includes('navigator.serviceWorker.controller'));
   assert(app.includes('rakBootLocalHydrationInProgress = true'));
+  if(app.includes('RAK_17084_LOCAL_FIRST_BOOT')){
+    const boot=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
+    assert(boot.includes('rakReturningServiceWorkerStart'));
+    assert(boot.includes('await hydrateRakRotationLocalFirst()'));
+    assert(boot.includes("await ensureFeature('rotation')"));
+    assert(!boot.includes('activateRemoteSync()'));
+    const afterReady=app.slice(app.indexOf('const startupReadyAt'));
+    assert(afterReady.includes("const startSync = () => ensureFeature('sync')"));
+    assert(afterReady.includes('scheduleIdleWork(startSync'));
+    return;
+  }
+  assert(app.includes('RAK_17082_RETURNING_SW_HYDRATION'));
   assert(app.includes("if (!rakBootLocalHydrationInProgress) void activateRemoteSync()"));
   const boot=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(boot.indexOf("await window.hydrateRakRotationFromOfflineCache") < boot.indexOf('void activateRemoteSync()'));
