@@ -1,3 +1,9 @@
+## RaK 1.7.91 (development)
+
+- Ve veřejném směnovém kalendáři může Google při omezeném sdílení skrýt název události jako `Busy`; RaK u takové položky nově odvodí české označení ze začátku směny: 06:00 → `Ranní`, 18:00 nebo 22:00 → `Noční`.
+- Vlastní názvy z ICS se nepřepisují. Směna D si proto dál zachová názvy jako `Ranní 12h`, `Noční 12h` nebo `Ranní 8h`.
+- Změna je pouze v nativním kalendáři a release metadatech; Supabase ani produkce se nemění.
+
 ## RaK 1.7.90 (development)
 
 - Dashboard kalendář už nepoužívá vložený Google Calendar iframe, který iOS/PWA blokoval kvůli third-party cookies. Veřejný Google Calendar ICS se načítá přes úzký RaK endpoint a vykresluje přímo v aplikaci.

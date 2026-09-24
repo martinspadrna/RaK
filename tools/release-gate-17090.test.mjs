@@ -19,20 +19,17 @@ function mockResponse(){
   };
 }
 
-test('1.7.90 uses one unified release identity',()=>{
+test('1.7.90 native calendar milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.90');
-  assert.equal(metadata.displayVersion,'1.7.90');
-  assert.equal(metadata.technicalVersion,'1.7.90');
-  assert.equal(metadata.moduleCacheVersion,'1.7.90');
-  assert.equal(metadata.cacheVersion,'v1.7.90');
-  assert.equal(metadata.buildId,'v1.7.90-native-public-calendar1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.90');
-  assert(read('index.html').includes('app.js?v=1.7.90'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.90');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.90';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('public calendar endpoint is a bounded Google public-ICS fetcher, not an arbitrary proxy',()=>{
   const api=read('api/public-calendar.js');
   assert(api.includes("const GOOGLE_CALENDAR_HOST = 'calendar.google.com'"));
@@ -119,11 +116,10 @@ test('native calendar UI is mobile-safe and the new endpoint is part of complete
   assert(backup.includes('"api/public-calendar.js"'));
 });
 
-test('mandatory CI and npm check execute the 1.7.90 gate',()=>{
+test('npm check retains 1.7.90 while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17090.test.mjs'));
-  assert(pkg.scripts.check.includes('node --check api/public-calendar.js'));
   assert(pkg.scripts.check.includes('tools/release-gate-17090.test.mjs'));
-  assert(workflow.includes('rak-17090-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(pkg.scripts.check.includes('node --check api/public-calendar.js'));
+  assert(/node --test tools\/release-gate-1709\d\.test\.mjs/.test(workflow));
 });

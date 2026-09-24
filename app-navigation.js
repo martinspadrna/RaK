@@ -1257,6 +1257,16 @@ function rakNativeCalendarDayLabel(key) {
   catch (_) { return key; }
 }
 
+function rakNativeCalendarDisplaySummary(event) {
+  const summary = String(event && event.summary || '').trim() || 'Událost';
+  const normalized = summary.toLocaleLowerCase('cs-CZ').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (!['busy','zaneprazdnen','zaneprazdneno'].includes(normalized)) return summary;
+  const time = String(event && (event.time || (event.start && event.start.time)) || '');
+  if (time.startsWith('06:')) return 'Ranní';
+  if (time.startsWith('18:') || time.startsWith('22:')) return 'Noční';
+  return summary;
+}
+
 function rakNativeCalendarRender(content) {
   const host = content && content.querySelector('.calendarNativeHost');
   const state = content && content.__rakCalendarState;
@@ -1292,7 +1302,7 @@ function rakNativeCalendarRender(content) {
     const date = rakNativeCalendarAddDays(range.start, i);
     const key = rakNativeCalendarKey(date);
     const events = byDay.get(key) || [];
-    const chips = events.slice(0, 2).map((event) => '<span class="calendarNativeChip">' + escapeHtml((event.time ? event.time + ' ' : '') + event.summary) + '</span>').join('');
+    const chips = events.slice(0, 2).map((event) => '<span class="calendarNativeChip">' + escapeHtml((event.time ? event.time + ' ' : '') + rakNativeCalendarDisplaySummary(event)) + '</span>').join('');
     const more = events.length > 2 ? '<span class="calendarNativeMore">+' + String(events.length - 2) + '</span>' : '';
     const classes = [
       'calendarNativeDay',
@@ -1309,7 +1319,7 @@ function rakNativeCalendarRender(content) {
     ? selectedEvents.map((event) => [
         '<div class="calendarNativeAgendaItem">',
         '<div class="calendarNativeAgendaTime">' + escapeHtml(event.allDay ? 'celý den' : (event.time || '')) + '</div>',
-        '<div class="calendarNativeAgendaText"><b>' + escapeHtml(event.summary) + '</b>',
+        '<div class="calendarNativeAgendaText"><b>' + escapeHtml(rakNativeCalendarDisplaySummary(event)) + '</b>',
         event.location ? '<span>' + escapeHtml(event.location) + '</span>' : '',
         event.description ? '<small>' + escapeHtml(event.description) + '</small>' : '',
         '</div></div>'
