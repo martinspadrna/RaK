@@ -3,7 +3,7 @@
 > **Toto je jediný řídicí dokument projektu RaK.** Stálý odkaz je
 > https://github.com/martinspadrna/RaK/blob/development/RAK_HANDOFF.md
 >
-> Po každém větším balíku se aktualizuje právě tento soubor: provozní pravidla, aktuální stav, celý 13bodový plán, checkboxy, procenta, důkazy, backlog, pořadí práce i otevřené blokátory. Starší stavové a plánovací soubory jsou pouze historie nebo rozcestníky a nesmějí řídit další práci.
+> Po každém větším balíku se aktualizuje právě tento soubor: provozní pravidla, aktuální stav, celý 13bodový plán, checkboxy, procenta, důkazy, backlog, pořadí práce i otevřené blokátory. Starší stavové a plánovací soubory jsou pouze historie a nesmějí řídit další práci. `RAK_PLAN_13.md` je kvůli kompatibilitě jen symbolický odkaz na tento soubor, takže nevzniká druhá kopie plánu.
 
 ## Nejkratší prompt pro nový chat
 
@@ -362,7 +362,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 ## Záznam aktualizací
 
-- **24. 9. 2026 – jediným kanonickým dokumentem se stává RAK_HANDOFF.md:** celý 13bodový plán, checklisty, procenta, důkazy, seskupený backlog, provozní pravidla a předávací stav byly sloučeny pod stálý odkaz, který má vlastník uložený. `RAK_PLAN_13.md` zůstává pouze historický rozcestník a nesmí řídit další práci. Jde výhradně o dokumentační změnu bez zvýšení verze a bez Vercel deploymentu. Vyjádření vlastníka, že produkční převod vypadá v pořádku, není samo o sobě úplným fyzickým acceptance checklistem 1.7.83 ani souhlasem s produkční fází B; procenta se proto nemění.
+- **24. 9. 2026 – jediným kanonickým dokumentem se stává RAK_HANDOFF.md:** celý 13bodový plán, checklisty, procenta, důkazy, seskupený backlog, provozní pravidla a předávací stav byly sloučeny pod stálý odkaz, který má vlastník uložený. `RAK_PLAN_13.md` zůstává pouze kompatibilní symbolický odkaz na tento soubor, takže testy i staré odkazy čtou stejný jediný obsah. První konsolidační commit `6b64e1a49821e8f9d9640abd2be53392e894c40b` správně selhal v Actions #263, protože roadmap kontrakt ještě četl starou cestu; skutečná příčina byla opravena kompatibilním symlinkem bez duplikace plánu. Jde výhradně o dokumentační změnu bez zvýšení verze a bez Vercel deploymentu. Vyjádření vlastníka, že produkční převod vypadá v pořádku, není samo o sobě úplným fyzickým acceptance checklistem 1.7.83 ani souhlasem s produkční fází B; procenta se proto nemění.
 
 
 - **24. 9. 2026 – produkční předání 1.7.83 fáze A dokončeno a nový funkční backlog zařazen:** main SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d` prošel Actions #261 / run `35957793587` SUCCESS a ručním produkčním releasem #1 / run `35958452867` SUCCESS. Vercel `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` je READY na přesném SHA, produkční alias je přepnutý až po HTTP důkazu a strojový artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d` je uložen. Produkční Supabase `bkqamcbkiwumsvelahxr` obdržela jen kompatibilní fázi A; `rak-admin-users` je ACTIVE v8, anonymní i neplatný JWT vrací 401 a fáze B zůstává mimo souhlas. Nové požadavky vlastníka jsou seskupeny do P0.1/P0.3/P0.4/P1.2/P1.5/P2.1–P2.4; jde o otevřený backlog, proto se procenta 13 oblastí zatím nemění. Tato následná aktualizace plánu je dokumentační změna na `development` a nevytváří nový deployment ani verzi.
