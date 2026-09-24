@@ -194,6 +194,8 @@ Tento dokumentační commit má mít prvního rodiče aktuální `development` a
 9. Uživatel fyzicky ověří na iPhonu online přihlášení běžného uživatele, owner/admin přihlášení a zařízení, stránku „O aplikaci“, načtení Rotace a jeden restart instalované PWA bez mazání dat. Chromium se za tento test nevydává.
 10. Během přejímky se **fáze B neprovádí**. Při chybě se produkční alias vrátí na `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1`; fáze A zachovává legacy čtení, takže tento rollback cíl zůstává kompatibilní. Pokud problém souvisí s Edge Function, znovu se nasadí níže uložený zdroj verze 7.
 11. Teprve po fyzickém PASS a druhém výslovném potvrzení se aplikují soubory fáze B, které uzavřou staré veřejné čtecí cesty a přidají privacy guardy. Po této fázi už starý deployment není automaticky bezpečný aplikační rollback; návrat vyžaduje nejdřív obnovu zachycených grantů/policies/funkcí, nikdy mazání dat.
+
+**Doplněk produkčního preflightu 24. 9. 2026:** čtecí katalogová kontrola zjistila v `public.gomoku_wins` 101 historických řádků z období 26. 5.–23. 6. 2026. Vlastník potvrdil, že jde o historii odstraněných Her. Původní guard správně odmítl pokračovat, protože očekával prázdnou tabulku. Revidovaný soubor `20260918193324...` žádný řádek nemaže ani nemění; před uzavřením SELECT fail-closed ověří, že `anon` ani `authenticated` nemají zápisový grant ani EXECUTE na legacy zápisové RPC, a že už proběhl privacy cutover adresáře účtů. Historické řádky zůstávají zachované pro service-role/owner zálohu. Produkční aplikace 1.7.83 herní UI neobsahuje; kompatibilní bridge není aktivním volajícím. Fáze B se přesto nesmí provést bez úplného fyzického iPhone PASS a výslovného potvrzení vlastníka.
 12. Vytvořit strojový release evidence artefakt s main SHA, Actions runem, dvěma buildy, DB migracemi a jejich hashy, Edge verzí/hash, Vercel deployment ID/READY/SHA, HTTP metadaty, aliasem a konkrétními rollback cíli. Neúplný nebo neznámý stav je FAIL.
 
 Povinný SQL guard před změnou role constraintu:
@@ -302,7 +304,7 @@ ALTER TABLE public.rak_admin_profiles
     },
     {
       "path": "supabase/migrations/20260918193324_rak_close_retired_gomoku_public_read.sql",
-      "sha256": "e5a08c40b66681bb548c64738cf320a3799f9374c081b76dc5158e7e1ffd1843"
+      "sha256": "dd8ebf4e9f40c835f32373155e5e52bf20bf324f97bdaf675d3f6e756ca23431"
     },
     {
       "path": "supabase/migrations/20260918195107_rak_stage_verified_employee_rotation_reader.sql",
