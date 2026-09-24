@@ -1430,6 +1430,44 @@ function hideCalendarModal() {
   document.body.classList.remove('calendarModalOpening');
 }
 
+function rakShiftCalendarEmbedUrl(calendars) {
+  const sources = [];
+  const colors = [];
+  const seen = new Set();
+  (Array.isArray(calendars) ? calendars : []).forEach((entry) => {
+    const raw = String(entry && entry.url || '').trim();
+    const normalized = typeof normalizeRakGoogleCalendarUrl === 'function' ? normalizeRakGoogleCalendarUrl(raw) : raw;
+    if (!normalized) return;
+    try {
+      const url = new URL(normalized);
+      if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return;
+      const entrySources = url.searchParams.getAll('src').map((src) => String(src || '').trim()).filter(Boolean);
+      const entryColors = url.searchParams.getAll('color');
+      entrySources.forEach((source, index) => {
+        if (seen.has(source)) return;
+        seen.add(source);
+        sources.push(source);
+        colors.push(String(entryColors[index] || '').trim());
+      });
+    } catch (_) {}
+  });
+  if (!sources.length) return '';
+  const embed = new URL('https://calendar.google.com/calendar/embed');
+  embed.searchParams.set('height', '900');
+  embed.searchParams.set('wkst', '2');
+  embed.searchParams.set('ctz', 'Europe/Prague');
+  embed.searchParams.set('showPrint', '0');
+  embed.searchParams.set('showTitle', '0');
+  embed.searchParams.set('showTabs', '0');
+  embed.searchParams.set('showCalendars', '0');
+  embed.searchParams.set('showTz', '0');
+  sources.forEach((source, index) => {
+    embed.searchParams.append('src', source);
+    if (colors[index]) embed.searchParams.append('color', colors[index]);
+  });
+  return embed.toString();
+}
+
 function renderCalendarModalContent(overlay) {
   if (!overlay) return false;
   const context = typeof getRakActiveShiftCalendarContext === 'function'
@@ -1441,22 +1479,24 @@ function renderCalendarModalContent(overlay) {
   const content = overlay.querySelector('#calendarModalContent');
   if (title) title.textContent = 'Kalendář · směna ' + team;
   if (!content) return false;
-  if (!calendars.length) {
-    content.innerHTML = '<div class="appMenuText">Pro směnu ' + escapeHtml(team) + ' není nastavený žádný kalendář.</div>';
-    content.__rakCalendars = [];
-    content.__rakCalendarState = null;
+
+  const calendarUrl = rakShiftCalendarEmbedUrl(calendars);
+  if (!calendarUrl) {
+    content.dataset.calendarSignature = '';
+    content.innerHTML = '<div class="appMenuText">Pro směnu ' + escapeHtml(team) + ' není nastavený žádný veřejný Google kalendář.</div>';
     return true;
   }
-  const buttons = calendars.length > 1
-    ? '<div class="appMenuActionRow calendarModalChoices">' + calendars.map((entry, index) => (
-        '<button type="button" class="appMenuAction calendarModalChoice' + (index === 0 ? ' isActive' : '') + '" data-calendar-choice-index="' + String(index) + '">' + escapeHtml(entry.label || ('Kalendář ' + String(index + 1))) + '</button>'
-      )).join('') + '</div>'
-    : '';
-  content.innerHTML = buttons + '<div class="calendarNativeHost"></div>';
-  content.dataset.calendarTeam = team;
-  content.__rakCalendars = calendars;
-  content.__rakCalendarState = null;
-  void rakNativeCalendarLoad(content, 0);
+
+  const signature = team + '|' + calendarUrl;
+  const existingFrame = content.querySelector('.calendarModalFrame');
+  if (content.dataset.calendarSignature === signature && existingFrame) return true;
+
+  content.dataset.calendarSignature = signature;
+  content.innerHTML = [
+    '<div class="calendarModalFrameWrap">',
+    '<iframe class="calendarModalFrame" title="Google kalendář směny ' + escapeHtml(team) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
+    '</div>'
+  ].join('');
   return true;
 }
 
@@ -1608,6 +1648,19 @@ function bindCalendarTile() {
   el.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') handler(event);
   });
+  const prewarm = () => {
+    try {
+      const context = typeof getRakActiveShiftCalendarContext === 'function' ? getRakActiveShiftCalendarContext() : null;
+      if (context && Array.isArray(context.calendars) && context.calendars.length) ensureCalendarModal();
+    } catch (_) {}
+  };
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(prewarm, { timeout: 1200 });
+  } else if (typeof registerTimeout === 'function') {
+    registerTimeout(prewarm, 600);
+  } else {
+    setTimeout(prewarm, 600);
+  }
   return true;
 }
 

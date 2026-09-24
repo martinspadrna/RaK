@@ -1,3 +1,10 @@
+## RaK 1.7.95 (development)
+
+- Kalendář se vrací ke skutečnému Google Calendar iframe stejně jako v produkčním `main`, místo vlastní nativní napodobeniny. Díky tomu má přesně Google vzhled i jeho detail události.
+- Iframe se skládá dynamicky podle směny A/B/C/D přihlášeného účtu. Pokud má směna více veřejných Google kalendářů, RaK je spojí do jednoho měsíčního pohledu přes více `src`.
+- Jednou vytvořený iframe se při zavření modalu nezahazuje; při dalším otevření se znovu použije. Navíc se po navázání dlaždice kalendáře na pozadí přednačte, takže otevření má být stejně rychlé nebo rychlejší než v `main`.
+- Veřejný ICS endpoint a nativní parser zůstávají v repozitáři jako technická záloha/rollback, ale nejsou hlavním UI. Supabase ani produkce se nemění.
+
 ## RaK 1.7.94 (development)
 
 - Mobilní měsíční kalendář už nevykresluje vždy pevných 42 dní. Použije 5 týdnů, když se měsíc do pěti řádků vejde, a 6 týdnů jen tehdy, když jsou skutečně potřeba; říjen 2026 tak nemá zbytečný poslední řádek.

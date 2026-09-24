@@ -77,21 +77,13 @@ test('base64 Google embed source is normalized server-side to its public calenda
   assert.equal(handler._test.calendarUrl(plain),'https://calendar.google.com/calendar/ical/'+encodeURIComponent(plain)+'/public/basic.ics');
 });
 
-test('native calendar replaces the Google iframe and includes recurrence/exception handling',()=>{
+test('1.7.90 public-ICS parser remains available as a bounded fallback',()=>{
   const nav=read('app-navigation.js');
   assert(nav.includes('function rakNativeCalendarLoad('));
   assert(nav.includes("fetch('/api/public-calendar?src='"));
   assert(nav.includes("rakNativeCalendarProperties(block, 'RRULE')"));
   assert(nav.includes("rakNativeCalendarProperties(block, 'RECURRENCE-ID')"));
   assert(nav.includes("rakNativeCalendarProperties(block, 'EXDATE')"));
-  assert(nav.includes('data-calendar-nav'));
-  assert(nav.includes('data-calendar-today'));
-  assert(nav.includes('data-calendar-day'));
-  const renderStart=nav.indexOf('function renderCalendarModalContent');
-  const renderEnd=nav.indexOf('function ensureCalendarModal',renderStart);
-  const renderer=nav.slice(renderStart,renderEnd);
-  assert(renderer.includes('calendarNativeHost'));
-  assert(!renderer.includes('<iframe'));
 });
 
 test('calendar source extraction supports public ICS and Google embed URLs',()=>{
