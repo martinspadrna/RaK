@@ -81,7 +81,8 @@ test('real admin button confirms before fetching; rejects cache/offline/race and
 });
 test('1.7.69 and verified canonical successors keep TEST-only release and historical gates',()=>{
  assertCurrentReleaseIdentity(read,'1.7.69');
- assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
+ assert.equal(JSON.parse(read('package.json')).version,RELEASE_METADATA.technicalVersion);
+ assert.equal(RELEASE_METADATA.technicalVersion,RELEASE_METADATA.displayVersion);
  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
  const chain=read('tools/development-version-17048.mjs');
  assert(chain.includes("await import('./development-version-17069.mjs');"));
