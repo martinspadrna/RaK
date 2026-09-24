@@ -1,3 +1,9 @@
+## RaK 1.7.92 (development)
+
+- Denní přehled po kliknutí na datum v nativním kalendáři nově zobrazuje celý časový interval události, např. `06:00–18:00`, `18:00–06:00` nebo `22:00–06:00`, místo samotného začátku.
+- Měsíční mřížka zůstává stručná a dál ukazuje pouze začátek + název směny.
+- Celodenní události se dál zobrazují jako `celý den`; změna nezasahuje do Supabase ani produkce.
+
 ## RaK 1.7.91 (development)
 
 - Ve veřejném směnovém kalendáři může Google při omezeném sdílení skrýt název události jako `Busy`; RaK u takové položky nově odvodí české označení ze začátku směny: 06:00 → `Ranní`, 18:00 nebo 22:00 → `Noční`.

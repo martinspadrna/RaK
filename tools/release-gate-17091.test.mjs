@@ -5,20 +5,17 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.91 uses one unified release identity',()=>{
+test('1.7.91 calendar-label milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.91');
-  assert.equal(metadata.displayVersion,'1.7.91');
-  assert.equal(metadata.technicalVersion,'1.7.91');
-  assert.equal(metadata.moduleCacheVersion,'1.7.91');
-  assert.equal(metadata.cacheVersion,'v1.7.91');
-  assert.equal(metadata.buildId,'v1.7.91-calendar-shift-labels1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.91');
-  assert(read('index.html').includes('app.js?v=1.7.91'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.91');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.91';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('busy shift events get Czech day/night labels from start time without rewriting named events',()=>{
   const nav=read('app-navigation.js');
   const {api}=runNamedDeclarations({
@@ -44,10 +41,9 @@ test('native calendar uses the normalized shift label in month chips and daily a
   assert.equal((renderer.match(/rakNativeCalendarDisplaySummary\(event\)/g)||[]).length,2);
 });
 
-test('mandatory CI and npm check execute the 1.7.91 gate',()=>{
+test('npm check retains 1.7.91 while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17091.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17091.test.mjs'));
-  assert(workflow.includes('rak-17091-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(/node --test tools\/release-gate-1709\d\.test\.mjs/.test(workflow));
 });

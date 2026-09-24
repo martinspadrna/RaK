@@ -1175,6 +1175,7 @@ function rakNativeCalendarAppendOccurrence(target, event, dateKey) {
     target.push({
       dateKey: rakNativeCalendarKey(rakNativeCalendarAddDays(startDate, i)),
       time: event.start && event.start.time || '',
+      endTime: event.end && event.end.time || '',
       allDay: !!(event.start && event.start.allDay),
       summary: event.summary || 'Událost',
       description: event.description || '',
@@ -1267,6 +1268,14 @@ function rakNativeCalendarDisplaySummary(event) {
   return summary;
 }
 
+function rakNativeCalendarAgendaTime(event) {
+  if (event && event.allDay) return 'celý den';
+  const start = String(event && event.time || '').trim();
+  const end = String(event && event.endTime || '').trim();
+  if (start && end) return start + '–' + end;
+  return start || end;
+}
+
 function rakNativeCalendarRender(content) {
   const host = content && content.querySelector('.calendarNativeHost');
   const state = content && content.__rakCalendarState;
@@ -1318,7 +1327,7 @@ function rakNativeCalendarRender(content) {
   const agenda = selectedEvents.length
     ? selectedEvents.map((event) => [
         '<div class="calendarNativeAgendaItem">',
-        '<div class="calendarNativeAgendaTime">' + escapeHtml(event.allDay ? 'celý den' : (event.time || '')) + '</div>',
+        '<div class="calendarNativeAgendaTime">' + escapeHtml(rakNativeCalendarAgendaTime(event)) + '</div>',
         '<div class="calendarNativeAgendaText"><b>' + escapeHtml(rakNativeCalendarDisplaySummary(event)) + '</b>',
         event.location ? '<span>' + escapeHtml(event.location) + '</span>' : '',
         event.description ? '<small>' + escapeHtml(event.description) + '</small>' : '',
