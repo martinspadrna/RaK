@@ -7,8 +7,10 @@
         const parsed = JSON.parse(localStorage.getItem(key) || 'null');
         const accountNumber = String(parsed && parsed.accountNumber || '').trim();
         const fullName = String(parsed && parsed.fullName || '').trim();
+        const requestedTeam = String(parsed && parsed.shiftTeam || '').trim().toUpperCase();
+        const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
         if (!accountNumber || !fullName) return null;
-        return { accountNumber, fullName, updatedAt: Number(parsed.updatedAt || 0) || 0 };
+        return { accountNumber, fullName, shiftTeam, updatedAt: Number(parsed.updatedAt || 0) || 0 };
       } catch (err) {
         return null;
       }

@@ -741,12 +741,20 @@ function getWorkerNameByLoginNumber(loginNumber) {
 // RAK_EXTERNAL_SHIFT_TEAMS_17020
 function getRakActiveAccountShiftInfo() {
   let id = '';
-  try { const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null; id = String(profile && profile.accountNumber || '').trim(); } catch(err) {}
+  let profileTeam = '';
+  try {
+    const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+    id = String(profile && profile.accountNumber || '').trim();
+    const requestedTeam = String(profile && profile.shiftTeam || '').trim().toUpperCase();
+    profileTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
+  } catch(err) {}
   if(!id) { try { id = String(app && app.activeAccountId || '').trim(); } catch(err) {} }
   if(!id) return {team:'D',outside:false,accountId:''};
   const roster = getRakWorkerRosterSettings();
   const account = (roster.appAccounts || []).find(row => String(row.loginNumber || '') === id);
-  return account ? {team:account.shiftTeam || 'D',outside:true,accountId:id} : {team:'D',outside:false,accountId:id};
+  if (account) return {team:account.shiftTeam || profileTeam || 'D',outside:true,accountId:id};
+  if (profileTeam) return {team:profileTeam,outside:profileTeam!=='D',accountId:id};
+  return {team:'D',outside:false,accountId:id};
 }
 function getRakActiveAccountShiftTeam() { return getRakActiveAccountShiftInfo().team; }
 function rakCanAccessRotations() { return getRakActiveAccountShiftTeam() === 'D'; }

@@ -1,3 +1,11 @@
+## RaK 1.7.89 (development)
+
+- Opraveno mapování kalendáře podle účtu: běžný klient už nemusí číst soukromý seznam pracovníků; verzovaný login RPC vrací pouze směnu právě nalezeného účtu a profil ji ukládá i pro další/offline start.
+- Starý lokální profil bez směny se po prvním online startu bezpečně doplní, takže není nutné ručně mazat data aplikace.
+- Kalendářový modal používá celý dostupný prostor: obsah je skutečný flex sloupec a Google iframe vyplní zbývající výšku místo malého výchozího proužku.
+- Zavírací × v kalendáři je centrované přes flex layout a mobilní modal má menší okraje.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.89; SW cache je v1.7.89.
+
 ## RaK 1.7.88 (development)
 
 - Opraven administrátorský guard stránky Kalendáře: režim `calendars` je nově explicitně povolen, takže Přidat, Odebrat, Načíst i Uložit už nevrací uživatele do hlavního menu Více.
