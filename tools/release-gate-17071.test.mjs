@@ -7,10 +7,15 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 const {buildId:BUILD,displayVersion:VERSION}=RELEASE_METADATA;
 function flushFixture(task,remoteRow){
  let queue=[structuredClone(task)],saves=0,cacheWrites=0;
+ const query={
+  select(){return this;},eq(){return this;},order(){return this;},
+  async limit(){return {data:remoteRow?[structuredClone(remoteRow)]:[],error:null};},
+  async maybeSingle(){return {data:remoteRow?structuredClone(remoteRow):null,error:null};}
+ };
  const context={
   flushPromise:null,navigator:{onLine:true},document:{visibilityState:'visible'},
   state:{queueGuard:{storageError:''},syncGuard:{queueFlushRuns:0,queueFlushErrors:0,queueFlushEmptyRuns:0,queueFlushSuccesses:0,queueConflictHolds:0,uiSettingsRemoteWins:0}},
-  getClient:()=>({}),readQueue:()=>queue.map(item=>structuredClone(item)),
+  getClient:()=>({from:()=>query}),readQueue:()=>queue.map(item=>structuredClone(item)),
   writeQueue:value=>{queue=value.map(item=>structuredClone(item));return true;},
   rememberQueueHealth:value=>({length:value.length}),shouldDeferQueueFlushForHiddenPage:()=>false,
   SUPABASE_QUEUE_FLUSH_BATCH_SIZE:8,SUPABASE_QUEUE_FLUSH_IDLE_DELAY_MS:1200,SUPABASE_QUEUE_HIDDEN_RETRY_DELAY_MS:1800,

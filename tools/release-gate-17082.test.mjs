@@ -66,7 +66,8 @@ test('returning service-worker startup hydrates before remote sync regardless of
     assert(!boot.includes('activateRemoteSync()'));
     const afterReady=app.slice(app.indexOf('const startupReadyAt'));
     assert(afterReady.includes("const startSync = () => ensureFeature('sync')"));
-    assert(afterReady.includes('scheduleIdleWork(startSync'));
+    assert(afterReady.includes("requestIdleCallback(startSync, { timeout: 1200 })"));
+    assert(afterReady.includes('else setTimeout(startSync, 450)'));
     return;
   }
   assert(app.includes('RAK_17082_RETURNING_SW_HYDRATION'));
