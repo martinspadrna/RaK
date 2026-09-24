@@ -871,6 +871,10 @@ function bindAppMenuHandlers(body) {
         openAppMenu('admin-accounts');
         return;
       }
+      if (adminAction === 'open-calendars') {
+        openAppMenu('admin-calendars');
+        return;
+      }
       if (adminAction === 'open-external-links') {
         openAppMenu('admin-external-links');
         return;
@@ -1433,6 +1437,45 @@ function bindAppMenuHandlers(body) {
         if (nextStatus) nextStatus.textContent = 'Moje heslo bylo změněno.';
         return;
       }
+      if (adminAction === 'add-shift-calendar') {
+        const team = String(target.getAttribute('data-calendar-team') || '').trim().toUpperCase();
+        const block = target.closest('[data-shift-calendar-team-block]');
+        const rows = block ? block.querySelector('[data-shift-calendar-rows]') : null;
+        if (rows && typeof buildAdminShiftCalendarRowHtml === 'function') {
+          rows.insertAdjacentHTML('beforeend', buildAdminShiftCalendarRowHtml(team, {}));
+        }
+        return;
+      }
+      if (adminAction === 'remove-shift-calendar') {
+        const row = target.closest('[data-shift-calendar-row]');
+        if (row) row.remove();
+        return;
+      }
+      if (adminAction === 'load-calendars') {
+        await loadAdminMachineSettingsFromSupabase();
+        renderAdminMenuBody(body, 'calendars');
+        return;
+      }
+      if (adminAction === 'save-calendars') {
+        const calendarSettings = readAdminShiftCalendarsSettingsFromDom();
+        const rows = mergeRakShiftCalendarSettingsRows(calendarSettings);
+        if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.saveMachineSettings === 'function') {
+          const result = await window.RotationSupabaseBridge.saveMachineSettings(rows, { reason: 'shift-calendars' });
+          if (result && result.ok === false) throw (result.error || new Error('Uložení kalendářů selhalo.'));
+          app.machineSettingsRows = rows;
+          try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+          try {
+            const modal = document.getElementById('calendarModal');
+            if (modal && modal.classList.contains('isVisible') && typeof renderCalendarModalContent === 'function') {
+              renderCalendarModalContent(modal);
+            }
+          } catch (err) {}
+          renderAdminMenuBody(body, 'calendars');
+          const statusEl = document.getElementById('adminOnlineSaveStatus');
+          if (statusEl) statusEl.textContent = 'Kalendáře uložené online';
+        }
+        return;
+      }
       if (adminAction === 'load-external-links') {
         await loadAdminMachineSettingsFromSupabase();
         renderAdminMenuBody(body, 'external-links');
@@ -1810,7 +1853,7 @@ function openAppMenu(view) {
   page.classList.add('active');
   const body = page.querySelector('#appMenuBody');
   const v = view || 'menu';
-  const adminViews = new Set(['admin', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
+  const adminViews = new Set(['admin', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-calendars', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
 
   const versionText = getRakCurrentAppVersion();
   const contact = typeof getRakAppContactSettings === 'function'
@@ -2037,6 +2080,16 @@ function openAppMenu(view) {
         } catch (err) {
           console.warn('Admin accounts preload failed', err);
           renderAdminMenuBody(body, 'admin-accounts');
+        }
+      })();
+    } else if (v === 'admin-calendars') {
+      void (async () => {
+        try {
+          await loadAdminMachineSettingsFromSupabase();
+          renderAdminMenuBody(body, 'calendars');
+        } catch (err) {
+          console.warn('Admin calendars preload failed', err);
+          renderAdminMenuBody(body, 'calendars');
         }
       })();
     } else if (v === 'admin-external-links') {

@@ -771,6 +771,181 @@ window.rakCanAccessRotations=rakCanAccessRotations;
 window.rakApplyShiftAccess=rakApplyShiftAccess;
 window.getWorkerNameByLoginNumber = getWorkerNameByLoginNumber;
 
+const RAK_SHIFT_CALENDAR_SETTINGS_KEY = 'SHIFT_CALENDAR_SETTINGS';
+const RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY = 'shift_calendar_settings';
+const RAK_SHIFT_CALENDAR_TEAMS = Object.freeze(['A','B','C','D']);
+window.RAK_SHIFT_CALENDAR_SETTINGS_KEY = RAK_SHIFT_CALENDAR_SETTINGS_KEY;
+window.RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY = RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY;
+window.RAK_SHIFT_CALENDAR_TEAMS = RAK_SHIFT_CALENDAR_TEAMS;
+
+function rakShiftCalendarSettingsJson(row) {
+  if (row && row.settings_json && typeof row.settings_json === 'object') return row.settings_json;
+  try { return row && row.settings_json ? JSON.parse(String(row.settings_json)) : {}; }
+  catch (err) { return {}; }
+}
+
+function isRakShiftCalendarSettingsRow(row) {
+  const settings = rakShiftCalendarSettingsJson(row);
+  return String(row && row.category || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY
+    || String(row && row.machine_key || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_KEY
+    || String(settings && settings.stored_category || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY
+    || String(settings && settings.admin_settings_key || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_KEY;
+}
+
+function isRakAllowedGoogleCalendarUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || url.hostname !== 'calendar.google.com') return false;
+    if (!/^\/calendar\/embed\/?$/.test(url.pathname)) return false;
+    return url.searchParams.getAll('src').some((src) => String(src || '').trim());
+  } catch (err) {
+    return false;
+  }
+}
+
+function normalizeRakShiftCalendarEntry(entry, index) {
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  const url = String(safe.url || '').trim();
+  if (!isRakAllowedGoogleCalendarUrl(url)) return null;
+  const fallbackLabel = 'Kalendář ' + String((Number(index) || 0) + 1);
+  return {
+    label: String(safe.label || fallbackLabel).trim().slice(0, 80) || fallbackLabel,
+    url
+  };
+}
+
+function normalizeRakShiftCalendarSettings(settings) {
+  const raw = settings && typeof settings === 'object' ? settings : {};
+  const source = raw.teams && typeof raw.teams === 'object' ? raw.teams : {};
+  const teams = {};
+  RAK_SHIFT_CALENDAR_TEAMS.forEach((team) => {
+    const seen = new Set();
+    teams[team] = (Array.isArray(source[team]) ? source[team] : [])
+      .map((entry, index) => normalizeRakShiftCalendarEntry(entry, index))
+      .filter((entry) => {
+        if (!entry || seen.has(entry.url)) return false;
+        seen.add(entry.url);
+        return true;
+      })
+      .slice(0, 8);
+  });
+  return { type: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY, teams };
+}
+
+function getRakShiftCalendarSettings() {
+  const rows = (typeof app !== 'undefined' && app && Array.isArray(app.machineSettingsRows)) ? app.machineSettingsRows : [];
+  const row = rows.find(isRakShiftCalendarSettingsRow);
+  if (row) return normalizeRakShiftCalendarSettings(rakShiftCalendarSettingsJson(row));
+  const legacyUrl = typeof getRakExternalLinkUrl === 'function'
+    ? getRakExternalLinkUrl('calendar')
+    : String(window.CALENDAR_EMBED_URL || '');
+  const teams = { A: [], B: [], C: [], D: [] };
+  if (isRakAllowedGoogleCalendarUrl(legacyUrl)) teams.D.push({ label: 'Kalendář směny D', url: legacyUrl });
+  return { type: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY, teams };
+}
+
+function getRakShiftCalendarsForTeam(team) {
+  const wanted = String(team || 'D').trim().toUpperCase();
+  const safeTeam = RAK_SHIFT_CALENDAR_TEAMS.includes(wanted) ? wanted : 'D';
+  const settings = getRakShiftCalendarSettings();
+  return Array.isArray(settings.teams[safeTeam])
+    ? settings.teams[safeTeam].map((entry) => ({ label: entry.label, url: entry.url }))
+    : [];
+}
+
+function getRakActiveShiftCalendarContext() {
+  const info = getRakActiveAccountShiftInfo();
+  const team = RAK_SHIFT_CALENDAR_TEAMS.includes(String(info && info.team || '').toUpperCase())
+    ? String(info.team).toUpperCase()
+    : 'D';
+  return { team, outside: !!(info && info.outside), calendars: getRakShiftCalendarsForTeam(team) };
+}
+
+function makeRakShiftCalendarSettingsRow(settings) {
+  const safe = normalizeRakShiftCalendarSettings(settings);
+  return {
+    machine_key: RAK_SHIFT_CALENDAR_SETTINGS_KEY,
+    machine_code: 'APP',
+    machine_index: 'shift_calendars',
+    label: 'Kalendáře podle směny',
+    category: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY,
+    cycle_time: '',
+    speed: '',
+    dress_time: '',
+    dress_count: '',
+    settings_json: Object.assign({ machine: 'APP', index: 'shift_calendars' }, safe)
+  };
+}
+
+function mergeRakShiftCalendarSettingsRows(settings) {
+  const base = (typeof app !== 'undefined' && app && Array.isArray(app.machineSettingsRows)) ? app.machineSettingsRows : [];
+  const rows = base.filter((row) => !isRakShiftCalendarSettingsRow(row));
+  rows.push(makeRakShiftCalendarSettingsRow(settings));
+  return rows;
+}
+
+function buildAdminShiftCalendarRowHtml(team, entry) {
+  const safeTeam = RAK_SHIFT_CALENDAR_TEAMS.includes(String(team || '').toUpperCase()) ? String(team).toUpperCase() : 'D';
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  return [
+    '<div class="appMenuInlineField adminShiftCalendarRow" data-shift-calendar-row data-calendar-team="' + escapeHtml(safeTeam) + '">',
+    '  <input class="appMenuInlineInput" data-shift-calendar-field="label" value="' + escapeHtml(String(safe.label || '')) + '" placeholder="Název kalendáře">',
+    '  <input class="appMenuInlineInput appMenuWideInput" data-shift-calendar-field="url" value="' + escapeHtml(String(safe.url || '')) + '" inputmode="url" placeholder="https://calendar.google.com/calendar/embed?...">',
+    '  <button type="button" class="appMenuAction" data-admin-action="remove-shift-calendar" aria-label="Odebrat kalendář">×</button>',
+    '</div>'
+  ].join('');
+}
+
+function buildAdminShiftCalendarsSettingsHtml() {
+  const settings = getRakShiftCalendarSettings();
+  return RAK_SHIFT_CALENDAR_TEAMS.map((team) => {
+    const entries = Array.isArray(settings.teams[team]) ? settings.teams[team] : [];
+    const rows = entries.map((entry) => buildAdminShiftCalendarRowHtml(team, entry)).join('')
+      + buildAdminShiftCalendarRowHtml(team, {});
+    return [
+      '<div class="appMenuCard adminShiftCalendarTeam" data-shift-calendar-team-block="' + team + '">',
+      '  <div class="appMenuSubTitle">Směna ' + team + '</div>',
+      '  <div class="adminShiftCalendarRows" data-shift-calendar-rows>' + rows + '</div>',
+      '  <button type="button" class="appMenuAction" data-admin-action="add-shift-calendar" data-calendar-team="' + team + '">+ Přidat kalendář</button>',
+      '</div>'
+    ].join('');
+  }).join('');
+}
+
+function readAdminShiftCalendarsSettingsFromDom() {
+  const teams = { A: [], B: [], C: [], D: [] };
+  const seen = { A: new Set(), B: new Set(), C: new Set(), D: new Set() };
+  document.querySelectorAll('#appMenuBody [data-shift-calendar-row]').forEach((row) => {
+    const team = String(row.getAttribute('data-calendar-team') || '').trim().toUpperCase();
+    if (!RAK_SHIFT_CALENDAR_TEAMS.includes(team)) return;
+    const label = String(row.querySelector('[data-shift-calendar-field="label"]')?.value || '').trim();
+    const url = String(row.querySelector('[data-shift-calendar-field="url"]')?.value || '').trim();
+    if (!label && !url) return;
+    if (!url) throw new Error('U kalendáře směny ' + team + ' doplň Google Calendar odkaz.');
+    if (!isRakAllowedGoogleCalendarUrl(url)) {
+      throw new Error('Kalendář směny ' + team + ' musí být veřejný Google Calendar embed odkaz. Soukromé ICS odkazy se neukládají.');
+    }
+    if (seen[team].has(url)) throw new Error('Stejný kalendář je u směny ' + team + ' zadaný vícekrát.');
+    if (teams[team].length >= 8) throw new Error('Na jednu směnu lze nastavit nejvýše 8 kalendářů.');
+    seen[team].add(url);
+    teams[team].push({ label: label || ('Kalendář ' + String(teams[team].length + 1)), url });
+  });
+  return normalizeRakShiftCalendarSettings({ teams });
+}
+
+window.isRakShiftCalendarSettingsRow = isRakShiftCalendarSettingsRow;
+window.isRakAllowedGoogleCalendarUrl = isRakAllowedGoogleCalendarUrl;
+window.getRakShiftCalendarSettings = getRakShiftCalendarSettings;
+window.getRakShiftCalendarsForTeam = getRakShiftCalendarsForTeam;
+window.getRakActiveShiftCalendarContext = getRakActiveShiftCalendarContext;
+window.mergeRakShiftCalendarSettingsRows = mergeRakShiftCalendarSettingsRows;
+window.buildAdminShiftCalendarRowHtml = buildAdminShiftCalendarRowHtml;
+window.buildAdminShiftCalendarsSettingsHtml = buildAdminShiftCalendarsSettingsHtml;
+window.readAdminShiftCalendarsSettingsFromDom = readAdminShiftCalendarsSettingsFromDom;
+
+
 function makeRakWorkerRosterSettingsRow(settings) {
   const safe = normalizeRakWorkerRosterSettings(settings);
   return {

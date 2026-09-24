@@ -1,3 +1,12 @@
+## RaK 1.7.86 (development)
+
+- Administrace → Informace pro zaměstnance má novou samostatnou sekci Kalendáře; obecné Odkazy už kalendář nenastavují.
+- Každé směně A/B/C/D lze přiřadit jeden nebo více Google kalendářů. Dashboard používá výhradně kalendáře směny přihlášeného účtu; více kalendářů nabídne jako přepínatelný výběr.
+- Pracovníci v Rozpisu používají směnu D, účty mimo Rozpis používají explicitní směnu A/B/C/D z Administrace → Pracovníci. Stávající kalendář se do prvního uložení zachová jako fallback směny D.
+- Kalendářová konfigurace přijímá jen HTTPS Google Calendar embed URL s parametrem src; soukromé ICS odkazy s privátním tokenem se neukládají.
+- Upozornění v kalendáři se přesunulo z Nastavení strojů do nové sekce Kalendáře.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.86; SW cache je v1.7.86.
+
 ## RaK 1.7.85 (development)
 
 - Všechna aktuální čísla verze jsou sjednocená na 1.7.85: viditelná verze, technická verze, module cache i package verze; SW cache je v1.7.85.

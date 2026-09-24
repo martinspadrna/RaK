@@ -63,6 +63,7 @@ function renderAdminMenuBody(body, section) {
     ], { open: false }),
     buildAdminMenuSectionHtml('Informace pro zaměstnance', 'Co se zobrazuje v běžné aplikaci.', [
       { action: 'open-announcement', label: 'Oznámení Dashboard' },
+      { action: 'open-calendars', label: 'Kalendáře' },
       { action: 'open-external-links', label: 'Odkazy' }
     ].concat((typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins()) ? [{ action: 'open-app-contact', label: 'Kontakt aplikace' }] : []).concat([
       { action: 'open-payroll-settings', label: 'Výplata' }
@@ -91,15 +92,6 @@ function renderAdminMenuBody(body, section) {
     '    <button type="button" class="appMenuAction" data-admin-action="load-machines">Načíst online</button>',
     '    <button type="button" class="appMenuAction isActive" data-admin-action="save-machines">Uložit stroje</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="back-admin">Zpět</button>',
-    '  </div>',
-    '</div>',
-    '<div class="appMenuCard appMenuAdminCard adminCalendarNotesCard">',
-    '  <div class="appMenuCardTitle">Upozornění v kalendáři</div>',
-    '  <div class="appMenuText">',
-    '    <div>Platí pro všechny - zapíná/vypíná se pro celou appku, ne jen pro tohle zařízení.</div>',
-    '  </div>',
-    '  <div class="appMenuSettingsList appMenuSettingsGrid">',
-    calendarNoteButtons,
     '  </div>',
     '</div>'
   ].join('');
@@ -282,11 +274,34 @@ function renderAdminMenuBody(body, section) {
     '</div>'
   ].join('');
 
+  const calendarsHtml = [
+    '<div class="appMenuCard appMenuAdminCard adminShiftCalendarsCard">',
+    '  <div class="appMenuCardTitle">Kalendáře podle směny</div>',
+    '  <div class="appMenuText">',
+    '    <div>Dashboard zobrazí jen kalendář nebo výběr kalendářů směny přihlášeného člověka. Lidé v Rozpisu používají směnu D; u účtů mimo Rozpis se směna A/B/C/D nastavuje v Administraci → Pracovníci.</div>',
+    '    <div class="smallText" id="adminOnlineSaveStatus">Povoleny jsou jen veřejně vložitelné Google Calendar embed odkazy. Soukromé ICS adresy s privátním tokenem se neukládají.</div>',
+    '  </div>',
+    (typeof buildAdminShiftCalendarsSettingsHtml === 'function' ? buildAdminShiftCalendarsSettingsHtml() : ''),
+    '  <div class="appMenuActionRow">',
+    '    <button type="button" class="appMenuAction" data-admin-action="load-calendars">Načíst online</button>',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="save-calendars">Uložit kalendáře</button>',
+    '    <button type="button" class="appMenuAction" data-admin-action="back-admin">Zpět</button>',
+    '  </div>',
+    '</div>',
+    '<div class="appMenuCard appMenuAdminCard adminCalendarNotesCard">',
+    '  <div class="appMenuCardTitle">Upozornění v kalendáři</div>',
+    '  <div class="appMenuText"><div>Platí pro všechny - zapíná/vypíná se pro celou appku, ne jen pro tohle zařízení.</div></div>',
+    '  <div class="appMenuSettingsList appMenuSettingsGrid">',
+    calendarNoteButtons,
+    '  </div>',
+    '</div>'
+  ].join('');
+
   const externalLinksHtml = [
     '<div class="appMenuCard appMenuAdminCard adminExternalLinksCard">',
     '  <div class="appMenuCardTitle">Odkazy</div>',
     '  <div class="appMenuText">',
-    '    <div>Tady nastavíš odkazy na jídelní lístek, Eportal, výplatní portál a vložený Google kalendář. Řádek Kalendář určuje adresu, která se otevře po klepnutí na kalendář v aplikaci.</div>',
+    '    <div>Tady nastavíš odkazy na jídelní lístek, Eportal a výplatní portál. Směnové kalendáře mají vlastní sekci Kalendáře.</div>',
     '    <div class="smallText" id="adminOnlineSaveStatus">Bez uložené změny zůstávají původní odkazy.</div>',
     '  </div>',
     buildAdminExternalLinksSettingsHtml(),
@@ -532,6 +547,8 @@ function renderAdminMenuBody(body, section) {
     body.innerHTML = changeLogHtml;
   } else if (mode === 'admin-accounts') {
     body.innerHTML = adminAccountsHtml;
+  } else if (mode === 'calendars') {
+    body.innerHTML = calendarsHtml;
   } else if (mode === 'external-links') {
     body.innerHTML = externalLinksHtml;
   } else if (mode === 'app-contact') {

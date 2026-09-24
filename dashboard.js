@@ -936,8 +936,10 @@ function updateDashboard() {
   const calendarDate = typeof formatCalendarDateLabel === 'function'
     ? formatCalendarDateLabel(now)
     : new Intl.DateTimeFormat('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' }).format(now);
-  const calendarMeta = typeof getCalendarSpecialText === 'function' ? getCalendarSpecialText(now) : '';
-  setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', false, calendarIcon);
+  const calendarSpecial = typeof getCalendarSpecialText === 'function' ? getCalendarSpecialText(now) : '';
+  const calendarContext = typeof getRakActiveShiftCalendarContext === 'function' ? getRakActiveShiftCalendarContext() : { team: 'D', calendars: [] };
+  const calendarMeta = [calendarSpecial, 'Směna ' + String(calendarContext.team || 'D')].filter(Boolean).join(' · ');
+  setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', true, calendarIcon);
   const shiftCountdownTitle = active ? 'Zbývá' : (nextWorkShift ? 'Začíná' : 'Zbývá');
   const shiftCountdownValue = active
     ? (active.end ? formatDuration(Math.max(0, active.end - now)) : '—')

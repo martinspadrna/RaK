@@ -511,6 +511,7 @@ function getRakExternalTileHosts() {
   const hosts = new Set(Array.from(RAK_EXTERNAL_TILE_HOSTS));
   const settings = getRakExternalLinksSettings();
   Object.keys(settings.links || {}).forEach((key) => {
+    if (key === 'calendar') return;
     try {
       const url = new URL(String(settings.links[key] && settings.links[key].url || ''));
       if (url.protocol === 'https:' || url.protocol === 'http:') hosts.add(url.hostname);
@@ -557,7 +558,7 @@ function adminExternalLinksRefreshStatus() {}
 
 function buildAdminExternalLinksSettingsHtml() {
   const settings = getRakExternalLinksSettings();
-  const rows = ['food', 'eportal', 'payroll', 'calendar'].map((key) => {
+  const rows = ['food', 'eportal', 'payroll'].map((key) => {
     const link = normalizeRakExternalLinkEntry(key, settings.links[key]);
     return [
       '<tr data-external-link-row="' + escapeHtml(key) + '">',
@@ -579,7 +580,8 @@ function buildAdminExternalLinksSettingsHtml() {
 }
 
 function readAdminExternalLinksSettingsFromDom() {
-  const links = {};
+  const current = getRakExternalLinksSettings();
+  const links = { calendar: current.links.calendar };
   document.querySelectorAll('#appMenuBody tr[data-external-link-row]').forEach((tr) => {
     const key = String(tr.getAttribute('data-external-link-row') || '').trim();
     const get = (field) => String(tr.querySelector('[data-external-link-field="' + field + '"]')?.value || '').trim();
@@ -943,40 +945,77 @@ function hideCalendarModal() {
   document.body.classList.remove('calendarModalOpening');
 }
 
-function ensureCalendarModal() {
-  let overlay = document.getElementById('calendarModal');
-  const calendarUrl = normalizeExternalTileUrl(
-    typeof getRakExternalLinkUrl === 'function' ? getRakExternalLinkUrl('calendar') : CALENDAR_EMBED_URL,
-    'calendarModalFrame'
-  ) || CALENDAR_EMBED_URL;
-  if (overlay) {
-    const frame = overlay.querySelector('.calendarModalFrame');
-    if (frame && frame.getAttribute('src') !== calendarUrl) frame.setAttribute('src', calendarUrl);
-    return overlay;
+function renderCalendarModalContent(overlay) {
+  if (!overlay) return false;
+  const context = typeof getRakActiveShiftCalendarContext === 'function'
+    ? getRakActiveShiftCalendarContext()
+    : { team: 'D', calendars: [] };
+  const team = String(context && context.team || 'D');
+  const calendars = Array.isArray(context && context.calendars) ? context.calendars : [];
+  const title = overlay.querySelector('#calendarModalTitle');
+  const content = overlay.querySelector('#calendarModalContent');
+  if (title) title.textContent = 'Kalendář · směna ' + team;
+  if (!content) return false;
+  if (!calendars.length) {
+    content.innerHTML = '<div class="appMenuText">Pro směnu ' + escapeHtml(team) + ' není nastavený žádný kalendář.</div>';
+    content.__rakCalendars = [];
+    return true;
   }
-
-  overlay = document.createElement('div');
-  overlay.id = 'calendarModal';
-  overlay.className = 'calendarOverlay';
-  overlay.innerHTML = [
-    '<div class="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarModalTitle">',
-    '<button type="button" class="calendarModalClose" aria-label="Zavřít">×</button>',
-    '<div class="calendarModalTitle" id="calendarModalTitle">Kalendář</div>',
+  const buttons = calendars.length > 1
+    ? '<div class="appMenuActionRow calendarModalChoices">' + calendars.map((entry, index) => (
+        '<button type="button" class="appMenuAction calendarModalChoice' + (index === 0 ? ' isActive' : '') + '" data-calendar-choice-index="' + String(index) + '">' + escapeHtml(entry.label || ('Kalendář ' + String(index + 1))) + '</button>'
+      )).join('') + '</div>'
+    : '';
+  const firstUrl = normalizeExternalTileUrl(calendars[0].url, 'calendarModalFrame');
+  content.innerHTML = [
+    buttons,
     '<div class="calendarModalFrameWrap">',
-    '<iframe class="calendarModalFrame" title="Google kalendář" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
-    '</div>',
+    firstUrl ? '<iframe class="calendarModalFrame" title="' + escapeHtml(calendars[0].label || 'Google kalendář') + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(firstUrl) + '"></iframe>' : '<div class="appMenuText">Kalendář má neplatný odkaz.</div>',
     '</div>'
   ].join('');
+  content.dataset.calendarTeam = team;
+  content.__rakCalendars = calendars;
+  return true;
+}
 
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) hideCalendarModal();
-  });
+function ensureCalendarModal() {
+  let overlay = document.getElementById('calendarModal');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'calendarModal';
+    overlay.className = 'calendarOverlay';
+    overlay.innerHTML = [
+      '<div class="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarModalTitle">',
+      '<button type="button" class="calendarModalClose" aria-label="Zavřít">×</button>',
+      '<div class="calendarModalTitle" id="calendarModalTitle">Kalendář</div>',
+      '<div id="calendarModalContent"></div>',
+      '</div>'
+    ].join('');
 
-  overlay.querySelector('.calendarModalClose')?.addEventListener('click', hideCalendarModal);
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        hideCalendarModal();
+        return;
+      }
+      const choice = event.target && event.target.closest ? event.target.closest('[data-calendar-choice-index]') : null;
+      if (!choice) return;
+      const content = overlay.querySelector('#calendarModalContent');
+      const calendars = content && Array.isArray(content.__rakCalendars) ? content.__rakCalendars : [];
+      const index = Number(choice.getAttribute('data-calendar-choice-index'));
+      const selected = Number.isInteger(index) ? calendars[index] : null;
+      const frame = overlay.querySelector('.calendarModalFrame');
+      const target = selected ? normalizeExternalTileUrl(selected.url, 'calendarModalFrame') : '';
+      if (!frame || !target) return;
+      frame.setAttribute('src', target);
+      frame.setAttribute('title', String(selected.label || 'Google kalendář'));
+      overlay.querySelectorAll('[data-calendar-choice-index]').forEach((button) => button.classList.toggle('isActive', button === choice));
+    });
 
-  bindGlobalEscapeOnce('calendarModalKeydownBound', hideCalendarModal);
-
-  document.body.appendChild(overlay);
+    overlay.querySelector('.calendarModalClose')?.addEventListener('click', hideCalendarModal);
+    bindGlobalEscapeOnce('calendarModalKeydownBound', hideCalendarModal);
+    document.body.appendChild(overlay);
+  }
+  renderCalendarModalContent(overlay);
   return overlay;
 }
 

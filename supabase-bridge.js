@@ -2519,6 +2519,8 @@
       || key === 'FHB_CORRECTION_CALIBRATION_SETTINGS'
       || category === 'external_links_settings'
       || key === 'EXTERNAL_LINKS_SETTINGS'
+      || category === 'shift_calendar_settings'
+      || key === 'SHIFT_CALENDAR_SETTINGS'
       || category === 'app_contact_settings'
       || key === 'APP_CONTACT_SETTINGS'
       || category === 'payroll_settings'
