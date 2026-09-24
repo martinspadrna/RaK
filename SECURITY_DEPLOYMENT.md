@@ -154,3 +154,446 @@ Rozsah: přesný development SHA `72d1fd7870a917728967a1f1487c757e2b6684bc`, vý
 - P1.1: 80 % (4/5); zbývá pravidlo pro případné další nutné politiky/migrace, produkce beze změny.
 - P1.2: 80 % (4/5); zbývá fyzický Safari/PWA test relací a UX odmítnutí.
 - P1.5: 43 % (3/7). Dva vlastní Free projekty obsazují bezplatné sloty; dva další viditelné projekty patří jinému účtu. Nebyl vytvořen ani pozastaven projekt, větev, PITR nebo placený add-on.
+
+## Produkční release bundle 1.7.83 – připraveno, nenasazeno
+
+Stav k 24. 9. 2026: **PREPARED_NOT_AUTHORIZED**. Tato kapitola je auditovatelný podklad, nikoli souhlas s produkčním zápisem. `main`, produkční alias, produkční deployment, produkční Supabase a její Edge Functions se smějí změnit až po novém jednoznačném potvrzení vlastníka. Druhá databázová fáze vyžaduje další potvrzení po fyzické přejímce první fáze. Nikdy se nesmí zveřejnit Vercel shareable parametr, heslo, tajný klíč ani podepsaný JWT.
+
+### Neměnné vstupy a zjištěný stav
+
+- Zdroj aplikace je funkční runtime SHA `7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`; dokumentační development základ před tímto balíkem byl `6ce08336d99319963ad2d680b7901032acbb42ee`.
+- Viditelná verze zůstává `1.7.83`, technická `1.7.0`, cache `v1.7.83`, build `v1.7.83-about-release1`. Produkční propagace už ověřeného TEST releasu není nová funkční verze.
+- Produkční Supabase je výhradně `bkqamcbkiwumsvelahxr`; TEST je `cgshssdjgzzuprlwnabl`. Záměna projektů je důvod okamžitě skončit.
+- Produkční DB před vydáním končí RaK migrací `20260915193102 rak_owner_complete_backup_v1`. Chybí jí mimo jiné `rak_lookup_account_for_login_v1/v2`, `rak_admin_list_application_accounts_v1`, role `deputy`, session-device unikátnost a pozdější privacy guardy.
+- Čtecí preflight našel 1 řádek rotace, nulové zakázané identity/kontakty/tokeny, nulové `current_employee_name`, nulová neplatná základní i měsíční struktura ve 106 zálohách, nulové duplicitní budoucí device klíče a nulové odvolané device řádky bez aktéra. Jeden `importMeta` je očekávaně přesunut migrací `20260919111542` do soukromé tabulky. V `machine_settings` je 32 soukromých řádků, které se nesmějí mazat; druhá fáze je pouze skryje veřejným rolím.
+- Produkční Security Advisor před vydáním eviduje 13 INFO `rls_enabled_no_policy`, 4 WARN anonymních a 27 WARN authenticated `SECURITY DEFINER` endpointů a 1 WARN bezplatně nedostupné ochrany uniklých hesel. Po každé DB fázi se advisor spustí znovu a neznámé zvýšení znamená FAIL.
+- Produkční Vercel zůstává na READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
+- Aktivní produkční `rak-admin-users` je verze 7 s platform hash `33bcdcf464438c3357cb7a50b4bdcace737d775b2cd7bef8f1aef44730c7a32d`. Cílový zdroj na přesném SHA má SHA-256 `a49e6cf5cab1215365a8a56743fa8b8c3f63931704ab6a25ab0f6209989b3348`.
+
+### Reconciliace Git historie
+
+Tento dokumentační commit má mít prvního rodiče aktuální `development` a druhého rodiče `ceca9f9644da3dc41059c5d232661d27bc6dba18`. Strom aplikace zůstává stromem development; žádná main větev se tím nemění. Pět main-only commitů je tím historicky zachováno:
+
+| main-only commit | Rozhodnutí v cílovém stromu |
+|---|---|
+| `18308f78` a `75f0672a` | staré minimum hesla 8/6 je vědomě nahrazeno jednotným minimem 12 v klientu i Edge Function |
+| `c8e220f2` | kalírna je zachována současnou implementací v `rotation-tasks.js`, `kalirna-daymod-override.js` a regresních testech |
+| `def12642` | předchozí produkční propagace je historicky zachována; nová propagace znovu vytvoří samostatný produkční konfigurační commit |
+| `ceca9f96` | legacy smoke marker je zachován jako komentovaný kompatibilní marker v současném `supabase-config.js` |
+
+### Fail-closed pořadí po prvním produkčním souhlasu
+
+1. Znovu online ověřit přesná SHA `development` a `main`, READY rollback deployment, aktivní Edge verzi/hash, poslední produkční migraci a všechny výše uvedené preflight počty. Jakákoli neshoda zastaví vydání.
+2. Vytvořit produkční konfigurační commit s rodičem tohoto reconciliovaného development commitu. Z `supabase-config.js` převzít produkční URL a publishable key z přesného stávajícího main, odstranit pouze TEST reset admin runtime, ponechat metadata `1.7.83/1.7.0` a všechny funkční vrstvy. Do `vercel.json` přidat `"main": false` vedle `"development": false`, aby samotný zápis do main nespustil deployment.
+3. Posunout `main` pouze fast-forward na tento produkční konfigurační commit. Žádný deployment ještě nevytvářet.
+4. Ručně spustit existující workflow `RaK development validation` na přesném main SHA. Jeho `verify` musí být SUCCESS; `release-preview` se při `workflow_dispatch` nespustí. Dva čisté buildy, npm check, ZIP/CRC, Chromium/offline a HTTP TEST audit musí projít beze změny testů.
+5. Aplikovat jen databázovou **fázi A** níže. Každá migrace musí být načtena z přesného zdrojového SHA a její SHA-256 se musí shodovat s manifestem. Před prvním souborem změnit constraint rolí z `owner/admin` na `owner/admin/deputy` pouze pokud se jeho aktuální definice přesně rovná auditovanému baseline; jinak FAIL.
+6. Nasadit cílový zdroj `rak-admin-users` s `verify_jwt=true`; zkontrolovat nový platform hash a negativní anonymous/invalid-JWT test bez vypsání tokenu. `rak-absence-calendar` se nemění.
+7. Teprve nyní vytvořit jeden ruční Vercel preview deployment z prebuilt artefaktu přesného zeleného main SHA. Nehýbat produkčním aliasem. Ověřit READY, přesné SHA, `1.7.83/1.7.0`, přítomnost produkčního ID, nepřítomnost TEST ID, `/`, `sw.js`, metadata, manifest a API 401/403/410 kontrakty.
+8. Po úspěšném immutable smoke přesunout pouze produkční alias na kandidáta. Stabilní development alias se nemění.
+9. Uživatel fyzicky ověří na iPhonu online přihlášení běžného uživatele, owner/admin přihlášení a zařízení, stránku „O aplikaci“, načtení Rotace a jeden restart instalované PWA bez mazání dat. Chromium se za tento test nevydává.
+10. Během přejímky se **fáze B neprovádí**. Při chybě se produkční alias vrátí na `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1`; fáze A zachovává legacy čtení, takže tento rollback cíl zůstává kompatibilní. Pokud problém souvisí s Edge Function, znovu se nasadí níže uložený zdroj verze 7.
+11. Teprve po fyzickém PASS a druhém výslovném potvrzení se aplikují soubory fáze B, které uzavřou staré veřejné čtecí cesty a přidají privacy guardy. Po této fázi už starý deployment není automaticky bezpečný aplikační rollback; návrat vyžaduje nejdřív obnovu zachycených grantů/policies/funkcí, nikdy mazání dat.
+12. Vytvořit strojový release evidence artefakt s main SHA, Actions runem, dvěma buildy, DB migracemi a jejich hashy, Edge verzí/hash, Vercel deployment ID/READY/SHA, HTTP metadaty, aliasem a konkrétními rollback cíli. Neúplný nebo neznámý stav je FAIL.
+
+Povinný SQL guard před změnou role constraintu:
+
+~~~sql
+DO $guard$
+DECLARE v_definition text;
+BEGIN
+  SELECT pg_get_constraintdef(oid) INTO v_definition
+  FROM pg_constraint
+  WHERE conrelid = 'public.rak_admin_profiles'::regclass
+    AND conname = 'rak_admin_profiles_role_check';
+  IF v_definition IS DISTINCT FROM
+     'CHECK ((role = ANY (ARRAY[''owner''::text, ''admin''::text])))' THEN
+    RAISE EXCEPTION 'Unexpected production admin role baseline';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.rak_admin_profiles
+             WHERE role NOT IN ('owner','admin')) THEN
+    RAISE EXCEPTION 'Unexpected production admin role data';
+  END IF;
+END
+$guard$;
+ALTER TABLE public.rak_admin_profiles
+  DROP CONSTRAINT rak_admin_profiles_role_check;
+ALTER TABLE public.rak_admin_profiles
+  ADD CONSTRAINT rak_admin_profiles_role_check
+  CHECK (role IN ('owner','admin','deputy'));
+~~~
+
+### Strojově čitelný manifest
+
+~~~json
+{
+  "schema": "rak.production-release-bundle.v1",
+  "status": "PREPARED_NOT_AUTHORIZED",
+  "prepared_at": "2026-09-24",
+  "source_development_sha": "6ce08336d99319963ad2d680b7901032acbb42ee",
+  "reconciled_main_parent": "ceca9f9644da3dc41059c5d232661d27bc6dba18",
+  "runtime_sha": "7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec",
+  "display_version": "1.7.83",
+  "technical_version": "1.7.0",
+  "production_supabase": "bkqamcbkiwumsvelahxr",
+  "test_supabase": "cgshssdjgzzuprlwnabl",
+  "production_vercel_before": {
+    "deployment_id": "dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1",
+    "runtime_sha": "e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9",
+    "state": "READY"
+  },
+  "production_edge_before": {
+    "slug": "rak-admin-users",
+    "version": 7,
+    "platform_sha256": "33bcdcf464438c3357cb7a50b4bdcace737d775b2cd7bef8f1aef44730c7a32d"
+  },
+  "target_edge_source": {
+    "path": "supabase/functions/rak-admin-users/index.ts",
+    "sha256": "a49e6cf5cab1215365a8a56743fa8b8c3f63931704ab6a25ab0f6209989b3348"
+  },
+  "phase_a": [
+    {
+      "path": "supabase/migrations/20260918162343_rak_security_remove_bootstrap_and_bound_keepalive.sql",
+      "sha256": "7dfc274cf588df2d1844c99a30fc23dbde6942bac9bbcaa541e238693915fbac"
+    },
+    {
+      "path": "supabase/migrations/20260918163543_rak_limit_anonymous_reports_and_keepalive_devices.sql",
+      "sha256": "b4648e8b5166d07a49094a7bdb03120e6f5fae6671742c3bdd0c65f2e33b8732"
+    },
+    {
+      "path": "supabase/migrations/20260918164116_rak_admin_context_require_verified_session.sql",
+      "sha256": "80f734b5c2649e31e1e981515d16bd0e2bf4035ce1eb839f02e5f0e3108f7cc1"
+    },
+    {
+      "path": "supabase/migrations/20260918171858_rak_login_and_admin_directory_rpcs_stage.sql",
+      "sha256": "65290cbe1d60f6fac986abf042bdf4f7a1c216228ca9c5a2772540a6fdd2617b"
+    },
+    {
+      "path": "supabase/migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql",
+      "take_before": "-- Eliminate unrestricted REST/GraphQL bulk reads; admin RPC remains role+session checked.",
+      "sha256": "72b5bd408e421a79aeb79a29033eecef2cfb483cf9897d993760cdb62cc5f7b5",
+      "bytes": 4328
+    },
+    {
+      "path": "supabase/migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql",
+      "sha256": "3688af74fbd7947fac7385ad0ede0893214bfa2d4b8572c579d92d0056e8253b"
+    },
+    {
+      "path": "supabase/migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql",
+      "sha256": "c78fcbf8573442fdbcefa4551418e3d821b95a90d7172379ddd23657e9d75f51"
+    },
+    {
+      "path": "supabase/migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql",
+      "sha256": "cab84188a67517f6d0a691a94f3a734a9cec269d13c17c3d48886275a76694bc"
+    },
+    {
+      "path": "supabase/migrations/20260919165000_rak_17049_bug_report_device_info_allowlist.sql",
+      "sha256": "03977a3ddce431454f2c5775a504f0925c53e8e0244f9f90db20d8098c4c8c4d"
+    }
+  ],
+  "phase_b": [
+    {
+      "path": "supabase/migrations/20260918174200_close_unused_rotation_month_entry_reads.sql",
+      "sha256": "c302fcf56217ba4460cb29371ea910ad68fb2af7b60c8a52226b91fefa2b673d"
+    },
+    {
+      "path": "supabase/migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql",
+      "sha256": "2bc9bde83ae072d007c9a4d8d6b82cf4cd71d5d699828226113de4c86ea466aa"
+    },
+    {
+      "path": "supabase/migrations/20260918193324_rak_close_retired_gomoku_public_read.sql",
+      "sha256": "e5a08c40b66681bb548c64738cf320a3799f9374c081b76dc5158e7e1ffd1843"
+    },
+    {
+      "path": "supabase/migrations/20260918195107_rak_stage_verified_employee_rotation_reader.sql",
+      "sha256": "fc772c5ae2c7945265f36f5cb6d0dc4ff384ee6c4e9cecf48836951523e45ac8"
+    },
+    {
+      "path": "supabase/migrations/20260918200612_rak_hide_legacy_rotation_backups_from_public_reads.sql",
+      "sha256": "3fa30258bfbfc3033e63b2565042feeeb1fffa42e08373d0f0b725834993d706"
+    },
+    {
+      "path": "supabase/migrations/20260918203159_rak_hide_legacy_admin_change_log_from_public_reads.sql",
+      "sha256": "9f2388a3782b1f376fbf9ef7f7a494f77f8c2e352fb441454df2b731f1980399"
+    },
+    {
+      "path": "supabase/migrations/20260918204000_rak_whitelist_owner_backup_auth_metadata.sql",
+      "sha256": "e7d15c61925c2d5420073f697e9c69c343a336eefe902347466250a4e36eea19"
+    },
+    {
+      "path": "supabase/migrations/20260918211310_rak_machine_settings_protect_admin_json_types.sql",
+      "sha256": "0f02813a28736052005a1b32a3719bd7faf066d09ef194f83162fdf9d2fd6ae7"
+    },
+    {
+      "path": "supabase/migrations/20260918214441_rak_hide_worker_roster_from_public_reads.sql",
+      "sha256": "9f7f6fcc549da08de35ab16bdfb3e4ae6040c2f58820da5d871a3751745851bf"
+    },
+    {
+      "path": "supabase/migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql",
+      "sha256": "4ac7a4c030525d5ff427bc016fa4bdf1e0166217cab59d219d076af54e96e1bc"
+    },
+    {
+      "path": "supabase/migrations/20260918220817_rak_machine_settings_hide_disguised_roster_payloads.sql",
+      "sha256": "df85a1d2f60e2ae6373b454062de9031831bc79db1140018083258da75dc133d"
+    },
+    {
+      "path": "supabase/migrations/20260919054241_rak_recursive_worker_privacy_and_profile_based_admin_lookup.sql",
+      "sha256": "91b38fdae597379efd503b2e2ebfaa4b57c0dc42103876f4eb7c853c07544d7e"
+    },
+    {
+      "path": "supabase/migrations/20260919055938_rak_employee_rotation_cutover_readiness_and_disabled_worker_guard.sql",
+      "sha256": "266089cc952a115766bdb9f61b5e3718dc33a542b884112f8ffedddb58f777e7"
+    },
+    {
+      "path": "supabase/migrations/20260919060210_rak_announcements_only_live_public_read.sql",
+      "sha256": "d11759c96df83d9391f8be91080e9e8fc7b98a7ac4565161430b6a5c6d608fef"
+    },
+    {
+      "path": "supabase/migrations/20260919062619_rak_worker_verified_email_recovery_staging.sql",
+      "sha256": "04a77f17bd149bb16c820f09a8f3d7049da44a788f361da9bd633eda6158c488"
+    },
+    {
+      "path": "supabase/migrations/20260919071456_rak_public_rotation_reject_nested_secret_fields_os_only.sql",
+      "sha256": "19fb991ef8eec8d5f21de604f6276b106dada90c4c0cb02de0976d36141a1195"
+    },
+    {
+      "path": "supabase/migrations/20260919081521_rak_public_rotation_reject_secret_text_values.sql",
+      "sha256": "1f19c97c76133f94440788f9cde6f79e5dd5dfee48bebc6575050dd3838b84da"
+    },
+    {
+      "path": "supabase/migrations/20260919085101_rak_public_rotation_remove_admin_actor_metadata.sql",
+      "sha256": "8aa45e4483ac80aa7be0e3aafc05054da531332846712e19299960ac1d7c1c33"
+    },
+    {
+      "path": "supabase/migrations/20260919111542_rak_rotation_archive_import_provenance.sql",
+      "sha256": "95085f897a3a11a97fd0d2b58ee326703e60cb559edf0a25925131d70aa3568a"
+    },
+    {
+      "path": "supabase/migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql",
+      "sha256": "d78f23ede03cedda160dc9e9514f831b9893e798a9c7efc6c3ff115c6d7254f9"
+    },
+    {
+      "path": "supabase/migrations/20260919140220_rak_public_rotation_contact_os_guard_v3.sql",
+      "sha256": "31136345c31de05d93b77fcfdd289c9a025199f345a7397b7dfe08d8f9ee5d29"
+    },
+    {
+      "path": "supabase/migrations/20260919145342_rak_17046_telemetry_admission_and_backup_integrity.sql",
+      "sha256": "3a2bbd491b1f2dfeb1505ed17a7b7f29324f561003784e85398ac4f2e1c97541"
+    },
+    {
+      "path": "supabase/migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql",
+      "sha256": "6db9a6538e5b92621a89fb10e588195664f2026552a0a53b982b50257bcd4fd1"
+    },
+    {
+      "path": "supabase/migrations/20260919185000_rak_17050_case_insensitive_private_settings_rls.sql",
+      "sha256": "fee7b20d1ba13e35e42790e91387d55bda2b6369a9d25b913b5fe8b1701b5c0d"
+    },
+    {
+      "path": "supabase/migrations/20260923045532_rak_block_login_number_in_public_machine_settings.sql",
+      "sha256": "33ae1a1879a1489b8add38c5c1976b13589cf7f53f8dd4e2bcd6ba5c755f78fc"
+    }
+  ],
+  "secrets_or_signed_jwt_in_artifact": false,
+  "shareable_link_parameter_in_artifact": false
+}
+~~~
+
+### Poznámka k fázi A
+
+Výřez z `20260918180344...` končí těsně před markerem uvedeným v manifestu. Jeho přesný UTF-8 obsah má 4328 bajtů a SHA-256 `72b5bd408e421a79aeb79a29033eecef2cfb483cf9897d993760cdb62cc5f7b5`. Vytvoří omezené login tabulky a RPC, ale záměrně ještě neprovede `REVOKE SELECT` ani odstranění legacy policy. Celý soubor se použije až ve fázi B. Jakýkoli jiný výřez je FAIL.
+
+### Rollback zdroj aktivní produkční Edge Function před vydáním
+
+Následující zdroj byl přečten z aktivní produkční verze 7 při přípravě balíku. Neobsahuje literal tajného klíče, hesla ani JWT. Před nasazením nové verze se musí aktivní verze/hash znovu shodovat; jinak se tento rollback podklad nesmí použít bez nového auditu.
+
+~~~typescript
+import { withSupabase } from "npm:@supabase/server@1.4.1";
+
+const ALLOWED_ORIGIN = "https://skoda-spada.vercel.app";
+const RAK_PRODUCTION_ORIGINS = new Set([ALLOWED_ORIGIN, "https://rak.vercel.app"]);
+
+function originAllowed(req: Request) {
+  const origin = String(req.headers.get("origin") || "").trim();
+  return !origin || RAK_PRODUCTION_ORIGINS.has(origin);
+}
+
+function responseHeaders(req: Request) {
+  const headers: Record<string, string> = {
+    "cache-control": "no-store, max-age=0",
+    "content-type": "application/json; charset=utf-8",
+    "vary": "Origin",
+    "x-content-type-options": "nosniff",
+  };
+  const origin = String(req.headers.get("origin") || "").trim();
+  if (origin === ALLOWED_ORIGIN) {
+    headers["access-control-allow-origin"] = ALLOWED_ORIGIN;
+  } else if (RAK_PRODUCTION_ORIGINS.has(origin)) {
+    headers["access-control-allow-origin"] = origin;
+  }
+  return headers;
+}
+
+function jsonResponse(req: Request, status: number, payload: Record<string, unknown>) {
+  return new Response(JSON.stringify(payload), { status, headers: responseHeaders(req) });
+}
+
+function validAccountId(value: unknown) {
+  const accountId = String(value || "").trim();
+  return /^\d{4,12}$/.test(accountId) && accountId !== "9811" ? accountId : "";
+}
+
+const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
+  if (!originAllowed(req)) return jsonResponse(req, 403, { ok: false, error: "origin_not_allowed" });
+  if (req.method !== "POST") return jsonResponse(req, 405, { ok: false, error: "method_not_allowed" });
+
+  const { data: owner, error: ownerError } = await ctx.supabase.rpc("rak_admin_context");
+  if (ownerError || !owner || (owner.role !== "owner" && owner.role !== "admin")) {
+    return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResponse(req, 400, { ok: false, error: "invalid_request" });
+  }
+
+  const action = String(body.action || "");
+  if (action === "change-own-password") {
+    const currentPassword = String(body.currentPassword || "");
+    const newPassword = String(body.newPassword || "");
+    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 6 || newPassword.length > 128) {
+      return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+    }
+    if (currentPassword === newPassword) {
+      return jsonResponse(req, 400, { ok: false, error: "password_unchanged" });
+    }
+    const accountEmail = `${String(owner.account_id || "").trim()}@admin.rak.local`;
+    const { data: verified, error: verifyError } = await ctx.supabase.auth.signInWithPassword({ email: accountEmail, password: currentPassword });
+    if (verifyError || String(verified && verified.user && verified.user.id || "") !== String(owner.user_id || "")) {
+      return jsonResponse(req, 403, { ok: false, error: "invalid_current_password" });
+    }
+    const { error: updateError } = await ctx.supabaseAdmin.auth.admin.updateUserById(String(owner.user_id || ""), { password: newPassword });
+    if (updateError) return jsonResponse(req, 500, { ok: false, error: "password_update_failed" });
+    return jsonResponse(req, 200, { ok: true });
+  }
+
+  if (action === "list-admin-directory") {
+    const { data: profiles, error: profilesError } = await ctx.supabaseAdmin
+      .from("rak_admin_profiles")
+      .select("account_id,display_name,role,enabled")
+      .in("role", ["owner", "admin"])
+      .order("account_id", { ascending: true });
+    if (profilesError) return jsonResponse(req, 500, { ok: false, error: "admin_directory_load_failed" });
+    return jsonResponse(req, 200, { ok: true, profiles: profiles || [] });
+  }
+
+  if (owner.role !== "owner") {
+    return jsonResponse(req, 403, { ok: false, error: "owner_permission_required" });
+  }
+
+  if (action === "change-owner-password") {
+    const currentPassword = String(body.currentPassword || "");
+    const newPassword = String(body.newPassword || "");
+    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 6 || newPassword.length > 128) {
+      return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+    }
+    if (currentPassword === newPassword) {
+      return jsonResponse(req, 400, { ok: false, error: "password_unchanged" });
+    }
+    const ownerEmail = `${String(owner.account_id || "").trim()}@admin.rak.local`;
+    const { data: verified, error: verifyError } = await ctx.supabase.auth.signInWithPassword({
+      email: ownerEmail,
+      password: currentPassword,
+    });
+    if (verifyError || String(verified && verified.user && verified.user.id || "") !== String(owner.user_id || "")) {
+      return jsonResponse(req, 403, { ok: false, error: "invalid_current_password" });
+    }
+    const { error: updateError } = await ctx.supabaseAdmin.auth.admin.updateUserById(String(owner.user_id || ""), {
+      password: newPassword,
+    });
+    if (updateError) return jsonResponse(req, 500, { ok: false, error: "password_update_failed" });
+    return jsonResponse(req, 200, { ok: true });
+  }
+
+  const accountId = validAccountId(body.accountId);
+  const displayName = String(body.displayName || "").trim().slice(0, 120);
+  const password = String(body.password || "");
+  const enabled = body.enabled !== false;
+  if (!accountId || !displayName) {
+    return jsonResponse(req, 400, { ok: false, error: "invalid_admin_profile" });
+  }
+  if (password && (password.length < 6 || password.length > 128)) {
+    return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+  }
+
+  try {
+    const { data: existing, error: lookupError } = await ctx.supabaseAdmin
+      .from("rak_admin_profiles")
+      .select("user_id,account_id,display_name,role,enabled")
+      .eq("account_id", accountId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    let userId = String(existing && existing.user_id || "");
+    if (!userId) {
+      if (!password) return jsonResponse(req, 400, { ok: false, error: "password_required_for_new_admin" });
+      const { data: created, error: createError } = await ctx.supabaseAdmin.auth.admin.createUser({
+        email: `${accountId}@admin.rak.local`,
+        password,
+        email_confirm: true,
+        app_metadata: { rak_account_id: accountId, rak_role: "admin" },
+        user_metadata: { display_name: displayName },
+      });
+      if (createError) throw createError;
+      userId = String(created && created.user && created.user.id || "");
+      if (!userId) throw new Error("auth_user_create_missing_id");
+    } else if (password) {
+      const { error: updateError } = await ctx.supabaseAdmin.auth.admin.updateUserById(userId, {
+        password,
+        app_metadata: { rak_account_id: accountId, rak_role: "admin" },
+        user_metadata: { display_name: displayName },
+      });
+      if (updateError) throw updateError;
+    }
+
+    const { data: profile, error: profileError } = await ctx.supabaseAdmin
+      .from("rak_admin_profiles")
+      .upsert({
+        user_id: userId,
+        account_id: accountId,
+        display_name: displayName,
+        role: "admin",
+        enabled,
+        created_by: owner.user_id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "account_id" })
+      .select("account_id,display_name,role,enabled")
+      .single();
+    if (profileError) throw profileError;
+
+    return jsonResponse(req, 200, { ok: true, profile });
+  } catch {
+    return jsonResponse(req, 500, { ok: false, error: "admin_user_save_failed" });
+  }
+});
+
+export default {
+  fetch(req: Request, context: unknown) {
+    if (req.method === "OPTIONS") {
+      if (!originAllowed(req)) return jsonResponse(req, 403, { ok: false, error: "origin_not_allowed" });
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...responseHeaders(req),
+          "access-control-allow-headers": "authorization, apikey, content-type",
+          "access-control-allow-methods": "POST, OPTIONS",
+          "access-control-max-age": "600",
+        },
+      });
+    }
+    return authenticatedFetch(req, context);
+  },
+};
+
+~~~

@@ -217,6 +217,9 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ## Záznam aktualizací
 
+- **24. 9. 2026 – připraven dvoufázový produkční release bundle 1.7.83, bez produkčního zápisu:** `SECURITY_DEPLOYMENT.md` nyní obsahuje přesné vstupní SHA, SHA-256 všech použitelných migrací, kompatibilní fázi A zachovávající staré čtení, fázi B až po fyzické přejímce a druhém potvrzení, produkční CI/Vercel pořadí, fail-closed preflight, rollback na `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` a zachycený zdroj aktivní produkční Edge Function verze 7. Dokumentační merge připojuje dosavadní `main` jako druhého rodiče a tím zachovává jeho pět commitů bez přepsání development stromu. `main`, produkční Supabase i produkční Vercel zůstaly beze změny; verze a procenta všech 13 bodů se nemění.
+
+
 - **23. 9. 2026 – produkční readiness audit po TEST releasu 1.7.83:** pouze čtecí kontrola potvrdila, že okamžité sloučení není bezpečné. `development` a `main` jsou divergovány (401/5 commitů), produkční Vercel stále běží na `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`, zatímco `main` je `ceca9f9644da3dc41059c5d232661d27bc6dba18`. Main auto-deploy není vypnutý. Produkční Supabase nemá pozdější TEST bezpečnostní migrace, v katalogu jí chybí aktuálním klientem používaná `rak_admin_list_application_accounts_v1` a její `rak-admin-users` Edge Function se liší od TEST varianty. Před vydáním je nutná kompatibilní produkční migrační/reverzní sada, sjednocení Edge Function, bezpečný Git strom a CI-before-production-deploy brána. Audit nic v `main`, produkčním Vercelu ani produkční Supabase nezměnil; procenta plánu se nemění.
 
 

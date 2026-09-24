@@ -142,3 +142,10 @@ Současně aktualizovat `RAK_PLAN_13.md`, pokud se změnil checkbox, procento ne
 ## Report uživateli po větším balíku
 
 V češtině uvést: co bylo dokončeno, změněné checkboxy, přesné SHA, číslo a odkaz Actions, Vercel ID/stav nebo výslovný dokumentační skip, viditelnou a technickou verzi, otevřené/neověřené položky, pouze relevantní fyzické iPhone kroky a přehled všech 13 procent.
+
+
+## Připravený, ale neautorizovaný produkční balík 1.7.83
+
+Dne 24. 9. 2026 byl do `SECURITY_DEPLOYMENT.md` připraven dvoufázový produkční postup s přesnými SHA-256 migrací, fail-closed preflightem, Git reconciliací, CI-before-deploy pořadím, fyzickou iPhone přejímkou a konkrétním Vercel/Edge rollbackem. Dokumentační merge historicky připojuje dosavadní `main` jako druhého rodiče, ale strom aplikace zůstává development a samotný `main`, produkční Supabase i produkční Vercel zůstávají beze změny.
+
+První produkční souhlas může pokrýt pouze: fast-forward produkčního konfiguračního commitu do `main`, CI přesného SHA, kompatibilní Supabase fázi A, cílovou `rak-admin-users`, jeden ruční kandidátní deployment a přesun produkčního aliasu po úplném smoke. Fáze B, která uzavírá staré veřejné čtecí cesty, čeká na fyzický iPhone PASS a další výslovné potvrzení. Nezaměňovat připravený dokument s provedeným releasem.
