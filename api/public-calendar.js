@@ -6,16 +6,21 @@ const MAX_REDIRECTS = 2;
 
 function normalizeCalendarSourceId(value) {
   let raw = String(value || '').trim();
-  if (!raw || raw.length > 512 || /[\\/\\\x00-\\x20]/.test(raw)) return '';
+  if (!raw || raw.length > 512 || /[\x00-\x20]/.test(raw)) return '';
 
-  if (!raw.includes('@') && /^[A-Za-z0-9+_=-]+$/.test(raw)) {
+  if (!raw.includes('@')) {
+    if (!/^[A-Za-z0-9+/_=-]+$/.test(raw)) return '';
     try {
       const decoded = Buffer.from(raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8').trim();
-      if (decoded.includes('@')) raw = decoded;
-    } catch (_) {}
+      if (!decoded.includes('@')) return '';
+      raw = decoded;
+    } catch (_) {
+      return '';
+    }
   }
 
   if (raw.length < 3 || raw.length > 320) return '';
+  if (raw.includes('/') || raw.includes('\\')) return '';
   if (!/^[A-Za-z0-9._%+@=-]+$/.test(raw) || !raw.includes('@')) return '';
   return raw;
 }

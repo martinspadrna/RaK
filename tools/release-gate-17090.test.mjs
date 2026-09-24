@@ -77,7 +77,7 @@ test('base64 Google embed source is normalized server-side to its public calenda
   const plain='31ee99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com';
   const encoded=Buffer.from(plain,'utf8').toString('base64');
   assert.equal(handler._test.normalizeCalendarSourceId(encoded),plain);
-  assert.equal(handler._test.calendarUrl(encoded).includes('/public/basic.ics'),true);
+  assert.equal(handler._test.calendarUrl(plain),'https://calendar.google.com/calendar/ical/'+encodeURIComponent(plain)+'/public/basic.ics');
 });
 
 test('native calendar replaces the Google iframe and includes recurrence/exception handling',()=>{
@@ -105,8 +105,8 @@ test('calendar source extraction supports public ICS and Google embed URLs',()=>
     exports:{ids:'rakNativeCalendarSourceIds'}
   });
   const id='849eb5bcbcfdba0ce4171f4a530c530e6fe096c4f9848bede490cd4e129c7b02@group.calendar.google.com';
-  assert.deepEqual(api.ids('https://calendar.google.com/calendar/embed?src='+encodeURIComponent(id)),[id]);
-  assert.deepEqual(api.ids('https://calendar.google.com/calendar/ical/'+encodeURIComponent(id)+'/public/basic.ics'),[id]);
+  assert.deepEqual(Array.from(api.ids('https://calendar.google.com/calendar/embed?src='+encodeURIComponent(id))),[id]);
+  assert.deepEqual(Array.from(api.ids('https://calendar.google.com/calendar/ical/'+encodeURIComponent(id)+'/public/basic.ics')),[id]);
 });
 
 test('native calendar UI is mobile-safe and the new endpoint is part of complete backup',()=>{
