@@ -53,7 +53,7 @@ jobs:
           node --test tools/release-gate-17080.test.mjs
           node --test tools/release-gate-17081.test.mjs
           node --test tools/release-gate-17082.test.mjs
-          node --test tools/release-gate-17096.test.mjs
+          node --test tools/release-gate-17097.test.mjs
           node --test tools/regression-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
@@ -73,6 +73,7 @@ jobs:
           node tools/browser-absence-layout-17061.mjs
           node tools/browser-soft-grid-17066.mjs
           node tools/browser-equal-grid-17067.mjs
+          node tools/browser-fourth-bundle-17097.mjs
       - name: Benchmark PWA three times in independent Chromium profiles
         working-directory: .rak-canonical-build/work
         run: node tools/pwa-start-bench-17068.mjs
@@ -91,7 +92,7 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-17096-isolated-build-${{ github.sha }}
+          name: rak-17097-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error

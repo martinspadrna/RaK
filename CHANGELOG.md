@@ -1,3 +1,12 @@
+## RaK 1.7.97 (development)
+
+- Korekce Brusů nově používají stejné tlačítko +/− jako ostatní korekční kalkulačky: u obou naměřených FHB hodnot i u korekce v administraci. Stejný vzor +/− dostaly také korekce Frézek v administraci.
+- „O aplikaci“ je kratší: odstraněna obecná věta „RaK spojuje…“ a historie řady 1.7 je zhuštěná do čtyř stručných bodů.
+- Vánoční odpočet používá přirozené „do Vánoc“ místo „k Vánocům“.
+- Landscape blokace instalované PWA používá stejný animovaný RaK krab jako login; při omezení pohybu se animace vypnou.
+- Report směny má oddělené datum a výběr směny bez překrývání pravého okraje. Nový reálný Chromium test na mobilní šířce hlídá geometrii i minimální dotykový cíl +/−.
+- Supabase ani produkce se nemění.
+
 ## RaK 1.7.96 (development)
 
 - Třetí TEST balík podle 13bodového plánu: Rozpisy/absence + Pracovníci/Správci + sjednocení provozní administrace.

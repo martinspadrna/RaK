@@ -7,17 +7,12 @@ function buildAppMenuAboutHistoryHtml() {
     // RAK_170_ABOUT_START
     {
       range: 'RaK 1.7',
-      title: 'Výroba, bezpečnost a práce bez internetu',
+      title: 'Aktuální generace',
       lines: [
-        'Výrobní přehledy jsou přesnější: Kalírna se už nepočítá na původní stroj, osobní statistiky ukazují samostatné frézky a dvojici na soustruzích a report směny umí MO volné kusy i TTKW01/TTKW02.',
-        'Úkoly MSKC01 se při obsazení jen MSKC03 + MSKC04 správně sdílí na oba soustruhy, včetně úkolů upravených v administraci.',
-        'Přihlášení, role správců, pracovní zápisy, veřejná API a exporty mají přísnější serverové kontroly a oddělené soukromé údaje.',
-        'Rotace se ukládá do odolné místní kopie a na ověřeném iPhonu se po úplném restartu načetla i bez internetu; při návratu online se porovnává revize, čas a obsah dat.',
-        'Start a PWA jsou lehčí: proběhl úklid stylů, bezpečné odložené načítání, omezení zbytečných překreslení, optimalizace obrázků a pevné výkonové rozpočty.',
-        'Report směny lze sdílet jako sjednocený text i obrázek a rozložení se přizpůsobuje množství výrobních údajů.',
-        'Běžný ZIP export už nesmí převzít otevřený osobní nebo administrátorský obsah ze stránky a při chybě bezpečně skončí bez vytvoření archivu.',
-        'Celkový audit přinesl přesnější diagnostiku, nové bezpečnostní a regresní kontroly a odstraněné zbytky Her.',
-        'Administrace má Úplnou zálohu RaK na jeden klik: ukládá přesný zdroj, nasazenou PWA, data a strukturu Supabase, sanitizovaný Auth přehled, Storage a návod k obnově.'
+        'Rychlejší PWA s odolným offline startem, bezpečnějším přihlášením a synchronizací pracovních dat.',
+        'Rozpisy, absence, pracovníci, správci a report směny mají sjednocenější mobilní ovládání a přesnější výrobní logiku.',
+        'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se průběžně rozšiřují bez zásahu do ověřené produkce.',
+        'Kalendář podle směny A/B/C/D používá přímo Google Calendar a po prvním načtení se znovu využívá pro rychlé otevření.'
       ]
     },
     // RAK_170_ABOUT_END
@@ -85,7 +80,6 @@ function renderAppMenuAboutPage(body, versionText) {
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
         '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(displayVersion)) + '</div>',
-        '  <div class="appMenuText">RaK spojuje pracovní rotace, osobní směnu, výrobní úkoly, směnové reporty, dovolené a dílenské kalkulačky do jedné instalovatelné aplikace.</div>',
         '  ' + buildAppMenuAboutHistoryHtml(),
         '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
         '</div>'

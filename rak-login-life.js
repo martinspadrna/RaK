@@ -28,6 +28,7 @@
       .rakLivingLogo .crabBlink{animation:crabBlink 4.8s ease-in-out infinite}
       .rakLivingLogo .crabBrowL,.rakLivingLogo .crabBrowR{animation:crabBrows 4.8s ease-in-out infinite}
       .rakLivingLogo .crabMouth{animation:crabMouth 3.6s ease-in-out infinite}
+      @media (prefers-reduced-motion:reduce){.rakLivingLogo .crabPart{animation:none!important;transform:none!important}}
       @keyframes crabLeg1{0%,100%{transform:rotate(0) translate(0,0)}50%{transform:rotate(-8deg) translate(-4px,5px)}}
       @keyframes crabLeg2{0%,100%{transform:rotate(0) translate(0,0)}50%{transform:rotate(7deg) translate(4px,-3px)}}
       @keyframes crabLeg3{0%,100%{transform:rotate(0) translate(0,0)}50%{transform:rotate(-7deg) translate(-4px,4px)}}
@@ -98,6 +99,8 @@
   };
   const boot=()=>{ensureStyle();mount()};
   window.rakInstallLoginLife=boot;
+  window.rakLivingLogoHtml=()=>'<div class="rakLivingLogo" aria-hidden="true">'+livingSvg()+'</div>';
+  window.rakInstallLoginLifeStyles=ensureStyle;
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   const start=()=>{
     if(!document.body)return;

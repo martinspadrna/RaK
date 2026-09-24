@@ -1168,7 +1168,7 @@ function getSpecialWorkInfo(now) {
 
 const DEFAULT_VACATION_COUNTDOWN_PERIODS = [
   { key: 'czd-2026', label: 'CZD', workLabel: 'CZD', start: '2026-07-19T14:00', end: '2026-08-02T18:00' },
-  { key: 'vanoce-2026', label: 'Vánoce', countdownLabel: 'Vánocům', workLabel: 'Vánoční dovolená', start: '2026-12-23T18:00', end: '2027-01-02T06:00' }
+  { key: 'vanoce-2026', label: 'Vánoce', countdownLabel: 'Vánoc', workLabel: 'Vánoční dovolená', start: '2026-12-23T18:00', end: '2027-01-02T06:00' }
 ];
 
 const CZD_PERIODS = DEFAULT_VACATION_COUNTDOWN_PERIODS.map((period) => ({
@@ -1448,7 +1448,7 @@ function getVacationCountdown(now) {
   const start = new Date(upcoming.start);
   start.setHours(0, 0, 0, 0);
   const diffDays = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000));
-  const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : ('k ' + String(upcoming.countdownLabel || upcoming.label || 'dovolené'));
+  const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : ((String(upcoming.key || '').toLowerCase().startsWith('vanoce') ? 'do ' : 'k ') + String(upcoming.countdownLabel || upcoming.label || 'dovolené'));
   const countdownTeam = getRakActiveAccountShiftTeam();
   const shiftCount = active ? 0 : getVacationCountdownTeamShiftCount(sourceDate, upcoming.start, countdownTeam);
   return {

@@ -282,6 +282,22 @@
     ].join('');
   }
 
+  function toggleSignedInput(input, button) {
+    if (!input) return;
+    let raw = String(input.value || '').trim().replace(/[−–—]/g, '-');
+    if (raw.startsWith('-')) raw = raw.replace(/^-+/, '');
+    else if (raw.startsWith('+')) raw = '-' + raw.slice(1);
+    else raw = raw ? '-' + raw : '-';
+    input.value = raw;
+    const negative = raw.startsWith('-');
+    if (button) {
+      button.textContent = negative ? '−' : '+';
+      button.classList.toggle('isNegative', negative);
+      button.setAttribute('aria-pressed', negative ? 'true' : 'false');
+    }
+    try { input.focus({ preventScroll: true }); if (input.setSelectionRange) input.setSelectionRange(raw.length, raw.length); } catch (_) {}
+  }
+
   function choiceGroup(name, values, active) {
     return '<div class="brusFhbChoiceGroup" data-brus-fhb-select="' + esc(name) + '">' + values.map((value) =>
       '<button type="button" class="brusFhbChoice' + (value === active ? ' isActive' : '') + '" data-value="' + esc(value) + '">' + esc(value) + '</button>'
@@ -309,8 +325,8 @@
       '  <div class="brusFhbField"><span>Měření</span>' + choiceGroup('c', ['C1', 'C2'], 'C1') + '</div>',
       '  <div class="brusFhbKpo" id="brusFhbKpoTarget">' + targetSummary('AD') + '</div>',
       '  <div class="brusFhbInputs">',
-      '    <label><span>FHB vlevo</span><input id="brus_fhb_left" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 21"></label>',
-      '    <label><span>FHB vpravo</span><input id="brus_fhb_right" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 15"></label>',
+      '    <label><span>FHB vlevo</span><div class="calcSignedInput brusFhbSignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="brus_fhb_left" aria-label="Přepnout znaménko FHB vlevo">+</button><input id="brus_fhb_left" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 21"></div></label>',
+      '    <label><span>FHB vpravo</span><div class="calcSignedInput brusFhbSignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="brus_fhb_right" aria-label="Přepnout znaménko FHB vpravo">+</button><input id="brus_fhb_right" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 15"></div></label>',
       '  </div>',
       '  <button type="button" class="calcPrimaryBtn calcCorrectionPrimaryBtn" id="brusFhbEvaluate">Vyhodnotit</button>',
       '  <div class="card calcResultCard calcCorrectionResultCard brusFhbResult" id="brusFhbResult"></div>',
@@ -401,7 +417,7 @@
       '<label>P<input class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="beforeRight" placeholder="pravé vřeteno"></label>',
       '</div></div>',
       '<div class="adminFhbCalibrationFieldset"><b>Provedená korekce</b>',
-      '<label>Korekce [µm]<input class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="correction" placeholder="např. +2"></label>',
+      '<label>Korekce [µm]<div class="calcSignedInput adminCorrectionSignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="admin_brus_fhb_correction" aria-label="Přepnout znaménko korekce brusů">+</button><input id="admin_brus_fhb_correction" class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="correction" placeholder="např. 2"></div></label>',
       '</div>',
       '<div class="adminFhbCalibrationFieldset"><b>Po korekci</b><div class="adminFhbCalibrationTwo">',
       '<label>L<input class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="afterLeft" placeholder="levé vřeteno"></label>',
@@ -547,6 +563,18 @@
   }
 
   document.addEventListener('click', (event) => {
+    const signButton = event.target && event.target.closest ? event.target.closest('[data-brus-fhb-sign-target]') : null;
+    if (signButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const input = document.getElementById(String(signButton.dataset.brusFhbSignTarget || ''));
+      toggleSignedInput(input, signButton);
+      if (input && input.closest('#korekce-brusy')) {
+        const out = document.getElementById('brusFhbResult');
+        if (out && String(out.innerHTML || '').trim()) evaluate();
+      }
+      return;
+    }
     const choice = event.target && event.target.closest ? event.target.closest('#korekce-brusy .brusFhbChoice') : null;
     if (choice) {
       const group = choice.closest('.brusFhbChoiceGroup');
@@ -573,6 +601,16 @@
         try { alert(err && err.message ? err.message : 'Uložení kalibrace brusů selhalo.'); } catch (_) {}
       });
     }
+  }, true);
+  document.addEventListener('input', (event) => {
+    const input = event.target && event.target.matches && event.target.matches('#brus_fhb_left,#brus_fhb_right,#admin_brus_fhb_correction') ? event.target : null;
+    if (!input || !input.id) return;
+    const button = document.querySelector('[data-brus-fhb-sign-target="' + input.id + '"]');
+    if (!button) return;
+    const negative = String(input.value || '').trim().replace(/[−–—]/g, '-').startsWith('-');
+    button.textContent = negative ? '−' : '+';
+    button.classList.toggle('isNegative', negative);
+    button.setAttribute('aria-pressed', negative ? 'true' : 'false');
   }, true);
 
   window.buildAdminBrusFhbCorrectionHtml = buildAdminHtml;
