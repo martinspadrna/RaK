@@ -23,6 +23,7 @@ function flushFixture(task,remoteRow){
   markQueuedTaskAttempt:value=>({...value,lastTriedAt:Date.now()}),
   markQueuedTaskFailure:(value,error)=>({...value,retryCount:(value.retryCount||0)+1,lastErrorMessage:error.message}),
   isLikelyPermanentQueueError:()=>false,isLikelyOfflineError:()=>false,scheduleSupabaseQueueFlush:()=>true,
+  runSupabaseOperation:async(_name,action)=>await action(),GAME_UI_SETTINGS_TYPE:'__profile_ui',
   normalizeGameUiSettings:entry=>({
     account_number:String(entry.account_number||''),
     appearance_id:String(entry.appearance_id||entry.theme_id||entry.background_id||''),
