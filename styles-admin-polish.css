@@ -2410,3 +2410,41 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
 html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="rotace"] {
   display:none !important;
 }
+
+
+/* RaK 1.7.88 – směnové kalendáře: kompaktní mobilní editor */
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarTeam + .adminShiftCalendarTeam{
+  margin-top:12px !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRows{
+  display:grid !important;
+  gap:10px !important;
+  margin-top:8px !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRow{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:8px !important;
+  min-width:0 !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRowActions{
+  display:grid !important;
+  grid-template-columns:54px minmax(0,1fr) !important;
+  gap:8px !important;
+  align-items:stretch !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRowActions .appMenuAction{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  min-height:46px !important;
+  margin:0 !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRemove{
+  padding-left:0 !important;
+  padding-right:0 !important;
+  font-size:18px !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarAdd{
+  text-align:left !important;
+}

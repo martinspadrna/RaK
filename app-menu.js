@@ -63,6 +63,7 @@ function appMenuAdminModeSet() {
     'manual',
     'settings-map',
     'admin-accounts',
+    'calendars',
     'external-links',
     'app-contact',
     'payroll-settings',
@@ -1441,14 +1442,24 @@ function bindAppMenuHandlers(body) {
         const team = String(target.getAttribute('data-calendar-team') || '').trim().toUpperCase();
         const block = target.closest('[data-shift-calendar-team-block]');
         const rows = block ? block.querySelector('[data-shift-calendar-rows]') : null;
-        if (rows && typeof buildAdminShiftCalendarRowHtml === 'function') {
-          rows.insertAdjacentHTML('beforeend', buildAdminShiftCalendarRowHtml(team, {}));
+        const row = target.closest('[data-shift-calendar-row]');
+        if (typeof buildAdminShiftCalendarRowHtml === 'function') {
+          const html = buildAdminShiftCalendarRowHtml(team, {});
+          if (row) row.insertAdjacentHTML('afterend', html);
+          else if (rows) rows.insertAdjacentHTML('beforeend', html);
         }
         return;
       }
       if (adminAction === 'remove-shift-calendar') {
         const row = target.closest('[data-shift-calendar-row]');
-        if (row) row.remove();
+        if (!row) return;
+        const rowsWrap = row.closest('[data-shift-calendar-rows]');
+        const rowCount = rowsWrap ? rowsWrap.querySelectorAll('[data-shift-calendar-row]').length : 0;
+        if (rowCount <= 1) {
+          row.querySelectorAll('[data-shift-calendar-field]').forEach((input) => { input.value = ''; });
+        } else {
+          row.remove();
+        }
         return;
       }
       if (adminAction === 'load-calendars') {

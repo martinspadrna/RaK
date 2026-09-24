@@ -912,7 +912,10 @@ function buildAdminShiftCalendarRowHtml(team, entry) {
     '<div class="appMenuInlineField adminShiftCalendarRow" data-shift-calendar-row data-calendar-team="' + escapeHtml(safeTeam) + '">',
     '  <input class="appMenuInlineInput" data-shift-calendar-field="label" value="' + escapeHtml(String(safe.label || '')) + '" placeholder="Název kalendáře">',
     '  <input class="appMenuInlineInput appMenuWideInput" data-shift-calendar-field="url" value="' + escapeHtml(String(safe.url || '')) + '" inputmode="url" placeholder="Google embed nebo public/basic.ics">',
-    '  <button type="button" class="appMenuAction" data-admin-action="remove-shift-calendar" aria-label="Odebrat kalendář">×</button>',
+    '  <div class="adminShiftCalendarRowActions">',
+    '    <button type="button" class="appMenuAction adminShiftCalendarRemove" data-admin-action="remove-shift-calendar" aria-label="Odebrat kalendář">×</button>',
+    '    <button type="button" class="appMenuAction adminShiftCalendarAdd" data-admin-action="add-shift-calendar" data-calendar-team="' + escapeHtml(safeTeam) + '">+ Přidat kalendář</button>',
+    '  </div>',
     '</div>'
   ].join('');
 }
@@ -927,7 +930,6 @@ function buildAdminShiftCalendarsSettingsHtml() {
       '<div class="appMenuCard adminShiftCalendarTeam" data-shift-calendar-team-block="' + team + '">',
       '  <div class="appMenuSubTitle">Směna ' + team + '</div>',
       '  <div class="adminShiftCalendarRows" data-shift-calendar-rows>' + rows + '</div>',
-      '  <button type="button" class="appMenuAction" data-admin-action="add-shift-calendar" data-calendar-team="' + team + '">+ Přidat kalendář</button>',
       '</div>'
     ].join('');
   }).join('');

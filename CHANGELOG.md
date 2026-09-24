@@ -1,3 +1,10 @@
+## RaK 1.7.88 (development)
+
+- Opraven administrátorský guard stránky Kalendáře: režim `calendars` je nově explicitně povolen, takže Přidat, Odebrat, Načíst i Uložit už nevrací uživatele do hlavního menu Více.
+- Editor směnových kalendářů má kompaktnější mobilní rozložení: × a + Přidat kalendář jsou vedle sebe; mezi směnami je větší rozestup.
+- Přidání nového kalendáře vloží nový řádek hned pod aktuální; odebrání posledního řádku jej jen vyčistí, takže tlačítko Přidat zůstane vždy dostupné.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.88; SW cache je v1.7.88.
+
 ## RaK 1.7.87 (development)
 
 - Kalendáře směn nově přijímají i veřejné Google Calendar ICS odkazy ve tvaru `.../public/basic.ics`.

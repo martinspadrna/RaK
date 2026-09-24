@@ -5,20 +5,17 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.87 uses one unified release identity',()=>{
+test('1.7.87 public-ICS milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.87');
-  assert.equal(metadata.displayVersion,'1.7.87');
-  assert.equal(metadata.technicalVersion,'1.7.87');
-  assert.equal(metadata.moduleCacheVersion,'1.7.87');
-  assert.equal(metadata.cacheVersion,'v1.7.87');
-  assert.equal(metadata.buildId,'v1.7.87-public-ics1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.87');
-  assert(read('index.html').includes('app.js?v=1.7.87'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.87');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.87';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('public Google Calendar ICS is accepted and normalized to embed',()=>{
   const core=read('core.js');
   const {api}=runNamedDeclarations({
@@ -57,10 +54,9 @@ test('calendar form stores normalized URLs and explains public ICS support',()=>
   assert(renderer.includes('automaticky převede na embed'));
 });
 
-test('mandatory CI and npm check execute the 1.7.87 gate',()=>{
+test('npm check retains the 1.7.87 milestone while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17087.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17087.test.mjs'));
-  assert(workflow.includes("rak-17087-isolated-build-${{ github.sha }}"));
+  assert(/node --test tools\/release-gate-1708\d\.test\.mjs/.test(workflow));
 });
