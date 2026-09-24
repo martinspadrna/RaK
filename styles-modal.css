@@ -201,6 +201,16 @@ body.calendarModalOpen{overflow:hidden;}
   background:#f5f7fa;
   color:#1f2933;
   box-shadow:0 10px 28px rgba(0,0,0,.16);}
+.calendarNative button{
+  width:auto;
+  margin:0;
+  background-image:none !important;
+  transform:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.calendarNative button:hover,.calendarNative button:active{
+  transform:none;
+}
 .calendarNativeToolbar{display:grid;
   grid-template-columns:38px minmax(0,1fr) 38px auto;
   align-items:center;
@@ -238,35 +248,41 @@ body.calendarModalOpen{overflow:hidden;}
   overflow:hidden;
   background:#fff;}
 .calendarNativeDay{position:relative;
+  width:100% !important;
   min-width:0;
   min-height:58px;
+  margin:0 !important;
   padding:5px 4px 4px;
   border:0;
   border-right:1px solid #e5e9ee;
   border-bottom:1px solid #e5e9ee;
   border-radius:0;
-  background:#fff;
-  color:#202832;
+  background:#fff !important;
+  background-image:none !important;
+  color:#202832 !important;
+  box-shadow:none !important;
   text-align:left;
   font:inherit;
   overflow:hidden;}
 .calendarNativeDay:nth-child(7n){border-right:0;}
 .calendarNativeDay:nth-last-child(-n+7){border-bottom:0;}
-.calendarNativeDay.isOutside{background:#f8f9fb;
-  color:#9aa3ad;}
+.calendarNativeDay.isOutside{background:#f8f9fb !important;
+  color:#9aa3ad !important;}
 .calendarNativeDay.isToday .calendarNativeDayNumber{background:#3478f6;
-  color:#fff;
+  color:#fff !important;
   box-shadow:0 0 0 3px rgba(52,120,246,.12);}
-.calendarNativeDay.isSelected{background:#eef4ff;
-  box-shadow:inset 0 0 0 2px rgba(52,120,246,.28);}
+.calendarNativeDay.isSelected{background:#eef4ff !important;
+  box-shadow:inset 0 0 0 2px rgba(52,120,246,.20) !important;}
 .calendarNativeDayNumber{display:inline-grid;
   place-items:center;
   min-width:22px;
   height:22px;
   padding:0 3px;
   border-radius:999px;
-  font-size:11px;
+  color:#202832 !important;
+  font-size:12px;
   font-weight:900;}
+.calendarNativeDay.isOutside .calendarNativeDayNumber{color:#9aa3ad !important;}
 .calendarNativeDayEvents{display:grid;
   gap:2px;
   margin-top:3px;
@@ -278,11 +294,12 @@ body.calendarModalOpen{overflow:hidden;}
   white-space:nowrap;
   padding:2px 3px;
   border-radius:5px;
-  background:#e7f0ff;
-  color:#245397;
-  font-size:8px;
+  background:#edf4ff;
+  background-image:none !important;
+  color:#174ea6 !important;
+  font-size:9px;
   font-weight:800;
-  line-height:1.15;}
+  line-height:1.2;}
 .calendarNativeMore{font-size:8px;
   color:#7f8993;
   padding-left:2px;}
@@ -614,9 +631,10 @@ body.appMenuOpen{overflow:hidden;}
   .calendarNativeToolbar{grid-template-columns:36px minmax(0,1fr) 36px auto;gap:5px;}
   .calendarNativeNav,.calendarNativeToday{min-height:36px;}
   .calendarNativeMonthTitle{font-size:14px;}
-  .calendarNativeDay{min-height:58px;padding:4px 3px 3px;}
-  .calendarNativeDayNumber{min-width:20px;height:20px;font-size:10px;}
-  .calendarNativeChip{font-size:7px;padding:2px;}
+  .calendarNativeDay{min-height:64px;padding:5px 3px 4px;}
+  .calendarNativeDayNumber{min-width:21px;height:21px;font-size:11px;}
+  .calendarNativeChip{font-size:9px;padding:2px 3px;}
+  .calendarNativeWeekdays{font-size:11px;}
   .calendarNativeDetailBackdrop{padding:10px;}
   .calendarNativeDetail{width:100%;padding:20px 16px 16px;border-radius:20px;}
   .calendarNativeDetailText b{font-size:18px;}

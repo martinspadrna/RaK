@@ -1,3 +1,10 @@
+## RaK 1.7.94 (development)
+
+- Mobilní měsíční kalendář už nevykresluje vždy pevných 42 dní. Použije 5 týdnů, když se měsíc do pěti řádků vejde, a 6 týdnů jen tehdy, když jsou skutečně potřeba; říjen 2026 tak nemá zbytečný poslední řádek.
+- Kalendářová tlačítka jsou izolovaná od globálního RaK glass stylu: denní buňky jsou skutečně bílé bez šedého gradientu, čísla dnů jsou tmavá a dnešek zůstává modře zvýrazněný.
+- Mobilní čitelnost byla zvětšena: čísla dnů, názvy dnů a text směn mají větší písmo; původní 7px text událostí je odstraněný.
+- Popup detail a intervaly `od–do` z 1.7.93/1.7.92 zůstávají beze změny. Supabase ani produkce se nemění.
+
 ## RaK 1.7.93 (development)
 
 - Nativní směnový kalendář má nově světlý vzhled inspirovaný přehledností původního Google kalendáře, ale stále používá bezpečný RaK public-ICS renderer bez Google iframe, cookies nebo přihlášení.

@@ -1237,8 +1237,10 @@ function rakNativeCalendarExpand(events, rangeStartKey, rangeEndKey) {
 function rakNativeCalendarMonthRange(year, month) {
   const first = new Date(Date.UTC(year, month, 1));
   const offset = (first.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const cellCount = Math.max(35, Math.ceil((offset + daysInMonth) / 7) * 7);
   const start = rakNativeCalendarAddDays(first, -offset);
-  return { start, end: rakNativeCalendarAddDays(start, 41) };
+  return { start, end: rakNativeCalendarAddDays(start, cellCount - 1), cellCount };
 }
 
 function rakNativeCalendarTodayKey() {
@@ -1314,7 +1316,7 @@ function rakNativeCalendarRender(content) {
   }
 
   const days = [];
-  for (let i = 0; i < 42; i += 1) {
+  for (let i = 0; i < range.cellCount; i += 1) {
     const date = rakNativeCalendarAddDays(range.start, i);
     const key = rakNativeCalendarKey(date);
     const events = byDay.get(key) || [];
