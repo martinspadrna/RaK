@@ -1,3 +1,10 @@
+## RaK 1.7.87 (development)
+
+- Kalendáře směn nově přijímají i veřejné Google Calendar ICS odkazy ve tvaru `.../public/basic.ics`.
+- Veřejný ICS se před uložením automaticky převede na standardní Google Calendar embed URL, takže Dashboard používá stejný zobrazovací mechanismus jako dosud.
+- Soukromé `private-.../basic.ics` odkazy zůstávají blokované, protože obsahují neveřejný přístupový token.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.87; SW cache je v1.7.87.
+
 ## RaK 1.7.86 (development)
 
 - Administrace → Informace pro zaměstnance má novou samostatnou sekci Kalendáře; obecné Odkazy už kalendář nenastavují.

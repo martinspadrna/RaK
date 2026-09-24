@@ -792,23 +792,42 @@ function isRakShiftCalendarSettingsRow(row) {
     || String(settings && settings.admin_settings_key || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_KEY;
 }
 
-function isRakAllowedGoogleCalendarUrl(value) {
+function normalizeRakGoogleCalendarUrl(value) {
   const raw = String(value || '').trim();
-  if (!raw) return false;
+  if (!raw) return '';
   try {
     const url = new URL(raw);
-    if (url.protocol !== 'https:' || url.hostname !== 'calendar.google.com') return false;
-    if (!/^\/calendar\/embed\/?$/.test(url.pathname)) return false;
-    return url.searchParams.getAll('src').some((src) => String(src || '').trim());
+    if (url.protocol !== 'https:' || url.hostname !== 'calendar.google.com') return '';
+
+    if (/^\/calendar\/embed\/?$/.test(url.pathname)) {
+      const sources = url.searchParams.getAll('src').map((src) => String(src || '').trim()).filter(Boolean);
+      if (!sources.length) return '';
+      return url.toString();
+    }
+
+    const publicIcs = url.pathname.match(/^\/calendar\/ical\/([^/]+)\/public\/basic\.ics$/);
+    if (!publicIcs) return '';
+    let calendarId = '';
+    try { calendarId = decodeURIComponent(publicIcs[1] || '').trim(); }
+    catch (err) { return ''; }
+    if (!calendarId) return '';
+
+    const embed = new URL('https://calendar.google.com/calendar/embed');
+    embed.searchParams.set('src', calendarId);
+    return embed.toString();
   } catch (err) {
-    return false;
+    return '';
   }
+}
+
+function isRakAllowedGoogleCalendarUrl(value) {
+  return !!normalizeRakGoogleCalendarUrl(value);
 }
 
 function normalizeRakShiftCalendarEntry(entry, index) {
   const safe = entry && typeof entry === 'object' ? entry : {};
-  const url = String(safe.url || '').trim();
-  if (!isRakAllowedGoogleCalendarUrl(url)) return null;
+  const url = normalizeRakGoogleCalendarUrl(safe.url);
+  if (!url) return null;
   const fallbackLabel = 'Kalendář ' + String((Number(index) || 0) + 1);
   return {
     label: String(safe.label || fallbackLabel).trim().slice(0, 80) || fallbackLabel,
@@ -892,7 +911,7 @@ function buildAdminShiftCalendarRowHtml(team, entry) {
   return [
     '<div class="appMenuInlineField adminShiftCalendarRow" data-shift-calendar-row data-calendar-team="' + escapeHtml(safeTeam) + '">',
     '  <input class="appMenuInlineInput" data-shift-calendar-field="label" value="' + escapeHtml(String(safe.label || '')) + '" placeholder="Název kalendáře">',
-    '  <input class="appMenuInlineInput appMenuWideInput" data-shift-calendar-field="url" value="' + escapeHtml(String(safe.url || '')) + '" inputmode="url" placeholder="https://calendar.google.com/calendar/embed?...">',
+    '  <input class="appMenuInlineInput appMenuWideInput" data-shift-calendar-field="url" value="' + escapeHtml(String(safe.url || '')) + '" inputmode="url" placeholder="Google embed nebo public/basic.ics">',
     '  <button type="button" class="appMenuAction" data-admin-action="remove-shift-calendar" aria-label="Odebrat kalendář">×</button>',
     '</div>'
   ].join('');
@@ -924,18 +943,20 @@ function readAdminShiftCalendarsSettingsFromDom() {
     const url = String(row.querySelector('[data-shift-calendar-field="url"]')?.value || '').trim();
     if (!label && !url) return;
     if (!url) throw new Error('U kalendáře směny ' + team + ' doplň Google Calendar odkaz.');
-    if (!isRakAllowedGoogleCalendarUrl(url)) {
-      throw new Error('Kalendář směny ' + team + ' musí být veřejný Google Calendar embed odkaz. Soukromé ICS odkazy se neukládají.');
+    const normalizedUrl = normalizeRakGoogleCalendarUrl(url);
+    if (!normalizedUrl) {
+      throw new Error('Kalendář směny ' + team + ' musí být Google Calendar embed odkaz nebo veřejný public/basic.ics. Soukromé private ICS odkazy se neukládají.');
     }
-    if (seen[team].has(url)) throw new Error('Stejný kalendář je u směny ' + team + ' zadaný vícekrát.');
+    if (seen[team].has(normalizedUrl)) throw new Error('Stejný kalendář je u směny ' + team + ' zadaný vícekrát.');
     if (teams[team].length >= 8) throw new Error('Na jednu směnu lze nastavit nejvýše 8 kalendářů.');
-    seen[team].add(url);
-    teams[team].push({ label: label || ('Kalendář ' + String(teams[team].length + 1)), url });
+    seen[team].add(normalizedUrl);
+    teams[team].push({ label: label || ('Kalendář ' + String(teams[team].length + 1)), url: normalizedUrl });
   });
   return normalizeRakShiftCalendarSettings({ teams });
 }
 
 window.isRakShiftCalendarSettingsRow = isRakShiftCalendarSettingsRow;
+window.normalizeRakGoogleCalendarUrl = normalizeRakGoogleCalendarUrl;
 window.isRakAllowedGoogleCalendarUrl = isRakAllowedGoogleCalendarUrl;
 window.getRakShiftCalendarSettings = getRakShiftCalendarSettings;
 window.getRakShiftCalendarsForTeam = getRakShiftCalendarsForTeam;

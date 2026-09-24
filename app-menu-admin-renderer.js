@@ -279,7 +279,7 @@ function renderAdminMenuBody(body, section) {
     '  <div class="appMenuCardTitle">Kalendáře podle směny</div>',
     '  <div class="appMenuText">',
     '    <div>Dashboard zobrazí jen kalendář nebo výběr kalendářů směny přihlášeného člověka. Lidé v Rozpisu používají směnu D; u účtů mimo Rozpis se směna A/B/C/D nastavuje v Administraci → Pracovníci.</div>',
-    '    <div class="smallText" id="adminOnlineSaveStatus">Povoleny jsou jen veřejně vložitelné Google Calendar embed odkazy. Soukromé ICS adresy s privátním tokenem se neukládají.</div>',
+    '    <div class="smallText" id="adminOnlineSaveStatus">Povoleny jsou Google Calendar embed odkazy i veřejné public/basic.ics adresy; veřejný ICS se při uložení automaticky převede na embed. Soukromé private ICS adresy se neukládají.</div>',
     '  </div>',
     (typeof buildAdminShiftCalendarsSettingsHtml === 'function' ? buildAdminShiftCalendarsSettingsHtml() : ''),
     '  <div class="appMenuActionRow">',
