@@ -29,7 +29,8 @@ assert(!index.includes('jszip.min.js'), 'JSZip must stay lazy after build transf
 assert(config.includes('cgshssdjgzzuprlwnabl.supabase.co'), 'Development Supabase isolation changed');
 assert(!adminUnlock.includes('RAK_OWNER_ADMIN_PASSWORD'), 'Client contains owner password constant');
 assert(!bridge.includes('p_admin_pin'), 'Legacy admin PIN write path returned');
-assert(bridge.includes("client.rpc('rak_submit_bug_report_v2'"), 'Bug reports must use RPC');
+assert(bridge.includes("client.rpc('rak_submit_bug_report_v3'"), 'Bug reports must use bounded screenshot-aware RPC');
+assert(!/\.from\(['"]bug_reports['"]\)/.test(bridge), 'Direct bug_reports table access returned');
 assert(bridge.includes("client.rpc('rak_app_keepalive'"), 'Keepalive must use RPC');
 assert(!/\.from\(['"]app_keepalive['"]\)/.test(bridge), 'Direct app_keepalive table access returned');
 assert(migration.includes('revoke all privileges on table public.app_keepalive from anon, authenticated;'), 'Keepalive table grants are not revoked');
