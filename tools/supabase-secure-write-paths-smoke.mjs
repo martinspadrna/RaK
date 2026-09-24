@@ -45,7 +45,7 @@ const bridgePos = syncFeature[1].indexOf('"supabase-bridge.js"');
 const syncPos = syncFeature[1].indexOf('"app-rotation-sync.js"');
 assert(bridgePos >= 0 && syncPos > bridgePos, 'app-rotation-sync secure gate must load after supabase-bridge');
 
-assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'")||sw.includes("'./app-rotation-sync.js?v=1.7.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
+assert(sw.includes("'./app-rotation-sync.js?v="+RELEASE_METADATA.moduleCacheVersion+"'"), 'PWA must invalidate cached app-rotation-sync with the current release version');
 const canonical=!!(pkg.scripts&&pkg.scripts['legacy:vercel-build']);
 if(canonical){
   assert.equal(pkg.version,RELEASE_METADATA.technicalVersion,'canonical technical version changed');
@@ -65,7 +65,7 @@ assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must n
 assert(exportJs.includes('"supabase-bridge.js": "src-supabase-bridge-js"'), 'export inventory must still include Supabase bridge');
 assert(exportJs.includes('"app-rotation-sync.js": "src-app-rotation-sync-js"'), 'export inventory must still include rotation sync/security gate source');
 assert(String(pkg.scripts.check || '').includes('tools/supabase-secure-write-paths-smoke.mjs'), 'secure write paths smoke must run in npm check');
-assert.equal(pkg.version, canonical?'1.7.0':'1.6.0', 'technical package version changed');
+assert.equal(pkg.version, canonical?RELEASE_METADATA.technicalVersion:'1.6.0', 'technical package version changed');
 
 console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; release metadata and export/SW/boot links preserved');
 
