@@ -21,7 +21,7 @@ function change(file, fn) {
   if (before !== after) fs.writeFileSync(file, after, 'utf8');
   return after;
 }
-const migration = read('supabase/migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql');
+const migration = read('supabase/history/non-production-migrations/20260919141936_rak_bounded_admin_gate_and_login_v2.sql');
 const sqlTest = read('tools/login-admin-gate-17045.sql');
 assert(migration.includes('rak_lookup_account_for_login_v2')
   && migration.includes('rak_lookup_account_for_login_v1(p_last4)')

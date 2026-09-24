@@ -22,7 +22,7 @@ test('1.7.47 PWA, app, test Supabase and 1.7.0 technical version are aligned',()
   assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
 test('public-field guard, machine settings trigger and deep backup validation remain separate and testable',()=>{
-  const sql=read('supabase/migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql');
+  const sql=read('supabase/history/non-production-migrations/20260919153000_rak_17047_privacy_keys_machine_guard_backup_months.sql');
   for(const marker of ['accountnumber','personalnumber','osnumber','userid','workers','appaccounts',
     'CREATE OR REPLACE FUNCTION private.rak_machine_settings_no_public_leak_v1()',
     'CREATE TRIGGER rak_machine_settings_no_public_leak_v1',

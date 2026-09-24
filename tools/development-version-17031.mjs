@@ -21,8 +21,8 @@ function swap(source, before, after, label) {
   assert(source.includes(after), '[17031] missing anchor: ' + label);
   return source;
 }
-const announcementMigration = read('supabase/migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql');
-const rosterMigration = read('supabase/migrations/20260918220817_rak_machine_settings_hide_disguised_roster_payloads.sql');
+const announcementMigration = read('supabase/history/non-production-migrations/20260918220431_rak_announcements_hide_inactive_from_public_reads.sql');
+const rosterMigration = read('supabase/history/non-production-migrations/20260918220817_rak_machine_settings_hide_disguised_roster_payloads.sql');
 const roleMatrix = read('tools/security-privacy-bundle-matrix.sql');
 assert(announcementMigration.includes('rak_announcements_active_public_read_v3') && announcementMigration.includes('rak_announcements_active_or_admin_read_v3') && announcementMigration.includes('is_active IS TRUE'), '[17031] archived-announcement privacy migration missing');
 assert(rosterMigration.includes('rak_machine_settings_anon_no_roster_payload_v8') && rosterMigration.includes('rak_machine_settings_authenticated_roster_payload_admin_only_v8') && rosterMigration.includes("ARRAY['appAccounts','applicationAccounts','workers']"), '[17031] disguised-roster privacy migration missing');

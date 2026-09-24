@@ -27,7 +27,7 @@ test('mandatory CI and npm check execute the 1.7.83 gate',()=>{
 });
 
 test('Phase B preserves historical Gomoku rows and closes only inactive client access',()=>{
-  const sql=read('supabase/migrations/20260918193324_rak_close_retired_gomoku_public_read.sql');
+  const sql=read('supabase/history/non-production-migrations/20260918193324_rak_close_retired_gomoku_public_read.sql');
   assert(sql.includes("has_function_privilege('anon', v_submit, 'EXECUTE')"));
   assert(sql.includes("has_function_privilege('authenticated', v_submit, 'EXECUTE')"));
   assert(sql.includes("has_table_privilege('anon', 'public.gomoku_wins', 'INSERT')"));
@@ -41,7 +41,7 @@ test('Phase B preserves historical Gomoku rows and closes only inactive client a
 });
 
 test('owner-authorized retired Gomoku cleanup is exact and fail-closed',()=>{
-  const sql=read('supabase/migrations/20260924110000_rak_delete_retired_gomoku_history.sql');
+  const sql=read('supabase/history/non-production-migrations/20260924110000_rak_delete_retired_gomoku_history.sql');
   assert(sql.includes('IF v_rows_before <> 101 THEN'));
   assert(sql.includes("has_table_privilege('anon', 'public.gomoku_wins', 'SELECT')"));
   assert(sql.includes("has_table_privilege('authenticated', 'public.gomoku_wins', 'DELETE')"));

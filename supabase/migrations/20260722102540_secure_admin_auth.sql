@@ -3,11 +3,9 @@
 -- the owner Auth user is provisioned and the new client has been verified.
 
 create extension if not exists pgcrypto;
-
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
 grant usage on schema private to authenticated;
-
 create table if not exists public.rak_admin_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   account_id text not null unique,
@@ -20,7 +18,6 @@ create table if not exists public.rak_admin_profiles (
   constraint rak_admin_profiles_account_id_format
     check (account_id ~ '^[0-9]{4,12}$')
 );
-
 create table if not exists public.rak_admin_devices (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -34,12 +31,10 @@ create table if not exists public.rak_admin_devices (
   revoked_by uuid references auth.users(id) on delete set null,
   unique (user_id, device_id)
 );
-
 create index if not exists rak_admin_devices_user_last_seen_idx
   on public.rak_admin_devices (user_id, last_seen_at desc);
 create index if not exists rak_admin_devices_session_idx
   on public.rak_admin_devices (session_id);
-
 create table if not exists public.rak_admin_audit_log (
   id bigint generated always as identity primary key,
   user_id uuid references auth.users(id) on delete set null,
@@ -51,10 +46,8 @@ create table if not exists public.rak_admin_audit_log (
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
-
 create index if not exists rak_admin_audit_log_created_idx
   on public.rak_admin_audit_log (created_at desc);
-
 create table if not exists public.rak_admin_settings_backups (
   id uuid primary key default gen_random_uuid(),
   legacy_key text unique,
@@ -71,10 +64,8 @@ create table if not exists public.rak_admin_settings_backups (
   constraint rak_admin_settings_backups_row_count_nonnegative
     check (row_count >= 0)
 );
-
 create index if not exists rak_admin_settings_backups_created_idx
   on public.rak_admin_settings_backups (created_at desc);
-
 create table if not exists public.rak_rotation_backups_v2 (
   id uuid primary key default gen_random_uuid(),
   rotation_key text not null default 'main',
@@ -91,16 +82,13 @@ create table if not exists public.rak_rotation_backups_v2 (
   constraint rak_rotation_backups_payload_object
     check (jsonb_typeof(payload) = 'object')
 );
-
 create index if not exists rak_rotation_backups_v2_replaced_idx
   on public.rak_rotation_backups_v2 (replaced_at desc);
-
 alter table public.rak_admin_profiles enable row level security;
 alter table public.rak_admin_devices enable row level security;
 alter table public.rak_admin_audit_log enable row level security;
 alter table public.rak_admin_settings_backups enable row level security;
 alter table public.rak_rotation_backups_v2 enable row level security;
-
 revoke all on table public.rak_admin_profiles from public, anon, authenticated;
 revoke all on table public.rak_admin_devices from public, anon, authenticated;
 revoke all on table public.rak_admin_audit_log from public, anon, authenticated;
@@ -108,7 +96,6 @@ revoke all on table public.rak_admin_settings_backups from public, anon, authent
 revoke all on table public.rak_rotation_backups_v2 from public, anon, authenticated;
 grant select on table public.rak_admin_profiles to authenticated;
 grant select on table public.rak_admin_devices to authenticated;
-
 create or replace function private.rak_current_session_id()
 returns uuid
 language plpgsql
@@ -125,7 +112,6 @@ begin
   return value::uuid;
 end;
 $$;
-
 create or replace function private.rak_current_admin_role()
 returns text
 language sql
@@ -152,7 +138,6 @@ as $$
     )
   limit 1
 $$;
-
 create or replace function private.rak_is_admin()
 returns boolean
 language sql
@@ -162,7 +147,6 @@ set search_path = ''
 as $$
   select coalesce(private.rak_current_admin_role() in ('owner', 'admin'), false)
 $$;
-
 create or replace function private.rak_is_owner()
 returns boolean
 language sql
@@ -172,7 +156,6 @@ set search_path = ''
 as $$
   select coalesce(private.rak_current_admin_role() = 'owner', false)
 $$;
-
 create or replace function private.rak_require_admin(p_owner_only boolean default false)
 returns void
 language plpgsql
@@ -192,7 +175,6 @@ begin
   end if;
 end;
 $$;
-
 create or replace function private.rak_write_admin_audit(
   p_action text,
   p_target_type text default '',
@@ -225,7 +207,6 @@ as $$
   from public.rak_admin_profiles as profile
   where profile.user_id = (select auth.uid())
 $$;
-
 revoke all on function private.rak_current_session_id() from public, anon, authenticated;
 revoke all on function private.rak_current_admin_role() from public, anon, authenticated;
 revoke all on function private.rak_is_admin() from public, anon, authenticated;
@@ -233,21 +214,18 @@ revoke all on function private.rak_is_owner() from public, anon, authenticated;
 revoke all on function private.rak_require_admin(boolean) from public, anon, authenticated;
 revoke all on function private.rak_write_admin_audit(text, text, text, jsonb) from public, anon, authenticated;
 grant execute on function private.rak_is_owner() to authenticated;
-
 drop policy if exists rak_admin_profiles_read_v2 on public.rak_admin_profiles;
 create policy rak_admin_profiles_read_v2
 on public.rak_admin_profiles
 for select
 to authenticated
 using (user_id = (select auth.uid()) or private.rak_is_owner());
-
 drop policy if exists rak_admin_devices_read_v2 on public.rak_admin_devices;
 create policy rak_admin_devices_read_v2
 on public.rak_admin_devices
 for select
 to authenticated
 using (user_id = (select auth.uid()) or private.rak_is_owner());
-
 create or replace function public.rak_admin_auth_capabilities()
 returns jsonb
 language sql
@@ -262,7 +240,6 @@ as $$
     'provider', 'supabase-auth'
   )
 $$;
-
 create or replace function public.rak_admin_context()
 returns jsonb
 language plpgsql
@@ -288,7 +265,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.rak_admin_account_requires_auth(p_account_id text)
 returns boolean
 language sql
@@ -303,7 +279,6 @@ as $$
       and profile.enabled
   )
 $$;
-
 create or replace function public.rak_admin_touch_device(
   p_device_id text,
   p_label text default 'Zařízení',
@@ -359,7 +334,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.rak_owner_list_admin_devices()
 returns table (
   device_id text,
@@ -395,7 +369,6 @@ begin
   order by device.last_seen_at desc;
 end;
 $$;
-
 create or replace function public.rak_owner_revoke_admin_device(p_device_id text)
 returns jsonb
 language plpgsql
@@ -432,7 +405,6 @@ begin
   return jsonb_build_object('ok', true, 'device_id', target.device_id);
 end;
 $$;
-
 create or replace function public.rak_owner_list_admin_profiles()
 returns table (
   user_id uuid,
@@ -463,7 +435,6 @@ begin
   order by (profile.role = 'owner') desc, profile.account_id;
 end;
 $$;
-
 revoke all on function public.rak_admin_auth_capabilities() from public;
 revoke all on function public.rak_admin_context() from public;
 revoke all on function public.rak_admin_account_requires_auth(text) from public;
@@ -471,7 +442,6 @@ revoke all on function public.rak_admin_touch_device(text, text, text) from publ
 revoke all on function public.rak_owner_list_admin_devices() from public;
 revoke all on function public.rak_owner_revoke_admin_device(text) from public;
 revoke all on function public.rak_owner_list_admin_profiles() from public;
-
 grant execute on function public.rak_admin_auth_capabilities() to anon, authenticated;
 grant execute on function public.rak_admin_context() to authenticated;
 grant execute on function public.rak_admin_account_requires_auth(text) to anon, authenticated;
@@ -479,7 +449,6 @@ grant execute on function public.rak_admin_touch_device(text, text, text) to aut
 grant execute on function public.rak_owner_list_admin_devices() to authenticated;
 grant execute on function public.rak_owner_revoke_admin_device(text) to authenticated;
 grant execute on function public.rak_owner_list_admin_profiles() to authenticated;
-
 -- Provision the owner profile automatically when the Auth user already exists.
 -- The user should be created with email 9811@admin.rak.local or app metadata
 -- {"rak_account_id":"9811"} before this migration is applied.

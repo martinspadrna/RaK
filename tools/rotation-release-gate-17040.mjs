@@ -25,7 +25,7 @@ export function assertRotationRelease(files) {
     ['supabase-config.js', `https://${testProject}.supabase.co`],
     ['supabase-bridge.js', ".select('id,key,payload,meta,revision,updated_at').eq('key', 'main').maybeSingle()"],
     ['tools/shift-report-mo-hotfix-170-smoke.mjs', 'RAK_17040_TWO_PASS_GUARD'],
-    ['supabase/migrations/20260919111542_rak_rotation_archive_import_provenance.sql', 'private.rak_rotation_import_metadata_v1'],
+    ['supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql', 'private.rak_rotation_import_metadata_v1'],
     ['tools/security-rotation-minimization-17040.sql', 'ROLLBACK;'],
     ['PUBLIC_ROTATION_MINIMIZATION_17040.md', 'offline']
   ];

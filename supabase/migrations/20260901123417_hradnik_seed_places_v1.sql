@@ -1,0 +1,22 @@
+insert into public.hradnik_places(source_key,external_id,slug,name,kind,character,district,region,latitude,longitude,is_visible,is_current) values
+('seed','b1','bitov','Bítov','Hrad','hrad','Znojmo','Jihomoravský kraj',48.9417,15.6969,true,true),
+('seed','c1','cornstejn','Cornštejn','Zřícenina','zřícenina hradu','Znojmo','Jihomoravský kraj',48.9471,15.6870,true,true),
+('seed','v1','vranov-nad-dyji','Vranov nad Dyjí','Zámek','hrad přestavěný na zámek','Znojmo','Jihomoravský kraj',48.8948,15.8122,true,true),
+('seed','p1','pernstejn','Pernštejn','Hrad','hrad','Brno-venkov','Jihomoravský kraj',49.4545,16.3174,true,true),
+('seed','be','bezdez','Bezděz','Hrad','hrad','Česká Lípa','Liberecký kraj',50.5397,14.7224,true,true),
+('seed','kr','krivoklat','Křivoklát','Hrad','hrad','Rakovník','Středočeský kraj',50.0379,13.8728,true,true),
+('seed','ka','karlstejn','Karlštejn','Hrad','hrad','Beroun','Středočeský kraj',49.9397,14.1870,true,true),
+('seed','ko','kost','Kost','Hrad','hrad','Jičín','Královéhradecký kraj',50.4910,15.1342,true,true),
+('seed','tr','trosky','Trosky','Zřícenina','zřícenina hradu','Semily','Liberecký kraj',50.5157,15.2308,true,true),
+('seed','bo','bouzov','Bouzov','Hrad','hrad','Olomouc','Olomoucký kraj',49.7042,16.8923,true,true),
+('seed','ra','rabi','Rabí','Zřícenina','zřícenina hradu','Klatovy','Plzeňský kraj',49.2776,13.4897,true,true),
+('seed','hl','hluboka','Hluboká nad Vltavou','Zámek','zámek','České Budějovice','Jihočeský kraj',49.0519,14.4427,true,true),
+('seed','ro','rozmberk','Rožmberk nad Vltavou','Hrad','hrad','Český Krumlov','Jihočeský kraj',48.8554,14.3658,true,true),
+('seed','zv','zvikov','Zvíkov','Hrad','hrad','Písek','Jihočeský kraj',49.4384,14.2069,true,true),
+('seed','ok','okor','Okoř','Zřícenina','zřícenina hradu','Praha-západ','Středočeský kraj',50.1618,14.2601,true,true),
+('seed','ko2','kokorin','Kokořín','Hrad','hrad','Mělník','Středočeský kraj',50.4382,14.5794,true,true),
+('seed','ka2','kasperk','Kašperk','Hrad','hrad','Klatovy','Plzeňský kraj',49.1694,13.5529,true,true),
+('seed','ku','kuneticka-hora','Kunětická hora','Hrad','hrad','Pardubice','Pardubický kraj',50.0724,15.8085,true,true),
+('seed','le','lednice','Lednice','Zámek','zámek','Břeclav','Jihomoravský kraj',48.7998,16.8035,true,true),
+('seed','sy','sychrov','Sychrov','Zámek','zámek','Liberec','Liberecký kraj',50.6276,15.0902,true,true)
+on conflict(source_key,external_id) do nothing;;

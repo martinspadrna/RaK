@@ -52,7 +52,6 @@ begin
   end loop;
 end;
 $$;
-
 grant select on table public.announcements to anon, authenticated;
 grant select on table public.machine_settings to anon, authenticated;
 grant select on table public.rotation_state to anon, authenticated;
@@ -63,7 +62,6 @@ grant select on table public.game_invites to anon, authenticated;
 grant select on table public.game_sessions to anon, authenticated;
 grant select on table public.game_stats to anon, authenticated;
 grant select on table public.gomoku_wins to anon, authenticated;
-
 do $$
 begin
   if to_regclass('public.game_ui_settings') is not null then
@@ -71,7 +69,6 @@ begin
   end if;
 end;
 $$;
-
 do $$
 declare
   function_row record;
@@ -101,7 +98,6 @@ begin
   end loop;
 end;
 $$;
-
 insert into public.rak_rotation_backups_v2 (
   id,
   rotation_key,

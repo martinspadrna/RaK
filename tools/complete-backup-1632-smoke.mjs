@@ -9,8 +9,8 @@ const renderer = read('app-menu-admin-renderer.js');
 const exportJs = read('export.js');
 const sw = read('sw.js');
 const config = read('supabase-config.js');
-const keepaliveMigration = read('supabase/migrations/20260915124422_audit_keepalive_rpc_only.sql');
-const backupMigration = read('supabase/migrations/20260915133113_rak_owner_complete_backup_v1.sql');
+const keepaliveMigration = read('supabase/history/non-production-migrations/20260915124422_audit_keepalive_rpc_only.sql');
+const backupMigration = read('supabase/history/non-production-migrations/20260915133113_rak_owner_complete_backup_v1.sql');
 
 assert.match(moduleJs, /const RAK_COMPLETE_BACKUP_BUILD_SHA = '[0-9a-f]{40}';/i, 'exact build SHA missing');
 assert(!moduleJs.includes('__RAK_COMPLETE_BACKUP_BUILD_SHA__'), 'SHA placeholder remains');

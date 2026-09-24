@@ -142,7 +142,8 @@ export function build(){
   const beforeFingerprint=sourceFingerprint();
   prepareWork();prepareBackup();prepareVendor();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
-  run(process.platform==='win32'?'npm.cmd':'npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
+  if(process.platform==='win32')run(process.env.ComSpec||'cmd.exe',['/d','/s','/c','npm.cmd run check'],{cwd:WORK,env,stdio:'inherit'});
+  else run('npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
   publish();
   validateSourceTree('after build');
   assert(sourceFingerprint()===beforeFingerprint,'build modified tracked source bytes');

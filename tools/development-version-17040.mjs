@@ -20,7 +20,7 @@ function swap(source, before, after, label) {
   assert(source.includes(after), '[17040] missing ' + label);
   return source;
 }
-const migration = read('supabase/migrations/20260919111542_rak_rotation_archive_import_provenance.sql');
+const migration = read('supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql');
 const matrix = read('tools/security-rotation-minimization-17040.sql');
 const document = read('PUBLIC_ROTATION_MINIMIZATION_17040.md');
 assert(migration.includes('private.rak_rotation_import_metadata_v1')
@@ -73,7 +73,7 @@ change('index.html', source => swap(source,
 const paths = ['index.html', 'supabase-config.js', 'app.js', 'sw.js',
   'supabase-bridge.js', 'package.json', 'RAK_PLAN_13.md',
   'PUBLIC_ROTATION_MINIMIZATION_17040.md',
-  'supabase/migrations/20260919111542_rak_rotation_archive_import_provenance.sql',
+  'supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql',
   'tools/security-rotation-minimization-17040.sql',
   'tools/shift-report-mo-hotfix-170-smoke.mjs'];
 const result = assertRotationRelease(Object.fromEntries(paths.map(path => [path, read(path)])));

@@ -16,8 +16,8 @@ function once(src,before,after,label){
  return src;
 }
 function edit(path,fn){const old=read(path);if(old.includes('// RAK_17048_COMPAT'))return old;const next=fn(old);if(next!==old)fs.writeFileSync(path,next,'utf8');return next;}
-const sql1=read('supabase/migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql');
-const sql2=read('supabase/migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql');
+const sql1=read('supabase/history/non-production-migrations/20260919161000_rak_17048_admin_device_sessions_and_revocation.sql');
+const sql2=read('supabase/history/non-production-migrations/20260919161500_rak_17048_admin_device_conflict_constraint_fix.sql');
 const matrix=read('tools/admin-device-revocation-17048.sql');
 for(const marker of ['rak_admin_devices_user_session_device_key','rak_current_admin_role',"INTERVAL '10 minutes'",'revoked_sessions'])
  assert(sql1.includes(marker),'[17048] primary migration missing '+marker);

@@ -1,0 +1,1 @@
+comment on function public.rak_accept_game_invite(text, text, jsonb) is 'RaK v839: accepts game invite and updates/creates game session through RPC including board_state role/status. Added before any game_invites/game_sessions policy hardening; no policy tightening in this migration.';;

@@ -1,0 +1,428 @@
+{
+  "schema": "rak-production-migration-lock-v1",
+  "projectRef": "bkqamcbkiwumsvelahxr",
+  "source": "supabase_migrations.schema_migrations via supabase migration fetch",
+  "lastProductionVersion": "20260924105811",
+  "migrations": [
+    {
+      "version": "20260510192449",
+      "file": "20260510192449_initial_app_backend.sql",
+      "sha256": "0fd3c3160984df30918d8fd4bc360f6c48fd44dd1df71f33e9aeb5ec6989a50f"
+    },
+    {
+      "version": "20260510211631",
+      "file": "20260510211631_20260510_admin_editable_tables.sql",
+      "sha256": "53187e79d46e3439b7249164122f1f5805ce28647b42132c389f1602dce004d5"
+    },
+    {
+      "version": "20260510212058",
+      "file": "20260510212058_20260510_admin_editable_tables_v2.sql",
+      "sha256": "122a537163bf31e3e8359e1a57684a603f86e288ed7dcc66d5b5c0c9aa20ebc7"
+    },
+    {
+      "version": "20260510212809",
+      "file": "20260510212809_20260510_noop_sync_checkpoint.sql",
+      "sha256": "b531cf7d9fae17a0a9457d7f2ee2bb0ea6a3a67121ba16bcfed52686dc3e03ac"
+    },
+    {
+      "version": "20260510220551",
+      "file": "20260510220551_add_missing_gomoku_columns.sql",
+      "sha256": "6e5c9abb49a704b61cda8891f844e2ab682499bf186bc1bb1d8e316683f587f6"
+    },
+    {
+      "version": "20260511191800",
+      "file": "20260511191800_add_game_invites_and_stats.sql",
+      "sha256": "a385ff66b4aa5dac047014e442b2cf0435422df5d89d7145b5f277f922dfe456"
+    },
+    {
+      "version": "20260511193113",
+      "file": "20260511193113_enable_public_game_policies_v2.sql",
+      "sha256": "e86e79c47e0194a3124ce5f23900a06c9b0fcce73b6b7a3dec06d431521565c9"
+    },
+    {
+      "version": "20260512071249",
+      "file": "20260512071249_revoke_public_rls_auto_enable.sql",
+      "sha256": "78fbc40de48d5fea34480fd11f44ebfcdbd7734dca248d71a6581762555472eb"
+    },
+    {
+      "version": "20260512073220",
+      "file": "20260512073220_add_game_foreign_key_indexes.sql",
+      "sha256": "c46894be183f9c8ed925243588e91d0793e5214d287b249b18ae785d83b70e97"
+    },
+    {
+      "version": "20260512073356",
+      "file": "20260512073356_add_game_stats_leaderboard_index.sql",
+      "sha256": "c66bccda332faaf2ab33a898c954fbc92ec98732fc6047c858f3c197c85e1d2a"
+    },
+    {
+      "version": "20260514005308",
+      "file": "20260514005308___noop__.sql",
+      "sha256": "41b5449f7054e9dd3180e533e75f05ca1166bd0b8b8732536643e315e4ccc858"
+    },
+    {
+      "version": "20260514005355",
+      "file": "20260514005355_secure_rls_phase1_v411.sql",
+      "sha256": "5d76884a0b536d2b617cab7ba9e1f4f3096aa42bd96490fcc115f0a138340c11"
+    },
+    {
+      "version": "20260514045507",
+      "file": "20260514045507_rotation_state_public_select_v413.sql",
+      "sha256": "4176ef0620e17c2eccdca33d26c4dad60835a343c3891fee71a8315c460b7145"
+    },
+    {
+      "version": "20260517192848",
+      "file": "20260517192848_enable_realtime_public_tables_v528.sql",
+      "sha256": "91b8dff1eacf0a76e25a05408307c483a4ccaeaba4ea0f0d2ed220ad4caf81db"
+    },
+    {
+      "version": "20260519142031",
+      "file": "20260519142031_allow_anon_machine_settings_write_v622.sql",
+      "sha256": "8ce044c3218c74e967990c6414f085ad6335264978fd0da07841f1c1a78d2f3e"
+    },
+    {
+      "version": "20260519143445",
+      "file": "20260519143445_document_machine_settings_v622_fix.sql",
+      "sha256": "27de81a5c9ac2127c2f3e2d3f771538faea684601281fc0d6509d176c8366a32"
+    },
+    {
+      "version": "20260519150926",
+      "file": "20260519150926_grant_machine_settings_anon_write_v624.sql",
+      "sha256": "ac47c53e83d6bfa5c5803098cc3835674fb8d73fc8b2b2a12ca94e2cdd7c6c22"
+    },
+    {
+      "version": "20260520211217",
+      "file": "20260520211217_create_bug_reports.sql",
+      "sha256": "139fd59a341a8085ebfa8f6d67c19d03b700b361451a3f7faa2352e4c0803649"
+    },
+    {
+      "version": "20260520212655",
+      "file": "20260520212655_ensure_bug_reports_admin_v693.sql",
+      "sha256": "3218a2db239b59d5f7bb2e1ef1d2ceb3ce0423f9ce52c0511b439429c3b9a6e8"
+    },
+    {
+      "version": "20260521200156",
+      "file": "20260521200156_rak_game_invite_expiration_cleanup.sql",
+      "sha256": "a618f02f4f9f32b3b2a754100cb47cabee3848350555fa8c8be3bf5994745f3f"
+    },
+    {
+      "version": "20260521200526",
+      "file": "20260521200526_rak_game_invite_expiration_cleanup_fk_safe_no_extension.sql",
+      "sha256": "cf14a87dd0fef8b881c20c7fbbdeb7b7f98eddf9e35a2d7c2c0835f77470e1df"
+    },
+    {
+      "version": "20260521200716",
+      "file": "20260521200716_rak_game_invite_expiration_defaults_indexes.sql",
+      "sha256": "01492289a1e9667a310dad25425583e3d8cb6eee158b194a85f287966c9ea9b4"
+    },
+    {
+      "version": "20260521210838",
+      "file": "20260521210838_rak_admin_cleanup_invites_rpc.sql",
+      "sha256": "55e4502a6ec3a3d15a229791c3eba7b90bf35fa3cfa8a8c77922d5c836d0a0fa"
+    },
+    {
+      "version": "20260524190506",
+      "file": "20260524190506_rak_v810_remove_public_game_delete_policies.sql",
+      "sha256": "e14ab911594e8c546bec344c3df6f49acc89d0ffc9ab29ca6dde5208dc3a178e"
+    },
+    {
+      "version": "20260524191556",
+      "file": "20260524191556_rak_v811_game_stats_rpc_scaffold.sql",
+      "sha256": "a63c81012a281ae61d001ec39c61470eb640753f16dae446fcdecf5464101f48"
+    },
+    {
+      "version": "20260524191836",
+      "file": "20260524191836_rak_v811_hardening_checkpoint.sql",
+      "sha256": "95c4d87b038b085c92d469bfcfc1f19972f173d611fc853a3bb3c24178907a0c"
+    },
+    {
+      "version": "20260524223001",
+      "file": "20260524223001_rak_v821_game_ui_settings_checkpoint.sql",
+      "sha256": "24f64d9e456ac75b660774b32b154003c6351be24cc03558c5a5356178f50b9e"
+    },
+    {
+      "version": "20260524223112",
+      "file": "20260524223112_rak_v821_profile_ui_rpc_scaffold.sql",
+      "sha256": "8b9a1f2806223b83930a4e486fce33bd0affeea95055c41e8c2b883cc4710457"
+    },
+    {
+      "version": "20260524231120",
+      "file": "20260524231120_rak_v824_restrict_game_stats_direct_writes_without_drop.sql",
+      "sha256": "ea3795406c84dc74b43730c8d92826d8dcb8bd060379b198a8d4f7e0cc376269"
+    },
+    {
+      "version": "20260524233640",
+      "file": "20260524233640_rak_v825_game_invites_sessions_rpc_scaffold.sql",
+      "sha256": "3d321aaf4e163738375702b672f3db351557580c1d0cd5ad906e38a6acf4c786"
+    },
+    {
+      "version": "20260525011445",
+      "file": "20260525011445_rak_v826_restrict_game_invites_sessions_direct_writes.sql",
+      "sha256": "05b2ec4cc083b3975275d4cc88d2969b87bfc1459d4d38e4fe47c477ce31fd05"
+    },
+    {
+      "version": "20260525022348",
+      "file": "20260525022348_rak_v828_bug_reports_rpc_scaffold.sql",
+      "sha256": "c59e2c0f589c13158f3bd2390cf80bed5f1138d1c149d3eca7a1a6e246942db2"
+    },
+    {
+      "version": "20260525023406",
+      "file": "20260525023406_rak_v828_bug_reports_rpc_scaffold_verify.sql",
+      "sha256": "8161fc460ad94b9d7b87727e4e24cdf2e81ebc4b44a20dcf17f2e90045960658"
+    },
+    {
+      "version": "20260525023718",
+      "file": "20260525023718_rak_v828_rollback_online_ttt_restrictive_policies.sql",
+      "sha256": "af5eb1c5333422f8edcf515c3c6b334c251d13b955f17586437170db6a2fff2e"
+    },
+    {
+      "version": "20260525051040",
+      "file": "20260525051040_rak_app_keepalive_v834.sql",
+      "sha256": "f514cf2d19a7e217fecefd9510facf7561614e43e037eb41d8a6180e92d48838"
+    },
+    {
+      "version": "20260525051155",
+      "file": "20260525051155_rak_app_keepalive_v834_grants.sql",
+      "sha256": "f364f76ee1e566cbc641954908bce6d6c5b87832013fd5912c72b44168fa9bea"
+    },
+    {
+      "version": "20260525124151",
+      "file": "20260525124151_rak_app_keepalive_rpc_v836.sql",
+      "sha256": "dda543acd3253cde19aabdb8973579ac8e93d2fad28808e14a8ff38b023393ba"
+    },
+    {
+      "version": "20260525124516",
+      "file": "20260525124516_rak_app_keepalive_rpc_v836_lock_table_access.sql",
+      "sha256": "9301992a47c20ebee41a98e073d7cea8d2e5b550fb84ab9c18b2ddf4a4a8ab1e"
+    },
+    {
+      "version": "20260525125658",
+      "file": "20260525125658_rak_app_keepalive_v837_relax_keepalive_rls.sql",
+      "sha256": "5ff3858fb660b575d34397a0b0d8659da71d78fc7d39880969888c2326ff9aa2"
+    },
+    {
+      "version": "20260525142004",
+      "file": "20260525142004_rak_game_accept_invite_rpc_v839.sql",
+      "sha256": "d088fde5db0d18bfeb42414e29ddfdf825012faec2a6eef47f81598ff7121a71"
+    },
+    {
+      "version": "20260525142245",
+      "file": "20260525142245_rak_game_accept_invite_rpc_v839_board_state.sql",
+      "sha256": "b02143912fc845f52abd83ecaa978d021ca6c2156efcf6014f579d45c0903cb3"
+    },
+    {
+      "version": "20260525144851",
+      "file": "20260525144851_rak_game_accept_invite_rpc_v839_comment_check.sql",
+      "sha256": "0699059279e931c56ed4f5f53f1865e2492a6000358fcb1323a3da3440e359aa"
+    },
+    {
+      "version": "20260525144946",
+      "file": "20260525144946_rak_game_accept_invite_rpc_v839_finalize.sql",
+      "sha256": "4bde848585b78a1dbc815697884b1cfc29c4899546f12f12f85b9fd73bcd320e"
+    },
+    {
+      "version": "20260525145024",
+      "file": "20260525145024_rak_game_accept_invite_rpc_v839_cleanup_old_signature.sql",
+      "sha256": "37f3c97fec56116592587eaf46b6dceef2b40ca524ecdb344ed8d9662d274b9e"
+    },
+    {
+      "version": "20260527183151",
+      "file": "20260527183151_rak_v935_dashboard_announcements_online.sql",
+      "sha256": "eb6133476f1859069fb760a84e7513f7eb7946f2ae5a0693774d3280914dd8e1"
+    },
+    {
+      "version": "20260527201141",
+      "file": "20260527201141_rak_v946_dashboard_announcement_rpc.sql",
+      "sha256": "2767f83e23177122afd47f0cbea64486a3b078d94068dc060b2cc93136a1a0e4"
+    },
+    {
+      "version": "20260527201726",
+      "file": "20260527201726_rak_v946_dashboard_announcement_rpc_fix.sql",
+      "sha256": "07388c6de8c0a4ee1074d3f4ee6fc0a78ce61823abf0592ed8262f855905415e"
+    },
+    {
+      "version": "20260528024325",
+      "file": "20260528024325_rak_v949_dashboard_announcement_unique_active_fix.sql",
+      "sha256": "55ea3d4c4296999773d9eb355751f9daf9160c933be389d7e3e4f34138f8fa30"
+    },
+    {
+      "version": "20260528091214",
+      "file": "20260528091214_rak_v950_gomoku_ruleset_version.sql",
+      "sha256": "16df1ec77e24c8b800f40a055d84423eeabe3d3730a69c0cb447847800bcb3a4"
+    },
+    {
+      "version": "20260528202351",
+      "file": "20260528202351_rak_admin_usage_presence_v963.sql",
+      "sha256": "f833bc0839be1099adf900ff53b309900fd585dd93090055a5d08f5cf3a201c1"
+    },
+    {
+      "version": "20260623191146",
+      "file": "20260623191146_lock_admin_rotation_writes.sql",
+      "sha256": "622eccbccb211dd7f495711bde65e2da0177aa428f0d80659e1fb1b6bff54d76"
+    },
+    {
+      "version": "20260623204738",
+      "file": "20260623204738_rotation_backups_restore_and_overtime_category.sql",
+      "sha256": "161970b146e06d91cbe1342d9bf07d1a5395a11de61876e67817c4293858f143"
+    },
+    {
+      "version": "20260623204807",
+      "file": "20260623204807_fix_rotation_backup_month_count.sql",
+      "sha256": "0cfecd73d7ba107a25254327f01779a96ded4abbd276437a3dd288bce6c445b6"
+    },
+    {
+      "version": "20260722102540",
+      "file": "20260722102540_secure_admin_auth.sql",
+      "sha256": "018f6cd9daa68062a62657341f82bce8aead6effdf0335fcb01751371b9c9aef"
+    },
+    {
+      "version": "20260722105539",
+      "file": "20260722105539_secure_admin_writes.sql",
+      "sha256": "cd2621c155cd8da31982a903e1a5070fc3b85de2d66755ed68a20826728ea859"
+    },
+    {
+      "version": "20260722113000",
+      "file": "20260722113000_secure_reports_audit_service.sql",
+      "sha256": "11a2616264958971afdf976ccd97db5f6582b9a71a4b4f2ba49565961bf0593f"
+    },
+    {
+      "version": "20260722120000",
+      "file": "20260722120000_secure_operational_writes.sql",
+      "sha256": "17f2de93cee47ece8a27f2dd9ec9103b5b66cd805fc68a9819e78276768248ea"
+    },
+    {
+      "version": "20260722123000",
+      "file": "20260722123000_enforce_secure_admin_writes.sql",
+      "sha256": "4198b543bb07368e1afa39aa479cfa8e21eb14eea0fcd4588624ddc12d9b3280"
+    },
+    {
+      "version": "20260722151920",
+      "file": "20260722151920_complete_security_cutover.sql",
+      "sha256": "84c9d66ba71f096dc2b57d493cc28cd91be1b4427ecc550f5297352415bfcdf1"
+    },
+    {
+      "version": "20260722175751",
+      "file": "20260722175751_fix_admin_settings_and_backup_delete.sql",
+      "sha256": "6f77dedde85cdb216f21a4b0c999cb89196a3967327e039f44dda129ab8e23a6"
+    },
+    {
+      "version": "20260722180239",
+      "file": "20260722180239_fix_rotation_backup_month_count.sql",
+      "sha256": "9f88e03a9d0f1996780efc442f9c393d35d2b243328ee50eff8bf9d1aa7738c0"
+    },
+    {
+      "version": "20260901123352",
+      "file": "20260901123352_hradnik_catalog_v1.sql",
+      "sha256": "0277e1c756f765a3df5ef8ed7101a67585d3a20ea230dd32e5373bec00e00624"
+    },
+    {
+      "version": "20260901123417",
+      "file": "20260901123417_hradnik_seed_places_v1.sql",
+      "sha256": "8a0d9516f3a662bdf5a6fb267b301c0d7af8defac7829e1e7dd905239d120794"
+    },
+    {
+      "version": "20260901123455",
+      "file": "20260901123455_hradnik_background_sync_v1.sql",
+      "sha256": "0fafd0cfcdd675e444a02334fcb6bb0756542d77e4f07a9a2e78a847f90b1828"
+    },
+    {
+      "version": "20260901123624",
+      "file": "20260901123624_hradnik_background_sync_schedule_v2.sql",
+      "sha256": "a6500911d2c27f2025d0c315fec27352e03b4881a008a7588efe3109998b2cc1"
+    },
+    {
+      "version": "20260901123646",
+      "file": "20260901123646_hradnik_background_sync_schedule_v3.sql",
+      "sha256": "5352dff8dd410c477f3f296613f5a28651cd2ab492c9831cc52d3ecdfd70c263"
+    },
+    {
+      "version": "20260907191622",
+      "file": "20260907191622_rak_v1516_security_performance_cleanup.sql",
+      "sha256": "0a4a15d2521c464f2d7b1110a220a8ef8d035f99d327f7fe82f09f129b2f347b"
+    },
+    {
+      "version": "20260907191743",
+      "file": "20260907191743_secure_application_accounts.sql",
+      "sha256": "84a2f20e26b82af4b3b2938b5a31abdb7efeff90e768e716deaa32dff9bda7c0"
+    },
+    {
+      "version": "20260907192351",
+      "file": "20260907192351_rak_v1516_retire_game_rpc_surface.sql",
+      "sha256": "7860667a8eb58174180f143d24ec901e4902e06ac82e41f89037e699a0998f18"
+    },
+    {
+      "version": "20260910115407",
+      "file": "20260910115407_remove_legacy_usage_presence_tracking.sql",
+      "sha256": "8a85bca197e8077aa41d291c876fd8902c7e91faf3cc1da8394bf883b87917bf"
+    },
+    {
+      "version": "20260915193007",
+      "file": "20260915193007_audit_keepalive_rpc_only.sql",
+      "sha256": "9247b6a52757a4e7ae5c83997a4db94365bd07c7d570231d5c384310ee10ccc0"
+    },
+    {
+      "version": "20260915193102",
+      "file": "20260915193102_rak_owner_complete_backup_v1.sql",
+      "sha256": "2b5ab7cdfa444e63920f1e7a6078bff567829e9a729111ef6650665adbe7765a"
+    },
+    {
+      "version": "20260924050147",
+      "file": "20260924050147_rak_phase_a_allow_deputy_role_17083.sql",
+      "sha256": "ec9370e4677f1344e50cef98f7f21f807d1e8ff7e514c27b9a64c89bdcc13288"
+    },
+    {
+      "version": "20260924050210",
+      "file": "20260924050210_rak_security_remove_bootstrap_and_bound_keepalive.sql",
+      "sha256": "0c1067025c94032c80f0f23a6d2014d1e381d579e861d267b4a4d71a01802e08"
+    },
+    {
+      "version": "20260924050216",
+      "file": "20260924050216_rak_limit_anonymous_reports_and_keepalive_devices.sql",
+      "sha256": "b1d3588e6ea9279d2cf02649db1ee01610d7e6005fd30c3c87cb9eb3e2954eb0"
+    },
+    {
+      "version": "20260924050220",
+      "file": "20260924050220_rak_admin_context_require_verified_session.sql",
+      "sha256": "99bd402a47d64ad0b25bf1f9880812a16a917b844e5d50d9c74bcdfcfebf6293"
+    },
+    {
+      "version": "20260924050228",
+      "file": "20260924050228_rak_login_and_admin_directory_rpcs_stage.sql",
+      "sha256": "0d3267352fa4555a3428d162c116e99ad4b232067373618a2420089167c36884"
+    },
+    {
+      "version": "20260924050243",
+      "file": "20260924050243_rak_cut_over_account_privacy_compatibility_stage.sql",
+      "sha256": "3b4a08cd02ed048bdf6572f68f6a68c692545929bb9ede47626df7fb60d6ff07"
+    },
+    {
+      "version": "20260924050248",
+      "file": "20260924050248_rak_bounded_admin_gate_and_login_v2.sql",
+      "sha256": "109f120bd466a6a77419cd0a359662d21e60352b563b1b9a01429b6ef14e3e52"
+    },
+    {
+      "version": "20260924050253",
+      "file": "20260924050253_rak_17048_admin_device_sessions_and_revocation.sql",
+      "sha256": "d822c67764e31b708261a1f06d044bf235c95647aa2c4d92f4d4d66fc5ae176f"
+    },
+    {
+      "version": "20260924050257",
+      "file": "20260924050257_rak_17048_admin_device_conflict_constraint_fix.sql",
+      "sha256": "e47a9dee69dfd672cedc2e234e281e146cc221a0086eae7da88be8492392df1b"
+    },
+    {
+      "version": "20260924050302",
+      "file": "20260924050302_rak_17049_bug_report_device_info_allowlist.sql",
+      "sha256": "367b4c43df3ae4fb480affdbf6c35461feddaed9ea055d939a7f32ad485292df"
+    },
+    {
+      "version": "20260924104723",
+      "file": "20260924104723_rak_production_phase_b_17083.sql",
+      "sha256": "b39f138ddda06ba6e669dc2b72d129d856b023cd1466d4c619227d6963154343"
+    },
+    {
+      "version": "20260924105811",
+      "file": "20260924105811_rak_delete_retired_gomoku_history_17083.sql",
+      "sha256": "4d32db8119ea32462a5bd8fbef92065fcce0b9e404317d06ecfd2e01e1a8065b"
+    }
+  ]
+}

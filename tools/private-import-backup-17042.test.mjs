@@ -47,7 +47,7 @@ test('restore instructions and manifest include recoverable private import metad
   assert(source.includes('soukr') || source.includes('Soukrom'));
 });
 test('migration preserves owner authorization, excludes login salts and tests transaction rollback', () => {
-  const sql = read('supabase/migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql');
+  const sql = read('supabase/history/non-production-migrations/20260919132743_rak_owner_complete_backup_include_private_rotation_import_provenance.sql');
   const matrix = read('tools/private-import-backup-17042.sql');
   assert(sql.includes('rak_require_admin(true)') && sql.includes('rak_rotation_import_metadata_v1'));
   assert(!sql.includes("''rak_login_lookup_salt'',"));

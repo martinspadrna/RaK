@@ -15,7 +15,7 @@ function swap(source,oldValue,newValue,label){
   assert(source.includes(newValue),'[17029] missing anchor: '+label);
   return source;
 }
-const migration=read('supabase/migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql');
+const migration=read('supabase/history/non-production-migrations/20260918180344_rak_cut_over_account_privacy_and_limit_public_lookup.sql');
 assert(migration.includes('REVOKE SELECT ON TABLE public.game_accounts FROM anon, authenticated;') && migration.includes('DROP POLICY IF EXISTS rak_game_accounts_public_read_v2'), '[17029] public bulk account cutover not tracked');
 assert(migration.includes('v_global > 300') && migration.includes('v_per_caller > 60') && migration.includes('private.rak_login_lookup_salt'), '[17029] bounded lookup migration missing');
 change('rak-account-access.js',source=>swap(source,

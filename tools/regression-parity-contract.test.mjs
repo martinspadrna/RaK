@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const exists=path=>fs.existsSync(new URL('../'+path,import.meta.url));
 const manifest=JSON.parse(read('tools/regression-parity.json'));
 const pkg=JSON.parse(read('package.json'));
