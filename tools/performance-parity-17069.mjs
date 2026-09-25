@@ -88,7 +88,13 @@ try{
   run('git',['-C',WORKSPACE,'worktree','add','--detach',baselineRoot,CONFIG.baseline.sha]);
   baselineWorktreeAdded=true;
   const historicalPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(historicalPackage.version,'1.6.0','[perf-parity] unexpected raw baseline package');
-  for(let i=1;i<=CONFIG.baseline.buildPasses;i++){run('npm',['run','vercel-build'],{cwd:baselineRoot,timeout:300000});}
+  const historicalEnv={
+    GITHUB_SHA:CONFIG.baseline.sha,
+    GITHUB_REF_NAME:'development',
+    VERCEL_GIT_COMMIT_SHA:CONFIG.baseline.sha,
+    VERCEL_GIT_COMMIT_REF:'development'
+  };
+  for(let i=1;i<=CONFIG.baseline.buildPasses;i++){run('npm',['run','vercel-build'],{cwd:baselineRoot,timeout:300000,env:historicalEnv});}
   const builtPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(builtPackage.version,'1.7.0','[perf-parity] historical build did not reach technical 1.7.0');
   const builtConfig=fs.readFileSync(path.join(baselineRoot,'supabase-config.js'),'utf8');assert(builtConfig.includes('window.RAK_RELEASE_VERSION = "1.7.69";'),'[perf-parity] historical build is not 1.7.69');
   const currentConfig=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');assert(currentConfig.includes('1.7.104'),'[perf-parity] current canonical build is not 1.7.104');
