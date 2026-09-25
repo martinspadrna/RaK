@@ -96,6 +96,17 @@ jobs:
           node --test tools/performance-parity-17069.test.mjs
           node tools/performance-parity-17069.mjs
           test -s "${{ github.workspace }}/.rak-canonical-build/performance-parity-17069.json"
+      - name: Enforce unified performance, network and conflict quality thresholds
+        working-directory: .rak-canonical-build/work
+        env:
+          RAK_PERFORMANCE_EVIDENCE: ${{ github.workspace }}/.rak-release-evidence/performance-budget.json
+          RAK_NETWORK_EVIDENCE: ${{ github.workspace }}/.rak-canonical-build/network-resilience.json
+          RAK_PARITY_EVIDENCE: ${{ github.workspace }}/.rak-canonical-build/performance-parity-17069.json
+          RAK_QUALITY_EVIDENCE: ${{ github.workspace }}/.rak-release-evidence/quality-thresholds.json
+        run: |
+          node --test tools/quality-thresholds-17104.test.mjs
+          node tools/quality-thresholds-17104.mjs
+          test -s "$RAK_QUALITY_EVIDENCE"
       - name: Verify live anonymous HTTP against isolated TEST Supabase
         working-directory: .rak-canonical-build/work
         run: node tools/http-anon-audit-17050.mjs

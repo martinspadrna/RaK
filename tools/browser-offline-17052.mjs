@@ -249,7 +249,8 @@ try{
      serviceWorkerActivation:swActivationMs,
      postUpdateBoot:afterUpdate.elapsedMs
    },
-   serviceWorker:{generation:ciSwGeneration,waitingObserved:true,confirmationObserved:true,activationObserved:true}
+   serviceWorker:{generation:ciSwGeneration,waitingObserved:true,confirmationObserved:true,activationObserved:true},
+   conflict:{cleanRecoveryConflictCount:recovered.conflictCount,cleanRecoveryConflictFlag:!!recovered.conflict}
  };
  if(process.env.GITHUB_SHA)assert.equal(networkEvidence.sourceCommit,process.env.GITHUB_SHA,'[17052-network] evidence SHA mismatch');
  const evidenceRoot=process.env.GITHUB_WORKSPACE?path.join(process.env.GITHUB_WORKSPACE,'.rak-canonical-build'):path.resolve(ROOT,'..');

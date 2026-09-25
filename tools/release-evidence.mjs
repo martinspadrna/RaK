@@ -17,7 +17,7 @@ const DEPLOYMENT=/^dpl_[a-zA-Z0-9]+$/;
 const REQUIRED_BUILD_FILES=['index.html','sw.js','rak-release-metadata.js','supabase-config.js','supabase-vendor-2.110.7.js','rak-complete-backup-source.zip'];
 const REQUIRED_CHECKS=[
   'preflight-contracts','dependency-install','two-clean-canonical-builds','release-and-regression-gates',
-  'rollback-and-pwa-contracts','zip-manifest-crc','chromium-offline-layout','three-profile-benchmark',
+  'rollback-and-pwa-contracts','zip-manifest-crc','chromium-offline-layout','three-profile-benchmark','quality-thresholds',
   'test-supabase-http','immutable-source-tree'
 ];
 
@@ -72,6 +72,37 @@ export function validatePerformanceBudgetProof(proof,sha){
   return proof;
 }
 
+export function validateQualityThresholdProof(proof,sha){
+  ok(proof&&proof.schema==='rak-quality-threshold-evidence-v1','unknown quality threshold proof');
+  ok(proof.result==='PASS','quality threshold proof is not PASS');
+  ok(proof.sourceCommit===sha,'quality threshold SHA mismatch');
+  ok(proof.periodicDevelopmentGate===true,'quality thresholds are not periodic');
+  ok(proof.warningsAsSuccess===false,'quality warnings may not count as PASS');
+  const config=json(path.join(ROOT,'tools','quality-thresholds-17104.json'));
+  ok(config.warningsMayPass===false&&config.periodicDevelopmentGate===true,'quality threshold config is permissive');
+  ok(proof.performanceBudget?.result===config.performanceBudget.requiredResult&&proof.performanceBudget?.sourceCommit===sha,'quality performance evidence mismatch');
+  ok(proof.networkResilience?.result===config.networkResilience.requiredResult&&proof.networkResilience?.sourceCommit===sha,'quality network evidence mismatch');
+  const falseConflicts=proof.networkResilience?.conflict?.cleanRecoveryConflictCount;
+  ok(Number.isSafeInteger(falseConflicts)&&falseConflicts<=config.networkResilience.maxFalseConflictsOnCleanRecovery,'false conflict threshold exceeded');
+  for(const [key,required] of [['waitingObserved',config.networkResilience.requireWaitingObserved],['confirmationObserved',config.networkResilience.requireConfirmationObserved],['activationObserved',config.networkResilience.requireActivationObserved]]){
+    if(required)ok(proof.networkResilience?.serviceWorker?.[key]===true,'service worker '+key+' missing');
+  }
+  ok(proof.performanceParity?.result===config.performanceParity.requiredResult&&proof.performanceParity?.sourceCommit===sha,'quality parity evidence mismatch');
+  ok(proof.performanceParity?.baselineSha===config.performanceParity.baselineSha,'quality parity baseline mismatch');
+  ok(Number(proof.performanceParity?.rounds)>=config.performanceParity.minRounds,'quality parity rounds below minimum');
+  const conflict=proof.conflict||{};
+  ok(conflict.requiredSqlState===config.conflicts.requiredSqlState,'quality conflict SQLSTATE mismatch');
+  ok(conflict.machineUnknownBaselineNetworkWrites<=config.conflicts.maxUnknownBaselineNetworkWrites,'machine unknown baseline wrote to network');
+  ok(conflict.monthUnknownBaselineNetworkWrites<=config.conflicts.maxUnknownBaselineNetworkWrites,'month unknown baseline wrote to network');
+  ok(conflict.machineStaleRpcCalls===config.conflicts.expectedStaleRpcCalls,'machine stale RPC count mismatch');
+  ok(conflict.monthStaleRpcCalls===config.conflicts.expectedStaleRpcCalls,'month stale RPC count mismatch');
+  ok(conflict.silentRevisionAdoptions<=config.conflicts.maxSilentRevisionAdoptions,'silent revision adoption detected');
+  ok(conflict.legacyV2MutationRpcReferences<=config.conflicts.maxLegacyV2MutationRpcReferences,'legacy v2 mutation RPC reference detected');
+  ok(conflict.machineConflictCode===config.conflicts.requiredMachineConflictCode,'machine conflict code mismatch');
+  ok(conflict.monthConflictCode===config.conflicts.requiredMonthConflictCode,'month conflict code mismatch');
+  return proof;
+}
+
 export function validateCiProof(proof,sha){
   ok(proof&&proof.schema==='rak-ci-release-proof-v1','unknown CI proof');
   ok(proof.sha===sha,'CI proof SHA mismatch');
@@ -80,6 +111,7 @@ export function validateCiProof(proof,sha){
   ok(Number.isInteger(proof.github?.runId)&&proof.github.runId>0,'CI run ID missing');
   ok(Number.isInteger(proof.github?.runNumber)&&proof.github.runNumber>0,'CI run number missing');
   validatePerformanceBudgetProof(proof.performanceBudget,sha);
+  validateQualityThresholdProof(proof.qualityThresholds,sha);
   return proof;
 }
 
@@ -102,6 +134,7 @@ function ciProof(){
   const runId=Number(process.env.GITHUB_RUN_ID),runNumber=Number(process.env.GITHUB_RUN_NUMBER),attempt=Number(process.env.GITHUB_RUN_ATTEMPT||1);
   ok(Number.isInteger(runId)&&runId>0&&Number.isInteger(runNumber)&&runNumber>0,'GitHub run identity missing');
   const performanceBudget=validatePerformanceBudgetProof(json(path.join(ROOT,'.rak-release-evidence','performance-budget.json')),sha);
+  const qualityThresholds=validateQualityThresholdProof(json(path.join(ROOT,'.rak-release-evidence','quality-thresholds.json')),sha);
   const proof={
     schema:'rak-ci-release-proof-v1',result:'PASS',sha,
     github:{repository:process.env.GITHUB_REPOSITORY,workflow:process.env.GITHUB_WORKFLOW,runId,runNumber,runAttempt:attempt,
@@ -109,6 +142,7 @@ function ciProof(){
     completedChecks:[...REQUIRED_CHECKS],
     canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:true,fileCount:build.files.length,differences:build.differences},
     performanceBudget,
+    qualityThresholds,
     release:{displayVersion:RELEASE_METADATA.displayVersion,technicalVersion:RELEASE_METADATA.technicalVersion,
       cacheVersion:RELEASE_METADATA.cacheVersion,buildId:RELEASE_METADATA.buildId}
   };
@@ -190,7 +224,7 @@ function assemble(){
     schema:'rak-functional-release-evidence-v1',result:'PASS',createdAt:new Date().toISOString(),
     release:{sha,branch:'development',...RELEASE_METADATA},
     github:{...ci.github,conclusion:'success',mainBefore:before.main,mainAfter:after.main},
-    checks:{completed:ci.completedChecks,canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:true,fileCount:build.files.length},performanceBudget:ci.performanceBudget},
+    checks:{completed:ci.completedChecks,canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:true,fileCount:build.files.length},performanceBudget:ci.performanceBudget,qualityThresholds:ci.qualityThresholds},
     vercel:{projectId:PROJECT_ID,deploymentId:current.id,state:current.state,url:current.url,commitSha:current.meta.githubCommitSha,
       stableDevelopmentAlias:STABLE_ALIAS,aliasDeploymentId:alias.id,productionDeploymentIdBefore:prodBefore.id,productionDeploymentIdAfter:prodAfter.id},
     http:{immutable,stableAlias:stable},

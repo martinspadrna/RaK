@@ -28,7 +28,8 @@ test('real Chromium gate measures offline, reconnect, slow network and confirmed
     "serviceWorkerActivation",
     "slow cached reload",
     "network-resilience.json",
-    "rak-pwa-network-resilience-v1"
+    "rak-pwa-network-resilience-v1",
+    "cleanRecoveryConflictCount:recovered.conflictCount"
   ]) assert(browser.includes(marker),'missing browser resilience marker '+marker);
   assert(workflow.includes('node --test tools/pwa-offline-17052.test.mjs tools/network-resilience-17104.test.mjs'));
   assert(workflow.includes('node tools/browser-offline-17052.mjs'));

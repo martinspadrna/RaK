@@ -1,0 +1,29 @@
+{
+  "schema": "rak-quality-thresholds-v1",
+  "warningsMayPass": false,
+  "periodicDevelopmentGate": true,
+  "performanceBudget": {
+    "requiredResult": "PASS"
+  },
+  "networkResilience": {
+    "requiredResult": "PASS",
+    "maxFalseConflictsOnCleanRecovery": 0,
+    "requireWaitingObserved": true,
+    "requireConfirmationObserved": true,
+    "requireActivationObserved": true
+  },
+  "performanceParity": {
+    "requiredResult": "PASS",
+    "baselineSha": "1693c8631c13d6e381e44a96810a55140ad6aa62",
+    "minRounds": 5
+  },
+  "conflicts": {
+    "requiredSqlState": "40001",
+    "maxUnknownBaselineNetworkWrites": 0,
+    "expectedStaleRpcCalls": 1,
+    "maxSilentRevisionAdoptions": 0,
+    "maxLegacyV2MutationRpcReferences": 0,
+    "requiredMachineConflictCode": "RAK_MACHINE_SETTINGS_REVISION_CONFLICT",
+    "requiredMonthConflictCode": "RAK_ROTATION_MONTH_REVISION_CONFLICT"
+  }
+}
