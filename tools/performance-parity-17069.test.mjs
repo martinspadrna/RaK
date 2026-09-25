@@ -22,10 +22,13 @@ test('parity tolerance is bounded, median-based and guarded against P95 outliers
  for(const spec of Object.values(config.metrics)){
    assert(spec.maxMedianRegressionPct<=10);
    assert(spec.minMedianToleranceMs>0&&spec.minMedianToleranceMs<=20);
+   assert(spec.baselineMadMultiplier>0&&spec.baselineMadMultiplier<=2);
+   assert(spec.maxNoiseAllowanceMs>0&&spec.maxNoiseAllowanceMs<=50);
    assert(spec.maxP95DeltaMs>0&&spec.maxP95DeltaMs<=100);
  }
  const script=read('tools/performance-parity-17069.mjs');
- assert(script.includes('p50Ms:percentile(values,50)'));
+ assert(script.includes('madMs:medianAbsoluteDeviation(values,p50Ms)'));
+ assert(script.includes('Math.min(spec.maxNoiseAllowanceMs,summary.madMs*spec.baselineMadMultiplier)'));
  assert(script.includes("assert(c[metric].p50Ms<=medianLimit"));
  assert(script.includes("assert(c[metric].p95Ms<=p95Limit"));
 });

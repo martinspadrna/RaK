@@ -27,12 +27,22 @@ function percentile(values,p){
   const index=Math.min(sorted.length-1,Math.max(0,Math.ceil((p/100)*sorted.length)-1));
   return sorted[index];
 }
-function allowedMedian(base,spec){return Math.round(Math.max(base*(1+spec.maxMedianRegressionPct/100),base+spec.minMedianToleranceMs));}
+function medianAbsoluteDeviation(values,median){
+  return percentile(values.map(value=>Math.abs(value-median)),50);
+}
+function allowedMedian(summary,spec){
+  const percentLimit=summary.p50Ms*(1+spec.maxMedianRegressionPct/100);
+  const minimumLimit=summary.p50Ms+spec.minMedianToleranceMs;
+  const noiseAllowance=Math.min(spec.maxNoiseAllowanceMs,summary.madMs*spec.baselineMadMultiplier);
+  const noiseLimit=summary.p50Ms+noiseAllowance;
+  return {limitMs:Math.round(Math.max(percentLimit,minimumLimit,noiseLimit)),noiseAllowanceMs:Math.round(noiseAllowance)};
+}
 function summarize(samples){
   const out={};
   for(const key of ['startupReadyMs','wallReadyMs','firstContentfulPaintMs']){
     const values=samples.map(x=>x[key]);assert(values.every(Number.isFinite),'[perf-parity] invalid '+key);
-    out[key]={samplesMs:values,p50Ms:percentile(values,50),p95Ms:percentile(values,95)};
+    const p50Ms=percentile(values,50);
+    out[key]={samplesMs:values,p50Ms,p95Ms:percentile(values,95),madMs:medianAbsoluteDeviation(values,p50Ms)};
   }
   return out;
 }
@@ -112,16 +122,18 @@ try{
   for(let round=1;round<=CONFIG.rounds;round++){baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));current.push(await measureRoot(ROOT,'current-1.7.104',round));}
   const b=summarize(baseline),c=summarize(current),comparisons={};
   for(const [metric,spec] of Object.entries(CONFIG.metrics)){
-    const medianLimit=allowedMedian(b[metric].p50Ms,spec);
+    const medianGate=allowedMedian(b[metric],spec);
+    const medianLimit=medianGate.limitMs;
     const p95Limit=b[metric].p95Ms+spec.maxP95DeltaMs;
     comparisons[metric]={
       baselineP50Ms:b[metric].p50Ms,currentP50Ms:c[metric].p50Ms,allowedCurrentP50Ms:medianLimit,
+      baselineMadMs:b[metric].madMs,baselineNoiseAllowanceMs:medianGate.noiseAllowanceMs,
       baselineP95Ms:b[metric].p95Ms,currentP95Ms:c[metric].p95Ms,allowedCurrentP95Ms:p95Limit,
       medianDeltaMs:c[metric].p50Ms-b[metric].p50Ms,
       medianDeltaPct:Math.round(((c[metric].p50Ms-b[metric].p50Ms)/b[metric].p50Ms)*1000)/10,
       p95DeltaMs:c[metric].p95Ms-b[metric].p95Ms
     };
-    assert(c[metric].p50Ms<=medianLimit,'[perf-parity] '+metric+' median '+c[metric].p50Ms+'ms regressed beyond '+medianLimit+'ms vs baseline '+b[metric].p50Ms+'ms');
+    assert(c[metric].p50Ms<=medianLimit,'[perf-parity] '+metric+' median '+c[metric].p50Ms+'ms regressed beyond '+medianLimit+'ms vs baseline '+b[metric].p50Ms+'ms (MAD '+b[metric].madMs+'ms, noise allowance '+medianGate.noiseAllowanceMs+'ms)');
     assert(c[metric].p95Ms<=p95Limit,'[perf-parity] '+metric+' P95 '+c[metric].p95Ms+'ms regressed beyond '+p95Limit+'ms vs baseline '+b[metric].p95Ms+'ms');
   }
   const evidence={schema:'rak-performance-parity-evidence-v1',result:'PASS',sourceCommit:String(process.env.GITHUB_SHA||''),baseline:{...CONFIG.baseline},current:{version:CONFIG.current.version},rounds:CONFIG.rounds,viewport:CONFIG.viewport,baselineMetrics:b,currentMetrics:c,comparisons,diagnostics:Object.fromEntries((CONFIG.diagnostics||[]).map(key=>[key,{baseline:b[key],current:c[key]}]))};

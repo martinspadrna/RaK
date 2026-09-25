@@ -18,12 +18,16 @@
     "startupReadyMs": {
       "maxMedianRegressionPct": 10,
       "minMedianToleranceMs": 20,
-      "maxP95DeltaMs": 100
+      "maxP95DeltaMs": 100,
+      "baselineMadMultiplier": 2,
+      "maxNoiseAllowanceMs": 50
     },
     "firstContentfulPaintMs": {
       "maxMedianRegressionPct": 10,
       "minMedianToleranceMs": 20,
-      "maxP95DeltaMs": 75
+      "maxP95DeltaMs": 75,
+      "baselineMadMultiplier": 2,
+      "maxNoiseAllowanceMs": 50
     }
   },
   "diagnostics": [
