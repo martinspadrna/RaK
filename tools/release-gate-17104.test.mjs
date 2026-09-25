@@ -68,5 +68,8 @@ test('1.7.104 gate is mandatory in npm check and the release workflow',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(pkg.scripts.check.includes('tools/release-gate-17104.test.mjs'));
   assert(workflow.includes('node --test tools/release-gate-17104.test.mjs'));
-  assert(/rak-17010[45]-isolated-build-\$\{\{ github\.sha \}\}/.test(workflow));
+  const currentArtifact = 'rak-' + String(pkg.version || '').replaceAll('.', '') + '-isolated-build-' + '
+});
+ + '{{ github.sha }}';
+  assert(workflow.includes(currentArtifact));
 });
