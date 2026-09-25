@@ -49,7 +49,6 @@ test('mandatory CI executes current gate and real mobile geometry',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(workflow.includes('node --test tools/release-gate-17100.test.mjs'));
   assert(workflow.includes('node tools/browser-iphone-regressions-17100.mjs'));
-  assert(workflow.includes('rak-170100-isolated-build-'+'
-});
+  assert(workflow.includes('rak-170100-isolated-build-'+'$'+'{{ github.sha }}'));
 +'{{ github.sha }}'));
 });

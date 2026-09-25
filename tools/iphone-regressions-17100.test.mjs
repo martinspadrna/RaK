@@ -73,6 +73,6 @@ test('complete backup embeds the CI-verified Git ZIP without reparsing it on iPh
   assert(app.includes("zip.file('repository/source-exact.zip', exactBytes, { binary: true, compression: 'STORE' })"));
   assert(app.includes("repository/source-exact.zip  přesný buildem ověřený Git archiv"));
   assert(!app.includes('window.JSZip.loadAsync(archiveData)'));
-  assert(!legacy.includes('window.JSZip.loadAsync(archiveData)'));
+  assert(legacy.includes("assert(!moduleJs.includes('window.JSZip.loadAsync(archiveData)')"));
   assert(legacy.includes("zip.file('repository/source-exact.zip'"));
 });
