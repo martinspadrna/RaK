@@ -1,0 +1,66 @@
+{
+  "schema": "rak-performance-budget-v1",
+  "baseline": {
+    "runtime": "1.7.104",
+    "sha": "0d807337dac50d610fad83b80ee35697d2f1c3d6",
+    "actionsRunId": 36141187662,
+    "actionsRunNumber": 342,
+    "isolatedBuildArtifactId": 10867215287,
+    "note": "Green TEST-only 1.7.104 successor with exact 390x844 and 430x932 CDP viewport proof."
+  },
+  "timeModes": {
+    "cold mobile": {
+      "baselineP95Ms": 1595,
+      "hardBudgetMs": 5000
+    },
+    "offline reload": {
+      "baselineP95Ms": 1207,
+      "hardBudgetMs": 4000
+    },
+    "online recovery": {
+      "baselineP95Ms": 679,
+      "hardBudgetMs": 3500
+    }
+  },
+  "sizeGroups": {
+    "indexHtml": {
+      "baselineBytes": 53161,
+      "maxBytes": 57414,
+      "paths": [
+        "index.html"
+      ]
+    },
+    "startupCore": {
+      "baselineBytes": 428467,
+      "maxBytes": 471314,
+      "paths": [
+        "index.html",
+        "sw.js",
+        "app.js",
+        "module-readiness.js",
+        "rak-release-metadata.js",
+        "supabase-config.js",
+        "app-init.js",
+        "app-home-boot.js",
+        "dashboard.js",
+        "app-navigation.js",
+        "app-bottom-nav.js",
+        "styles.css",
+        "styles-inline-legacy.css",
+        "styles-bottom-nav-runtime.css",
+        "styles-viewport-polish.css",
+        "styles-dashboard-fit.css",
+        "styles-dashboard-polish.css"
+      ]
+    },
+    "rootJsCssSurface": {
+      "baselineBytes": 4440977,
+      "maxBytes": 4796255,
+      "rootExtensions": [
+        ".js",
+        ".mjs",
+        ".css"
+      ]
+    }
+  }
+}

@@ -6,7 +6,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import RELEASE_METADATA from '../rak-release-metadata.js';
-import {PROD_SUPABASE,TEST_SUPABASE,releaseDecision,validateBuildProof,validateCiProof,validateHttpFolder} from './release-evidence.mjs';
+import {PROD_SUPABASE,TEST_SUPABASE,releaseDecision,validateBuildProof,validateCiProof,validateHttpFolder,validatePerformanceBudgetProof} from './release-evidence.mjs';
 
 const SHA='a'.repeat(40);
 const HASH='b'.repeat(64);
@@ -24,8 +24,14 @@ function buildProof(){
     files:['index.html','sw.js','rak-release-metadata.js','supabase-config.js','supabase-vendor-2.110.7.js','rak-complete-backup-source.zip'].map(file=>({path:file,sha256:HASH}))
   };
 }
+function performanceProof(){
+  const config=JSON.parse(read('tools/performance-budget-17104.json'));
+  return {schema:'rak-performance-budget-evidence-v1',result:'PASS',sourceCommit:SHA,baseline:{...config.baseline},
+    time:Object.fromEntries(Object.entries(config.timeModes).map(([label,spec])=>[label,{baselineP95Ms:spec.baselineP95Ms,actualP95Ms:spec.baselineP95Ms,hardBudgetMs:spec.hardBudgetMs,deltaMs:0,deltaPct:0}])),
+    size:Object.fromEntries(Object.entries(config.sizeGroups).map(([name,spec])=>[name,{baselineBytes:spec.baselineBytes,actualBytes:spec.baselineBytes,maxBytes:spec.maxBytes,deltaBytes:0,deltaPct:0,fileCount:1}]))};
+}
 function ciProof(){
-  return {schema:'rak-ci-release-proof-v1',result:'PASS',sha:SHA,completedChecks:[...checks],github:{runId:1,runNumber:2}};
+  return {schema:'rak-ci-release-proof-v1',result:'PASS',sha:SHA,completedChecks:[...checks],github:{runId:1,runNumber:2},performanceBudget:performanceProof()};
 }
 
 test('documentation-only commit skips deployment, unknown or workflow change deploys',()=>{
@@ -41,10 +47,13 @@ test('canonical proof requires exact SHA, two builds and declared differences',(
   assert.throws(()=>validateBuildProof({...buildProof(),differences:['index.html']},SHA),/undeclared/);
 });
 
-test('CI proof is fail closed for missing checks and mismatched SHA',()=>{
+test('CI proof is fail closed for missing checks, mismatched SHA and failed performance evidence',()=>{
+  assert.equal(validatePerformanceBudgetProof(performanceProof(),SHA).result,'PASS');
   assert.equal(validateCiProof(ciProof(),SHA).result,'PASS');
   assert.throws(()=>validateCiProof({...ciProof(),sha:'c'.repeat(40)},SHA),/SHA mismatch/);
   assert.throws(()=>validateCiProof({...ciProof(),completedChecks:checks.slice(1)},SHA),/checks missing/);
+  const bad=ciProof();bad.performanceBudget.time['cold mobile'].actualP95Ms=bad.performanceBudget.time['cold mobile'].hardBudgetMs+1;
+  assert.throws(()=>validateCiProof(bad,SHA),/timing budget exceeded/);
 });
 
 function httpFixture({production=false}={}){

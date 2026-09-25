@@ -53,6 +53,25 @@ export function validateBuildProof(proof,sha){
   return proof;
 }
 
+export function validatePerformanceBudgetProof(proof,sha){
+  ok(proof&&proof.schema==='rak-performance-budget-evidence-v1','unknown performance budget proof');
+  ok(proof.result==='PASS','performance budget is not PASS');
+  ok(proof.sourceCommit===sha,'performance budget SHA mismatch');
+  const config=json(path.join(ROOT,'tools','performance-budget-17104.json'));
+  ok(proof.baseline?.sha===config.baseline.sha,'performance baseline SHA mismatch');
+  for(const [label,spec] of Object.entries(config.timeModes)){
+    const item=proof.time?.[label];
+    ok(item&&item.baselineP95Ms===spec.baselineP95Ms&&item.hardBudgetMs===spec.hardBudgetMs,'performance timing contract mismatch '+label);
+    ok(Number.isFinite(item.actualP95Ms)&&item.actualP95Ms<=spec.hardBudgetMs,'performance timing budget exceeded '+label);
+  }
+  for(const [name,spec] of Object.entries(config.sizeGroups)){
+    const item=proof.size?.[name];
+    ok(item&&item.baselineBytes===spec.baselineBytes&&item.maxBytes===spec.maxBytes,'performance size contract mismatch '+name);
+    ok(Number.isSafeInteger(item.actualBytes)&&item.actualBytes<=spec.maxBytes,'performance size budget exceeded '+name);
+  }
+  return proof;
+}
+
 export function validateCiProof(proof,sha){
   ok(proof&&proof.schema==='rak-ci-release-proof-v1','unknown CI proof');
   ok(proof.sha===sha,'CI proof SHA mismatch');
@@ -60,6 +79,7 @@ export function validateCiProof(proof,sha){
   ok(Array.isArray(proof.completedChecks)&&REQUIRED_CHECKS.every(name=>proof.completedChecks.includes(name)),'required CI checks missing');
   ok(Number.isInteger(proof.github?.runId)&&proof.github.runId>0,'CI run ID missing');
   ok(Number.isInteger(proof.github?.runNumber)&&proof.github.runNumber>0,'CI run number missing');
+  validatePerformanceBudgetProof(proof.performanceBudget,sha);
   return proof;
 }
 
@@ -81,12 +101,14 @@ function ciProof(){
   const build=validateBuildProof(json(path.join(ROOT,'.rak-canonical-build','verified.json')),sha);
   const runId=Number(process.env.GITHUB_RUN_ID),runNumber=Number(process.env.GITHUB_RUN_NUMBER),attempt=Number(process.env.GITHUB_RUN_ATTEMPT||1);
   ok(Number.isInteger(runId)&&runId>0&&Number.isInteger(runNumber)&&runNumber>0,'GitHub run identity missing');
+  const performanceBudget=validatePerformanceBudgetProof(json(path.join(ROOT,'.rak-release-evidence','performance-budget.json')),sha);
   const proof={
     schema:'rak-ci-release-proof-v1',result:'PASS',sha,
     github:{repository:process.env.GITHUB_REPOSITORY,workflow:process.env.GITHUB_WORKFLOW,runId,runNumber,runAttempt:attempt,
       url:'https://github.com/'+process.env.GITHUB_REPOSITORY+'/actions/runs/'+runId},
     completedChecks:[...REQUIRED_CHECKS],
     canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:true,fileCount:build.files.length,differences:build.differences},
+    performanceBudget,
     release:{displayVersion:RELEASE_METADATA.displayVersion,technicalVersion:RELEASE_METADATA.technicalVersion,
       cacheVersion:RELEASE_METADATA.cacheVersion,buildId:RELEASE_METADATA.buildId}
   };
@@ -168,7 +190,7 @@ function assemble(){
     schema:'rak-functional-release-evidence-v1',result:'PASS',createdAt:new Date().toISOString(),
     release:{sha,branch:'development',...RELEASE_METADATA},
     github:{...ci.github,conclusion:'success',mainBefore:before.main,mainAfter:after.main},
-    checks:{completed:ci.completedChecks,canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:true,fileCount:build.files.length}},
+    checks:{completed:ci.completedChecks,canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:true,fileCount:build.files.length},performanceBudget:ci.performanceBudget},
     vercel:{projectId:PROJECT_ID,deploymentId:current.id,state:current.state,url:current.url,commitSha:current.meta.githubCommitSha,
       stableDevelopmentAlias:STABLE_ALIAS,aliasDeploymentId:alias.id,productionDeploymentIdBefore:prodBefore.id,productionDeploymentIdAfter:prodAfter.id},
     http:{immutable,stableAlias:stable},

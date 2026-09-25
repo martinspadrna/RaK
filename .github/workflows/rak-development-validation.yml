@@ -67,7 +67,7 @@ jobs:
           node --check tools/preview-rollback-preflight-17068.mjs
           node --check tools/pwa-start-bench-17068.mjs
           node --test tools/preview-rollback-preflight-17068.test.mjs
-          node --test tools/pwa-start-bench-17068.test.mjs
+          node --test tools/pwa-start-bench-17068.test.mjs tools/performance-budget-17104.test.mjs
       - name: Verify source backup ZIP inventory, excluded files and CRC
         working-directory: .rak-canonical-build/work
         run: node tools/backup-source-integrity-17051.mjs
@@ -82,9 +82,14 @@ jobs:
           node tools/browser-fourth-bundle-17097.mjs
           node tools/browser-iphone-regressions-17100.mjs
           node tools/browser-ui-parity-17104.mjs
-      - name: Benchmark PWA three times in independent Chromium profiles
+      - name: Benchmark PWA three times with fail-closed time and size budgets
         working-directory: .rak-canonical-build/work
-        run: node tools/pwa-start-bench-17068.mjs
+        env:
+          RAK_CANONICAL_BUILD_PROOF: ${{ github.workspace }}/.rak-canonical-build/verified.json
+          RAK_PERFORMANCE_EVIDENCE: ${{ github.workspace }}/.rak-release-evidence/performance-budget.json
+        run: |
+          node tools/pwa-start-bench-17068.mjs
+          test -s "$RAK_PERFORMANCE_EVIDENCE"
       - name: Verify live anonymous HTTP against isolated TEST Supabase
         working-directory: .rak-canonical-build/work
         run: node tools/http-anon-audit-17050.mjs

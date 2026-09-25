@@ -6,10 +6,12 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import RELEASE_METADATA from '../rak-release-metadata.js';
+import {assessPerformanceBudget,loadPerformanceBudget,writePerformanceBudgetEvidence} from './performance-budget-17104.mjs';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export const BOOT_LABELS=Object.freeze(['cold mobile','offline reload','online recovery']);
-export const BUDGET_MS=Object.freeze({'cold mobile':15000,'offline reload':12000,'online recovery':15000});
+const PERFORMANCE_BUDGET=loadPerformanceBudget();
+export const BUDGET_MS=Object.freeze(Object.fromEntries(Object.entries(PERFORMANCE_BUDGET.timeModes).map(([label,spec])=>[label,spec.hardBudgetMs])));
 export const ROUNDS=3;
 
 export function parseBootTimes(stdout){
@@ -57,12 +59,23 @@ function benchmark(){
   samples.push(parseBootTimes(run.stdout));
  }
  const result=assessBootSamples(samples);
+ const proofCandidates=[process.env.RAK_CANONICAL_BUILD_PROOF,path.resolve(ROOT,'..','verified.json'),path.join(ROOT,'.rak-canonical-build','verified.json')].filter(Boolean);
+ const proofPath=proofCandidates.find(file=>fs.existsSync(file));
+ assert(proofPath,'canonical build proof required for performance budget evidence');
+ const buildProof=JSON.parse(fs.readFileSync(proofPath,'utf8'));
+ assert.equal(buildProof.schema,'rak-isolated-canonical-build-v1','canonical build proof schema mismatch');
+ assert(Array.isArray(buildProof.files),'canonical build file inventory missing');
+ const evidence=assessPerformanceBudget({sourceCommit:buildProof.sourceCommit,bootStats:result,buildFiles:buildProof.files,config:PERFORMANCE_BUDGET});
+ const evidenceTarget=process.env.RAK_PERFORMANCE_EVIDENCE||path.join(process.env.GITHUB_WORKSPACE||ROOT,'.rak-release-evidence','performance-budget.json');
+ writePerformanceBudgetEvidence(evidence,evidenceTarget);
  const lines=BOOT_LABELS.map(label=>{
-  const v=result[label];return `${label}: runs=${v.samplesMs.join('/') }ms, p50=${v.p50Ms}ms, p95=${v.p95Ms}ms, budget=${v.budgetMs}ms`;
+  const v=result[label],e=evidence.time[label];return `${label}: runs=${v.samplesMs.join('/') }ms, p50=${v.p50Ms}ms, p95=${v.p95Ms}ms, baseline=${e.baselineP95Ms}ms, delta=${e.deltaPct}%, hard=${e.hardBudgetMs}ms`;
  });
+ const sizeLines=Object.entries(evidence.size).map(([name,e])=>`${name}: ${e.actualBytes}B, baseline=${e.baselineBytes}B, delta=${e.deltaPct}%, hard=${e.maxBytes}B`);
  for(const line of lines)console.log('[17068-perf] '+line);
- console.log('[17068-perf] PASS three independent real Chromium cold/offline/recovery cycles; TEST-only and read-only. Physical Safari remains unverified.');
- if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'\n### RaK PWA repeated Chromium boot (3 isolated profiles)\n'+lines.map(x=>'- '+x).join('\n')+'\n');
+ for(const line of sizeLines)console.log('[17068-size] '+line);
+ console.log('[17068-perf] PASS three independent real Chromium cycles + fail-closed time/size budgets; TEST-only and read-only. Physical Safari remains unverified.');
+ if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'\n### RaK PWA performance budgets\n'+lines.concat(sizeLines).map(x=>'- '+x).join('\n')+'\n');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  try{benchmark();}catch(e){console.error('[17068-perf] FAIL '+e.message);process.exitCode=1;}
