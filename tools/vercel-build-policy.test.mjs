@@ -5,8 +5,8 @@ const previous = 'a'.repeat(40);
 const classify = (files, branch = 'development') => classifyVercelBuild({ previous, files, branch });
 
 test('only exact documentation families may skip a Vercel build', () => {
-  for (const path of ['RAK_HANDOFF.md','RAK_PLAN_13.md','RAK_STABILIZATION_PLAN.md','RAK_PLAN_17068_STATUS.md','SECURITY_DEPLOYMENT.md']) assert.equal(classify([path]).skip, true, path);
-  assert.equal(classify(['RAK_HANDOFF.md', 'RAK_PLAN_13.md', 'RAK_STABILIZATION_PLAN.md']).skip, true);
+  for (const path of ['RAK_HANDOFF.md','RAK_STABILIZATION_PLAN.md','RAK_PLAN_17068_STATUS.md','SECURITY_DEPLOYMENT.md']) assert.equal(classify([path]).skip, true, path);
+  assert.equal(classify(['RAK_HANDOFF.md', 'RAK_STABILIZATION_PLAN.md']).skip, true);
 });
 
 test('runtime, CI, executable tests, build scripts, config and unknown files always require a build', () => {

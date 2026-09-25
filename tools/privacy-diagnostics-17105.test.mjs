@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {RELEASE_METADATA} from './release-metadata-test-helper.mjs';
 
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const source=read('rak-runtime-diagnostics.js');
@@ -67,10 +68,11 @@ test('privacy helper is installed before runtime, cached offline and cannot muta
   const build=read('tools/canonical-build.mjs');
   const backup=read('rak-complete-backup.js');
   const bugReport=read('app-menu-bug-report.js');
-  assert(index.indexOf('rak-runtime-diagnostics.js?v=1.7.105')>index.indexOf('rak-release-metadata.js'));
-  assert(index.indexOf('rak-runtime-diagnostics.js?v=1.7.105')<index.indexOf('<script src="data.js"></script>'));
-  assert(index.indexOf('rak-runtime-diagnostics.js?v=1.7.105')<index.indexOf('supabase-vendor-2.110.7.js'));
-  assert((sw.match(/rak-runtime-diagnostics\.js\?v=1\.7\.105/g)||[]).length>=3);
+  const helperMarker=`rak-runtime-diagnostics.js?v=${RELEASE_METADATA.displayVersion}`;
+  assert(index.indexOf(helperMarker)>index.indexOf('rak-release-metadata.js'));
+  assert(index.indexOf(helperMarker)<index.indexOf('<script src="data.js"></script>'));
+  assert(index.indexOf(helperMarker)<index.indexOf('supabase-vendor-2.110.7.js'));
+  assert((sw.match(new RegExp(`rak-runtime-diagnostics\\.js\\?v=${RELEASE_METADATA.displayVersion.replaceAll('.','\\.')}`,'g'))||[]).length>=3);
   assert(build.includes("'rak-runtime-diagnostics.js'"));
   for(const text of [backup,bugReport]){
     assert(!text.includes('RAK_DIAGNOSTICS'));

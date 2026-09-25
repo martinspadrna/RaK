@@ -3,7 +3,7 @@
 > **Toto je jediný řídicí dokument projektu RaK.** Stálý odkaz je
 > https://github.com/martinspadrna/RaK/blob/development/RAK_HANDOFF.md
 >
-> Po každém větším balíku se aktualizuje právě tento soubor: provozní pravidla, aktuální stav, celý 13bodový plán, checkboxy, procenta, důkazy, backlog, pořadí práce i otevřené blokátory. Starší stavové a plánovací soubory jsou pouze historie a nesmějí řídit další práci. `RAK_PLAN_13.md` je kvůli kompatibilitě pouze bajtově totožné zrcadlo stejného Git blobu. Nesmí se upravovat samostatně; každý budoucí zápis musí obě cesty nasměrovat na jeden nový totožný blob.
+> Po každém větším balíku se aktualizuje právě tento soubor: provozní pravidla, aktuální stav, celý 13bodový plán, checkboxy, procenta, důkazy, backlog, pořadí práce i otevřené blokátory. Starší stavové a plánovací soubory jsou pouze historie a nesmějí řídit další práci. Od release 1.7.106 je tento soubor jediným živým plánem; dřívější `RAK_PLAN_13.md` bylo odstraněno po migraci kontrol a backup manifestu.
 
 ## Nejkratší prompt pro nový chat
 
@@ -205,7 +205,7 @@ Bilance zůstává **5/13 uzavřených, 8/13 otevřených**.
 - nevypisovat tokeny, JWT, klíče, hesla, osobní čísla ani skutečné soukromé payloady do logu/chatu;
 - nevytvářet placené Supabase/Vercel řešení bez souhlasu;
 - dokumentační/test-only změna nezvyšuje runtime verzi; funkční release zvyšuje sjednocenou verzi právě jednou;
-- `RAK_HANDOFF.md` a `RAK_PLAN_13.md` musí po každé dokumentační změně zůstat **bajtově totožné a ukazovat na tentýž Git blob**.
+- `RAK_HANDOFF.md` je jediný živý plán. Bývalé `RAK_PLAN_13.md` se nesmí znovu vytvořit ani přidat do runtime/backup manifestu.
 
 
 Vlastník ukončuje toto vlákno kvůli příliš pomalému průběhu a chce pokračovat v novém chatu. **Nový chat musí jako první krok online načíst živý `development` a tento celý dokument; nesmí pokračovat ze staré konverzační paměti nebo starého SHA.**
@@ -257,7 +257,7 @@ Zelená **1.7.100** na SHA `ae6719947736dbdd678a411ba7420a3d7a906693`, Actions #
 6. Po privacy balíku lze pokračovat druhým automatizovatelným P2.4 bodem – skutečné rolové JWT a diagnostika odmítnutých operací bez úniku přihlašovacích údajů – jen pokud jsou dostupné bezpečné autentizované testovací identity; tokeny nikdy nevypisovat.
 7. Fyzické blokátory nepředstírat automatizací: P1.5 otevření 23,3MB ZIPu; P2.1 iPhone cold/warm; P2.2 kompletní screenshot/role průchod; P0.4/P1.2 Safari/PWA session/device scénáře.
 8. Conflict-rescue 1.7.101 a CAS 1.7.102 testovat jen při skutečném nebo bezpečném dvouzařízení scénáři. Nezakládat umělý destruktivní konflikt jen kvůli procentům.
-9. Po každém větším balíku aktualizovat tento dokument, všech 13 procent, exact SHA, Actions, Vercel a potřebný iPhone test; `RAK_PLAN_13.md` musí být tentýž blob.
+9. Po každém větším balíku aktualizovat tento dokument, všech 13 procent, exact SHA, Actions, Vercel a potřebný iPhone test; `RAK_HANDOFF.md` je jediný kanonický plán.
 
 ## Stav fyzické přejímky a fáze B
 

@@ -56,7 +56,7 @@ test('second full build preserves 1.7.55, all historical gates, offline Chromium
   'node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(command),'CI missing '+command);
 });
 test('13-point roadmap validates every percentage independently of old status prose',()=>{
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert(progress.some(item=>item.id==='P1.5'));
  assert(read('tools/auth-role-diagnostic-17056.js').includes('/auth/v1/user'));

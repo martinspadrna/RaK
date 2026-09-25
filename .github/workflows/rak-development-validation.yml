@@ -59,7 +59,7 @@ jobs:
           node --test tools/release-gate-17102.test.mjs
           node --test tools/release-gate-17103.test.mjs
           node --test tools/release-gate-17104.test.mjs
-          node --test tools/privacy-diagnostics-17105.test.mjs tools/release-gate-17105.test.mjs
+          node --test tools/privacy-diagnostics-17105.test.mjs tools/release-gate-17105.test.mjs tools/release-gate-17106.test.mjs
           node --test tools/regression-parity-contract.test.mjs
           node --test tools/ui-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
@@ -122,6 +122,11 @@ jobs:
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: node tools/release-evidence.mjs ci-proof
       - name: Retain isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170106-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+      - name: Retain historical isolated-build evidence alias
         uses: actions/upload-artifact@v4
         with:
           name: rak-170105-isolated-build-${{ github.sha }}

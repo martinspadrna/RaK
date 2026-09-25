@@ -67,7 +67,7 @@ test('historical stage, twice-build CI, mobile offline and live TEST HTTP remain
 });
 test('historical backup coverage and living completion evidence remain independent',()=>{
  assert(read('tools/development-version-17054.mjs').includes(VERSION));
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert(progress.some(item=>item.id==='P1.5'));
  assert(backup.includes('přemapuj rak_admin_profiles.user_id'));

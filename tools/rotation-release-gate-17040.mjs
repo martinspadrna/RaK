@@ -33,6 +33,6 @@ export function assertRotationRelease(files) {
   assert(!config.includes(productionProject), 'Production Supabase leaked into preview config');
   assert.equal(JSON.parse(read('package.json')).version, '1.7.0', 'Technical version must be 1.7.0');
   // The detailed checkboxes and risk declaration are validated by roadmap-contract.test.mjs.
-  const ids = verifyRoadmapSummary(read('RAK_PLAN_13.md'));
+  const ids = verifyRoadmapSummary(read('RAK_HANDOFF.md'));
   return { version, build, taskCount: ids.length };
 }

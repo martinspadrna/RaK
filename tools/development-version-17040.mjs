@@ -71,7 +71,7 @@ change('sw.js', source => {
 change('index.html', source => swap(source,
   "var build='v1.7.39-releasegate1';", `var build='${BUILD}';`, 'HTML build'));
 const paths = ['index.html', 'supabase-config.js', 'app.js', 'sw.js',
-  'supabase-bridge.js', 'package.json', 'RAK_PLAN_13.md',
+  'supabase-bridge.js', 'package.json', 'RAK_HANDOFF.md',
   'PUBLIC_ROTATION_MINIMIZATION_17040.md',
   'supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql',
   'tools/security-rotation-minimization-17040.sql',

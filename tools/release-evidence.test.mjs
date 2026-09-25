@@ -52,7 +52,7 @@ function ciProof(){
 }
 
 test('documentation-only commit skips deployment, unknown or workflow change deploys',()=>{
-  assert.equal(releaseDecision({branch:'development',previous:'c'.repeat(40),head:SHA,files:['RAK_PLAN_13.md']}).deploy,false);
+  assert.equal(releaseDecision({branch:'development',previous:'c'.repeat(40),head:SHA,files:['RAK_HANDOFF.md']}).deploy,false);
   assert.equal(releaseDecision({branch:'development',previous:'c'.repeat(40),head:SHA,files:['.github/workflows/rak-development-validation.yml']}).deploy,true);
   assert.equal(releaseDecision({branch:'development',previous:'',head:SHA,files:null}).deploy,true);
 });

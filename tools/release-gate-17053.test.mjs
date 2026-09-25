@@ -60,7 +60,7 @@ test('historic gates, real mobile/offline, HTTP and safe archive still required'
 });
 test('historic backup milestone and live plan are independently verified',()=>{
  const historical=read('tools/development-version-17053.mjs');
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert(historical.includes(VERSION));
  assert.equal(progress.length,13);
  assert(read('tools/role-backup-regression-17053.sql').includes('ROLLBACK;'));

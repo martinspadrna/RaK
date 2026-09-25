@@ -115,6 +115,6 @@ test('historical release gates, double build, CRC and frozen historical scope wi
  const migration=read('tools/development-version-17065.mjs');
  assert(migration.includes('RAK_17065_LIVE_PLAN_IMMUTABLE'));
  assert(migration.includes("read('RAK_PLAN_17065_STATUS.md')"));
- assert(!migration.includes("read('RAK_PLAN_13.md')"),'historical build must not depend on evolving roadmap wording');
- assert(!migration.includes("write('RAK_PLAN_13.md'"),'historical build must never modify the live roadmap');
+ assert(!migration.includes("read('RAK_HANDOFF.md')"),'historical build must not depend on evolving roadmap wording');
+ assert(!migration.includes("write('RAK_HANDOFF.md'"),'historical build must never modify the live roadmap');
 });

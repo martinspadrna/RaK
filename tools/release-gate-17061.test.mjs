@@ -90,7 +90,7 @@ test('both builds retain historical 1.7.60 gate, new gate, ZIP/Chromium/offline/
     'node tools/browser-offline-17052.mjs',
     'node tools/http-anon-audit-17050.mjs',
     'node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(phrase),phrase);
-  assert.equal(verifyRoadmapProgress(read('RAK_PLAN_13.md')).length,13);
+  assert.equal(verifyRoadmapProgress(read('RAK_HANDOFF.md')).length,13);
   const status=read('RAK_PLAN_17061_STATUS.md');
   for(const key of ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4','2/13'])assert(status.includes(key));
 });

@@ -17,7 +17,7 @@ function fixture(t) {
   'admin-reports.js':'baseline','rotace.js':'baseline','dashboard.js':'baseline','export.js':'baseline',
   'core.js':'baseline','ui.js':'baseline','styles.css':'baseline',
   'assets/a.svg':'baseline','api/endpoint.js':'baseline','tools/private.js':'do not archive',
-  'supabase/secret.sql':'not a runtime path','RAK_PLAN_13.md':'not a runtime path'})){
+  'supabase/secret.sql':'not a runtime path','RAK_HANDOFF.md':'not a runtime path'})){
   fs.mkdirSync(path.dirname(path.join(root,p)),{recursive:true});fs.writeFileSync(path.join(root,p),contents);
  }
  run(root,'add','.');run(root,'commit','-qm','baseline');
@@ -26,7 +26,7 @@ function fixture(t) {
 }
 test('only public runtime file extensions and directories enter the canonical overlay',()=>{
  for(const p of ['index.html','api/endpoint.js','assets/a.png','assets/a.svg','package.json'])assert(isRuntimePath(p),p);
- for(const p of ['.env','.env.production.js','tools/release.mjs','supabase/schema.sql','.github/workflows/check.yml','RAK_PLAN_13.md','rak-complete-backup-source.zip','package-lock.json','api/../../.env','node_modules/a.js'])assert(!isRuntimePath(p),p);
+ for(const p of ['.env','.env.production.js','tools/release.mjs','supabase/schema.sql','.github/workflows/check.yml','RAK_HANDOFF.md','rak-complete-backup-source.zip','package-lock.json','api/../../.env','node_modules/a.js'])assert(!isRuntimePath(p),p);
 });
 test('snapshot reads the real tracked HEAD, only changed runtime paths, exact release and TEST configuration',t=>{
  const root=fixture(t),manifest=capture(root);

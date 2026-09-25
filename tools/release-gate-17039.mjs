@@ -20,7 +20,7 @@ export function assertReleaseSnapshot(files) {
   const app = read('app.js');
   const sw = read('sw.js');
   const packageJson = JSON.parse(read('package.json'));
-  const plan = read('RAK_PLAN_13.md');
+  const plan = read('RAK_HANDOFF.md');
   const policy = read('EMPLOYEE_AUTH_CUTOVER.md');
   const privacy = read('PUBLIC_ROTATION_ACTOR_PRIVACY.md');
   const sql = read('tools/security-rotation-release-17039.sql');

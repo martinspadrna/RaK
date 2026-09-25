@@ -180,7 +180,7 @@ if(!browser.includes('RAK_17065_COMPAT_WIDTH_GUARD')){
  write('tools/browser-absence-layout-17061.mjs',browser);
 }
 // Historical contracts are pinned to the historical release record; this stage must not
-// inspect or modify the evolving RAK_PLAN_13.md. Current plan validation runs independently in CI.
+// inspect or modify the evolving RAK_HANDOFF.md. Current plan validation runs independently in CI.
 // RAK_17065_LIVE_PLAN_IMMUTABLE
 const historical=read('RAK_PLAN_17065_STATUS.md');
 assert.equal([...historical.matchAll(/^\| (P[012]\.\d)(?:\s|\|)/gm)].length,13,'[17065] expected exactly 13 historical plan items');

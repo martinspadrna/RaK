@@ -37,9 +37,9 @@ test('browser, offline, online, VM and inherited privacy audits are mandatory',(
 });
 test('historical Chromium milestone is distinct from live iPhone acceptance',()=>{
  const historic=read('tools/development-version-17052.mjs');
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert(historic.includes(VERSION));
  assert.equal(progress.length,13);
- assert(read('RAK_PLAN_13.md').includes('iPhone'));
- assert(read('RAK_PLAN_13.md').includes('Chromium'));
+ assert(read('RAK_HANDOFF.md').includes('iPhone'));
+ assert(read('RAK_HANDOFF.md').includes('Chromium'));
 });

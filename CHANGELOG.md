@@ -1,3 +1,8 @@
+## RaK 1.7.106 (development)
+
+- `RAK_HANDOFF.md` je nyní jediný živý třináctibodový plán. Historické `RAK_PLAN_13.md` bylo po migraci všech kontrol odstraněno; owner complete backup nově zahrnuje přímo handoff.
+- Runtime zůstává funkčně stejný jako 1.7.105, ale release ověřuje odstranění paralelního plánu, jeho absenci v aktivních kontrolách a zachování backup manifestu.
+
 ## RaK 1.7.105 (development)
 
 - Browserový runtime instaluje před běžnými moduly jedinou diagnostickou bránu, která do konzole propouští jen pevnou kategorii a agregovaná metadata. Syrové chyby, texty, payloady a celé auditní reporty se do konzole nepředávají.
