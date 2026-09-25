@@ -4,20 +4,17 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.100 uses one unified release identity',()=>{
+test('1.7.100 physical-iPhone regression milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.100');
-  assert.equal(metadata.displayVersion,'1.7.100');
-  assert.equal(metadata.technicalVersion,'1.7.100');
-  assert.equal(metadata.moduleCacheVersion,'1.7.100');
-  assert.equal(metadata.cacheVersion,'v1.7.100');
-  assert.equal(metadata.buildId,'v1.7.100-iphone-regressions1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.100');
-  assert(read('index.html').includes('app.js?v=1.7.100'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.100');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.100';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('physical iPhone regressions have concrete root-cause guards',()=>{
   const unit=read('tools/iphone-regressions-17100.test.mjs');
   const browser=read('tools/browser-iphone-regressions-17100.mjs');
@@ -45,9 +42,9 @@ test('complete backup preserves exact build-verified Git ZIP without nested JSZi
   assert(read('sw.js').includes("RAK_17100_BACKUP_SOURCE_POLICY = 'same-origin-build-verified-zip;embedded-exactly;no-client-reparse'"));
 });
 
-test('mandatory CI executes current gate and real mobile geometry',()=>{
+test('npm check retains 1.7.100 while CI runs the current successor gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
-  assert(workflow.includes('node --test tools/release-gate-17100.test.mjs'));
-  assert(workflow.includes('node tools/browser-iphone-regressions-17100.mjs'));
-  assert(workflow.includes('rak-170100-isolated-build-'+'$'+'{{ github.sha }}'));
+  const pkg=JSON.parse(read('package.json'));
+  assert(pkg.scripts.check.includes('tools/release-gate-17100.test.mjs'));
+  assert(workflow.includes('node --test tools/release-gate-17101.test.mjs'));
 });

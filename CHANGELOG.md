@@ -1,3 +1,12 @@
+## RaK 1.7.101 (development)
+
+- P2.3 dostává bezpečné řešení jediné konkrétní konfliktní položky z lokální fronty bez plošného mazání dat.
+- RaK umí najít zadržené konflikty podle typu `rozpis`, `stroj` a `ostatní`. Neznámé/ostatní typy se automaticky odstranit nesmějí.
+- Před odstraněním podporovaného konfliktu musí proběhnout read-only kontrola serveru a soukromý export přesných původních bajtů vybrané položky. Export ani kontrola nic nezapisují na server.
+- Odstranění používá raw splice původního JSON pole, takže ostatní položky fronty zůstávají bajtově nedotčené. Změněná fronta se po zápisu znovu načte a ověří.
+- Potvrzovací text explicitně říká, že online rozpis/nastavení se nepřepíše a že ostatní fronta zůstane zachovaná.
+- Produkce ani Supabase se nemění.
+
 ## RaK 1.7.100 (development)
 
 - Fyzický iPhone retest 1.7.99 odhalil sedm konkrétních regresí. 1.7.100 je opravuje jako jeden přejímkový balík bez změny produkce.

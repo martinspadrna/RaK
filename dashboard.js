@@ -1427,6 +1427,44 @@ async function runDashboardManualSync(source) {
       const saved = typeof window.downloadRakPendingSyncBackup === 'function' && window.downloadRakPendingSyncBackup();
       if (!saved && typeof window.alert === 'function') window.alert('Zálohu se nepodařilo vytvořit. Neodstraňuj data aplikace.');
     }
+    // RAK_17101_EXACT_CONFLICT_DISCARD_GUARD: one conflict only, original bytes exported first,
+    // server check stays read-only, "ostatní" is never discardable.
+    if (actual && actual.conflictCount > 0
+      && (source === 'dashboard-click' || source === 'dashboard-keyboard')
+      && typeof app !== 'undefined' && app && app.adminUnlocked === true
+      && typeof window.getRakQueueConflictItems === 'function'
+      && typeof window.reviewRakQueueConflictOnDemand === 'function'
+      && typeof window.downloadRakQueueConflictItem === 'function'
+      && typeof window.discardRakQueueConflictItem === 'function'
+      && typeof window.confirm === 'function') {
+      const conflicts = window.getRakQueueConflictItems();
+      const first = conflicts && conflicts.ok && Array.isArray(conflicts.items) ? conflicts.items[0] : null;
+      if (first && window.confirm('Bezpečně zkontrolovat první zadržený konflikt (' + first.label + ')? Kontrola nic nezapíše na server.')) {
+        const checked = await window.reviewRakQueueConflictOnDemand(first.index, first.signature);
+        if (!checked || checked.ok !== true) {
+          if (typeof window.alert === 'function') window.alert('Konflikt se nepodařilo bezpečně ověřit. Nic nebylo odstraněno.');
+        } else if (checked.discardSupported !== true) {
+          if (typeof window.alert === 'function') window.alert('Tento typ konfliktu patří do kategorie „ostatní“. RaK ho automaticky neodstraní; položka zůstává ve frontě.');
+        } else if (window.confirm('Nejdřív uložit soukromou kopii původních bajtů této jediné položky? Bez tohoto exportu RaK odstranění nepovolí.')) {
+          const exported = window.downloadRakQueueConflictItem(first.index, first.signature);
+          if (!exported || exported.ok !== true) {
+            if (typeof window.alert === 'function') window.alert('Soukromý export selhal. Konflikt zůstává beze změny.');
+          } else {
+            const consequence = first.category === 'rozpis'
+              ? 'Odstraní se pouze tato lokální konfliktní změna rozpisu. Online rozpis se nepřepíše.'
+              : 'Odstraní se pouze tato lokální konfliktní změna nastavení stroje. Online nastavení se nepřepíše.';
+            if (window.confirm(consequence + '\n\nOstatní fronta zůstane zachovaná. Pokračovat?')) {
+              const discarded = window.discardRakQueueConflictItem(first.index, first.signature);
+              if (typeof window.alert === 'function') {
+                window.alert(discarded && discarded.ok
+                  ? 'Odstraněna byla přesně 1 lokální konfliktní položka. Soukromý export zůstal v zařízení; server nebyl změněn.'
+                  : 'Položku se nepodařilo bezpečně odstranit. Fronta zůstala zachovaná.');
+              }
+            }
+          }
+        }
+      }
+    }
     if (actual && actual.storageIssue && !actual.queued && (source === 'dashboard-click' || source === 'dashboard-keyboard')
       && typeof window.alert === 'function') window.alert('Lokální frontu nelze ověřit. Neodstraňuj data aplikace a použij zálohu přes nabídku.');
     const restore = () => { try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {} };

@@ -5761,6 +5761,217 @@
     } catch (_) { return false; }
   }
 
+  // RAK_17101_SINGLE_CONFLICT_RESCUE: parse top-level queue objects without
+  // reserializing them, so a private export can contain the original stored bytes.
+  const rakQueueConflictExportReceipts = new Map();
+  const rakQueueConflictReviewReceipts = new Map();
+
+  function rakQueueRawObjectSlices(raw) {
+    const text = String(raw || '');
+    const slices = [];
+    let arrayDepth = 0, objectDepth = 0, inString = false, escaped = false, start = -1;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === '\\') escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') { inString = true; continue; }
+      if (ch === '[') { arrayDepth += 1; continue; }
+      if (ch === ']') { arrayDepth -= 1; continue; }
+      if (arrayDepth !== 1) continue;
+      if (ch === '{') {
+        if (objectDepth === 0) start = i;
+        objectDepth += 1;
+      } else if (ch === '}') {
+        objectDepth -= 1;
+        if (objectDepth === 0 && start >= 0) {
+          slices.push({ start, end: i + 1, raw: text.slice(start, i + 1) });
+          start = -1;
+        }
+      }
+    }
+    return slices;
+  }
+
+  function rakQueueConflictSignature(rawItem, queueIndex) {
+    const source = String(queueIndex) + '\u0000' + String(rawItem || '');
+    let hash = 2166136261;
+    for (let i = 0; i < source.length; i += 1) hash = Math.imul(hash ^ source.charCodeAt(i), 16777619);
+    return (hash >>> 0).toString(16) + ':' + source.length;
+  }
+
+  function rakRemoveRawQueueItem(raw, queueIndex) {
+    const text = String(raw || '');
+    let queue;
+    try { queue = JSON.parse(text); } catch (_) { return { ok: false, reason: 'queue-unreadable' }; }
+    const slices = rakQueueRawObjectSlices(text);
+    const index = Number(queueIndex);
+    if (!Array.isArray(queue) || slices.length !== queue.length || !Number.isSafeInteger(index) || index < 0 || index >= queue.length) {
+      return { ok: false, reason: 'queue-changed' };
+    }
+    let nextRaw;
+    if (queue.length === 1) nextRaw = '[]';
+    else if (index < queue.length - 1) nextRaw = text.slice(0, slices[index].start) + text.slice(slices[index + 1].start);
+    else nextRaw = text.slice(0, slices[index - 1].end) + text.slice(slices[index].end);
+    try {
+      const next = JSON.parse(nextRaw);
+      if (!Array.isArray(next) || next.length !== queue.length - 1) return { ok: false, reason: 'rewrite-verification-failed' };
+      return { ok: true, nextRaw, next };
+    } catch (_) { return { ok: false, reason: 'rewrite-verification-failed' }; }
+  }
+
+  function rakQueueConflictCategory(type) {
+    const value = String(type || '');
+    if (value === 'rotation_state' || value === 'rotation_month_entries') return 'rozpis';
+    if (value === 'machine_settings') return 'stroj';
+    return 'ostatní';
+  }
+
+  function getRakQueueConflictItems() {
+    let raw, queue;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); queue = raw ? JSON.parse(raw) : []; }
+    catch (_) { return { ok: false, reason: 'queue-unreadable', items: [] }; }
+    if (!Array.isArray(queue)) return { ok: false, reason: 'queue-invalid', items: [] };
+    const slices = rakQueueRawObjectSlices(raw || '[]');
+    if (slices.length !== queue.length) return { ok: false, reason: 'raw-layout-unverified', items: [] };
+    const items = [];
+    queue.forEach((task, index) => {
+      if (!task || typeof task !== 'object' || !task.conflict) return;
+      const type = String(task.type || 'unknown');
+      const summary = summarizeQueuedSyncTask(task);
+      const category = rakQueueConflictCategory(type);
+      items.push({
+        index,
+        type,
+        category,
+        label: summary.label,
+        reason: String(task.conflict || 'conflict').slice(0, 80),
+        retries: summary.retries,
+        signature: rakQueueConflictSignature(slices[index].raw, index),
+        discardSupported: category !== 'ostatní'
+      });
+    });
+    return { ok: true, items, total: items.length };
+  }
+
+  function downloadRakQueueConflictItem(queueIndex, expectedSignature) {
+    try {
+      const raw = localStorage.getItem(LOCAL_QUEUE_KEY);
+      if (!raw) return { ok: false, reason: 'queue-empty' };
+      const queue = JSON.parse(raw);
+      const slices = rakQueueRawObjectSlices(raw);
+      const index = Number(queueIndex);
+      if (!Array.isArray(queue) || !Number.isSafeInteger(index) || index < 0 || index >= queue.length || slices.length !== queue.length) {
+        return { ok: false, reason: 'queue-changed' };
+      }
+      const task = queue[index];
+      if (!task || !task.conflict) return { ok: false, reason: 'not-conflict' };
+      const signature = rakQueueConflictSignature(slices[index].raw, index);
+      if (!expectedSignature || signature !== expectedSignature) return { ok: false, reason: 'queue-changed' };
+      const blob = new Blob([slices[index].raw], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'RaK_konflikt_' + rakQueueConflictCategory(task.type) + '_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      rakQueueConflictExportReceipts.set(signature, Date.now());
+      return { ok: true, signature, byteLength: new TextEncoder().encode(slices[index].raw).byteLength };
+    } catch (_) { return { ok: false, reason: 'export-failed' }; }
+  }
+
+  async function reviewRakQueueConflictOnDemand(queueIndex, expectedSignature) {
+    const blocked = reason => ({ ok: false, reason, readOnly: true, atomicWritePerformed: false, serverContentCompared: false });
+    if (typeof navigator === 'undefined' || !navigator.onLine) return blocked('offline');
+    if (!hasSecureAdminContext()) return blocked('admin-auth-required');
+    if (flushPromise) return blocked('queue-busy');
+    let raw, queue, slices;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); queue = raw ? JSON.parse(raw) : []; slices = rakQueueRawObjectSlices(raw || '[]'); }
+    catch (_) { return blocked('queue-unreadable'); }
+    const index = Number(queueIndex);
+    if (!Array.isArray(queue) || slices.length !== queue.length || !Number.isSafeInteger(index) || index < 0 || index >= queue.length) return blocked('queue-changed');
+    const task = queue[index];
+    if (!task || !task.conflict) return blocked('not-conflict');
+    const signature = rakQueueConflictSignature(slices[index].raw, index);
+    if (!expectedSignature || signature !== expectedSignature) return blocked('queue-changed');
+    const category = rakQueueConflictCategory(task.type);
+    if (category === 'ostatní') return Object.assign(blocked('manual-review-required'), { ok: true, signature, category, discardSupported: false });
+
+    const client = getClient();
+    if (!client || !client.auth || typeof client.auth.getUser !== 'function') return blocked('missing-auth-client');
+    try {
+      const verified = await client.auth.getUser();
+      if (verified.error || !verified.data || !verified.data.user) return blocked('identity-not-verified');
+      const auth = await client.rpc('rak_admin_context');
+      const context = auth && auth.data;
+      if (auth.error || !context || context.authenticated !== true || !['owner','admin'].includes(context.role)
+        || !state.adminAuth.context || context.account_id !== state.adminAuth.context.account_id) return blocked('admin-auth-required');
+
+      let serverState = 'checked';
+      if (task.type === 'rotation_state') {
+        const result = await client.from('rotation_state').select('revision').eq('key', 'main').maybeSingle();
+        if (result.error) throw result.error;
+        serverState = result.data ? 'rotation-exists' : 'rotation-missing';
+      } else if (task.type === 'rotation_month_entries') {
+        const monthStart = String(task.monthStart || task.month_start || '').trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(monthStart)) return blocked('month-unverified');
+        const result = await client.from('rotation_entries').select('id', { count: 'exact', head: true }).eq('month_start', monthStart);
+        if (result.error) throw result.error;
+        serverState = 'month-rows:' + Math.max(0, Number(result.count || 0));
+      } else if (task.type === 'machine_settings') {
+        const result = await client.from('machine_settings').select('id', { count: 'exact', head: true });
+        if (result.error) throw result.error;
+        serverState = 'machine-rows:' + Math.max(0, Number(result.count || 0));
+      }
+      rakQueueConflictReviewReceipts.set(signature, { at: Date.now(), serverState, category });
+      return { ok: true, signature, category, discardSupported: true, readOnly: true, serverState,
+        serverContentCompared: false, atomicWritePerformed: false, checkedAt: new Date().toISOString() };
+    } catch (_) { return blocked('server-check-failed'); }
+  }
+
+  function discardRakQueueConflictItem(queueIndex, expectedSignature) {
+    const denied = reason => ({ ok: false, reason, removed: 0 });
+    if (!hasSecureAdminContext()) return denied('admin-auth-required');
+    if (flushPromise) return denied('queue-busy');
+    const exportAt = Number(rakQueueConflictExportReceipts.get(expectedSignature) || 0);
+    const review = rakQueueConflictReviewReceipts.get(expectedSignature);
+    if (!exportAt || Date.now() - exportAt > 5 * 60 * 1000) return denied('private-export-required');
+    if (!review || Date.now() - Number(review.at || 0) > 5 * 60 * 1000) return denied('server-review-required');
+    if (review.category === 'ostatní') return denied('manual-review-required');
+
+    try {
+      const raw = localStorage.getItem(LOCAL_QUEUE_KEY);
+      const queue = raw ? JSON.parse(raw) : [];
+      const slices = rakQueueRawObjectSlices(raw || '[]');
+      const index = Number(queueIndex);
+      if (!Array.isArray(queue) || slices.length !== queue.length || !Number.isSafeInteger(index) || index < 0 || index >= queue.length) return denied('queue-changed');
+      const task = queue[index];
+      if (!task || !task.conflict) return denied('not-conflict');
+      const signature = rakQueueConflictSignature(slices[index].raw, index);
+      if (signature !== expectedSignature) return denied('queue-changed');
+
+      const removed = rakRemoveRawQueueItem(raw, index);
+      if (!removed.ok) return denied(removed.reason || 'rewrite-verification-failed');
+      localStorage.setItem(LOCAL_QUEUE_KEY, removed.nextRaw);
+      if (localStorage.getItem(LOCAL_QUEUE_KEY) !== removed.nextRaw) throw new Error('queue-verification');
+      rakQueueConflictExportReceipts.delete(signature);
+      rakQueueConflictReviewReceipts.delete(signature);
+      rememberQueueHealth(removed.next);
+      return { ok: true, removed: 1, remaining: removed.next.length, category: rakQueueConflictCategory(task.type) };
+    } catch (_) { return denied('storage-write-failed'); }
+  }
+
+  window.getRakQueueConflictItems = getRakQueueConflictItems;
+  window.downloadRakQueueConflictItem = downloadRakQueueConflictItem;
+  window.reviewRakQueueConflictOnDemand = reviewRakQueueConflictOnDemand;
+  window.discardRakQueueConflictItem = discardRakQueueConflictItem;
+
   // RAK_17063_MANUAL_REVISION_GUARD: on-demand owner/admin only, read the
   // server revision without fetching content. Equal revisions never authorize replay.
   async function reviewRakRotationRevisionOnDemand() {
