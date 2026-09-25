@@ -397,7 +397,7 @@ body.ladaMode .adminRotationRuleOverrideModal{
 
 /* RaK 1.7.96 – ukotvené návrhy rozpisu a kompaktní měsíční přehled. */
 .adminRotationChoicePicker{
-  position:fixed !important;
+  position:absolute !important;
   z-index:100100 !important;
   display:none !important;
   max-height:264px !important;

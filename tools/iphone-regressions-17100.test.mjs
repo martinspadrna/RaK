@@ -18,9 +18,9 @@ test('rotation choice picker stays bound to visual viewport and repositions afte
 
 test('app accounts not present in rotation get a double-width name column',()=>{
   const css=read('styles-admin-polish.css');
-  assert(css.includes('.adminAppAccountsTable{width:267px !important;min-width:267px !important'));
+  assert(css.includes('.adminAppAccountsTable{width:285px !important;min-width:285px !important'));
   assert(css.includes('.adminAppAccountNameCol{width:126px;}'));
-  assert(css.includes('.adminAppAccountLoginCol{width:36px;}'));
+  assert(css.includes('.adminAppAccountLoginCol{width:54px;}'));
   assert(css.includes('.adminAppAccountScopeCol{width:105px;}'));
 });
 
@@ -59,10 +59,10 @@ test('landscape overlay reuses exact login mascot assets and not the old SVG cra
 
 test('shift report date is compact and has an explicit right border',()=>{
   const src=read('rak-shift-report-share.js');
-  assert(src.includes('grid-template-columns:132px 116px'));
-  assert(src.includes('#rakShiftReport .rakShiftDate{width:132px!important;inline-size:132px!important;max-width:132px!important'));
+  assert(src.includes('grid-template-columns:124px 112px'));
+  assert(src.includes('#rakShiftReport .rakShiftDate{width:124px!important;inline-size:124px!important;max-width:124px!important'));
   assert(src.includes('border-right:1px solid rgba(255,255,255,.18)!important'));
-  assert(src.includes('grid-template-columns:126px 112px'));
+  assert(src.includes('grid-template-columns:118px 108px'));
 });
 
 test('complete backup embeds the CI-verified Git ZIP without reparsing it on iPhone',()=>{

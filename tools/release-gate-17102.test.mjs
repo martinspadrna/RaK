@@ -4,18 +4,16 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.102 uses one unified release identity',()=>{
+test('1.7.102 server-CAS milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.102');
-  assert.equal(metadata.displayVersion,'1.7.102');
-  assert.equal(metadata.technicalVersion,'1.7.102');
-  assert.equal(metadata.moduleCacheVersion,'1.7.102');
-  assert.equal(metadata.cacheVersion,'v1.7.102');
-  assert.equal(metadata.buildId,'v1.7.102-server-cas1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.102');
-  assert(read('index.html').includes('app.js?v=1.7.102'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.102');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.102';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
 
 test('machine settings and rotation month use revision-aware v3 read/write RPC only',()=>{

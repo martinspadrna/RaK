@@ -320,9 +320,16 @@
   }
 
   function adminPair(prefix, spindle, placeholder) {
+    const input = (side, label) => {
+      const suffix = spindle + (side === 'right' ? 'Right' : 'Left');
+      const field = prefix + suffix;
+      const id = 'brus1594_' + field.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+      const inputHtml = '<input id="' + esc(id) + '" class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(field) + '" data-brus-fhb-sign-input="1" placeholder="' + esc(placeholder || '') + '">';
+      if (prefix !== 'correction') return '<label>' + label + inputHtml + '</label>';
+      return '<label>' + label + '<div class="calcSignedInput adminBrus1594SignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="' + esc(id) + '" aria-label="Přepnout znaménko korekce">+</button>' + inputHtml + '</div></label>';
+    };
     return '<div class="adminBrus1594Spindle"><strong>' + esc(spindle) + '</strong><div class="adminFhbCalibrationTwo">' +
-      '<label>L<input class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(prefix + spindle + 'Left') + '" placeholder="' + esc(placeholder || '') + '"></label>' +
-      '<label>P<input class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(prefix + spindle + 'Right') + '" placeholder="' + esc(placeholder || '') + '"></label>' +
+      input('left', 'L') + input('right', 'P') +
       '</div></div>';
   }
 
@@ -506,6 +513,9 @@ html body #korekce-brusy .brus157ChoiceGroup[data-brus157-select="index"] .brus1
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Stage{display:flex;flex-direction:column;gap:8px;}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Spindle{display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:12px;background:rgba(4,18,39,.34);border:1px solid rgba(160,210,255,.12);}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Spindle>strong{font-size:12px;color:var(--green2,#a8ff61);}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput{display:grid!important;grid-template-columns:48px minmax(0,1fr)!important;gap:7px!important;align-items:stretch!important}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput .calcSignToggle{display:grid!important;place-items:center!important;width:48px!important;min-width:48px!important;min-height:46px!important;border-radius:12px!important;visibility:visible!important;opacity:1!important;font-size:22px!important;font-weight:950!important}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput .calcSignToggle.isNegative{color:#fff38a!important;}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Record>div{gap:4px;}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Record>div>span{display:block;}
 .adminBrusSensitivityFold{padding:0 !important;overflow:hidden;}

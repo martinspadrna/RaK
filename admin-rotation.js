@@ -370,12 +370,13 @@ function adminRotationFloatingViewport() {
   const vv = window.visualViewport;
   const width = Math.max(240, Number(vv && vv.width || window.innerWidth || document.documentElement.clientWidth || 320));
   const height = Math.max(180, Number(vv && vv.height || window.innerHeight || document.documentElement.clientHeight || 480));
-  return {
-    left: Math.max(0, Number(vv && vv.offsetLeft || 0)),
-    top: Math.max(0, Number(vv && vv.offsetTop || 0)),
-    width,
-    height
-  };
+  const scrollX = Number(window.scrollX || window.pageXOffset || 0);
+  const scrollY = Number(window.scrollY || window.pageYOffset || 0);
+  const vvPageLeft = vv ? Number(vv.pageLeft) : NaN;
+  const vvPageTop = vv ? Number(vv.pageTop) : NaN;
+  const left = Number.isFinite(vvPageLeft) ? vvPageLeft : scrollX + Math.max(0, Number(vv && vv.offsetLeft || 0));
+  const top = Number.isFinite(vvPageTop) ? vvPageTop : scrollY + Math.max(0, Number(vv && vv.offsetTop || 0));
+  return { left: Math.max(0, left), top: Math.max(0, top), width, height };
 }
 
 function adminPositionRotationChoicePicker() {
@@ -391,23 +392,38 @@ function adminPositionRotationChoicePicker() {
     return;
   }
   const rect = input.getBoundingClientRect();
+  const scrollX = Number(window.scrollX || window.pageXOffset || 0);
+  const scrollY = Number(window.scrollY || window.pageYOffset || 0);
+  const inputPage = {
+    left: rect.left + scrollX,
+    right: rect.right + scrollX,
+    top: rect.top + scrollY,
+    bottom: rect.bottom + scrollY,
+    width: rect.width,
+    height: rect.height
+  };
   const vp = adminRotationFloatingViewport();
   const margin = 8;
-  if (rect.bottom < vp.top - 2 || rect.top > vp.top + vp.height + 2 || rect.right < vp.left - 2 || rect.left > vp.left + vp.width + 2) {
+  if (inputPage.bottom < vp.top - 2 || inputPage.top > vp.top + vp.height + 2 || inputPage.right < vp.left - 2 || inputPage.left > vp.left + vp.width + 2) {
     adminCloseRotationChoicePicker();
     return;
   }
   const pickerWidth = Math.min(292, Math.max(200, vp.width - margin * 2));
+  box.style.position = 'absolute';
   box.style.width = pickerWidth + 'px';
   box.classList.add('isVisible');
   const measuredHeight = Math.min(264, Math.max(96, Math.ceil(box.getBoundingClientRect().height || 0)));
-  const below = rect.bottom + 6;
-  const above = rect.top - measuredHeight - 6;
-  const viewportBottom = vp.top + vp.height - margin;
+  const below = inputPage.bottom + 6;
+  const above = inputPage.top - measuredHeight - 6;
+  const minTop = vp.top + margin;
+  const maxTop = Math.max(minTop, vp.top + vp.height - measuredHeight - margin);
   let top = below;
-  if (below + measuredHeight > viewportBottom) top = Math.max(vp.top + margin, above);
-  const centered = rect.left + rect.width / 2 - pickerWidth / 2;
-  const left = Math.max(vp.left + margin, Math.min(vp.left + vp.width - pickerWidth - margin, centered));
+  if (below + measuredHeight > vp.top + vp.height - margin) top = above;
+  top = Math.max(minTop, Math.min(maxTop, top));
+  const centered = inputPage.left + inputPage.width / 2 - pickerWidth / 2;
+  const minLeft = vp.left + margin;
+  const maxLeft = Math.max(minLeft, vp.left + vp.width - pickerWidth - margin);
+  const left = Math.max(minLeft, Math.min(maxLeft, centered));
   box.style.top = Math.round(top) + 'px';
   box.style.left = Math.round(left) + 'px';
 }

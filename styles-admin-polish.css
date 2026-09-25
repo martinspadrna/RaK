@@ -874,9 +874,9 @@
 .adminWorkerMachineChecks{display:flex;flex-wrap:wrap;gap:4px 10px;}
 .adminWorkerMachineCheck{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;}
 .adminWorkerMachineCheck input{width:16px;height:16px;flex:0 0 auto;}
-.adminAppAccountsTable{width:267px !important;min-width:267px !important;max-width:100%;table-layout:fixed;}
+.adminAppAccountsTable{width:285px !important;min-width:285px !important;max-width:100%;table-layout:fixed;}
 .adminAppAccountNameCol{width:126px;}
-.adminAppAccountLoginCol{width:36px;}
+.adminAppAccountLoginCol{width:54px;}
 .adminAppAccountScopeCol{width:105px;}
 .adminAppAccountsTable .appMenuInlineInput{width:100% !important;min-width:0 !important;padding:6px 4px;}
 .adminAppAccountLoginInput{text-align:center;}

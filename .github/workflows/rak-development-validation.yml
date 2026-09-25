@@ -55,6 +55,7 @@ jobs:
           node --test tools/release-gate-17082.test.mjs
           node --test tools/release-gate-17099.test.mjs
           node --test tools/release-gate-17102.test.mjs
+          node --test tools/release-gate-17103.test.mjs
           node --test tools/regression-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
@@ -94,7 +95,7 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-170102-isolated-build-${{ github.sha }}
+          name: rak-170103-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
@@ -173,9 +174,15 @@ jobs:
         run: |
           vercel build --yes --target=preview --token="$VERCEL_TOKEN"
           test -s ".rak-dist/supabase-vendor-2.110.7.js"
+          test -s ".rak-dist/rak-complete-backup-source.zip"
+          test "$(wc -c < .rak-dist/rak-complete-backup-source.zip)" -gt 100000
+          unzip -tqq ".rak-dist/rak-complete-backup-source.zip"
           mkdir -p ".vercel/output/static"
-          cp ".rak-dist/supabase-vendor-2.110.7.js" ".vercel/output/static/supabase-vendor-2.110.7.js"
+          cp -a ".rak-dist/." ".vercel/output/static/"
           test -s ".vercel/output/static/supabase-vendor-2.110.7.js"
+          test -s ".vercel/output/static/rak-complete-backup-source.zip"
+          cmp ".rak-dist/rak-complete-backup-source.zip" ".vercel/output/static/rak-complete-backup-source.zip"
+          unzip -tqq ".vercel/output/static/rak-complete-backup-source.zip"
       - name: Deploy prebuilt exact SHA only after the green verify job
         if: steps.policy.outputs.deploy == 'true'
         run: |
@@ -193,6 +200,9 @@ jobs:
           vercel curl /sw.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/sw.headers --output .rak-release-evidence/http/immutable/sw.body
           vercel curl /rak-release-metadata.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/metadata.headers --output .rak-release-evidence/http/immutable/metadata.body
           vercel curl /supabase-config.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/supabase.headers --output .rak-release-evidence/http/immutable/supabase.body
+          vercel curl /rak-complete-backup-source.zip --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/source-zip.headers --output .rak-release-evidence/http/immutable/source-zip.body
+          test "$(wc -c < .rak-release-evidence/http/immutable/source-zip.body)" -gt 100000
+          unzip -tqq .rak-release-evidence/http/immutable/source-zip.body
           node tools/release-evidence.mjs http-check immutable .rak-release-evidence/http/immutable .rak-release-evidence/http-immutable.json
       - name: Move only the stable development alias after immutable verification
         if: steps.policy.outputs.deploy == 'true'
@@ -248,8 +258,11 @@ jobs:
           DISPLAY_VERSION="$(node --input-type=module -e "import metadata from './rak-release-metadata.js'; process.stdout.write(metadata.displayVersion)")"
           fetch_public "/app.js?v=$DISPLAY_VERSION" "app"
           fetch_public "/supabase-vendor-2.110.7.js" "vendor"
+          fetch_public "/rak-complete-backup-source.zip?v=$DISPLAY_VERSION" "source-zip"
           test -s .rak-release-evidence/http/stable/app.body
           test -s .rak-release-evidence/http/stable/vendor.body
+          test "$(wc -c < .rak-release-evidence/http/stable/source-zip.body)" -gt 100000
+          unzip -tqq .rak-release-evidence/http/stable/source-zip.body
           node tools/release-evidence.mjs http-check stable-alias .rak-release-evidence/http/stable .rak-release-evidence/http-stable-alias.json
       - name: Prove main and production remained unchanged and assemble release evidence
         if: steps.policy.outputs.deploy == 'true'

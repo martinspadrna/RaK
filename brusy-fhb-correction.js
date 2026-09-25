@@ -609,7 +609,7 @@
     }
   }, true);
   document.addEventListener('input', (event) => {
-    const input = event.target && event.target.matches && event.target.matches('#brus_fhb_left,#brus_fhb_right,#admin_brus_fhb_correction') ? event.target : null;
+    const input = event.target && event.target.matches && event.target.matches('[data-brus-fhb-sign-input="1"],#brus_fhb_left,#brus_fhb_right,#admin_brus_fhb_correction') ? event.target : null;
     if (!input || !input.id) return;
     const button = document.querySelector('[data-brus-fhb-sign-target="' + input.id + '"]');
     if (!button) return;

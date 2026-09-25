@@ -28,7 +28,7 @@ const html=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta nam
 body{margin:0;background:#071126;color:#fff;font-family:system-ui;min-height:1500px}
 ${brusCss[1]}
 ${shiftCss[1]}
-.adminRotationChoicePicker{position:fixed;display:block;max-height:264px;padding:8px;box-sizing:border-box;background:#222}
+.adminRotationChoicePicker{position:absolute;display:block;max-height:264px;padding:8px;box-sizing:border-box;background:#222}
 </style></head><body>
 <div id="korekce-brusy"><div class="brusFhbInputs">
 <label><span>FHB vlevo</span><div class="calcSignedInput brusFhbSignedInput"><button class="calcSignToggle">+</button><input value="12,5"></div></label>
@@ -74,7 +74,7 @@ try{
  assert(m&&m[1]!=='WAIT','[17100-browser] probe missing');
  const data=JSON.parse(m[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
  assert(data.signs.length===3&&data.signs.every(x=>x.width>=44&&x.height>=44&&x.display!=='none'&&x.visibility==='visible'),'[17100-browser] Brusy sign controls hidden/crushed '+JSON.stringify(data));
- assert(data.date.width<=132.5&&data.date.rightBorder>=1,'[17100-browser] date still too wide or right border missing '+JSON.stringify(data));
+ assert(data.date.width<=124.5&&data.date.rightBorder>=1,'[17100-browser] date still too wide or right border missing '+JSON.stringify(data));
  assert(data.gap>=8,'[17100-browser] date and shift collide '+JSON.stringify(data));
  assert(data.pickerDistance<=10,'[17100-browser] rotation picker detached from tapped field '+JSON.stringify(data));
  assert(data.docWidth<=data.viewport+1,'[17100-browser] horizontal overflow '+JSON.stringify(data));

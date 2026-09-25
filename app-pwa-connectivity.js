@@ -17,20 +17,21 @@ function installRakPortraitOnlyPwaMode() {
       overlay.id = overlayId;
       overlay.setAttribute('role', 'status');
       overlay.setAttribute('aria-live', 'polite');
+      overlay.setAttribute('aria-label', 'Otoč telefon na výšku');
       try { if (typeof window.rakInstallLoginSplashStyles === 'function') window.rakInstallLoginSplashStyles(); } catch (err) {}
       const crab = typeof window.rakLoginMascotHtml === 'function' ? window.rakLoginMascotHtml() : '<div class="rakSplashMascot rakLoginMascotShared" aria-hidden="true"><img class="rakSplashMascotFrame idle" src="assets/rak-login-crab.png" alt=""><img class="rakSplashMascotFrame step" src="assets/rak-login-crab-step.png" alt=""><img class="rakSplashMascotFrame tap" src="assets/rak-login-crab-tap.png" alt=""></div>';
-      overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + crab + '</div><strong>Otoč telefon na výšku</strong><span>RaK je na mobilu uzamčený na výšku.</span>';
+      overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + crab + '</div>';
       document.body.appendChild(overlay);
     }
     if (overlay && !overlay.querySelector('.rakSplashMascot')) {
       try { if (typeof window.rakInstallLoginSplashStyles === 'function') window.rakInstallLoginSplashStyles(); } catch (err) {}
       const crab = typeof window.rakLoginMascotHtml === 'function' ? window.rakLoginMascotHtml() : '<div class="rakSplashMascot rakLoginMascotShared" aria-hidden="true"><img class="rakSplashMascotFrame idle" src="assets/rak-login-crab.png" alt=""><img class="rakSplashMascotFrame step" src="assets/rak-login-crab-step.png" alt=""><img class="rakSplashMascotFrame tap" src="assets/rak-login-crab-tap.png" alt=""></div>';
-      overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + crab + '</div><strong>Otoč telefon na výšku</strong><span>RaK je na mobilu uzamčený na výšku.</span>';
+      overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + crab + '</div>';
     }
     if (!document.getElementById('rakPortraitOnlyPwaStyle')) {
       const style = document.createElement('style');
       style.id = 'rakPortraitOnlyPwaStyle';
-      style.textContent = '#' + overlayId + '{display:none;}@media (orientation:landscape) and (max-height:700px){html.rakPortraitOnly #' + overlayId + '{display:flex!important;position:fixed;inset:0;z-index:2147483647;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:calc(20px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box;text-align:center;background:radial-gradient(circle at 50% 35%,rgba(18,56,79,.98),rgba(5,8,22,.995) 68%);color:#f4fbff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyIcon{font-size:54px;line-height:1;font-weight:800;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab{width:132px;height:108px;display:grid;place-items:center}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakSplashMascot{position:relative;width:132px;height:108px;display:block;filter:drop-shadow(0 8px 12px rgba(0,0,0,.34)) drop-shadow(0 0 20px rgba(79,255,143,.22))}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakSplashMascotFrame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}html.rakPortraitOnly #' + overlayId + ' strong{font-size:24px;line-height:1.15;}html.rakPortraitOnly #' + overlayId + ' span{font-size:15px;line-height:1.35;opacity:.78;max-width:360px;}}';
+      style.textContent = '#' + overlayId + '{display:none;}@media (orientation:landscape) and (max-height:700px){html.rakPortraitOnly #' + overlayId + '{display:grid!important;position:fixed;inset:0;z-index:2147483647;place-items:center;padding:0!important;box-sizing:border-box;overflow:hidden;background:radial-gradient(circle at 50% 42%,rgba(18,56,79,.98),rgba(5,8,22,.995) 72%);color:#f4fbff;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab{width:100vw;height:100vh;display:grid;place-items:center;overflow:hidden}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakSplashMascot{position:relative;width:100vw;height:100vh;display:block;filter:drop-shadow(0 12px 18px rgba(0,0,0,.36)) drop-shadow(0 0 28px rgba(79,255,143,.24))}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakSplashMascotFrame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}}';
       document.head.appendChild(style);
     }
   };

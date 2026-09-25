@@ -1,3 +1,14 @@
+## RaK 1.7.103 (development)
+
+- Fyzický iPhone retest 1.7.102 potvrdil Vánoce a správného login raka, ale znovu odhalil čtyři reálné regrese: picker Rozpisů, +/− u Brusů, geometrii data Reportu a úplnou zálohu. 1.7.103 opravuje příčiny v posledních skutečně vykreslovaných vrstvách.
+- Picker Rozpisů už není `position: fixed`; kotví se absolutně v souřadnicích dokumentu a VisualViewport používá jen pro viditelné hranice. Tím se při iOS klávesnici/scrollu nemíchají dvě souřadnicové soustavy.
+- Pracovníci zachovávají dvojnásobný sloupec jména a sloupec OS čísla je proti 1.7.102 o 50 % širší (36 → 54 px).
+- Finální Brusy v157/v158 dostávají 48px +/− přímo do skutečného kalkulátoru a do fáze „Provedené korekce“ v Nastavení korekcí; už je nepřepíše následná vrstva bez znamének.
+- Landscape instalované PWA zobrazuje bez textu pouze stejného login raka přes celý viewport.
+- Report směny staví kompaktní 124px datum a oddělenou směnu už v základním DOM/CSS, takže není závislý na pozdějším polish skriptu.
+- Release pipeline kopíruje celý kanonický `.rak-dist` do Vercel Build Output. Před aliasem i po něm povinně stahuje skutečný `rak-complete-backup-source.zip`, vyžaduje velikost nad 100 kB a validní ZIP; 145bajtový placeholder už nemůže projít zeleným releasem.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.102 (development)
 
 - P2.3 rozšiřuje serverový compare-and-swap z hlavního `rotation_state` také na `machine_settings` a měsíční `rotation_months/rotation_entries`.
