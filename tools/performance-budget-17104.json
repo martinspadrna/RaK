@@ -39,6 +39,7 @@
         "app.js",
         "module-readiness.js",
         "rak-release-metadata.js",
+        "rak-runtime-diagnostics.js",
         "supabase-config.js",
         "app-init.js",
         "app-home-boot.js",

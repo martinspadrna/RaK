@@ -23,8 +23,8 @@ test('picker uses one document coordinate system and the visual viewport only as
   assert(src.includes('top: rect.top + scrollY'));
   assert(src.includes('const minTop = vp.top + margin'));
   assert(src.includes("box.style.position = 'absolute'"));
-  assert(css.includes('.adminRotationChoicePicker{\n  position:absolute !important;'));
-  assert(!css.includes('.adminRotationChoicePicker{\n  position:fixed !important;'));
+  assert(/\.adminRotationChoicePicker\{\r?\n  position:absolute !important;/.test(css));
+  assert(!/\.adminRotationChoicePicker\{\r?\n  position:fixed !important;/.test(css));
 });
 
 test('worker OS column is 50 percent wider while the double name column stays intact',()=>{

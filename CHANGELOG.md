@@ -1,3 +1,12 @@
+## RaK 1.7.105 (development)
+
+- Browserový runtime instaluje před běžnými moduly jedinou diagnostickou bránu, která do konzole propouští jen pevnou kategorii a agregovaná metadata. Syrové chyby, texty, payloady a celé auditní reporty se do konzole nepředávají.
+- Nezachycené chyby a odmítnuté Promise používají stejnou agregovanou bránu a potlačují výchozí výpis potenciálně citlivého textu prohlížečem.
+- Regresní canary v Node i skutečném Chromium vkládá fiktivní token, JWT, OS-like číslo, jméno a obsah rozpisu a fail-closed vyžaduje, aby se žádná hodnota neobjevila v logovacím výstupu.
+- Sanitizátor nemění payload úplné owner zálohy ani uživatelem vědomě odesílaný bug report/screenshot; jeho působnost končí u diagnostických výstupů.
+- Immutable performance baseline zůstává 1.7.69 a budget baseline 1.7.104; aktuální pětikolová parita se měří proti 1.7.105 bez rozšíření tolerancí.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.104 (development)
 
 - Fyzický iPhone retest 1.7.103 potvrdil picker Rozpisů, širší OS sloupec, landscape pouze se správným login rakem a úplnou zálohu, která už nabídla skutečné stažení 23,3 MB. +/− v kalkulačce Brusů je také potvrzené.
