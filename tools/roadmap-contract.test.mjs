@@ -21,7 +21,14 @@ test('taxonomy catches missing, duplicate or reordered tasks without depending o
 
 test('progress catches incorrect percentage and silently flipped checkboxes', () => {
   const plan = current();
-  assert.throws(() => verifyRoadmapProgress(plan.replace('**40 % (2/5)**', '**80 % (2/5)**')), /percentage differs/);
+  const p22Row = plan.match(/^\| P2\.2 \|.*$/m)?.[0];
+  assert(p22Row, 'P2.2 summary row missing');
+  const corruptedP22 = p22Row.replace(/\*\*(\d+) %/, (_, value) => {
+    const currentValue = Number(value);
+    return '**' + (currentValue === 100 ? 99 : currentValue + 1) + ' %';
+  });
+  assert.notEqual(corruptedP22, p22Row, 'percentage mutation must change the roadmap');
+  assert.throws(() => verifyRoadmapProgress(plan.replace(p22Row, corruptedP22)), /percentage differs/);
   assert.throws(() => verifyRoadmapProgress(plan.replace('- [x] Zabránit anonymnímu', '- [ ] Zabránit anonymnímu')), /completed count differs/);
   assert.throws(() => verifyRoadmapProgress(plan.replace('### P2.4 –', '### P2.3 –')), /detailed acceptance section/);
 });
