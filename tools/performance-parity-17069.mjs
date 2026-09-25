@@ -97,7 +97,10 @@ try{
   for(let i=1;i<=CONFIG.baseline.buildPasses;i++){run('npm',['run','vercel-build'],{cwd:baselineRoot,timeout:300000,env:historicalEnv});}
   const builtPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(builtPackage.version,'1.7.0','[perf-parity] historical build did not reach technical 1.7.0');
   const builtConfig=fs.readFileSync(path.join(baselineRoot,'supabase-config.js'),'utf8');assert(builtConfig.includes('window.RAK_RELEASE_VERSION = "1.7.69";'),'[perf-parity] historical build is not 1.7.69');
-  const currentConfig=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');assert(currentConfig.includes('1.7.104'),'[perf-parity] current canonical build is not 1.7.104');
+  const currentMetadata=fs.readFileSync(path.join(ROOT,'rak-release-metadata.js'),'utf8');
+  const currentPackage=JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8'));
+  assert(currentMetadata.includes("displayVersion: '1.7.104'"),'[perf-parity] current canonical release metadata is not 1.7.104');
+  assert.equal(currentPackage.version,'1.7.104','[perf-parity] current canonical package is not 1.7.104');
   const baseline=[],current=[];
   for(let round=1;round<=CONFIG.rounds;round++){baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));current.push(await measureRoot(ROOT,'current-1.7.104',round));}
   const b=summarize(baseline),c=summarize(current),comparisons={};
