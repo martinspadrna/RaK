@@ -12,7 +12,7 @@ const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','ch
 assert(chrome,'[17100-browser] Chromium is required');
 
 const brus=fs.readFileSync(path.join(ROOT,'brusy-fhb-correction.js'),'utf8');
-const brusCss=brus.match(/s\.textContent = `([\s\S]*?)`;\n    document\.head\.appendChild\(s\);/);
+const brusCss=brus.match(/style\.textContent = `([\s\S]*?)`;\s*document\.head\.appendChild\(style\);/);
 assert(brusCss&&brusCss[1],'[17100-browser] Brusy CSS missing');
 const share=fs.readFileSync(path.join(ROOT,'rak-shift-report-share.js'),'utf8');
 const shiftCss=share.match(/style\.textContent = `([\s\S]*?)`;\n    document\.head\.appendChild\(style\);/);
