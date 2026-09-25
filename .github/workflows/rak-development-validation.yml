@@ -21,12 +21,14 @@ jobs:
     steps:
       - name: Check out exact development commit
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Preflight isolated build policy and measured thirteen-point roadmap
-        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-migration-history.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
+        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-migration-history.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs tools/ui-parity-contract.test.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice
@@ -58,6 +60,7 @@ jobs:
           node --test tools/release-gate-17103.test.mjs
           node --test tools/release-gate-17104.test.mjs
           node --test tools/regression-parity-contract.test.mjs
+          node --test tools/ui-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
         run: |
@@ -78,6 +81,7 @@ jobs:
           node tools/browser-equal-grid-17067.mjs
           node tools/browser-fourth-bundle-17097.mjs
           node tools/browser-iphone-regressions-17100.mjs
+          node tools/browser-ui-parity-17104.mjs
       - name: Benchmark PWA three times in independent Chromium profiles
         working-directory: .rak-canonical-build/work
         run: node tools/pwa-start-bench-17068.mjs

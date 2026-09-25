@@ -20,6 +20,8 @@ test('strict historical, browser, HTTP and repeat-build gates remain active',()=
     'node --test tools/release-gate-17068.test.mjs',
     'node --test tools/release-gate-17069.test.mjs',
     'node tools/browser-offline-17052.mjs',
+    'node tools/browser-ui-parity-17104.mjs',
+    'node --test tools/ui-parity-contract.test.mjs',
     'node tools/http-anon-audit-17050.mjs',
     'git diff --exit-code HEAD --',
     'test -f .rak-canonical-build/verified.json'
