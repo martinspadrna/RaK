@@ -79,9 +79,14 @@ async function measureRoot(root,label,round){
 }
 
 const temp=fs.mkdtempSync(path.join(WORKSPACE,'.rak-perf-parity-'));
+const baselineRoot=path.join(temp,'baseline-17069');
+let baselineWorktreeAdded=false;
 try{
-  const baselineRoot=path.join(temp,'baseline-17069');fs.mkdirSync(baselineRoot,{recursive:true});
-  const tar=path.join(temp,'baseline.tar');run('git',['-C',WORKSPACE,'archive','--format=tar','--output='+tar,CONFIG.baseline.sha]);run('tar',['-xf',tar,'-C',baselineRoot]);
+  // The historical 1.7.69 build creates its source backup from Git metadata.
+  // Use a detached worktree rather than a plain git archive so the historical
+  // two-pass build runs in the same conditions it originally required.
+  run('git',['-C',WORKSPACE,'worktree','add','--detach',baselineRoot,CONFIG.baseline.sha]);
+  baselineWorktreeAdded=true;
   const historicalPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(historicalPackage.version,'1.6.0','[perf-parity] unexpected raw baseline package');
   for(let i=1;i<=CONFIG.baseline.buildPasses;i++){run('npm',['run','vercel-build'],{cwd:baselineRoot,timeout:300000});}
   const builtPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(builtPackage.version,'1.7.0','[perf-parity] historical build did not reach technical 1.7.0');
@@ -95,4 +100,10 @@ try{
   if(process.env.GITHUB_SHA)assert.equal(evidence.sourceCommit,process.env.GITHUB_SHA);
   const out=path.join(process.env.GITHUB_WORKSPACE||WORKSPACE,'.rak-canonical-build','performance-parity-17069.json');fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(evidence,null,2)+'\n');
   console.log('[perf-parity] PASS '+JSON.stringify(evidence));
-}finally{fs.rmSync(temp,{recursive:true,force:true,maxRetries:8,retryDelay:100});}
+}finally{
+  if(baselineWorktreeAdded){
+    try{run('git',['-C',WORKSPACE,'worktree','remove','--force',baselineRoot],{timeout:60000});}catch{}
+    try{run('git',['-C',WORKSPACE,'worktree','prune'],{timeout:60000});}catch{}
+  }
+  fs.rmSync(temp,{recursive:true,force:true,maxRetries:8,retryDelay:100});
+}
