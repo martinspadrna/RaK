@@ -55,6 +55,9 @@ test('P2.2 UI parity is semantic and browser-enforced, not screenshot/text match
   assert(workflow.includes('node --test tools/ui-parity-contract.test.mjs'));
   assert(workflow.includes('node tools/browser-ui-parity-17104.mjs'));
   assert(browser.includes("document.querySelectorAll('.page')"));
+  assert(browser.includes('Emulation.setDeviceMetricsOverride'));
+  assert(browser.includes('data.viewport.width===viewport.width'));
+  assert(browser.includes('data.viewport.height===viewport.height'));
   assert(browser.includes('document.documentElement.scrollWidth'));
   assert(browser.includes('bottomNavBtn'));
   assert(!browser.includes('pixelmatch'));
