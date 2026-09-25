@@ -55,13 +55,58 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Přípravná kontrola produkční fáze B: development commit `9b6780b05c1d0f2e6149e7839ff3bc91b9a2488c`, [Actions #266](https://github.com/martinspadrna/RaK/actions/runs/35984992508), SUCCESS. Po zeleném CI vznikl jediný preview `dpl_E7fCLqBf6t26i6RzagVCNyMxGwqt`, READY na přesném SHA; HTTP důkaz potvrdil metadata `1.7.83` / `1.7.0`, TEST Supabase a nepřítomnost produkčního ID. Artefakt `rak-release-evidence-9b6780b05c1d0f2e6149e7839ff3bc91b9a2488c`, ID `10801851415`, SHA-256 `072fdd82c2747d79a39e092444ebd222da7f02b8043ab7c0ef77b64807510293`. Aplikační runtime se funkčně nezměnil; deployment vznikl kvůli konzervativní klasifikaci SQL migrace a pravidlo nebylo oslabeno.
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
+## Předání novému chatu – 25. 9. 2026
+
+Vlastník ukončuje toto vlákno kvůli příliš pomalému průběhu a chce pokračovat v novém chatu. **Nový chat musí jako první krok online načíst živý `development` a tento celý dokument; nesmí pokračovat ze staré konverzační paměti nebo starého SHA.**
+
+### Přesný bod předání
+- před tímto dokumentačním commitem je ověřený runtime **RaK 1.7.102**;
+- funkční CAS commit: `8ed74a6f73d3ee9ffb831010f532ce22893932ce`;
+- přesný zelený a nasazený test-only následník: `3fe8075fcdd48c7623334c4588804784857adadc`;
+- [Actions #328](https://github.com/martinspadrna/RaK/actions/runs/36120760698) je SUCCESS, development Vercel `dpl_By8fWqPYzDWj8qwhZWEy5jSgTa6H` je READY;
+- TEST Supabase `cgshssdjgzzuprlwnabl` má aplikovaný stage i cutover 1.7.102; produkční Supabase `bkqamcbkiwumsvelahxr` se nesmí měnit bez nového výslovného souhlasu;
+- GitHub `main` je `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, ale produkční Vercel stále běží na dříve schváleném SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat ani automaticky „dorovnávat“;
+- commit `e619406f104a8983f17d6a6027f2271db049212f` srovnal kanonickou historii Supabase migrací; starší neprodukční migrace jsou nyní pod `supabase/history/non-production-migrations/`. Při hledání historických SQL nepočítat s tím, že vše zůstalo v `supabase/migrations/`.
+
+### Poslední fyzická iPhone zpětná vazba vlastníka
+Na 1.7.99 vlastník nahlásil:
+1. nabídka/picker v Rozpisech se někdy otevřel úplně jinde;
+2. v Pracovnících měl být sloupec jmen účtů mimo rozpis přibližně 2× širší;
+3. provozní admin bod byl OK;
+4. `+/−` u Korekce brusů nebylo v kalkulačce ani v Nastavení korekcí;
+5. Dashboard psal „89 do Vánocům“ místo „89 do Vánoc“; „O aplikaci“ bylo OK;
+6. landscape zobrazoval jiného raka; vlastník chce přesně raka z přihlašovací obrazovky, který má v sobě ozubené kolo;
+7. datum v Reportu směny bylo pořád moc široké a bez pravého okraje;
+8. úplná záloha skončila chybou „can't find end of central directory: is this a zip file? ...“;
+9. textové hlášení chyby bez screenshotu bylo OK;
+10. kompletní screenshotový scénář hlášení chyby byl OK.
+
+### Co už je po této zpětné vazbě implementováno
+Zelená **1.7.100** na SHA `ae6719947736dbdd678a411ba7420a3d7a906693`, Actions #323 SUCCESS, obsahuje kořenové opravy bodů **1, 2, 4, 5, 6, 7 a 8**: VisualViewport ukotvení pickeru, přibližně 2× širší sloupec jmen účtů mimo rozpis, explicitní +/− u Brusů i admin korekcí, text „do Vánoc“, stejné login mascot assety s ozubeným kolem v landscape, užší datum s explicitním pravým okrajem a iPhone-safe úplný ZIP bez vnořeného JSZip reparsování.
+
+**Tyto sedm oprav ještě vlastník po 1.7.100 fyzicky znovu nepotvrdil. Nový chat je proto nesmí znovu implementovat jen podle starého FAIL seznamu. Nejdřív je má retestovat na aktuálním 1.7.102 a opravovat pouze to, co znovu selže.**
+
+### Co následovalo podle plánu
+- **1.7.101:** bezpečné workflow jediné konkrétní konfliktní položky – přesný privátní export původních bajtů, read-only kontrola serveru, explicitní typ rozpis/stroj/ostatní a odstranění právě jedné lokální položky bez přepisu online dat.
+- **1.7.102:** serverově atomický CAS/revize pro nastavení strojů a měsíční rozpisy. Stale zápis je odmítnut SQLSTATE `40001`, klient bez ověřené baseline vůbec nezapisuje a legacy v2 mutation RPC po TEST cutoveru pouze fail-closed odmítají starý klient.
+- Automatické testy jsou zelené, ale **P2.3 zůstává 63 % (5/8)**, protože široká akceptace vyžaduje fyzický skutečný konflikt a bezpečný dvouzařízení CAS scénář.
+
+### Doporučené pořadí pro nový chat
+1. Znovu zjistit živý SHA `development`; pokud se od tohoto dokumentu posunul, nejdřív vyhodnotit nové commity.
+2. Ověřit, že stabilní development alias skutečně běží na nejnovějším zeleném runtime a produkce zůstala nedotčená.
+3. Nechat vlastníka fyzicky retestovat **sedm oprav z 1.7.100** na aktuálním runtime 1.7.102. PASS/FAIL zapsat jednotlivě do tohoto handoffu.
+4. Pokud sedm oprav projde, teprve podle skutečných akceptačních checkboxů upravit P2.2/P1.5/P0.3; procenta nezvyšovat jen proto, že CI je zelené.
+5. Konfltní workflow 1.7.101 testovat pouze při skutečném zadrženém konfliktu. CAS 1.7.102 testovat jen bezpečným dvouzařízení scénářem; žádné umělé destruktivní vytváření konfliktu kvůli checkboxu.
+6. Po fyzických důkazech pokračovat dalšími otevřenými položkami 13bodového plánu, ne vytvářet nový paralelní plán.
+7. Po každém větším kroku dávat vlastníkovi průběžnou krátkou stavovou zprávu; v předchozím vlákně byl problém, že uživatel dlouho viděl jen stav „přemýšlím“.
+
 ## Stav fyzické přejímky a fáze B
 
 RaK 1.7.82 prošla 23. 9. 2026 fyzickým iPhone testem bez mazání dat: online přihlášení a TEST fungovaly, cold offline start načetl Dashboard, Rotaci i rozpis, návrat online fungoval bez restartu a falešný konflikt se nevrátil. Tuto závadu znovu neotvírat bez nové reprodukovatelné regrese.
 
-**RaK 1.7.102 – fyzická přejímka oprav 1.7.100 a konfliktního/CAS workflow čeká.** Vlastník 25. 9. 2026 fyzicky otestoval 1.7.99 na iPhonu. PASS: provozní admin bod 3, textové hlášení chyby bez screenshotu (bod 9) a kompletní screenshotový scénář (bod 10). FAIL/reprodukce: picker Rozpisů se někdy otevřel jinde; sloupec účtů mimo rozpis byl příliš úzký; +/− Brusů nebylo v kalkulačce ani admin nastavení; Dashboard psal „do Vánocům“; landscape měl jiného raka; datum Reportu bylo stále moc široké/bez pravého okraje; úplná záloha skončila při práci s archivem chybou „can't find end of central directory“. Tyto konkrétní nálezy opravuje zelená 1.7.100 a jsou nesené aktuální 1.7.101.
+**RaK 1.7.102 – fyzická přejímka oprav 1.7.100 a konfliktního/CAS workflow čeká.** Vlastník 25. 9. 2026 fyzicky otestoval 1.7.99 na iPhonu. PASS: provozní admin bod 3, textové hlášení chyby bez screenshotu (bod 9) a kompletní screenshotový scénář (bod 10). FAIL/reprodukce: picker Rozpisů se někdy otevřel jinde; sloupec účtů mimo rozpis byl příliš úzký; +/− Brusů nebylo v kalkulačce ani admin nastavení; Dashboard psal „do Vánocům“; landscape měl jiného raka; datum Reportu bylo stále moc široké/bez pravého okraje; úplná záloha skončila při práci s archivem chybou „can't find end of central directory“. Tyto konkrétní nálezy opravuje zelená 1.7.100 a jsou nesené aktuální 1.7.102; fyzický retest po opravě ještě neproběhl.
 
-Na stabilním development aliasu 1.7.102 je proto potřeba retestovat pouze dříve neprošlé body: (1) picker v Rozpisech musí zůstat u právě klepnutého pole i po otevření klávesnice/scrollu; (2) Pracovníci – sloupec jmen účtů mimo rozpis je přibližně 2× širší; (4) Korekce brusů – +/− je viditelné v kalkulačce i Nastavení korekcí; (5) Dashboard přesně „do Vánoc“; (6) landscape používá stejného login raka s ozubeným kolem; (7) Report směny má užší datum a viditelný pravý okraj oddělený od směny; (8) úplná owner záloha doběhne, ZIP se stáhne a iPhone jej otevře bez central-directory chyby. Nový bod 1.7.101 se testuje jen při existenci skutečného zadrženého konfliktu: soukromě exportovat jednu položku, provést read-only kontrolu, potvrdit důsledek a ověřit, že se odstranila právě jedna lokální položka, server se nepřepsal a ostatní fronta zůstala. Bez skutečného konfliktu nevytvářet umělý destruktivní scénář jen kvůli checkboxu.
+Na stabilním development aliasu 1.7.102 je proto potřeba retestovat pouze dříve neprošlé body: (1) picker v Rozpisech musí zůstat u právě klepnutého pole i po otevření klávesnice/scrollu; (2) Pracovníci – sloupec jmen účtů mimo rozpis je přibližně 2× širší; (4) Korekce brusů – +/− je viditelné v kalkulačce i Nastavení korekcí; (5) Dashboard přesně „do Vánoc“; (6) landscape používá stejného login raka s ozubeným kolem; (7) Report směny má užší datum a viditelný pravý okraj oddělený od směny; (8) úplná owner záloha doběhne, ZIP se stáhne a iPhone jej otevře bez central-directory chyby. Bod 1.7.101 se testuje jen při existenci skutečného zadrženého konfliktu: soukromě exportovat jednu položku, provést read-only kontrolu, potvrdit důsledek a ověřit, že se odstranila právě jedna lokální položka, server se nepřepsal a ostatní fronta zůstala. CAS 1.7.102 ověřit při bezpečném přirozeném dvouzařízení scénáři: obě zařízení načtou stejnou baseline, první uloží změnu a stale druhé uložení musí být odmítnuté s požadavkem na nové online načtení; novější serverová data se nesmějí tiše přepsat. Bez skutečného konfliktu nebo bezpečného dvouzařízení scénáře nevytvářet umělý destruktivní stav jen kvůli checkboxu.
 Dne 24. 9. 2026 vlastník výslovně potvrdil celý fyzický iPhone checklist verze 1.7.83: běžné přihlášení, owner/admin přihlášení a zařízení, Dashboard, Rotaci, „O aplikaci“ i restart instalované PWA bez mazání dat. Chromium výsledek se za tento fyzický test nevydává.
 
 Po druhém výslovném souhlasu byla na zdravou produkční Supabase `bkqamcbkiwumsvelahxr` aplikována jediná atomická migrace `20260924104723_rak_production_phase_b_17083`, složená z 25 manifestem ověřených souborů development SHA `87a16c3433b371241991a59e756b2a10ea42b372`. Po změně zůstalo 101 řádků `gomoku_wins`, 11 účtů, 52 nastavení, 14 oznámení, 106 rotačních záloh, 153 keepalive zařízení, dva admin profily a jedna aktivní rotace; 12 `importMeta` záznamů se přesunulo do soukromé tabulky. Veřejné čtení legacy month/entry tabulek, adresáře účtů a Gomoku historie je uzavřené, veřejná společná `rotation_state` zůstává úmyslně dostupná podle přijatého OS-only rozhodnutí P0.2. Browser smoke načetl produkční HTML, manifest, `sw.js`, metadata `1.7.83` / `1.7.0` / `v1.7.83-about-release1`, produkční Supabase a bezpečnou odpověď „Účet nebyl nalezen“ pro neexistující číslo; konzole neměla chybu. Vercel deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, produkční alias, `main` a Edge Functions se nezměnily.
@@ -398,11 +443,13 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 8. **Druhý TEST balík – fyzicky přijat na 1.7.95 pro aktuálně testovaný kalendář:** po pokusech s nativním rendererem se hlavní UI vrátilo ke skutečnému Google Calendar iframe jako v `main`, ale zachovalo mapování A/B/C/D podle účtu, reuse iframe a přednačtení. Vlastník po nasazení 1.7.95 potvrdil na iPhonu „Je to ok.“; všechny kombinace směn A/B/C/D tím nejsou automaticky prokázané.
 9. **Třetí TEST balík – implementován v 1.7.96, čeká fyzický iPhone test:** Rozpisy/absence, Pracovníci/Správci a sjednocení administrace jsou na zeleném TEST releasu; uzavřít až po kontrole skutečného mobilního UI podle checklistu výše.
 10. **Čtvrtý TEST balík – implementován a automaticky ověřen v 1.7.97, čeká fyzický iPhone test:** kalkulačky, „O aplikaci“, Vánoce, landscape overlay a Report směny.
-11. **Samostatné bezpečnostní balíky:** screenshot reportu 1.7.99 je fyzicky PASS; úplná záloha dostala po fyzickém nálezu central-directory chyby druhou kořenovou opravu v 1.7.100 a čeká retest ZIPu. **1.7.101** navazuje P2.3 bezpečným workflow jediné konfliktní položky; poté pokračovat serverovým CAS/revizí relevantních zápisů.
+11. **Samostatné bezpečnostní/P2.3 balíky:** screenshot reportu 1.7.99 je fyzicky PASS; úplná záloha dostala po fyzickém central-directory nálezu druhou kořenovou opravu v 1.7.100 a čeká retest ZIPu. 1.7.101 dodala bezpečné workflow jediné konfliktní položky a 1.7.102 serverový CAS/revize pro stroje a měsíční rozpisy. Další krok není další slepá vrstva změn: nejdřív fyzicky retestovat sedm oprav 1.7.100 na aktuálním 1.7.102 a konfliktní/CAS scénář ověřovat jen bezpečně.
 
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **25. 9. 2026 – explicitní předání do nového chatu:** na žádost vlastníka je do kanonického handoffu zapsán přesný stav 1.7.102, poslední fyzický iPhone PASS/FAIL seznam, skutečnost, že sedm FAILů už má zelené opravy v 1.7.100, ale čeká jejich fyzický retest, a že 1.7.101/1.7.102 přidaly konfliktní workflow/CAS bez dosavadního fyzického acceptance. Nový chat má nejdřív retestovat, nikoli znovu slepě implementovat starý seznam. Přidána také poznámka o přesunu neprodukčních migrací pod `supabase/history/non-production-migrations/` a požadavek průběžně informovat vlastníka během delších kroků. Jde pouze o dokumentační předání; runtime, TEST DB a produkce se tímto commitem nemění.
 
 - **25. 9. 2026 – release 1.7.102 dokončuje implementační část P2.3 CAS:** funkční SHA `8ed74a6f73d3ee9ffb831010f532ce22893932ce` přidal revizní registry a v3 read/write RPC pro nastavení strojů i měsíční rozpisy. TEST stage a cutover migrace jsou aplikované; staré v2 mutace zůstávají pouze jako kompatibilní fail-closed endpointy. Test-only následník `3fe8075fcdd48c7623334c4588804784857adadc` přenesl inherited gates a [Actions #328](https://github.com/martinspadrna/RaK/actions/runs/36120760698) prošel SUCCESS včetně release-preview. Vercel `dpl_By8fWqPYzDWj8qwhZWEy5jSgTa6H` je READY na přesném SHA. Release evidence ID `10858615020`, SHA-256 `b0991d555f83d3005bcc426b312a09eea05d634c1a9f7d60dc1f7590b9a6a432`. P2.3 zůstává 63 %, protože zbývá fyzický skutečný konflikt a dvouzařízení CAS acceptance. Produkční Vercel/Supabase se nezměnily; GitHub main je novější pouze samostatnou migration-history změnou a není nasazen.
 
