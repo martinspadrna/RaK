@@ -29,8 +29,10 @@ const html=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta nam
 </style></head><body>
 <div id="probe">
   <div class="rakShiftContext">
-    <label>Datum směny<input class="rakShiftInput rakShiftDate" type="date" value="2026-09-24"></label>
-    <label>Směna<select class="rakShiftSelect rakShiftShift"><option>Noční</option></select></label>
+    <div class="rakShiftMetaGrid">
+      <label class="rakShiftMetaLabel">Datum směny<input class="rakShiftInput rakShiftDate" type="date" value="2026-09-24"></label>
+      <label class="rakShiftMetaLabel">Směna<select class="rakShiftSelect rakShiftShift"><option>Noční</option></select></label>
+    </div>
   </div>
   <div class="signedProbe">
     <div class="calcSignedInput"><button class="calcSignToggle" type="button">+</button><input inputmode="decimal" value="-12,5"></div>
@@ -70,7 +72,8 @@ try{
   const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
   assert.equal(data.overlap,false,'[17097-browser] date border overlaps shift select '+JSON.stringify(data));
   assert(data.gap>=9,'[17097-browser] date/shift gap too small '+JSON.stringify(data));
-  assert(data.date.width>=175&&data.shift.width>=95,'[17097-browser] context controls crushed '+JSON.stringify(data));
+  assert(data.date.width>=117&&data.date.width<=125,'[17097-browser] compact date geometry regressed '+JSON.stringify(data));
+  assert(data.shift.width>=107&&data.shift.width<=113,'[17097-browser] shift geometry regressed '+JSON.stringify(data));
   assert(data.sign.width>=40&&data.sign.height>=40,'[17097-browser] sign toggle touch target too small '+JSON.stringify(data));
   assert(data.signedInput.font>=16,'[17097-browser] decimal input risks iOS zoom '+JSON.stringify(data));
   assert(data.docWidth<=data.viewport+1,'[17097-browser] horizontal overflow '+JSON.stringify(data));
