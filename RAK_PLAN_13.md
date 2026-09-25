@@ -143,7 +143,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 
 **Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Při založení šlo o změnu plánu, nikoli dokončenou opravu aplikace; aktuální produkční stav je vždy uveden v následujícím odstavci a v nejnovějším záznamu aktualizací. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
 
-**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime zůstává 1.7.104; přesný zelený a nasazený test-only SHA je `698a6f2ac9b6e2236b3b0714aaeaf3c9d3c99488`, [Actions #356](https://github.com/martinspadrna/RaK/actions/runs/36163194538) SUCCESS a Vercel `dpl_CxF1cVCzrzGYtjm6WXEW1uwSsDyW` READY. Stabilní alias vrací metadata 1.7.104 / `v1.7.104` / build `v1.7.104-iphone-retest2` a TEST Supabase `cgshssdjgzzuprlwnabl`; `main` i produkce zůstaly beze změny. P2.1 je nově 80 % (4/5): 5×5 parity 1.7.69→1.7.104 doložila `startupReady` medián 408→402 ms a FCP medián 300→312 ms (+4 %); P95 guardy také prošly. Diagnostický full-load wall-time 790→1330 ms medián je horší a je evidovaný, ale first-usable metriky zůstaly v paritě. P2.2 zůstává 60 % (3/5), P1.5 43 % do pozdějšího otevření 23,3MB ZIPu a P2.3 63 % do skutečného konfliktního/dvouzařízení scénáře.
+**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime zůstává 1.7.104; přesný zelený a nasazený test-only SHA je `13f456b89f949c5f5d39a9966b8e6c26921ff349`, [Actions #359](https://github.com/martinspadrna/RaK/actions/runs/36164987203) SUCCESS a development Vercel `dpl_3UgeBh1nhC33kQY9Nby2ZnCQkHEY` READY. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` a produkce `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` / SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`. P2.1 je 80 % (4/5): přímá pětikolová parita 1.7.69→1.7.104 prošla; medián startupReady 443→444 ms (+0,2 %) a FCP 312→332 ms (+6,4 %), P95 guardy rovněž prošly. P2.4 je nově 50 % (3/6): jednotný quality gate fail-closed spojuje výkon, síť/SW a konfliktní prahy s nulovou tolerancí falešných/silent konfliktů a warning se nesmí počítat jako PASS. P1.5 zůstává 43 % do pozdějšího otevření 23,3MB ZIPu, P2.3 63 % do skutečného konfliktního/dvouzařízení scénáře.
 
 ## 0. Jak budeme počítat a aktualizovat procenta
 
@@ -169,7 +169,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P2.1 | Výkon startu PWA | **80 % (4/5)** | Otevřeno |
 | P2.2 | Rozložení, DOM, CSS a interakce | **60 % (3/5)** | Otevřeno |
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
-| P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
+| P2.4 | Bezpečná diagnostika a průběžná kvalita | **50 % (3/6)** | Otevřeno |
 
 **Bilance: 5/13 uzavřeno (P0.1, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 8/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
@@ -347,14 +347,16 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Důkaz 1.7.84 bez změny procenta:** vzhled účtu už nepoužívá starý tunel přes `game_stats`; TEST má samostatné account-scoped úložiště s revizí a compare-and-swap RPC. Rollback-only SQL prokázal odmítnutí stale zápisu, následný zápis na správné revizi i readback; fronta vzhledu při novější serverové revizi nevytváří globální konflikt. Jde ale jen o vzhled účtu, nikoli o obecný CAS všech relevantních zápisů, a fyzický scénář dvou zařízení ještě čeká. Široká akceptační položka CAS proto zůstává nezaškrtnutá a P2.3 zůstává **63 % (5/8)**.
 
-### P2.4 – Diagnostika, soukromí telemetrie a nepřetržitá kvalita · **33 % (2/6)**
+### P2.4 – Diagnostika, soukromí telemetrie a nepřetržitá kvalita · **50 % (3/6)**
 
 - [x] Existuje čtecí diagnostika Auth, typů/počtů fronty a základní kategorizace chyb bez potřeby vystavovat syrové payloady.
 - [x] Chromium/offline kontroly a měření výkonu dávají opakovatelné základní provozní signály.
 - [ ] Zviditelnit konkrétní sanitizovanou příčinu konfliktní hlášky na problematickém iPhonu; rozlišit stav aplikace, fronty a chybu úložiště.
 - [ ] Auditovat, že logy, reporty, telemetrie, screenshoty a exporty neobsahují tokeny, OS čísla, jména nebo obsah rozpisů mimo určený soukromý kontext.
 - [ ] Zajistit verifikaci skutečných rolových JWT a konkrétní diagnostiku odmítnutých operací bez prozrazení přihlašovacích údajů.
-- [ ] Zavést měřitelné výkonnostní/konfliktní prahy, periodické regresní testy a jednoznačné výsledky PASS/FAIL; pouhé upozornění nesmí být hlášeno jako úspěch.
+- [x] Zavést měřitelné výkonnostní/konfliktní prahy, periodické regresní testy a jednoznačné výsledky PASS/FAIL; pouhé upozornění nesmí být hlášeno jako úspěch.
+
+**Důkaz P2.4 – quality thresholds:** test-only větev 1.7.104 na SHA `13f456b89f949c5f5d39a9966b8e6c26921ff349` prošla [Actions #359](https://github.com/martinspadrna/RaK/actions/runs/36164987203) SUCCESS. Povinný gate `tools/quality-thresholds-17104.mjs` běží při každém development CI a vyžaduje na stejném SHA PASS z performance budgetu, network/SW resilience i parity 1.7.69. Konfigurace má `warningsMayPass=false` a tvrdé konfliktní limity: falešný konflikt po čistém recovery 0, zápisy bez ověřené baseline 0, silent revision adoption 0 a legacy v2 mutation RPC reference 0; stale CAS musí vrátit SQLSTATE `40001` a konkrétní aplikační conflict kódy. #359 skutečně zapsal `rak-quality-threshold-evidence-v1` s PASS: clean recovery conflict count 0, machine/month unknown-baseline network writes 0/0, stale RPC 1/1, silent revision adoptions 0, legacy v2 refs 0 a oba očekávané conflict kódy. Warning ani pouhé upozornění nemůže gate splnit. Tím je šestý checkbox doložen a P2.4 se zvyšuje na **50 % (3/6)**. Otevřené zůstávají konkrétní sanitizovaná příčina konfliktu na problematickém iPhonu, úplný privacy audit logů/reportů/screenshotů/exportů a skutečné rolové JWT s diagnostikou odmítnutých operací.
 
 **Dokončení:** příčinu provozní chyby lze najít bez prohlížení nebo mazání cizích dat; testy skutečně blokují nebezpečný release.
 
