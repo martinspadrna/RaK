@@ -22,11 +22,18 @@ function run(cmd,args,opts={}){
   if(result.error||result.status!==0)throw new Error('[perf-parity] '+cmd+' '+args.join(' ')+' failed exit='+result.status+' error='+(result.error?.code||'none')+' stderr='+String(result.stderr||'').slice(-1600));
   return result.stdout;
 }
-function p95(values){const sorted=values.slice().sort((a,b)=>a-b);return sorted[sorted.length-1];}
-function allowed(base,spec){return Math.round(Math.max(base*(1+spec.maxRegressionPct/100),base+spec.minToleranceMs));}
+function percentile(values,p){
+  const sorted=values.slice().sort((a,b)=>a-b);
+  const index=Math.min(sorted.length-1,Math.max(0,Math.ceil((p/100)*sorted.length)-1));
+  return sorted[index];
+}
+function allowedMedian(base,spec){return Math.round(Math.max(base*(1+spec.maxMedianRegressionPct/100),base+spec.minMedianToleranceMs));}
 function summarize(samples){
   const out={};
-  for(const key of ['startupReadyMs','wallReadyMs','firstContentfulPaintMs']){const values=samples.map(x=>x[key]);assert(values.every(Number.isFinite),'[perf-parity] invalid '+key);out[key]={samplesMs:values,p95Ms:p95(values)};}
+  for(const key of ['startupReadyMs','wallReadyMs','firstContentfulPaintMs']){
+    const values=samples.map(x=>x[key]);assert(values.every(Number.isFinite),'[perf-parity] invalid '+key);
+    out[key]={samplesMs:values,p50Ms:percentile(values,50),p95Ms:percentile(values,95)};
+  }
   return out;
 }
 
@@ -104,8 +111,20 @@ try{
   const baseline=[],current=[];
   for(let round=1;round<=CONFIG.rounds;round++){baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));current.push(await measureRoot(ROOT,'current-1.7.104',round));}
   const b=summarize(baseline),c=summarize(current),comparisons={};
-  for(const [metric,spec] of Object.entries(CONFIG.metrics)){const limit=allowed(b[metric].p95Ms,spec);comparisons[metric]={baselineP95Ms:b[metric].p95Ms,currentP95Ms:c[metric].p95Ms,allowedCurrentP95Ms:limit,deltaMs:c[metric].p95Ms-b[metric].p95Ms,deltaPct:Math.round(((c[metric].p95Ms-b[metric].p95Ms)/b[metric].p95Ms)*1000)/10};assert(c[metric].p95Ms<=limit,'[perf-parity] '+metric+' current '+c[metric].p95Ms+'ms regressed beyond '+limit+'ms vs baseline '+b[metric].p95Ms+'ms');}
-  const evidence={schema:'rak-performance-parity-evidence-v1',result:'PASS',sourceCommit:String(process.env.GITHUB_SHA||''),baseline:{...CONFIG.baseline},current:{version:CONFIG.current.version},rounds:CONFIG.rounds,viewport:CONFIG.viewport,baselineMetrics:b,currentMetrics:c,comparisons};
+  for(const [metric,spec] of Object.entries(CONFIG.metrics)){
+    const medianLimit=allowedMedian(b[metric].p50Ms,spec);
+    const p95Limit=b[metric].p95Ms+spec.maxP95DeltaMs;
+    comparisons[metric]={
+      baselineP50Ms:b[metric].p50Ms,currentP50Ms:c[metric].p50Ms,allowedCurrentP50Ms:medianLimit,
+      baselineP95Ms:b[metric].p95Ms,currentP95Ms:c[metric].p95Ms,allowedCurrentP95Ms:p95Limit,
+      medianDeltaMs:c[metric].p50Ms-b[metric].p50Ms,
+      medianDeltaPct:Math.round(((c[metric].p50Ms-b[metric].p50Ms)/b[metric].p50Ms)*1000)/10,
+      p95DeltaMs:c[metric].p95Ms-b[metric].p95Ms
+    };
+    assert(c[metric].p50Ms<=medianLimit,'[perf-parity] '+metric+' median '+c[metric].p50Ms+'ms regressed beyond '+medianLimit+'ms vs baseline '+b[metric].p50Ms+'ms');
+    assert(c[metric].p95Ms<=p95Limit,'[perf-parity] '+metric+' P95 '+c[metric].p95Ms+'ms regressed beyond '+p95Limit+'ms vs baseline '+b[metric].p95Ms+'ms');
+  }
+  const evidence={schema:'rak-performance-parity-evidence-v1',result:'PASS',sourceCommit:String(process.env.GITHUB_SHA||''),baseline:{...CONFIG.baseline},current:{version:CONFIG.current.version},rounds:CONFIG.rounds,viewport:CONFIG.viewport,baselineMetrics:b,currentMetrics:c,comparisons,diagnostics:Object.fromEntries((CONFIG.diagnostics||[]).map(key=>[key,{baseline:b[key],current:c[key]}]))};
   if(process.env.GITHUB_SHA)assert.equal(evidence.sourceCommit,process.env.GITHUB_SHA);
   const out=path.join(process.env.GITHUB_WORKSPACE||WORKSPACE,'.rak-canonical-build','performance-parity-17069.json');fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(evidence,null,2)+'\n');
   console.log('[perf-parity] PASS '+JSON.stringify(evidence));

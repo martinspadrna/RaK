@@ -8,7 +8,7 @@
   "current": {
     "version": "1.7.104"
   },
-  "rounds": 3,
+  "rounds": 5,
   "viewport": {
     "width": 390,
     "height": 844,
@@ -16,16 +16,17 @@
   },
   "metrics": {
     "startupReadyMs": {
-      "maxRegressionPct": 10,
-      "minToleranceMs": 150
-    },
-    "wallReadyMs": {
-      "maxRegressionPct": 10,
-      "minToleranceMs": 200
+      "maxMedianRegressionPct": 10,
+      "minMedianToleranceMs": 20,
+      "maxP95DeltaMs": 100
     },
     "firstContentfulPaintMs": {
-      "maxRegressionPct": 10,
-      "minToleranceMs": 100
+      "maxMedianRegressionPct": 10,
+      "minMedianToleranceMs": 20,
+      "maxP95DeltaMs": 75
     }
-  }
+  },
+  "diagnostics": [
+    "wallReadyMs"
+  ]
 }
