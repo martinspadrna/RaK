@@ -59,6 +59,105 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Předání novému chatu – 25. 9. 2026
 
+### NEJNOVĚJŠÍ závěrečné předání tohoto vlákna – 25. 9. 2026 večer
+
+Tato podsekce **přebíjí starší SHA/run/deployment údaje níže v historické části tohoto předání**. Nový chat má vždy nejprve načíst živý `development`, ale pokud se od tohoto zápisu nic nezměnilo, výchozí stav je následující.
+
+#### Přesný online stav při ukončení vlákna
+- `development` před tímto dokumentačním zápisem: `e5a953aadafc8e66e367709e669d241638a60900` (`docs: record P2.4 fail-closed quality thresholds`).
+- Nejnovější **funkční runtime zůstává 1.7.104**. Po fyzické přejímce 1.7.104 nebyla v tomto vlákně provedena další runtime změna.
+- Přesný zelený a nasazený test-only runtime SHA je `13f456b89f949c5f5d39a9966b8e6c26921ff349`.
+- [Actions #359](https://github.com/martinspadrna/RaK/actions/runs/36164987203) je **SUCCESS**.
+- Stabilní development Vercel ukazuje na `dpl_3UgeBh1nhC33kQY9Nby2ZnCQkHEY`, READY, SHA `13f456b89f949c5f5d39a9966b8e6c26921ff349`.
+- [Actions #360](https://github.com/martinspadrna/RaK/actions/runs/36166798917) je **SUCCESS** pro následný dokumentační commit `e5a953aadafc8e66e367709e669d241638a60900`; release-preview správně provedl docs-only **skip**, takže žádný nový runtime deployment nevznikl.
+- GitHub `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`.
+- Produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, READY, na dříve schváleném SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
+- TEST Supabase je `cgshssdjgzzuprlwnabl`; produkční Supabase je `bkqamcbkiwumsvelahxr`. V tomto vlákně po předchozím schváleném produkčním předání **neproběhl žádný nový produkční zápis**.
+- Produkční `main` a skutečně nasazený produkční SHA jsou úmyslně rozdílné; bez nového výslovného souhlasu vlastníka je automaticky nesrovnávat.
+
+#### Co bylo v tomto vlákně nově dotaženo – P2.1
+P2.1 se posunulo na **80 % (4/5)**. Přímá performance/first-render parita proti immutable 1.7.69 je nyní skutečně reprodukovatelná:
+- baseline: 1.7.69 / SHA `1693c8631c13d6e381e44a96810a55140ad6aa62`;
+- historický build běží z detached Git worktree a dvakrát provede dobový `vercel-build`;
+- historickému buildu se explicitně předává jeho vlastní `GITHUB_SHA` / Vercel commit identita, aby staré integritní pojistky ověřovaly správný immutable commit;
+- současný build je ověřován přes kanonický `rak-release-metadata.js`, ne přes historický způsob v `supabase-config.js`;
+- finální metodika používá **5 střídavých kol**, medián (P50), P95 guard a omezenou baseline-noise toleranci přes MAD; `wallReadyMs` je pouze diagnostika, nikoli hlavní pass/fail app metrika.
+
+Finální #359 naměřil:
+- `startupReady` baseline P50 **443 ms**, current **444 ms** (+0,2 %); P95 **499 → 519 ms**;
+- FCP baseline P50 **312 ms**, current **332 ms** (+6,4 %); P95 **320 → 356 ms**;
+- obě hlavní metriky prošly předem omezenými median/P95 guardy;
+- diagnostický `wallReadyMs` je na runneru horší (P50 796 → 1350 ms), ale obsahuje režii lokálního serveru/Chromia a záměrně se nevydává za čistou aplikační metriku.
+
+Důležité mezikroky, aby je nový chat zbytečně neopakoval:
+- #352: detached historický build se rozběhl, ale staré integritní testy dostaly SHA dnešního commitu místo SHA 1.7.69.
+- #353: historická 1.7.69 se už opravdu sestavila; test se zastavil jen na zastaralé kontrole dnešní verze v `supabase-config.js`.
+- #354: přímá 3×3 parita byla zelená, ale jeden hlučný FCP vzorek ukázal, že „P95 ze tří“ je příliš křehké; checkbox se tehdy vědomě nezavřel.
+- #355: první pokus o robustnější statistiku spadl na statickém kontraktu, který ještě čekal `wallReadyMs` mezi hlavními metrikami; nešlo o runtime/performance selhání.
+- finální robustní varianta na `13f456b8…` / #359 je zelená a P2.1 checkbox parity je uzavřený.
+
+Jediný otevřený checkbox P2.1 je nyní **opakované skutečné iPhone Safari/PWA cold/warm měření**.
+
+#### Co bylo v tomto vlákně nově dotaženo – P2.4
+P2.4 se posunulo na **50 % (3/6)** díky jednotnému fail-closed quality gate:
+- `tools/quality-thresholds-17104.mjs` běží v každém development CI;
+- `warningsMayPass=false` – pouhé upozornění nikdy není PASS;
+- performance budget, network/SW resilience a performance parity musí být PASS na **stejném SHA**;
+- falešný konflikt po čistém recovery musí být **0**;
+- zápis bez ověřené baseline musí udělat **0 síťových zápisů**;
+- stale machine/month CAS musí skončit konfliktem, ne tichým přijetím novější revize;
+- `silentRevisionAdoptions=0`;
+- legacy v2 mutation RPC reference = **0**;
+- stale server revize musí používat SQLSTATE `40001` a konkrétní aplikační conflict kódy.
+
+#359 skutečně vytvořil `rak-quality-threshold-evidence-v1` s PASS a těmito nulovými/požadovanými hodnotami.
+
+#### NOVÝ NÁLEZ – další práce P2.4, dosud **NEIMPLEMENTOVÁNO**
+Při zahájeném privacy auditu browser runtime bylo zjištěno, že řada runtime cest stále používá `console.warn(..., err)`, `console.error(..., err)` nebo loguje celý diagnostický `report`. Týká se mimo jiné bootu, navigace, reconnectu/SW, syncu, admin reportů, dashboardu, appearance syncu a health auditů. Neexistuje jeden společný `sanitizeError` / safe logger.
+
+Tento nález **není ještě opravený a privacy checkbox P2.4 zůstává otevřený**. Poslední plán pro další chat:
+1. Nezavírat checkbox pouhým statickým testem.
+2. Udělat kořenovou runtime opravu jako nový funkční release **1.7.105** (pokud mezitím nevznikla jiná funkční verze).
+3. Přidat jeden centrální browserový diagnostický sanitizátor/logger; první pevný štítek/kategorie může zůstat, ale syrové `Error`, payloady a celé reporty nesmějí jít přímo do console kanálu.
+4. Objektové hodnoty logovat pouze jako bezpečná agregovaná metadata (např. typ/kód/status/počty/klíče), nikdy syrové hodnoty.
+5. Redigovat bearer/JWT/token-like řetězce a identifikační/rozpisové canary hodnoty.
+6. Přidat regresní canary test, který do diagnostiky vloží **fiktivní** token, OS-like číslo, jméno a obsah rozpisu; nic z toho se nesmí objevit ve veřejném/logovacím výstupu.
+7. Soukromý owner complete backup a uživatelem vědomě odeslaný bug report se screenshotem jsou **určené soukromé kontexty** a nesmějí být tímto loggerem poškozené; audit má hlídat, že se jejich obsah nepřelévá do console/telemetrie.
+8. Nový helper musí být načten před běžným runtime a zahrnut do PWA/offline cache, pokud je pro runtime start povinný.
+9. Funkční release musí jednou sjednotit metadata `1.7.105` (display/technical/module/cache/package/SW). Historické release gate 1.7.104 zachovat jako minimální milník; nový 1.7.105 gate má vyžadovat aktuální identitu.
+10. Performance parity nástroj při 1.7.105 aktualizovat z `current-1.7.104` na `current-1.7.105`, bez změny immutable baseline 1.7.69 a bez oslabení tolerancí.
+11. Po zeleném exact-SHA CI teprve nechat pipeline nasadit development preview a znovu ověřit `main`/produkci beze změny.
+12. Teprve pokud souhrnný privacy audit skutečně pokryje logy, reporty, telemetrii, screenshoty a exporty mimo výslovně soukromý kontext, zaškrtnout příslušný P2.4 checkbox a zvýšit P2.4 z 50 % na **67 % (4/6)**.
+
+#### Aktuální stav 13 bodů při předání
+- P0.1 **100 % (5/5)** – uzavřeno.
+- P0.2 **100 % (5/5)** – uzavřeno rozhodnutím o přijatém riziku, ne technickou privatizací veřejné rotace.
+- P0.3 **80 % (4/5)** – chybí fyzicky soukromě stáhnout a otevřít úplnou zálohu na skutečném iPhonu.
+- P0.4 **80 % (4/5)** – chybí reálný iPhone Safari/PWA průchod přihlášení/správy/odvolání zařízení.
+- P1.1 **100 % (5/5)** – uzavřeno.
+- P1.2 **80 % (4/5)** – chybí reálný Safari/PWA test relací, znovuotevření, offline→online a UX odmítnutí.
+- P1.3 **100 % (6/6)** – uzavřeno.
+- P1.4 **100 % (6/6)** – uzavřeno.
+- P1.5 **43 % (3/7)** – otevřeno; mimo jiné nebylo výslovně potvrzeno, že nabídnutý 23,3MB ZIP úplné zálohy byl stažen a otevřen/ověřen.
+- P2.1 **80 % (4/5)** – chybí jen opakované fyzické iPhone cold/warm měření.
+- P2.2 **60 % (3/5)** – chybí kompletní fyzický screenshotový průchod light/dark + safe-area/klávesnice/spodní navigace/editace/export a proklik owner/admin/deputy/user.
+- P2.3 **63 % (5/8)** – skutečný conflict-rescue workflow a bezpečný dvouzařízení CAS se mají testovat jen při reálném bezpečném scénáři; nevyrábět umělý destruktivní konflikt.
+- P2.4 **50 % (3/6)** – otevřené: konkrétní sanitizovaná příčina problematického konfliktu na iPhonu; úplný privacy audit logů/reportů/telemetrie/screenshotů/exportů; skutečné rolové JWT + diagnostika odmítnutých operací bez úniku přihlašovacích údajů.
+
+Bilance zůstává **5/13 uzavřených, 8/13 otevřených**.
+
+#### Co se v novém chatu nesmí dělat
+- nepoužívat lokální kopii RaK;
+- neměnit `main`, produkční Vercel ani produkční Supabase bez nového výslovného souhlasu;
+- před každým zápisem znovu načíst živý SHA `development` a commitnout jen jako jeho přímý následník bez force;
+- neoslabovat testy, budgety ani conflict gates jen proto, aby CI zezelenalo;
+- nemazat Safari/PWA/localStorage/CacheStorage/frontu/uživatelská data jako univerzální opravu;
+- nevypisovat tokeny, JWT, klíče, hesla, osobní čísla ani skutečné soukromé payloady do logu/chatu;
+- nevytvářet placené Supabase/Vercel řešení bez souhlasu;
+- dokumentační/test-only změna nezvyšuje runtime verzi; funkční release zvyšuje sjednocenou verzi právě jednou;
+- `RAK_HANDOFF.md` a `RAK_PLAN_13.md` musí po každé dokumentační změně zůstat **bajtově totožné a ukazovat na tentýž Git blob**.
+
+
 Vlastník ukončuje toto vlákno kvůli příliš pomalému průběhu a chce pokračovat v novém chatu. **Nový chat musí jako první krok online načíst živý `development` a tento celý dokument; nesmí pokračovat ze staré konverzační paměti nebo starého SHA.**
 
 ### Aktualizace po pokračování v novém chatu
@@ -100,13 +199,15 @@ Zelená **1.7.100** na SHA `ae6719947736dbdd678a411ba7420a3d7a906693`, Actions #
 - Automatické testy jsou zelené, ale **P2.3 zůstává 63 % (5/8)**, protože široká akceptace vyžaduje fyzický skutečný konflikt a bezpečný dvouzařízení CAS scénář.
 
 ### Doporučené pořadí pro nový chat
-1. Znovu zjistit živý SHA `development`; dokumentační následník po 1.7.104 nesmí být zaměněn za nový runtime.
-2. Ověřit, že stabilní development alias stále běží na 1.7.104 / test-only SHA `698a6f2ac9b6e2236b3b0714aaeaf3c9d3c99488` a produkce zůstala nedotčená.
-3. iPhone regresní balík 1.7.103/1.7.104 je fyzicky uzavřený: picker, OS sloupec, kalkulačka, landscape, kompletní admin `+/−` i Report datum jsou PASS.
-4. U P1.5 zbývá jen doložit, zda byl nabídnutý 23,3MB ZIP úplné zálohy skutečně stažen a otevřen; bez tohoto potvrzení checkbox ani 43 % neměnit.
-5. Konfliktní workflow 1.7.101 testovat pouze při skutečném zadrženém konfliktu. CAS 1.7.102 testovat jen bezpečným dvouzařízení scénářem.
-6. P2.2 je **60 % (3/5)**: stabilní před/po regresní porovnání je uzavřené Actions #342. Zbývá kompletní fyzický screenshotový průchod světlý/tmavý režim + safe-area/klávesnice/spodní navigace/editace/export a proklik rolí owner/admin/deputy/user.
-7. P2.1 je nově **80 % (4/5)**: #347 uzavřel budgety, #349 síť/SW scénáře a #356 robustní 5×5 performance/first-render paritu vůči immutable 1.7.69 na společných metrikách. `startupReady` je bez regrese a FCP medián je +4 % v předem stanoveném 10% limitu; diagnostický full-load wall-time je horší a zůstává zapsaný. Jediný otevřený checkbox P2.1 je 5× cold/warm měření na skutečném iPhonu Safari/PWA.
+1. Online načíst živý SHA `development` a celý tento dokument. Pokud je HEAD novější než dokumentační bod tohoto předání, nejdřív přečíst všechny nové commity a jejich Actions.
+2. Ověřit, že aktuální development runtime je stále 1.7.104 nebo zjistit novější funkční release; stabilní alias při tomto předání běží na `13f456b89f949c5f5d39a9966b8e6c26921ff349` / `dpl_3UgeBh1nhC33kQY9Nby2ZnCQkHEY`.
+3. Ověřit, že `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` a produkce `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` / `de443b771bb7e7dd5fefa498883fdd220a78f07d`, pokud vlastník mezitím neschválil konkrétní produkční krok.
+4. Priorita pro čistě technickou další práci je **P2.4 privacy audit** podle nejnovější závěrečné podsekce výše. Zjištěné syrové browserové `console.warn/error(..., err/report)` cesty zatím nejsou opravené; neoznačovat privacy checkbox za splněný.
+5. Pokud se privacy oprava opravdu implementuje jako runtime změna, použít další sjednocenou verzi (při tomto předání 1.7.105), jeden tematický atomický commit, stávající fail-closed CI a deployment až po exact-SHA SUCCESS.
+6. Po privacy balíku lze pokračovat druhým automatizovatelným P2.4 bodem – skutečné rolové JWT a diagnostika odmítnutých operací bez úniku přihlašovacích údajů – jen pokud jsou dostupné bezpečné autentizované testovací identity; tokeny nikdy nevypisovat.
+7. Fyzické blokátory nepředstírat automatizací: P1.5 otevření 23,3MB ZIPu; P2.1 iPhone cold/warm; P2.2 kompletní screenshot/role průchod; P0.4/P1.2 Safari/PWA session/device scénáře.
+8. Conflict-rescue 1.7.101 a CAS 1.7.102 testovat jen při skutečném nebo bezpečném dvouzařízení scénáři. Nezakládat umělý destruktivní konflikt jen kvůli procentům.
+9. Po každém větším balíku aktualizovat tento dokument, všech 13 procent, exact SHA, Actions, Vercel a potřebný iPhone test; `RAK_PLAN_13.md` musí být tentýž blob.
 
 ## Stav fyzické přejímky a fáze B
 
@@ -143,7 +244,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 
 **Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Při založení šlo o změnu plánu, nikoli dokončenou opravu aplikace; aktuální produkční stav je vždy uveden v následujícím odstavci a v nejnovějším záznamu aktualizací. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
 
-**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime zůstává 1.7.104; přesný zelený a nasazený test-only SHA je `13f456b89f949c5f5d39a9966b8e6c26921ff349`, [Actions #359](https://github.com/martinspadrna/RaK/actions/runs/36164987203) SUCCESS a development Vercel `dpl_3UgeBh1nhC33kQY9Nby2ZnCQkHEY` READY. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` a produkce `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` / SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`. P2.1 je 80 % (4/5): přímá pětikolová parita 1.7.69→1.7.104 prošla; medián startupReady 443→444 ms (+0,2 %) a FCP 312→332 ms (+6,4 %), P95 guardy rovněž prošly. P2.4 je nově 50 % (3/6): jednotný quality gate fail-closed spojuje výkon, síť/SW a konfliktní prahy s nulovou tolerancí falešných/silent konfliktů a warning se nesmí počítat jako PASS. P1.5 zůstává 43 % do pozdějšího otevření 23,3MB ZIPu, P2.3 63 % do skutečného konfliktního/dvouzařízení scénáře.
+**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime zůstává 1.7.104; přesný zelený a nasazený test-only SHA je `13f456b89f949c5f5d39a9966b8e6c26921ff349`, [Actions #359](https://github.com/martinspadrna/RaK/actions/runs/36164987203) SUCCESS a development Vercel `dpl_3UgeBh1nhC33kQY9Nby2ZnCQkHEY` READY. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` a produkce `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` / SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`. P2.1 je 80 % (4/5): přímá pětikolová parita 1.7.69→1.7.104 prošla; medián startupReady 443→444 ms (+0,2 %) a FCP 312→332 ms (+6,4 %), P95 guardy rovněž prošly. P2.4 je nově 50 % (3/6): jednotný quality gate fail-closed spojuje výkon, síť/SW a konfliktní prahy s nulovou tolerancí falešných/silent konfliktů a warning se nesmí počítat jako PASS. Následný dokumentační HEAD `e5a953aadafc8e66e367709e669d241638a60900` prošel Actions #360 SUCCESS a byl správně bez deploymentu; další rozpracovaná myšlenka privacy loggeru nebyla implementována. P1.5 zůstává 43 % do pozdějšího otevření 23,3MB ZIPu, P2.3 63 % do skutečného konfliktního/dvouzařízení scénáře.
 
 ## 0. Jak budeme počítat a aktualizovat procenta
 
