@@ -34,9 +34,14 @@ ${shiftCss[1]}
 <label><span>FHB vlevo</span><div class="calcSignedInput brusFhbSignedInput"><button class="calcSignToggle">+</button><input value="12,5"></div></label>
 <label><span>FHB vpravo</span><div class="calcSignedInput brusFhbSignedInput"><button class="calcSignToggle">−</button><input value="-8"></div></label>
 </div></div>
-<div class="adminBrusFhbCalibration"><div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput"></div></div>
+<div class="adminFhbCalibration"><div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput" value="1"></div>
+<div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput" value="-2"></div>
+<div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput" value="3"></div>
+<div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput" value="-4"></div>
+<div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput" value="5"></div>
+<div class="calcSignedInput adminCorrectionSignedInput"><button class="calcSignToggle">+</button><input class="appMenuInput" value="-6"></div></div>
 <div id="rakShiftReport"><div class="rakShiftContext"><div class="rakShiftMetaGrid">
-<label class="rakShiftMetaLabel">Datum<input class="rakShiftInput rakShiftDate" type="date" value="2026-09-25"></label>
+<label class="rakShiftMetaLabel">Datum<div class="rakShiftDateShell"><span class="rakShiftDateDisplay">25.9.2026</span><input class="rakShiftDate" type="date" value="2026-09-25"></div></label>
 <label class="rakShiftMetaLabel">Směna<select class="rakShiftSelect rakShiftShift"><option>Ranní</option></select></label>
 </div></div></div>
 <div id="appMenuBody" data-admin-view="rotation" style="position:absolute;top:1050px;left:20px;width:350px;height:300px">
@@ -52,11 +57,12 @@ setTimeout(()=>{
  adminPositionRotationChoicePicker();
  const rect=e=>e.getBoundingClientRect(), css=e=>getComputedStyle(e);
  const signs=[...document.querySelectorAll('.brusFhbSignedInput .calcSignToggle,.adminCorrectionSignedInput .calcSignToggle')].map(e=>({r:rect(e),display:css(e).display,visibility:css(e).visibility}));
- const d=rect(document.querySelector('.rakShiftDate')), sh=rect(document.querySelector('.rakShiftShift'));
+ const dateShell=document.querySelector('.rakShiftDateShell'), dateInput=document.querySelector('.rakShiftDate');
+ const d=rect(dateShell), sh=rect(document.querySelector('.rakShiftShift'));
  const p=rect(document.getElementById('adminRotationChoicePicker')), input=rect(document.getElementById('pickerInput'));
  document.getElementById('probe').textContent=JSON.stringify({
    signs:signs.map(x=>({width:x.r.width,height:x.r.height,display:x.display,visibility:x.visibility})),
-   date:{width:d.width,rightBorder:parseFloat(css(document.querySelector('.rakShiftDate')).borderRightWidth)||0,right:d.right},
+   date:{width:d.width,rightBorder:parseFloat(css(dateShell).borderRightWidth)||0,right:d.right,nativeOpacity:parseFloat(css(dateInput).opacity)},
    shift:{left:sh.left,width:sh.width},gap:sh.left-d.right,
    picker:{top:p.top,left:p.left,bottom:p.bottom},input:{top:input.top,left:input.left,bottom:input.bottom},
    pickerDistance:Math.min(Math.abs(p.top-input.bottom),Math.abs(input.top-p.bottom)),
@@ -73,8 +79,8 @@ try{
  const m=String(res.stdout||'').match(/<pre id="probe">([^<]+)<\/pre>/);
  assert(m&&m[1]!=='WAIT','[17100-browser] probe missing');
  const data=JSON.parse(m[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
- assert(data.signs.length===3&&data.signs.every(x=>x.width>=44&&x.height>=44&&x.display!=='none'&&x.visibility==='visible'),'[17100-browser] Brusy sign controls hidden/crushed '+JSON.stringify(data));
- assert(data.date.width<=124.5&&data.date.rightBorder>=1,'[17100-browser] date still too wide or right border missing '+JSON.stringify(data));
+ assert(data.signs.length===8&&data.signs.every(x=>x.width>=44&&x.height>=44&&x.display!=='none'&&x.visibility==='visible'),'[17100-browser] Brusy sign controls hidden/crushed '+JSON.stringify(data));
+ assert(data.date.width<=124.5&&data.date.rightBorder>=1&&data.date.nativeOpacity===0,'[17100-browser] visible date shell or native overlay regressed '+JSON.stringify(data));
  assert(data.gap>=8,'[17100-browser] date and shift collide '+JSON.stringify(data));
  assert(data.pickerDistance<=10,'[17100-browser] rotation picker detached from tapped field '+JSON.stringify(data));
  assert(data.docWidth<=data.viewport+1,'[17100-browser] horizontal overflow '+JSON.stringify(data));

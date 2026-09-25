@@ -148,6 +148,10 @@
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
+  function adminSignedField(field, id, placeholder, ariaLabel) {
+    return '<div class="calcSignedInput adminCorrectionSignedInput"><button type="button" class="calcSignToggle" data-admin-correction-sign-target="' + esc(id) + '" aria-label="' + esc(ariaLabel) + '">+</button><input id="' + esc(id) + '" class="appMenuInput" data-fhb-calibration-field="' + esc(field) + '" data-admin-correction-sign-input="1" inputmode="decimal" placeholder="' + esc(placeholder) + '"></div>';
+  }
+
   function recommendationRow(label, count, value, active, ready) {
     const status = ready ? (Math.abs(value - active) >= 0.05 ? 'doporučení připraveno' : 'potvrzeno') : ('chybí ' + String(Math.max(0, MIN_SAMPLES - count)) + ' záznam' + (MIN_SAMPLES - count === 1 ? '' : 'y'));
     return '<div class="adminFhbCalibrationMetric"><span>' + esc(label) + '</span><b>' + esc(sensitivityLabel(ready ? value : active)) + '</b><small>' + esc(String(count) + '/' + MIN_SAMPLES + ' · ' + status) + '</small></div>';
@@ -174,9 +178,9 @@
       '<summary><span>Frézky FHB · MFKF06 + MFKF10</span><small>měření, nastavení výpočtu a záznamy</small></summary>',
       '<div class="rakCorrectionMachineFoldBody">',
       '<div class="adminFhbCalibrationForm">',
-      '<div class="adminFhbCalibrationFieldset"><b>Protokol před korekcí</b><div class="adminFhbCalibrationTwo"><label>L<input class="appMenuInput" data-fhb-calibration-field="protocolLeft" inputmode="decimal" placeholder="levá"></label><label>P<input class="appMenuInput" data-fhb-calibration-field="protocolRight" inputmode="decimal" placeholder="pravá"></label></div></div>',
-      '<div class="adminFhbCalibrationFieldset"><b>Změna ve stroji</b><div class="adminFhbCalibrationTwo"><label>Konicita<div class="calcSignedInput adminCorrectionSignedInput"><button type="button" class="calcSignToggle" data-admin-correction-sign-target="admin_fhb_taper_delta" aria-label="Přepnout znaménko konicity">+</button><input id="admin_fhb_taper_delta" class="appMenuInput" data-fhb-calibration-field="taperDelta" inputmode="decimal" placeholder="např. 35"></div></label><label>fhβ<div class="calcSignedInput adminCorrectionSignedInput"><button type="button" class="calcSignToggle" data-admin-correction-sign-target="admin_fhb_shift_delta" aria-label="Přepnout znaménko fhβ">+</button><input id="admin_fhb_shift_delta" class="appMenuInput" data-fhb-calibration-field="shiftDelta" inputmode="decimal" placeholder="např. 20"></div></label></div></div>',
-      '<div class="adminFhbCalibrationFieldset"><b>Výsledek po korekci</b><div class="adminFhbCalibrationTwo"><label>L<input class="appMenuInput" data-fhb-calibration-field="resultLeft" inputmode="decimal" placeholder="levá"></label><label>P<input class="appMenuInput" data-fhb-calibration-field="resultRight" inputmode="decimal" placeholder="pravá"></label></div></div>',
+      '<div class="adminFhbCalibrationFieldset"><b>Protokol před korekcí</b><div class="adminFhbCalibrationTwo"><label>L' + adminSignedField('protocolLeft', 'admin_fhb_protocol_left', 'levá', 'Přepnout znaménko protokolu vlevo') + '</label><label>P' + adminSignedField('protocolRight', 'admin_fhb_protocol_right', 'pravá', 'Přepnout znaménko protokolu vpravo') + '</label></div></div>',
+      '<div class="adminFhbCalibrationFieldset"><b>Změna ve stroji</b><div class="adminFhbCalibrationTwo"><label>Konicita' + adminSignedField('taperDelta', 'admin_fhb_taper_delta', 'např. 35', 'Přepnout znaménko konicity') + '</label><label>fhβ' + adminSignedField('shiftDelta', 'admin_fhb_shift_delta', 'např. 20', 'Přepnout znaménko fhβ') + '</label></div></div>',
+      '<div class="adminFhbCalibrationFieldset"><b>Výsledek po korekci</b><div class="adminFhbCalibrationTwo"><label>L' + adminSignedField('resultLeft', 'admin_fhb_result_left', 'levá', 'Přepnout znaménko výsledku vlevo') + '</label><label>P' + adminSignedField('resultRight', 'admin_fhb_result_right', 'pravá', 'Přepnout znaménko výsledku vpravo') + '</label></div></div>',
       '<label class="adminFhbCalibrationNote">Poznámka<input class="appMenuInput" data-fhb-calibration-field="note" maxlength="160" placeholder="volitelné"></label>',
       '<button type="button" class="appMenuAction isActive" data-admin-action="save-fhb-calibration-record">Uložit měření</button>',
       '</div>',
@@ -224,7 +228,7 @@
       try { input.focus({ preventScroll: true }); if (input.setSelectionRange) input.setSelectionRange(raw.length, raw.length); } catch (_) {}
     }, true);
     document.addEventListener('input', (event) => {
-      const input = event.target && event.target.matches && event.target.matches('#admin_fhb_taper_delta,#admin_fhb_shift_delta') ? event.target : null;
+      const input = event.target && event.target.matches && event.target.matches('[data-admin-correction-sign-input="1"]') ? event.target : null;
       if (!input) return;
       const button = document.querySelector('[data-admin-correction-sign-target="' + input.id + '"]');
       if (!button) return;

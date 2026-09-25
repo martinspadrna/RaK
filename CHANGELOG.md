@@ -1,3 +1,11 @@
+## RaK 1.7.104 (development)
+
+- Fyzický iPhone retest 1.7.103 potvrdil picker Rozpisů, širší OS sloupec, landscape pouze se správným login rakem a úplnou zálohu, která už nabídla skutečné stažení 23,3 MB. +/− v kalkulačce Brusů je také potvrzené.
+- V Nastavení korekcí fyzický retest odhalil, že znaménka byla vykreslená jen u části polí. Frézky nyní mají stejné +/− u hodnot před korekcí, obou změn ve stroji i obou výsledků po korekci. Brusy mají +/− u všech C1/C2 L/P hodnot před, při i po korekci.
+- Report směny už nespoléhá na viditelný rámeček nativního iOS `input type=date`. Pevný 124px vizuální obal vlastní celý rámeček a text data; průhledný nativní date input zůstává nad ním pouze jako plnohodnotná klikací vrstva pro iOS picker.
+- Chromium regrese měří viditelný obal data a jeho pravý okraj, nikoli interní geometrii nativního date inputu.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.103 (development)
 
 - Fyzický iPhone retest 1.7.102 potvrdil Vánoce a správného login raka, ale znovu odhalil čtyři reálné regrese: picker Rozpisů, +/− u Brusů, geometrii data Reportu a úplnou zálohu. 1.7.103 opravuje příčiny v posledních skutečně vykreslovaných vrstvách.

@@ -325,8 +325,8 @@
       const field = prefix + suffix;
       const id = 'brus1594_' + field.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
       const inputHtml = '<input id="' + esc(id) + '" class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(field) + '" data-brus-fhb-sign-input="1" placeholder="' + esc(placeholder || '') + '">';
-      if (prefix !== 'correction') return '<label>' + label + inputHtml + '</label>';
-      return '<label>' + label + '<div class="calcSignedInput adminBrus1594SignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="' + esc(id) + '" aria-label="Přepnout znaménko korekce">+</button>' + inputHtml + '</div></label>';
+      const signLabel = prefix === 'correction' ? 'korekce' : (prefix === 'before' ? 'hodnoty před korekcí' : 'hodnoty po korekci');
+      return '<label>' + label + '<div class="calcSignedInput adminBrus1594SignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="' + esc(id) + '" aria-label="Přepnout znaménko ' + esc(signLabel) + '">+</button>' + inputHtml + '</div></label>';
     };
     return '<div class="adminBrus1594Spindle"><strong>' + esc(spindle) + '</strong><div class="adminFhbCalibrationTwo">' +
       input('left', 'L') + input('right', 'P') +

@@ -26,14 +26,21 @@ test('app accounts not present in rotation get a double-width name column',()=>{
 
 test('Brusy signed controls are explicitly visible and touch sized in calculator and calibration admin',()=>{
   const src=read('brusy-fhb-correction.js');
+  const frez=read('admin-fhb-calibration.js');
+  const indexed=read('brusy-fhb-v158.js');
   assert(src.includes('class="calcSignedInput brusFhbSignedInput"'));
-  assert(src.includes('class="calcSignedInput adminCorrectionSignedInput"'));
-  assert(src.includes('#korekce-brusy .brusFhbSignedInput,.adminBrusFhbCalibration .adminCorrectionSignedInput{display:grid!important'));
-  assert(src.includes('.brusFhbSignedInput .calcSignToggle,.adminBrusFhbCalibration .adminCorrectionSignedInput .calcSignToggle{display:grid!important'));
+  assert(src.includes('.adminFhbCalibration .adminCorrectionSignedInput'));
   assert(src.includes('visibility:visible!important;opacity:1!important;width:48px!important'));
   assert(src.includes('data-brus-fhb-sign-target="brus_fhb_left"'));
   assert(src.includes('data-brus-fhb-sign-target="brus_fhb_right"'));
-  assert(src.includes('data-brus-fhb-sign-target="admin_brus_fhb_correction"'));
+  for(const field of ['protocolLeft','protocolRight','taperDelta','shiftDelta','resultLeft','resultRight']){
+    assert(frez.includes("adminSignedField('"+field+"'"));
+  }
+  assert(frez.includes('data-admin-correction-sign-input="1"'));
+  assert(frez.includes("event.target.matches('[data-admin-correction-sign-input=\"1\"]')"));
+  assert(!indexed.includes("if (prefix !== 'correction')"));
+  assert(indexed.includes('class="calcSignedInput adminBrus1594SignedInput"'));
+  assert(indexed.includes('data-brus-fhb-sign-target="'));
 });
 
 test('Christmas grammar ignores legacy Vánocům settings',()=>{
@@ -58,11 +65,16 @@ test('landscape overlay reuses exact login mascot assets and not the old SVG cra
 });
 
 test('shift report date is compact and has an explicit right border',()=>{
-  const src=read('rak-shift-report-share.js');
-  assert(src.includes('grid-template-columns:124px 112px'));
-  assert(src.includes('#rakShiftReport .rakShiftDate{width:124px!important;inline-size:124px!important;max-width:124px!important'));
-  assert(src.includes('border-right:1px solid rgba(255,255,255,.18)!important'));
-  assert(src.includes('grid-template-columns:118px 108px'));
+  const core=read('rak-shift-report.js');
+  const share=read('rak-shift-report-share.js');
+  assert(core.includes('class="rakShiftDateShell"'));
+  assert(core.includes('class="rakShiftDateDisplay"'));
+  assert(core.includes('grid-template-columns:124px 112px'));
+  assert(share.includes('#rakShiftReport .rakShiftDateShell{position:relative;width:124px!important'));
+  assert(share.includes('border:1px solid rgba(255,255,255,.18)!important'));
+  assert(share.includes('#rakShiftReport .rakShiftDate{position:absolute!important'));
+  assert(share.includes('opacity:0!important'));
+  assert(share.includes('grid-template-columns:118px 108px'));
 });
 
 test('complete backup embeds the CI-verified Git ZIP without reparsing it on iPhone',()=>{

@@ -4,18 +4,16 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.103 uses one unified release identity',()=>{
+test('1.7.103 iPhone-retest milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.103');
-  assert.equal(metadata.displayVersion,'1.7.103');
-  assert.equal(metadata.technicalVersion,'1.7.103');
-  assert.equal(metadata.moduleCacheVersion,'1.7.103');
-  assert.equal(metadata.cacheVersion,'v1.7.103');
-  assert.equal(metadata.buildId,'v1.7.103-iphone-retest1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.103');
-  assert(read('index.html').includes('app.js?v=1.7.103'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.103');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.103';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
 
 test('picker uses one document coordinate system and the visual viewport only as a page-space clamp',()=>{
@@ -46,7 +44,7 @@ test('the final visible Brusy layers own signed controls',()=>{
   assert(v157.includes('data-brus-fhb-sign-target="'));
   assert(v157.includes('data-brus-fhb-sign-input="1"'));
   assert(v157.includes('.brus157SignedInput .calcSignToggle{display:grid!important'));
-  assert(v158.includes("if (prefix !== 'correction')"));
+  assert(!v158.includes("if (prefix !== 'correction')"));
   assert(v158.includes('class="calcSignedInput adminBrus1594SignedInput"'));
   assert(v158.includes('data-brus-fhb-sign-target="'));
   assert(v158.includes('.adminBrus1594SignedInput .calcSignToggle{display:grid!important'));
@@ -65,12 +63,14 @@ test('landscape overlay contains only a full-viewport login mascot',()=>{
 test('shift report compact date is part of base markup and not polish-only',()=>{
   const core=read('rak-shift-report.js');
   const share=read('rak-shift-report-share.js');
-  assert(core.includes('class="rakShiftContext"><div class="rakShiftMetaGrid"><label class="rakShiftMetaLabel">Datum směny'));
+  assert(core.includes('class="rakShiftDateShell"'));
+  assert(core.includes('class="rakShiftDateDisplay"'));
   assert(core.includes('grid-template-columns:124px 112px'));
-  assert(core.includes('width:124px;max-width:124px'));
-  assert(core.includes('border-right:1px solid rgba(255,255,255,.18)'));
+  assert(core.includes('width:124px;max-width:124px;height:48px'));
   assert(share.includes('grid-template-columns:124px 112px'));
-  assert(share.includes('width:124px!important;inline-size:124px!important;max-width:124px!important'));
+  assert(share.includes('#rakShiftReport .rakShiftDateShell{position:relative;width:124px!important'));
+  assert(share.includes('border:1px solid rgba(255,255,255,.18)!important'));
+  assert(share.includes('opacity:0!important'));
 });
 
 test('Vercel preview can never publish the tracked backup placeholder as a green release',()=>{
@@ -81,7 +81,7 @@ test('Vercel preview can never publish the tracked backup placeholder as a green
   assert(workflow.includes('vercel curl /rak-complete-backup-source.zip --deployment "$DEPLOYMENT_ID"'));
   assert(workflow.includes('fetch_public "/rak-complete-backup-source.zip?v=$DISPLAY_VERSION" "source-zip"'));
   assert.equal((workflow.match(/wc -c < .*source-zip\.body/g)||[]).length,2);
-  assert(workflow.includes('rak-170103-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(/name: rak-170\d+-isolated-build-\$\{\{ github\.sha \}\}/.test(workflow));
 });
 
 test('1.7.103 gate is mandatory in npm check and the release workflow',()=>{
