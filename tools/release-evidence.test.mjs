@@ -10,6 +10,7 @@ import {PROD_SUPABASE,TEST_SUPABASE,releaseDecision,validateBuildProof,validateC
 
 const SHA='a'.repeat(40);
 const HASH='b'.repeat(64);
+const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const checks=[
   'preflight-contracts','dependency-install','two-clean-canonical-builds','release-and-regression-gates',
   'rollback-and-pwa-contracts','zip-manifest-crc','chromium-offline-layout','three-profile-benchmark',
