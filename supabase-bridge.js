@@ -8,6 +8,8 @@
     announcements: [],
     rotationSnapshot: null,
     machineSettingsSnapshot: [],
+    machineSettingsRevision: null,
+    rotationMonthRevisions: {},
     lastError: null,
     realtimeChannel: null,
     realtimeStatus: 'idle',
@@ -2585,24 +2587,57 @@
     return hasSecureAdminContext();
   }
 
+  function rakRevisionConflictError(message, code) {
+    const err = new Error(message);
+    err.code = code || 'RAK_REVISION_CONFLICT';
+    err.conflict = true;
+    return err;
+  }
+
+  function rakIsSqlRevisionConflict(err) {
+    const code = String(err && (err.code || err.sqlstate || err.statusCode) || '').trim();
+    return code === '40001' || /changed on another device|revision/i.test(String(err && err.message || ''));
+  }
+
   async function trySaveMachineSettingsViaRpc(client, payloads, options) {
     if (!client || typeof client.rpc !== 'function' || !Array.isArray(payloads) || !payloads.length) return null;
     try {
       if (!hasSecureAdminContext()) throw new Error('admin authentication required');
       const operationalPayloads = payloads.filter((payload) => !isCredentialOrBackupMachineSettingsPayload(payload));
-      if (!operationalPayloads.length) return { ok: true, rpc: true, secure: true, savedCount: 0 };
-      const { data, error } = await client.rpc('rak_admin_save_machine_settings_v2', {
+      if (!operationalPayloads.length) return { ok: true, rpc: true, secure: true, savedCount: 0, revision: state.machineSettingsRevision };
+      if (!Number.isSafeInteger(state.machineSettingsRevision) || state.machineSettingsRevision < 0) {
+        throw rakRevisionConflictError(
+          'Revize nastavení strojů není ověřena. Nejdřív použij Načíst online a teprve potom upravuj a ukládej.',
+          'RAK_MACHINE_SETTINGS_REVISION_UNVERIFIED'
+        );
+      }
+      const { data, error } = await client.rpc('rak_admin_save_machine_settings_v3', {
         p_rows: operationalPayloads,
-        p_reason: String(options && options.reason || 'app-save')
+        p_reason: String(options && options.reason || 'app-save'),
+        p_expected_revision: state.machineSettingsRevision
       });
-      if (error) throw error;
+      if (error) {
+        if (rakIsSqlRevisionConflict(error)) {
+          throw rakRevisionConflictError(
+            'Nastavení strojů mezitím změnilo jiné zařízení. Tvoje změny jsem nepřepsal přes novější data. Načti online stav a změnu proveď znovu.',
+            'RAK_MACHINE_SETTINGS_REVISION_CONFLICT'
+          );
+        }
+        throw error;
+      }
+      if (!data || !Number.isSafeInteger(Number(data.revision))) {
+        throw new Error('Server po uložení nastavení nevrátil platnou revizi.');
+      }
+      state.machineSettingsRevision = Number(data.revision);
       return {
         ok: true,
         rpc: true,
         secure: true,
+        revision: state.machineSettingsRevision,
         savedCount: Number(data && data.saved_count || operationalPayloads.length) || operationalPayloads.length
       };
     } catch (err) {
+      if (err && err.conflict) throw err;
       if (isSupabaseRpcUnavailableError(err)) {
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableAt = new Date().toISOString();
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableMessage = String(err && err.message ? err.message : err);
@@ -2679,8 +2714,16 @@
   }
 
   async function upsertRotationMonthEntriesDirect(client, monthStart, label, rows) {
-    // RAK_17063_MONTH_RPC_ONLY_GUARD: authenticated RPC, never direct table DELETE/INSERT.
+    // RAK_17102_MONTH_CAS: authenticated RPC + baseline revision, never direct table DELETE/INSERT.
     if (!hasSecureAdminContext()) throw new Error('Měsíční rozpis lze uložit pouze ověřeným administrátorem přes RPC.');
+    const monthKey = String(monthStart || '').trim();
+    const expectedRevision = state.rotationMonthRevisions && state.rotationMonthRevisions[monthKey];
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+      throw rakRevisionConflictError(
+        'Revize měsíčního rozpisu není ověřena. Nejdřív načti tento měsíc online a teprve potom ho upravuj a ukládej.',
+        'RAK_ROTATION_MONTH_REVISION_UNVERIFIED'
+      );
+    }
     const payloadRows = (Array.isArray(rows) ? rows : []).map((row, idx) => ({
       employee_name: String(row && row.employee_name ? row.employee_name : '').trim(),
       target_machine: String(row && row.target_machine ? row.target_machine : '').trim() || null,
@@ -2689,13 +2732,30 @@
       note: String(row && row.note ? row.note : '').trim() || null,
       row_order: Number.isFinite(Number(row && row.row_order)) ? Number(row.row_order) : idx
     }));
-    const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v2', {
-      p_month_start: monthStart,
+    const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v3', {
+      p_month_start: monthKey,
       p_label: String(label || '').trim() || null,
-      p_rows: payloadRows
+      p_rows: payloadRows,
+      p_expected_revision: expectedRevision
     });
-    if (error) throw error;
-    return { months: 1, entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length };
+    if (error) {
+      if (rakIsSqlRevisionConflict(error)) {
+        throw rakRevisionConflictError(
+          'Tento měsíční rozpis mezitím změnilo jiné zařízení. Novější online data jsem nepřepsal. Načti měsíc znovu a svou změnu zopakuj.',
+          'RAK_ROTATION_MONTH_REVISION_CONFLICT'
+        );
+      }
+      throw error;
+    }
+    if (!data || !Number.isSafeInteger(Number(data.revision))) {
+      throw new Error('Server po uložení měsíčního rozpisu nevrátil platnou revizi.');
+    }
+    state.rotationMonthRevisions[monthKey] = Number(data.revision);
+    return {
+      months: 1,
+      entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length,
+      revision: state.rotationMonthRevisions[monthKey]
+    };
   }
 
   async function upsertGomokuWinDirect(client, entry) {
@@ -3890,6 +3950,25 @@
     const client = getClient();
     try {
       if (client && navigator.onLine) {
+        if (hasSecureAdminContext()) {
+          const { data, error } = await runSharedSupabaseRead('machine_settings.load.cas_v3', () => runSupabaseOperation(
+            'machine_settings.load.cas_v3',
+            () => client.rpc('rak_admin_load_machine_settings_v3'),
+            { mode: 'read', attempts: 1 }
+          ));
+          if (error) throw error;
+          const revision = Number(data && data.revision);
+          if (!data || !Array.isArray(data.rows) || !Number.isSafeInteger(revision) || revision < 0) {
+            throw new Error('Server nevrátil ověřenou revizi nastavení strojů.');
+          }
+          const rows = data.rows.filter((row) => !isDeletedMachineSettingsRow(row));
+          state.machineSettingsRevision = revision;
+          state.machineSettingsSnapshot = rows;
+          state.lastError = null;
+          saveLocalSnapshot(state.rotationSnapshot || null, rows);
+          return rows;
+        }
+        state.machineSettingsRevision = null;
         const { data, error } = await runSharedSupabaseRead('machine_settings.load', () => runSupabaseOperation('machine_settings.load', () => client
           .from('machine_settings')
           .select('*')
@@ -3905,9 +3984,11 @@
         }
       }
     } catch (err) {
+      state.machineSettingsRevision = null;
       state.lastError = err;
       console.error('Supabase machine settings load failed', err);
     }
+    state.machineSettingsRevision = null;
     const cached = readLocalSnapshot();
     if (cached && Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length) {
       const rows = cached.machineSettingsRows.filter((row) => !isDeletedMachineSettingsRow(row));
@@ -3932,33 +4013,52 @@
         state.machineSettingsSnapshot = Array.isArray(rows) ? rows : [];
         saveLocalSnapshot(state.rotationSnapshot || null, rows);
         await flushPendingWrites();
-        return { ok: true, savedCount, queued: false };
+        return { ok: true, savedCount, queued: false, revision: state.machineSettingsRevision };
       }
       return { ok: false, queued: false, reason: 'admin-online-required', savedCount: 0 };
     } catch (err) {
       state.lastError = err;
       console.error('Supabase machine settings save failed', err);
-      return { ok: false, error: err };
+      return { ok: false, conflict: !!(err && err.conflict), reason: err && err.conflict ? 'revision-conflict' : 'save-failed', error: err };
     }
   }
 
   async function loadRotationMonthEntries(monthStart) {
     const client = getClient();
+    const monthKey = String(monthStart || '').trim();
     try {
       if (client && navigator.onLine) {
-        const { data, error } = await runSharedSupabaseRead('rotation_entries.load:' + String(monthStart || ''), () => runSupabaseOperation('rotation_entries.load', () => client
+        if (hasSecureAdminContext()) {
+          const { data, error } = await runSharedSupabaseRead('rotation_entries.load.cas_v3:' + monthKey, () => runSupabaseOperation(
+            'rotation_entries.load.cas_v3',
+            () => client.rpc('rak_admin_load_rotation_month_entries_v3', { p_month_start: monthKey }),
+            { mode: 'read', attempts: 1 }
+          ));
+          if (error) throw error;
+          const revision = Number(data && data.revision);
+          if (!data || !Array.isArray(data.rows) || !Number.isSafeInteger(revision) || revision < 0) {
+            throw new Error('Server nevrátil ověřenou revizi měsíčního rozpisu.');
+          }
+          state.rotationMonthRevisions[monthKey] = revision;
+          state.lastError = null;
+          return data.rows;
+        }
+        delete state.rotationMonthRevisions[monthKey];
+        const { data, error } = await runSharedSupabaseRead('rotation_entries.load:' + monthKey, () => runSupabaseOperation('rotation_entries.load', () => client
           .from('rotation_entries')
           .select('*')
-          .eq('month_start', monthStart)
+          .eq('month_start', monthKey)
           .order('row_order', { ascending: true })
           .order('employee_name', { ascending: true }), { mode: 'read' }));
         if (error) throw error;
         return Array.isArray(data) ? data : [];
       }
     } catch (err) {
+      delete state.rotationMonthRevisions[monthKey];
       state.lastError = err;
       console.error('Supabase rotation entries load failed', err);
     }
+    delete state.rotationMonthRevisions[monthKey];
     return [];
   }
 
@@ -3969,13 +4069,13 @@
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required', months: 0, entries: 0 };
         const summary = await runOptimizedSupabaseWrite('rotation_entries.save:' + String(monthStart || ''), { monthStart, label, rows }, () => runSupabaseOperation('rotation_entries.save', () => upsertRotationMonthEntriesDirect(client, monthStart, label, rows), { mode: 'write' }), { windowMs: 2200 });
         await flushPendingWrites();
-        return { ok: true, queued: false, months: summary.months, entries: summary.entries };
+        return { ok: true, queued: false, months: summary.months, entries: summary.entries, revision: summary.revision };
       }
       return { ok: false, queued: false, reason: 'admin-online-required', months: 0, entries: 0 };
     } catch (err) {
       state.lastError = err;
       console.error('Supabase rotation entries save failed', err);
-      return { ok: false, error: err };
+      return { ok: false, conflict: !!(err && err.conflict), reason: err && err.conflict ? 'revision-conflict' : 'save-failed', error: err };
     }
   }
 

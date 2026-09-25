@@ -28,8 +28,14 @@ assert(sync.includes("window.addEventListener('online', () => { void ensureRakSe
 assert(sync.includes("writeMode: 'authenticated admin RPC save/clear only; direct table fallback closed by RaK 1.6.03'"), 'announcement RPC-only status marker missing');
 
 assert(bridge.includes("client.rpc('rak_admin_save_rotation_v2'"), 'secure rotation RPC missing');
-assert(bridge.includes("client.rpc('rak_admin_save_machine_settings_v2'"), 'secure machine settings RPC missing');
-assert(bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'"), 'secure rotation month RPC missing');
+assert(bridge.includes("client.rpc('rak_admin_load_machine_settings_v3'"), 'revision-aware machine settings read RPC missing');
+assert(bridge.includes("client.rpc('rak_admin_save_machine_settings_v3'"), 'revision-aware machine settings write RPC missing');
+assert(bridge.includes('p_expected_revision: state.machineSettingsRevision'), 'machine settings expected revision missing');
+assert(bridge.includes("client.rpc('rak_admin_load_rotation_month_entries_v3'"), 'revision-aware rotation month read RPC missing');
+assert(bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v3'"), 'revision-aware rotation month write RPC missing');
+assert(bridge.includes('p_expected_revision: expectedRevision'), 'rotation month expected revision missing');
+assert(!bridge.includes("client.rpc('rak_admin_save_machine_settings_v2'"), 'legacy machine settings v2 writer returned to current client');
+assert(!bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'"), 'legacy rotation month v2 writer returned to current client');
 assert(bridge.includes("client.rpc('rak_admin_save_announcement_v2'"), 'secure announcement save RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_clear_announcement_v2'"), 'secure announcement clear RPC missing');
 assert(bridge.includes("client.rpc('rak_submit_bug_report_v3'"), 'public screenshot-aware bug report submission RPC missing');

@@ -1,3 +1,12 @@
+## RaK 1.7.102 (development)
+
+- P2.3 rozšiřuje serverový compare-and-swap z hlavního `rotation_state` také na `machine_settings` a měsíční `rotation_months/rotation_entries`.
+- Admin načtení používá atomické v3 RPC, které vrátí data spolu s revizí. Uložení musí poslat přesně tuto revizi; server revizní řádek zamkne, porovná a stale zařízení odmítne SQLSTATE `40001` bez přepsání novějších dat.
+- Neověřená revize se odmítne už v klientovi před síťovým zápisem. Po konfliktu RaK zobrazí, že data změnilo jiné zařízení a vyžádá nové online načtení.
+- Revizní registr `rak_write_revisions` je RLS-uzamčený bez přímého SELECT/INSERT pro anon/auth. Přístup je pouze přes admin RPC chráněná stávající ověřenou admin session.
+- Rollout je dvoufázový: staging drží kompatibilitu starého v2 klienta, ale každý jeho zápis zvýší stejnou revizi. Po zeleném 1.7.102 preview se na TEST aplikuje cutover, který staré v2 mutation RPC ponechá pouze jako fail-closed upgrade-required endpoint.
+- Reálný TEST rollback důkaz ověřil stale konflikt pro měsíční rozpis i nastavení strojů. Produkce ani produkční Supabase se nemění.
+
 ## RaK 1.7.101 (development)
 
 - P2.3 dostává bezpečné řešení jediné konkrétní konfliktní položky z lokální fronty bez plošného mazání dat.

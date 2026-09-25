@@ -40,24 +40,35 @@ test('server CAS mismatch is propagated with local revision intact, no client fa
  await assert.rejects(()=>f.run(),e=>e===rejected);
  assert.equal(f.calls.lookup,0);assert.equal(f.calls.save,1);assert.equal(f.state.rotationRevision,7);
 });
-function monthFixture(authorized,rpcReply){
- const calls={rpc:0};
- const client={rpc:async(name,args)=>{calls.rpc++;assert.equal(name,'rak_admin_save_rotation_month_entries_v2');assert(Array.isArray(args.p_rows));return rpcReply||{data:{inserted:2},error:null};},from:()=>{throw Error('direct table fallback forbidden')}};
- const ctx={hasSecureAdminContext:()=>authorized};
+function monthFixture(authorized,rpcReply,revision=3){
+ const calls={rpc:0},state={rotationMonthRevisions:{'2026-10-01':revision}};
+ const client={rpc:async(name,args)=>{
+   calls.rpc++;
+   assert.equal(name,'rak_admin_save_rotation_month_entries_v3');
+   assert(Array.isArray(args.p_rows));
+   assert.equal(args.p_expected_revision,revision);
+   return rpcReply||{data:{inserted:2,revision:revision+1},error:null};
+ },from:()=>{throw Error('direct table fallback forbidden')}};
+ const ctx={hasSecureAdminContext:()=>authorized,state,
+   rakRevisionConflictError:(message,code)=>Object.assign(new Error(message),{code,conflict:true}),
+   rakIsSqlRevisionConflict:(err)=>String(err&&err.code||'')==='40001'};
  const {api}=runNamedDeclarations({modules:[{source:read('supabase-bridge.js'),names:['upsertRotationMonthEntriesDirect']}],globals:ctx,exports:{save:'upsertRotationMonthEntriesDirect'}});
- return {run:()=>api.save(client,'2026-10-01','10/26',[{employee_name:'worker'},{employee_name:'worker2'}]),calls};
+ return {run:()=>api.save(client,'2026-10-01','10/26',[{employee_name:'worker'},{employee_name:'worker2'}]),calls,state};
 }
-test('month-entry write is admin RPC-only; no unprivileged delete/upsert/insert path',async()=>{
+test('month-entry write remains admin RPC-only and successors require verified server revision',async()=>{
  const blocked=monthFixture(false);await assert.rejects(()=>blocked.run(),/administrátorem/);
  assert.equal(blocked.calls.rpc,0);
  const ok=monthFixture(true),saved=await ok.run();
- assert.equal(saved.months,1);assert.equal(saved.entries,2);assert.equal(ok.calls.rpc,1);
- const empty=monthFixture(true,{data:{inserted:0},error:null});
- assert.equal((await empty.run()).entries,0);
+ assert.equal(saved.months,1);assert.equal(saved.entries,2);assert.equal(saved.revision,4);assert.equal(ok.calls.rpc,1);
+ assert.equal(ok.state.rotationMonthRevisions['2026-10-01'],4);
+ const unknown=monthFixture(true,null,-1);
+ await assert.rejects(()=>unknown.run(),e=>e&&e.code==='RAK_ROTATION_MONTH_REVISION_UNVERIFIED');
+ assert.equal(unknown.calls.rpc,0);
  const body=extractNamedDeclaration(read('supabase-bridge.js'),'upsertRotationMonthEntriesDirect');
- assert(body.includes('RAK_17063_MONTH_RPC_ONLY_GUARD'));
+ assert(body.includes('RAK_17102_MONTH_CAS'));
  assert(!body.includes(".from('rotation_months')")&&!body.includes(".from('rotation_entries')"));
 });
+
 function reviewFixture(opts={}){
  const calls={identity:0,context:0,read:0,write:0};
  const client={auth:{getUser:async()=>{calls.identity++;return opts.userError?{error:new Error('invalid'),data:null}:{data:{user:{id:'u1'}},error:null};}},

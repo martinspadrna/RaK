@@ -4,20 +4,17 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.101 uses one unified release identity',()=>{
+test('1.7.101 conflict-rescue milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.101');
-  assert.equal(metadata.displayVersion,'1.7.101');
-  assert.equal(metadata.technicalVersion,'1.7.101');
-  assert.equal(metadata.moduleCacheVersion,'1.7.101');
-  assert.equal(metadata.cacheVersion,'v1.7.101');
-  assert.equal(metadata.buildId,'v1.7.101-conflict-rescue1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.101');
-  assert(read('index.html').includes('app.js?v=1.7.101'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.101');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.101';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('single-conflict rescue requires exact private export and read-only server review',()=>{
   const bridge=read('supabase-bridge.js');
   assert(bridge.includes('function rakQueueRawObjectSlices(raw)'));
@@ -49,8 +46,9 @@ test('raw-byte regression suite is mandatory',()=>{
   assert(unit.includes("api.category('bug_report'),'ostatní'"));
 });
 
-test('mandatory CI executes 1.7.101 gate',()=>{
+test('npm check retains 1.7.101 while CI runs the current release gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
-  assert(workflow.includes('node --test tools/release-gate-17101.test.mjs'));
-  assert(workflow.includes('rak-170101-isolated-build-'+'$'+'{{ github.sha }}'));
+  const pkg=JSON.parse(read('package.json'));
+  assert(pkg.scripts.check.includes('tools/release-gate-17101.test.mjs'));
+  assert(/node --test tools\/release-gate-1710\d\.test\.mjs/.test(workflow));
 });
