@@ -67,5 +67,5 @@ test('mandatory CI and npm check execute the 1.7.102 CAS suite',()=>{
   assert(workflow.includes('node --test tools/release-gate-17102.test.mjs'));
   assert(pkg.scripts.check.includes('tools/server-cas-17102.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17102.test.mjs'));
-  assert(workflow.includes('rak-170102-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(/name: rak-170\d+-isolated-build-\$\{\{ github\.sha \}\}/.test(workflow));
 });

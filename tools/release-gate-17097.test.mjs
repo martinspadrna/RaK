@@ -61,7 +61,8 @@ test('shift report mobile geometry has an explicit gap and is covered by real Ch
   const report=read('rak-shift-report.js');
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const browser=read('tools/browser-fourth-bundle-17097.mjs');
-  assert(report.includes('grid-template-columns:minmax(0,1.32fr) minmax(104px,.68fr);gap:12px'));
+  assert(report.includes('grid-template-columns:124px 112px;align-items:end;gap:10px'));
+  assert(report.includes('border-right:1px solid rgba(255,255,255,.18)'));
   assert(report.includes('.rakShiftContext label{overflow:hidden}'));
   assert(browser.includes('assert.equal(data.overlap,false'));
   assert(browser.includes('assert(data.gap>=9'));
