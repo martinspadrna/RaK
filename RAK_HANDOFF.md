@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.105`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.106`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
 ## Aktuální ověřený provozní stav k 25. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.105` na SHA `7e4643214471bedcf370a062c032bbbd84398e1c`. Přidává centrální browserový diagnostický sanitizátor načtený před běžným runtime, odstraňuje syrové `Error`/payload/report hodnoty z konzole a ponechává pouze bezpečné agregované metadata. Soukromý owner backup ani uživatelem vědomě odeslaný bug report se screenshotem se nemění. Runtime, technická/modulová/cache/package/SW verze jsou sjednocené na `1.7.105`, build `v1.7.105-diagnostics-privacy1`.
+- Poslední ověřený **funkční** development release je `1.7.106` na SHA `1a06f785d7821a2f81b7e6bf8e08c1c2b39e7c59`. Po migraci všech aktivních kontrol je `RAK_HANDOFF.md` jediným živým třináctibodovým plánem a `RAK_PLAN_13.md` byl odstraněn; owner complete backup nyní zahrnuje přímo handoff. Runtime, technická/modulová/cache/package/SW verze jsou sjednocené na `1.7.106`, build `v1.7.106-single-handoff1`.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_66DFu1zP1aJuSMjkxLckj5v59Ze8`, READY / SHA `7e4643214471bedcf370a062c032bbbd84398e1c`. [Actions #362](https://github.com/martinspadrna/RaK/actions/runs/36173580395) je SUCCESS. Veřejné HTTP vrací 200 pro HTML, metadata, `sw.js`, nový `rak-runtime-diagnostics.js` i TEST konfiguraci; metadata jsou `1.7.105` / build `v1.7.105-diagnostics-privacy1`, TEST ID je přítomné a produkční ID chybí. Pětikolová parita proti immutable 1.7.69 prošla: `startupReady` P50 332→314 ms, P95 410→437 ms; FCP P50 240→260 ms, P95 348→312 ms. Diagnostický wall-time P50 610→932 ms a P95 806→960 ms není pass/fail metrika. Release evidence ID `10881124564`, SHA-256 `4d0db58b9fb029d30eabe24da79358a2c84815e8ab9e42a2ffd5e0b018062972`; isolated build ID `10880919288`, SHA-256 `44f1147b323c79f697803483adbd7b8c7a35174dce441434f0610974dabd29a2`; CI proof ID `10880709537`, SHA-256 `f4d253a8032ae87ed2a69abda46642dc191fd8aa810cf6e6e7912c6c74eb4a9a`. Konkrétní rollback cíl je předchozí READY `dpl_3UgeBh1nhC33kQY9Nby2ZnCQkHEY`. Produkce ani `main` se nezměnily.
+- Stabilní development alias nyní ukazuje na `dpl_61pqc7RM6LvVd2wb5D3V1t99rni4`, READY / SHA `1a06f785d7821a2f81b7e6bf8e08c1c2b39e7c59`. [Actions #364](https://github.com/martinspadrna/RaK/actions/runs/36178194537) je SUCCESS po opakování pouze hlučného parity jobu; verify `108215107530` a release-preview `108215983245` jsou SUCCESS. Preview URL byla `https://skoda-spada-2rygkl8mh-martinspadrnas-projects.vercel.app`; stable alias je `https://skoda-spada-git-development-martinspadrnas-projects.vercel.app`. Veřejný HTTP audit stable aliasu vrátil PASS pro 1.7.106 a TEST izolaci. PWA budgety: cold mobile P50/P95 `1171/1207 ms`, offline reload `884/910 ms`, online recovery `526/602 ms`; index HTML `53222 B`, startup core `435845 B`, root JS/CSS `4448973 B`, vše pod hard limity. Release evidence ID `10883552322`, SHA-256 `b711012718f5a67b80260be66b40bc73622da7bad8d93b5761118b82c956fc06`; CI proof ID `10883940105`, SHA-256 `58fb810ecd8ddfd9a93705d184175ad92bd1ba68d730e91a709b5d987000e1ce`; isolated-build historický alias ID `10884015100`, SHA-256 `230b94ed874325e322b34086bfab6e070c6448dabd2c87f6eba7fe03c5187754`. Konkrétní rollback cíl je předchozí READY `dpl_66DFu1zP1aJuSMjkxLckj5v59Ze8`. Produkce ani `main` se nezměnily.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -59,7 +59,49 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Předání novému chatu – 25. 9. 2026
 
-### NEJNOVĚJŠÍ závěrečné předání – 25. 9. 2026, release 1.7.105
+### NEJNOVĚJŠÍ závěrečné předání – 25. 9. 2026 večer, release 1.7.106
+
+Tato podsekce **přebíjí všechny starší SHA/run/deployment údaje níže**. Nový chat musí znovu načíst živý `development`; pokud se od tohoto zápisu nic nezměnilo, výchozí stav je následující.
+
+#### Přesný online stav
+- `development` runtime commit je `1a06f785d7821a2f81b7e6bf8e08c1c2b39e7c59` (`feat: retire duplicate roadmap source`), přímý následník dokumentačního HEAD `8b1d7a4fbbcaa3a7a33d25444ea54050eb1078be`.
+- Nejnovější funkční runtime je **RaK 1.7.106**; sjednocené metadata jsou `1.7.106`, cache `v1.7.106`, build `v1.7.106-single-handoff1`.
+- [Actions #364](https://github.com/martinspadrna/RaK/actions/runs/36178194537) je **SUCCESS**. První verify pokus selhal pouze runnerovým parity šumem; opakovaný verify `108215107530` prošel, stejně jako release-preview `108215983245`.
+- Immutable deployment `dpl_61pqc7RM6LvVd2wb5D3V1t99rni4` je READY a stable development alias `skoda-spada-git-development-martinspadrnas-projects.vercel.app` na něj ukazuje. Veřejný stable HTTP audit je PASS bez Vercel auth.
+- Release evidence: `rak-release-evidence-1a06f785d7821a2f81b7e6bf8e08c1c2b39e7c59`, ID `10883552322`, SHA-256 `b711012718f5a67b80260be66b40bc73622da7bad8d93b5761118b82c956fc06`.
+- CI proof: `rak-ci-proof-1a06f785d7821a2f81b7e6bf8e08c1c2b39e7c59`, ID `10883940105`, SHA-256 `58fb810ecd8ddfd9a93705d184175ad92bd1ba68d730e91a709b5d987000e1ce`.
+- Historický isolated-build alias: `rak-170105-isolated-build-1a06f785d7821a2f81b7e6bf8e08c1c2b39e7c59`, ID `10884015100`, SHA-256 `230b94ed874325e322b34086bfab6e070c6448dabd2c87f6eba7fe03c5187754`.
+- `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`. Produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na schváleném SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; produkční Supabase `bkqamcbkiwumsvelahxr` se nezměnila.
+- Nedestruktivní rollback pro nový development runtime je předchozí READY `dpl_66DFu1zP1aJuSMjkxLckj5v59Ze8`.
+
+#### Co bylo dotaženo – jeden živý plán
+- Všechny aktivní runtime/test/backup/workflow odkazy byly převedeny na `RAK_HANDOFF.md`.
+- `RAK_PLAN_13.md` byl z živé větve odstraněn; historické zmínky v handoffu/changelogu zůstávají pouze jako auditní historie a negativní release gate hlídá, že se soubor nevrátí do aktivních kontrol.
+- `rak-complete-backup.js` nyní uvádí `RAK_HANDOFF.md` a neobsahuje paralelní plán.
+- Přidána je release gate 1.7.106, která kontroluje jednotnou identitu release, backup manifest, workflow artefakty a absenci starého plánu v aktivních zdrojích.
+- Funkční chování aplikace se proti 1.7.105 nemění; zvýšení na 1.7.106 je nutné kvůli změně backup manifestu/runtime release wiring.
+
+#### Stav 13 bodů
+- P0.1 **100 % (5/5)** – uzavřeno.
+- P0.2 **100 % (5/5)** – uzavřeno rozhodnutím o přijatém riziku, ne technickou privatizací veřejné rotace.
+- P0.3 **80 % (4/5)** – chybí fyzicky soukromě stáhnout a otevřít úplnou zálohu na skutečném iPhonu.
+- P0.4 **80 % (4/5)** – chybí reálný iPhone Safari/PWA průchod přihlášení/správy/odvolání zařízení.
+- P1.1 **100 % (5/5)** – uzavřeno.
+- P1.2 **80 % (4/5)** – chybí reálný Safari/PWA test relací, znovuotevření, offline→online a UX odmítnutí.
+- P1.3 **100 % (6/6)** – uzavřeno.
+- P1.4 **100 % (6/6)** – uzavřeno.
+- P1.5 **43 % (3/7)** – otevřeno; 23,3MB ZIP nebyl výslovně otevřen a ověřen.
+- P2.1 **80 % (4/5)** – chybí opakované fyzické iPhone cold/warm měření.
+- P2.2 **60 % (3/5)** – chybí kompletní fyzický screenshotový průchod a proklik rolí.
+- P2.3 **63 % (5/8)** – skutečný conflict-rescue a bezpečný dvouzařízení CAS jen v přirozeném bezpečném scénáři.
+- P2.4 **67 % (4/6)** – otevřené: konkrétní sanitizovaná příčina problematického konfliktu na iPhonu; skutečné rolové JWT + diagnostika odmítnutých operací bez úniku přihlašovacích údajů.
+
+Bilance zůstává **5/13 uzavřených, 8/13 otevřených**.
+
+#### Nejbližší bezpečný další krok
+Další automatizovatelný bod P2.4 jsou skutečné rolové JWT a konkrétní diagnostika odmítnutých operací, ale pouze s bezpečně dostupnými autentizovanými TEST identitami a bez jakéhokoli vypsání tokenů. Fyzické blokátory nepředstírat automatizací: P1.5 otevření ZIPu, P2.1 iPhone cold/warm, P2.2 screenshot/role průchod a P0.4/P1.2 Safari/PWA session/device scénáře. `main`, produkční Vercel ani produkční Supabase neměnit bez nového výslovného souhlasu.
+
+### PŘEDCHOZÍ závěrečné předání – 25. 9. 2026, release 1.7.105
 
 Tato podsekce **přebíjí všechny starší SHA/run/deployment údaje níže**. Nový chat musí znovu načíst živý `development`; pokud se od tohoto zápisu nic nezměnilo, výchozí stav je následující.
 
