@@ -23,8 +23,9 @@ test('grinder and admin correction inputs share explicit plus-minus controls',()
   assert(grinder.includes('data-brus-fhb-sign-target="admin_brus_fhb_correction"'));
   assert(grinder.includes('function toggleSignedInput(input, button)'));
   assert(grinder.includes("button.textContent = negative ? '−' : '+'"));
-  assert(millAdmin.includes('data-admin-correction-sign-target="admin_fhb_taper_delta"'));
-  assert(millAdmin.includes('data-admin-correction-sign-target="admin_fhb_shift_delta"'));
+  assert(millAdmin.includes("adminSignedField('taperDelta', 'admin_fhb_taper_delta'"));
+  assert(millAdmin.includes("adminSignedField('shiftDelta', 'admin_fhb_shift_delta'"));
+  assert(millAdmin.includes('data-admin-correction-sign-target="'));
   assert(millAdmin.includes("raw = raw ? '-' + raw : '-'"));
 });
 
@@ -62,7 +63,8 @@ test('shift report mobile geometry has an explicit gap and is covered by real Ch
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const browser=read('tools/browser-fourth-bundle-17097.mjs');
   assert(report.includes('grid-template-columns:124px 112px;align-items:end;gap:10px'));
-  assert(report.includes('border-right:1px solid rgba(255,255,255,.18)'));
+  assert(report.includes('.rakShiftDateShell{position:relative;width:124px'));
+  assert(report.includes('border:1px solid rgba(255,255,255,.18)'));
   assert(report.includes('.rakShiftContext label{overflow:hidden}'));
   assert(browser.includes('assert.equal(data.overlap,false'));
   assert(browser.includes('assert(data.gap>=9'));
