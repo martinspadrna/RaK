@@ -31,9 +31,9 @@ test('Brusy signed controls are explicitly visible and touch sized in calculator
   assert(src.includes('#korekce-brusy .brusFhbSignedInput,.adminBrusFhbCalibration .adminCorrectionSignedInput{display:grid!important'));
   assert(src.includes('.brusFhbSignedInput .calcSignToggle,.adminBrusFhbCalibration .adminCorrectionSignedInput .calcSignToggle{display:grid!important'));
   assert(src.includes('visibility:visible!important;opacity:1!important;width:48px!important'));
-  assert(src.includes("data-brus-fhb-sign-target="brus_fhb_left""));
-  assert(src.includes("data-brus-fhb-sign-target="brus_fhb_right""));
-  assert(src.includes("data-brus-fhb-sign-target="admin_brus_fhb_correction""));
+  assert(src.includes('data-brus-fhb-sign-target="brus_fhb_left"'));
+  assert(src.includes('data-brus-fhb-sign-target="brus_fhb_right"'));
+  assert(src.includes('data-brus-fhb-sign-target="admin_brus_fhb_correction"'));
 });
 
 test('Christmas grammar ignores legacy Vánocům settings',()=>{

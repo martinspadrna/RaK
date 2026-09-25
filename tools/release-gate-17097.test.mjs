@@ -38,18 +38,23 @@ test('about page is compact and Christmas countdown says do Vanoc',()=>{
   const current=pages.slice(start,end);
   assert.equal((current.match(/^\s*'/gm)||[]).length,4);
   assert(core.includes("countdownLabel: 'Vánoc'"));
-  assert(core.includes("startsWith('vanoce') ? 'do ' : 'k '"));
+  assert(core.includes("const isChristmasCountdown = String(upcoming.key || '').toLowerCase().startsWith('vanoce');"));
+  assert(core.includes("isChristmasCountdown ? 'do Vánoc'"));
+  assert(!core.includes("? 'do ' : 'k ') + String(upcoming.countdownLabel"));
 });
 
-test('landscape overlay reuses animated login crab and honors reduced motion',()=>{
-  const login=read('rak-login-life.js');
+test('landscape overlay reuses the current login mascot and honors reduced motion',()=>{
+  const splash=read('rak-login-splash.js');
   const pwa=read('app-pwa-connectivity.js');
-  assert(login.includes('window.rakLivingLogoHtml'));
-  assert(login.includes('window.rakInstallLoginLifeStyles'));
-  assert(login.includes('@media (prefers-reduced-motion:reduce)'));
-  assert(pwa.includes("typeof window.rakLivingLogoHtml === 'function'"));
-  assert(pwa.includes("!overlay.querySelector('.rakLivingLogo')"));
+  for(const asset of ['assets/rak-login-crab.png','assets/rak-login-crab-step.png','assets/rak-login-crab-tap.png']){
+    assert(splash.includes(asset));
+    assert(pwa.includes(asset));
+  }
+  assert(splash.includes('window.rakLoginMascotHtml'));
+  assert(splash.includes('@media(prefers-reduced-motion:reduce)'));
+  assert(pwa.includes("typeof window.rakLoginMascotHtml === 'function'"));
   assert(pwa.includes('rakPortraitOnlyCrab'));
+  assert(!pwa.includes("typeof window.rakLivingLogoHtml === 'function'"));
 });
 
 test('shift report mobile geometry has an explicit gap and is covered by real Chromium',()=>{
