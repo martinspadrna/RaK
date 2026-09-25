@@ -634,23 +634,50 @@
     await Promise.all(runners);
   }
 
+  function validateExactSourceArchive(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer || new ArrayBuffer(0));
+    if (bytes.byteLength < 100000 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+      throw new Error('Zdrojový Git archiv se nestáhl celý. Záloha byla bezpečně zastavena.');
+    }
+    const min = Math.max(0, bytes.length - 65557);
+    let eocd = -1;
+    for (let index = Math.max(0, bytes.length - 22); index >= min; index -= 1) {
+      if (bytes[index] === 0x50 && bytes[index + 1] === 0x4b && bytes[index + 2] === 0x05 && bytes[index + 3] === 0x06) {
+        eocd = index;
+        break;
+      }
+    }
+    if (eocd < 0) {
+      throw new Error('Zdrojový Git archiv je neúplný (chybí konec ZIPu). Záloha byla bezpečně zastavena.');
+    }
+    const commentLength = bytes[eocd + 20] | (bytes[eocd + 21] << 8);
+    if (eocd + 22 + commentLength !== bytes.length) {
+      throw new Error('Zdrojový Git archiv má neplatnou délku. Záloha byla bezpečně zastavena.');
+    }
+    return bytes;
+  }
+
   async function addRepositorySnapshot(zip, progress) {
     if (!/^[0-9a-f]{40}$/i.test(RAK_COMPLETE_BACKUP_BUILD_SHA)) throw new Error('Chybí přesný Git SHA tohoto buildu.');
     const expected = Array.from(RAK_COMPLETE_BACKUP_REPO_FILES || []);
     if (!expected.length) throw new Error('Build neobsahuje seznam souborů repozitáře.');
-    progress('Načítám lokální zdrojový archiv…');
+    progress('Načítám přesný zdrojový archiv…');
     const archiveUrl = new URL('/' + RAK_COMPLETE_BACKUP_SOURCE_ARCHIVE + '?v=' + encodeURIComponent(RAK_COMPLETE_BACKUP_BUILD_SHA), window.location.origin).toString();
     const archiveData = await fetchArrayBuffer(archiveUrl, 'lokálního zdrojového archivu');
-    const sourceZip = await window.JSZip.loadAsync(archiveData);
-    const missing = expected.filter((path) => !sourceZip.files[path] || sourceZip.files[path].dir);
-    if (missing.length) throw new Error('Zdrojový archiv není kompletní. Chybí: ' + missing.slice(0, 5).join(', ') + (missing.length > 5 ? '…' : ''));
-    let done = 0;
-    for (const path of expected) {
-      const data = await sourceZip.files[path].async('uint8array');
-      zip.file('repository/' + path, data, { binary: true });
-      done += 1;
-      if (done === expected.length || done % 15 === 0) progress('Zdrojové soubory: ' + done + '/' + expected.length);
-    }
+    const exactBytes = validateExactSourceArchive(archiveData);
+    // Safari/iOS už tento ZIP znovu nerozbaluje přes JSZip. Build před deploymentem
+    // nezávisle ověřuje CRC a přesnou shodu inventory s Git indexem; vnější záloha
+    // proto bezpečně nese původní ověřené bajty jako jeden STORE záznam.
+    zip.file('repository/source-exact.zip', exactBytes, { binary: true, compression: 'STORE' });
+    zip.file('repository/README-ZDROJ.txt', [
+      'RaK – přesný zdrojový snapshot',
+      'Git SHA: ' + RAK_COMPLETE_BACKUP_BUILD_SHA,
+      'Očekávaných Git souborů: ' + expected.length,
+      '',
+      'Rozbal source-exact.zip. Jde o buildem ověřený git archive pro přesný SHA výše.',
+      'Na iPhonu se archiv při vytváření zálohy záměrně znovu nerozbaluje, aby nevznikala paměťová špička v JSZip.'
+    ].join('\n'));
+    progress('Zdrojový snapshot připraven: ' + expected.length + ' souborů');
     return expected.length;
   }
 
@@ -800,7 +827,7 @@
       '',
       'OBSAH',
       '-----',
-      'repository/            přesný zdrojový stav GitHub repozitáře pro uvedený SHA',
+      'repository/source-exact.zip  přesný buildem ověřený Git archiv pro uvedený SHA',
       'deployed-app/          skutečně nasazená/transformovaná PWA verze',
       'supabase/data/         veřejná aplikační data a oddělená soukromá metadata importů',
       'supabase/data/private/  soukromá metadata importů rotace pro obnovu',
@@ -812,7 +839,7 @@
       '',
       'OBNOVA – DOPORUČENÉ POŘADÍ',
       '---------------------------',
-      '1. Obnov repository/ do Git repozitáře na uvedeném SHA.',
+      '1. Rozbal repository/source-exact.zip a jeho obsah obnov do Git repozitáře na uvedeném SHA.',
       '2. V novém Supabase projektu aplikuj SQL migrace z repository/supabase/migrations/ v pořadí.',
       '3. Zkontroluj supabase/schema/schema-metadata.json proti nové DB (RLS, RPC, grants, triggery, extensions, realtime publikace).',
       // RAK_17055_RESTORE_ORDER_GUARD: FK dependencies and revoked sessions require manual sequencing.

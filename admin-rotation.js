@@ -366,6 +366,60 @@ function adminCloseRotationChoicePicker() {
   window.__rakAdminRotationChoiceInput = null;
 }
 
+function adminRotationFloatingViewport() {
+  const vv = window.visualViewport;
+  const width = Math.max(240, Number(vv && vv.width || window.innerWidth || document.documentElement.clientWidth || 320));
+  const height = Math.max(180, Number(vv && vv.height || window.innerHeight || document.documentElement.clientHeight || 480));
+  return {
+    left: Math.max(0, Number(vv && vv.offsetLeft || 0)),
+    top: Math.max(0, Number(vv && vv.offsetTop || 0)),
+    width,
+    height
+  };
+}
+
+function adminPositionRotationChoicePicker() {
+  const box = document.getElementById('adminRotationChoicePicker');
+  const input = window.__rakAdminRotationChoiceInput;
+  if (!box || !input || !input.isConnected) {
+    if (box) adminCloseRotationChoicePicker();
+    return;
+  }
+  const body = document.getElementById('appMenuBody');
+  if (!body || !body.contains(input)) {
+    adminCloseRotationChoicePicker();
+    return;
+  }
+  const rect = input.getBoundingClientRect();
+  const vp = adminRotationFloatingViewport();
+  const margin = 8;
+  if (rect.bottom < vp.top - 2 || rect.top > vp.top + vp.height + 2 || rect.right < vp.left - 2 || rect.left > vp.left + vp.width + 2) {
+    adminCloseRotationChoicePicker();
+    return;
+  }
+  const pickerWidth = Math.min(292, Math.max(200, vp.width - margin * 2));
+  box.style.width = pickerWidth + 'px';
+  box.classList.add('isVisible');
+  const measuredHeight = Math.min(264, Math.max(96, Math.ceil(box.getBoundingClientRect().height || 0)));
+  const below = rect.bottom + 6;
+  const above = rect.top - measuredHeight - 6;
+  const viewportBottom = vp.top + vp.height - margin;
+  let top = below;
+  if (below + measuredHeight > viewportBottom) top = Math.max(vp.top + margin, above);
+  const centered = rect.left + rect.width / 2 - pickerWidth / 2;
+  const left = Math.max(vp.left + margin, Math.min(vp.left + vp.width - pickerWidth - margin, centered));
+  box.style.top = Math.round(top) + 'px';
+  box.style.left = Math.round(left) + 'px';
+}
+
+function adminQueueRotationChoicePickerPosition() {
+  if (window.__rakAdminRotationChoicePositionFrame) cancelAnimationFrame(window.__rakAdminRotationChoicePositionFrame);
+  window.__rakAdminRotationChoicePositionFrame = requestAnimationFrame(() => {
+    window.__rakAdminRotationChoicePositionFrame = 0;
+    adminPositionRotationChoicePicker();
+  });
+}
+
 function adminShowRotationChoicePicker(input) {
   try {
     const body = document.getElementById('appMenuBody');
@@ -411,18 +465,10 @@ function adminShowRotationChoicePicker(input) {
       }
       adminCloseRotationChoicePicker();
     });
-    const rect = input.getBoundingClientRect();
-    const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
-    const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
-    const pickerWidth = Math.min(292, vw - 16);
-    const pickerHeight = Math.min(264, Math.max(96, 42 + Math.ceil(values.length / 2) * 38));
-    let top = Math.round(rect.bottom + 6);
-    if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
-    const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
-    box.style.width = String(pickerWidth) + 'px';
-    box.style.top = String(top) + 'px';
-    box.style.left = String(left) + 'px';
-    box.classList.add('isVisible');
+    adminPositionRotationChoicePicker();
+    setTimeout(adminQueueRotationChoicePickerPosition, 0);
+    setTimeout(adminQueueRotationChoicePickerPosition, 180);
+    setTimeout(adminQueueRotationChoicePickerPosition, 420);
     if (!window.__rakAdminRotationChoiceOutsideBound) {
       window.__rakAdminRotationChoiceOutsideBound = true;
       document.addEventListener('pointerdown', (event) => {
@@ -432,7 +478,12 @@ function adminShowRotationChoicePicker(input) {
         if (event.target === target || current.contains(event.target)) return;
         adminCloseRotationChoicePicker();
       }, true);
-      window.addEventListener('scroll', () => adminCloseRotationChoicePicker(), true);
+      window.addEventListener('scroll', adminQueueRotationChoicePickerPosition, true);
+      window.addEventListener('resize', adminQueueRotationChoicePickerPosition, true);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', adminQueueRotationChoicePickerPosition);
+        window.visualViewport.addEventListener('scroll', adminQueueRotationChoicePickerPosition);
+      }
     }
   } catch (err) {
     console.warn('Admin rotation choice picker failed', err);

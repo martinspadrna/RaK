@@ -17,19 +17,20 @@ function installRakPortraitOnlyPwaMode() {
       overlay.id = overlayId;
       overlay.setAttribute('role', 'status');
       overlay.setAttribute('aria-live', 'polite');
-      try { if (typeof window.rakInstallLoginLifeStyles === 'function') window.rakInstallLoginLifeStyles(); } catch (err) {}
-      const crab = typeof window.rakLivingLogoHtml === 'function' ? window.rakLivingLogoHtml() : '<div class="rakPortraitOnlyIcon" aria-hidden="true">↻</div>';
+      try { if (typeof window.rakInstallLoginSplashStyles === 'function') window.rakInstallLoginSplashStyles(); } catch (err) {}
+      const crab = typeof window.rakLoginMascotHtml === 'function' ? window.rakLoginMascotHtml() : '<div class="rakSplashMascot rakLoginMascotShared" aria-hidden="true"><img class="rakSplashMascotFrame idle" src="assets/rak-login-crab.png" alt=""><img class="rakSplashMascotFrame step" src="assets/rak-login-crab-step.png" alt=""><img class="rakSplashMascotFrame tap" src="assets/rak-login-crab-tap.png" alt=""></div>';
       overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + crab + '</div><strong>Otoč telefon na výšku</strong><span>RaK je na mobilu uzamčený na výšku.</span>';
       document.body.appendChild(overlay);
     }
-    if (overlay && typeof window.rakLivingLogoHtml === 'function' && !overlay.querySelector('.rakLivingLogo')) {
-      try { if (typeof window.rakInstallLoginLifeStyles === 'function') window.rakInstallLoginLifeStyles(); } catch (err) {}
-      overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + window.rakLivingLogoHtml() + '</div><strong>Otoč telefon na výšku</strong><span>RaK je na mobilu uzamčený na výšku.</span>';
+    if (overlay && !overlay.querySelector('.rakSplashMascot')) {
+      try { if (typeof window.rakInstallLoginSplashStyles === 'function') window.rakInstallLoginSplashStyles(); } catch (err) {}
+      const crab = typeof window.rakLoginMascotHtml === 'function' ? window.rakLoginMascotHtml() : '<div class="rakSplashMascot rakLoginMascotShared" aria-hidden="true"><img class="rakSplashMascotFrame idle" src="assets/rak-login-crab.png" alt=""><img class="rakSplashMascotFrame step" src="assets/rak-login-crab-step.png" alt=""><img class="rakSplashMascotFrame tap" src="assets/rak-login-crab-tap.png" alt=""></div>';
+      overlay.innerHTML = '<div class="rakPortraitOnlyCrab">' + crab + '</div><strong>Otoč telefon na výšku</strong><span>RaK je na mobilu uzamčený na výšku.</span>';
     }
     if (!document.getElementById('rakPortraitOnlyPwaStyle')) {
       const style = document.createElement('style');
       style.id = 'rakPortraitOnlyPwaStyle';
-      style.textContent = '#' + overlayId + '{display:none;}@media (orientation:landscape) and (max-height:700px){html.rakPortraitOnly #' + overlayId + '{display:flex!important;position:fixed;inset:0;z-index:2147483647;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:calc(20px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box;text-align:center;background:radial-gradient(circle at 50% 35%,rgba(18,56,79,.98),rgba(5,8,22,.995) 68%);color:#f4fbff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyIcon{font-size:54px;line-height:1;font-weight:800;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab{width:118px;height:96px;display:grid;place-items:center}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakLivingLogo{width:118px;height:96px}html.rakPortraitOnly #' + overlayId + ' strong{font-size:24px;line-height:1.15;}html.rakPortraitOnly #' + overlayId + ' span{font-size:15px;line-height:1.35;opacity:.78;max-width:360px;}}';
+      style.textContent = '#' + overlayId + '{display:none;}@media (orientation:landscape) and (max-height:700px){html.rakPortraitOnly #' + overlayId + '{display:flex!important;position:fixed;inset:0;z-index:2147483647;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:calc(20px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box;text-align:center;background:radial-gradient(circle at 50% 35%,rgba(18,56,79,.98),rgba(5,8,22,.995) 68%);color:#f4fbff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyIcon{font-size:54px;line-height:1;font-weight:800;}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab{width:132px;height:108px;display:grid;place-items:center}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakSplashMascot{position:relative;width:132px;height:108px;display:block;filter:drop-shadow(0 8px 12px rgba(0,0,0,.34)) drop-shadow(0 0 20px rgba(79,255,143,.22))}html.rakPortraitOnly #' + overlayId + ' .rakPortraitOnlyCrab .rakSplashMascotFrame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}html.rakPortraitOnly #' + overlayId + ' strong{font-size:24px;line-height:1.15;}html.rakPortraitOnly #' + overlayId + ' span{font-size:15px;line-height:1.35;opacity:.78;max-width:360px;}}';
       document.head.appendChild(style);
     }
   };

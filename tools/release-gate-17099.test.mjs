@@ -4,20 +4,17 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.99 uses one unified release identity',()=>{
+test('1.7.99 private screenshot milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.99');
-  assert.equal(metadata.displayVersion,'1.7.99');
-  assert.equal(metadata.technicalVersion,'1.7.99');
-  assert.equal(metadata.moduleCacheVersion,'1.7.99');
-  assert.equal(metadata.cacheVersion,'v1.7.99');
-  assert.equal(metadata.buildId,'v1.7.99-bug-report-screenshot1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.99');
-  assert(read('index.html').includes('app.js?v=1.7.99'));
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
   const sw=read('sw.js');
-  assert(sw.includes("importScripts('./rak-release-metadata.js?sw=1.7.99');"));
-  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.99';"));
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
-
 test('bug report screenshot is optional, client-reencoded and never stored in offline queue',()=>{
   const menu=read('app-menu-bug-report.js');
   const bridge=read('supabase-bridge.js');
@@ -69,10 +66,9 @@ test('runtime screenshot unit suite is mandatory in npm check',()=>{
   assert(unit.includes("admin screenshot read uses dedicated admin RPC"));
 });
 
-test('mandatory CI and npm check execute the 1.7.99 gate',()=>{
+test('npm check retains 1.7.99 while CI runs the current successor gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
-  assert(workflow.includes('node --test tools/release-gate-17099.test.mjs'));
   assert(pkg.scripts.check.includes('tools/release-gate-17099.test.mjs'));
-  assert(workflow.includes('rak-17099-isolated-build-'+'$'+'{{ github.sha }}'));
+  assert(workflow.includes('node --test tools/release-gate-17100.test.mjs'));
 });

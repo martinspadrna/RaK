@@ -139,5 +139,8 @@
     try{if(typeof rakUserProfileLookup!=='function')throw new Error('lookup unavailable');const result=await rakUserProfileLookup(last4);if(!result?.ok){reject(result?.reason==='not-found'?'Účet nebyl nalezen.':result?.reason==='ambiguous'?'Číslo není jednoznačné. Obrať se na správce.':'Ověření se nepodařilo. Zkus to znovu.');return}if(typeof rakUserProfileWrite==='function')rakUserProfileWrite(result);if(typeof rakUserProfileApplyToRuntime==='function')rakUserProfileApplyToRuntime(result);brand?.classList.remove('error','ready','listening');panel?.classList.remove('error');brand?.classList.add('success');setTimeout(()=>overlay?.classList.add('pageSplit'),480);setTimeout(()=>{overlay?.remove();active=false;try{if(typeof rakUserProfileRefreshMenu==='function')rakUserProfileRefreshMenu()}catch(e){}},1820)}catch(e){reject('Ověření se nepodařilo. Zkus to znovu.')}finally{if(button)button.disabled=false}
   }
   function install(prefill=''){style();if(active)return document.getElementById(OVERLAY_ID);active=true;const overlay=build();const input=overlay?.querySelector('#rakUserLoginAccountNumber'),digits=String(prefill||'').replace(/\D/g,'');if(input)input.value=digits.length>4?digits.slice(-4):digits;return overlay}
-  window.installRakLoginSplash=install; window.rakLoginSplashOpen=install;
+  window.installRakLoginSplash=install;
+  window.rakLoginSplashOpen=install;
+  window.rakInstallLoginSplashStyles=style;
+  window.rakLoginMascotHtml=()=>'<div class="rakSplashMascot rakLoginMascotShared" aria-hidden="true"><img class="rakSplashMascotFrame idle" src="'+MASCOT_IDLE+'" alt=""><img class="rakSplashMascotFrame step" src="'+MASCOT_STEP+'" alt=""><img class="rakSplashMascotFrame tap" src="'+MASCOT_TAP+'" alt=""></div>';
 })();

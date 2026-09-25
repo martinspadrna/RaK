@@ -1,3 +1,16 @@
+## RaK 1.7.100 (development)
+
+- Fyzický iPhone retest 1.7.99 odhalil sedm konkrétních regresí. 1.7.100 je opravuje jako jeden přejímkový balík bez změny produkce.
+- Nabídka volných lidí v Administraci → Rozpisy se po otevření drží u skutečně klepnutého pole a přepočítává polohu při scrollu, resize i změnách iOS visual viewportu/klávesnice.
+- V Pracovnících je sloupec jména u účtů mimo rozpis dvojnásobný (63 → 126 px).
+- Brusy mají explicitně viditelné 48px +/− ovládání u levého/pravého FHB i u admin korekce; markup a logika už existovaly, chyběla Brusy-specific CSS geometrie.
+- Vánoční odpočet ignoruje staré uložené skloňování a pro vánoční cíl vždy píše přesně „do Vánoc“.
+- Landscape blokace PWA používá stejné tři PNG pózy raka jako aktuální přihlašovací obrazovka, místo staršího samostatného SVG maskota.
+- Report směny má kompaktnější datum (na iPhonu 124–126 px) a explicitní pravý okraj rámečku.
+- Úplná záloha už na iPhonu znovu neparsuje zdrojový Git ZIP přes JSZip. Build ho dál předem ověřuje proti Git inventory a CRC, klient kontroluje ZIP signaturu/konec a vloží přesné bajty jako `repository/source-exact.zip` do výsledné zálohy.
+- Textové i screenshotové hlášení chyby z 1.7.99 zůstává beze změny; fyzický test obou variant prošel.
+- Produkce ani produkční Supabase se nemění.
+
 ## RaK 1.7.99 (development)
 
 - „Pošli mi chybu“ umí volitelně připojit jeden screenshot. JPG/PNG/WebP se na zařízení načte, zmenší na max. 1400 px, znovu překóduje do JPEG bez původních metadat a po kompresi musí mít nejvýše 650 kB.

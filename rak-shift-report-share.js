@@ -174,12 +174,12 @@
 #rakShiftReport .rakShiftHero .appMenuSubTitle{font-size:20px;font-weight:850;letter-spacing:-.02em;margin-bottom:4px}
 #rakShiftReport .rakShiftIntro{font-size:12px;line-height:1.4;opacity:.68;max-width:38rem}
 
-#rakShiftReport .rakShiftContext{display:block!important;width:100%;max-width:340px!important;min-width:0}
-#rakShiftReport .rakShiftMetaGrid{display:grid;width:100%;min-width:0;grid-template-columns:minmax(148px,1.22fr) minmax(112px,.78fr);gap:10px;align-items:end}
+#rakShiftReport .rakShiftContext{display:block!important;width:100%;max-width:286px!important;min-width:0}
+#rakShiftReport .rakShiftMetaGrid{display:grid;width:max-content;max-width:100%;min-width:0;grid-template-columns:132px 116px;gap:10px;align-items:end;justify-content:start}
 #rakShiftReport .rakShiftMetaLabel{display:grid;width:100%;gap:6px;font-size:12px;font-weight:750;opacity:.94;min-width:0;overflow:hidden}
 #rakShiftReport .rakShiftMetaLabel>.rakShiftInput,
 #rakShiftReport .rakShiftMetaLabel>.rakShiftSelect{width:100%!important;max-width:100%!important;min-width:0!important;min-height:48px;border-radius:14px;font-size:17px;font-weight:700;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.038));border-color:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
-#rakShiftReport .rakShiftDate{text-align:center;font-variant-numeric:tabular-nums;overflow:hidden;min-inline-size:0!important}
+#rakShiftReport .rakShiftDate{width:132px!important;inline-size:132px!important;max-width:132px!important;min-width:0!important;min-inline-size:0!important;box-sizing:border-box!important;text-align:center;font-variant-numeric:tabular-nums;overflow:hidden;border:1px solid rgba(255,255,255,.18)!important;border-right:1px solid rgba(255,255,255,.18)!important}
 #rakShiftReport .rakShiftDate::-webkit-date-and-time-value{text-align:center}
 
 #rakShiftReport .rakShiftSection{padding:12px;border-radius:18px;border:1px solid rgba(255,255,255,.105);background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.018));box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 8px 24px rgba(0,0,0,.08)}
@@ -227,7 +227,8 @@
 #rakShiftReport .rakShiftStatus{text-align:center;font-size:12px;opacity:.72;padding:0 8px;min-height:16px}
 
 @media(max-width:390px){
-  #rakShiftReport .rakShiftMetaGrid{grid-template-columns:minmax(138px,1.22fr) minmax(108px,.78fr);gap:9px}
+  #rakShiftReport .rakShiftMetaGrid{grid-template-columns:126px 112px;gap:9px}
+  #rakShiftReport .rakShiftDate{width:126px!important;inline-size:126px!important;max-width:126px!important}
   #rakShiftReport .rakShiftSection{padding:10px}
   #rakShiftReport .rakShiftProdRow[data-section="mo"],
   #rakShiftReport .rakShiftProdRow[data-section="to"]{grid-template-columns:74px minmax(0,1fr) minmax(0,1fr) 38px!important;gap:6px}
@@ -241,7 +242,8 @@
   #rakShiftReport .rakShiftProblemRemove{width:38px!important;min-width:38px!important}
 }
 @media(max-width:380px){
-  #rakShiftReport .rakShiftMetaGrid{grid-template-columns:minmax(132px,1.2fr) minmax(104px,.8fr)!important;gap:8px}
+  #rakShiftReport .rakShiftMetaGrid{grid-template-columns:124px 108px!important;gap:8px}
+  #rakShiftReport .rakShiftDate{width:124px!important;inline-size:124px!important;max-width:124px!important}
 }
 `;
     document.head.appendChild(style);

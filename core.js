@@ -1448,7 +1448,8 @@ function getVacationCountdown(now) {
   const start = new Date(upcoming.start);
   start.setHours(0, 0, 0, 0);
   const diffDays = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000));
-  const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : ((String(upcoming.key || '').toLowerCase().startsWith('vanoce') ? 'do ' : 'k ') + String(upcoming.countdownLabel || upcoming.label || 'dovolené'));
+  const isChristmasCountdown = String(upcoming.key || '').toLowerCase().startsWith('vanoce');
+  const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : (isChristmasCountdown ? 'do Vánoc' : ('k ' + String(upcoming.countdownLabel || upcoming.label || 'dovolené')));
   const countdownTeam = getRakActiveAccountShiftTeam();
   const shiftCount = active ? 0 : getVacationCountdownTeamShiftCount(sourceDate, upcoming.start, countdownTeam);
   return {

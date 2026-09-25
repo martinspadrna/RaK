@@ -33,9 +33,10 @@ assert(fs.existsSync(archive), 'same-origin source archive missing');
 assert(fs.statSync(archive).size > 100000, 'same-origin source archive unexpectedly small');
 assert(moduleJs.includes("const RAK_COMPLETE_BACKUP_SOURCE_ARCHIVE = 'rak-complete-backup-source.zip';"), 'source archive marker missing');
 assert(moduleJs.includes("new URL('/' + RAK_COMPLETE_BACKUP_SOURCE_ARCHIVE"), 'same-origin source fetch missing');
-assert(moduleJs.includes('window.JSZip.loadAsync(archiveData)'), 'source archive is not expanded into final ZIP');
+assert(!moduleJs.includes('window.JSZip.loadAsync(archiveData)'), 'iOS must not reparse the nested Git ZIP');
+assert(moduleJs.includes('function validateExactSourceArchive(arrayBuffer)'), 'native ZIP completeness guard missing');
 assert(!moduleJs.includes('raw.githubusercontent.com'), 'raw GitHub fetch dependency remains');
-assert(moduleJs.includes("zip.file('repository/' + path"), 'repository folder restore contract missing');
+assert(moduleJs.includes("zip.file('repository/source-exact.zip'"), 'exact source ZIP is not embedded into final backup');
 
 const match = moduleJs.match(/const RAK_COMPLETE_BACKUP_REPO_FILES = Object\.freeze\(\[([\s\S]*?)\]\);/);
 assert(match, 'repository inventory block missing');
@@ -54,4 +55,4 @@ assert(config.includes('window.RAK_RELEASE_VERSION = "1.6.34";'), 'release versi
 assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.34";'), 'test display version mismatch');
 assert(config.includes('window.RAK_PWA_BUILD = "v1.6.34-backup3";'), 'PWA build mismatch');
 
-console.log('[complete-backup-ios-fix-1633-smoke] OK one-click backup uses one same-origin source archive with inventory exactly aligned to Git-tracked files; tracked=' + expected.length + '; version 1.6.34');
+console.log('[complete-backup-ios-fix-1633-smoke] OK source ZIP is build-verified, fetched same-origin and embedded without client-side reparse; tracked=' + expected.length + '; version 1.6.34');
