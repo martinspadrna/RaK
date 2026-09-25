@@ -90,6 +90,12 @@ jobs:
         run: |
           node tools/pwa-start-bench-17068.mjs
           test -s "$RAK_PERFORMANCE_EVIDENCE"
+      - name: Compare current startup and first paint with immutable 1.7.69
+        working-directory: .rak-canonical-build/work
+        run: |
+          node --test tools/performance-parity-17069.test.mjs
+          node tools/performance-parity-17069.mjs
+          test -s "${{ github.workspace }}/.rak-canonical-build/performance-parity-17069.json"
       - name: Verify live anonymous HTTP against isolated TEST Supabase
         working-directory: .rak-canonical-build/work
         run: node tools/http-anon-audit-17050.mjs
