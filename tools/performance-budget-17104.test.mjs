@@ -14,16 +14,15 @@ for(const [name,spec] of Object.entries(config.sizeGroups)){
     }
   }
 }
-// Replace synthetic sizes with an exact set that exercises all group selectors.
-const exact=new Map(files.map(f=>[f.path,f]));
-for(const f of exact.values())f.bytes=1;
-const startup=config.sizeGroups.startupCore.paths;
-let remaining=config.sizeGroups.startupCore.baselineBytes-startup.length;
-exact.get(startup[0]).bytes+=remaining;
-const rootFiles=[...exact.values()].filter(f=>!f.path.includes('/')&&/\.(?:js|mjs|css)$/.test(f.path));
-let rootNow=rootFiles.reduce((n,f)=>n+f.bytes,0);
-exact.get('app.js').bytes+=config.sizeGroups.rootJsCssSurface.baselineBytes-rootNow;
+// Replace synthetic sizes with an exact set that exercises overlapping groups independently.
+const exact=new Map(files.map(f=>[f.path,{...f,bytes:1}]));
 exact.get('index.html').bytes=config.sizeGroups.indexHtml.baselineBytes;
+const startup=config.sizeGroups.startupCore.paths;
+const startupNow=startup.reduce((sum,p)=>sum+exact.get(p).bytes,0);
+exact.get('dashboard.js').bytes+=config.sizeGroups.startupCore.baselineBytes-startupNow;
+const rootFiles=[...exact.values()].filter(f=>!f.path.includes('/')&&/\.(?:js|mjs|css)$/.test(f.path));
+const rootNow=rootFiles.reduce((n,f)=>n+f.bytes,0);
+exact.set('budget-extra-root.js',{path:'budget-extra-root.js',bytes:config.sizeGroups.rootJsCssSurface.baselineBytes-rootNow});
 
 const bootStats=Object.fromEntries(Object.entries(config.timeModes).map(([label,spec])=>[label,{p95Ms:spec.baselineP95Ms}]));
 
