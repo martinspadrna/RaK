@@ -1,3 +1,9 @@
+## RaK 1.7.107 (development)
+
+- Administrace → Kalendáře: tlačítko `×` pro odebrání kalendáře je centrované v celé 54px dotykové ploše; rozložení `×` + `Přidat kalendář` zůstává vedle sebe.
+- Report směny: sdílení PNG přes WhatsApp/Web Share používá titul `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>`; datum i směna se čtou z právě zvoleného formuláře v okamžiku sdílení.
+- Regresní gate 1.7.107 hlídá obě změny a zachování jednotné release identity. Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.106 (development)
 
 - `RAK_HANDOFF.md` je nyní jediný živý třináctibodový plán. Historické `RAK_PLAN_13.md` bylo po migraci všech kontrol odstraněno; owner complete backup nově zahrnuje přímo handoff.

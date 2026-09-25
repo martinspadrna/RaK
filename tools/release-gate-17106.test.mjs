@@ -19,8 +19,8 @@ function textFiles(directory, output = []) {
 }
 
 test('1.7.106 has one live handoff and no parallel RAK_PLAN_13 source', () => {
-  assert.equal(RELEASE_METADATA.displayVersion, '1.7.106');
-  assertCurrentReleaseIdentity(read, '1.7.106');
+  const metadata = assertCurrentReleaseIdentity(read, '1.7.106');
+  assert.match(metadata.displayVersion, /^1\.7\.10[6-9]$/);
   assert.equal(fs.existsSync(path.join(root, 'RAK_PLAN_13.md')), false);
   const backup = read('rak-complete-backup.js');
   assert(backup.includes('"RAK_HANDOFF.md"'));
@@ -30,13 +30,27 @@ test('1.7.106 has one live handoff and no parallel RAK_PLAN_13 source', () => {
 });
 
 test('1.7.106 release wiring and backup manifest are current', () => {
-  assert.equal(JSON.parse(read('package.json')).version, '1.7.106');
-  assert(read('index.html').includes('rak-runtime-diagnostics.js?v=1.7.106'));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.106'"));
+  const metadata = assertCurrentReleaseIdentity(read, '1.7.106');
+  assert.equal(JSON.parse(read('package.json')).version, metadata.displayVersion);
+  assert(read('index.html').includes('rak-runtime-diagnostics.js?v=' + metadata.displayVersion));
+  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v" + metadata.displayVersion + "'"));
   const workflow = read('.github/workflows/rak-development-validation.yml');
   assert(workflow.includes('tools/release-gate-17106.test.mjs'));
-  assert(workflow.includes('rak-170106-isolated-build-'+'$'+'{{ github.sha }}'));
-  assert(read('CHANGELOG.md').startsWith('## RaK 1.7.106 (development)'));
+  assert(workflow.includes('rak-170106-isolated-build-'+'
+});
+
+test('active source and documentation no longer link to the retired plan', () => {
+  const allowed = new Set(['RAK_HANDOFF.md','CHANGELOG.md','tools/release-gate-17106.test.mjs']);
+  const offenders = [];
+  for (const file of textFiles(root)) {
+    const relative = path.relative(root, file).replaceAll('\\','/');
+    if (allowed.has(relative)) continue;
+    if (fs.readFileSync(file, 'utf8').includes('RAK_PLAN_13.md')) offenders.push(relative);
+  }
+  assert.deepEqual(offenders, [], 'retired plan still referenced by active files: '+offenders.join(', '));
+});
++'{{ github.sha }}'));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.106 (development)'));
 });
 
 test('active source and documentation no longer link to the retired plan', () => {

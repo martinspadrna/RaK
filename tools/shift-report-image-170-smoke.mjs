@@ -19,6 +19,10 @@ assert(helper.includes('const MIN_CANVAS_HEIGHT = 1920;'), 'portrait PNG minimum
 assert(helper.includes('canvas.toBlob'), 'PNG blob export missing');
 assert(helper.includes("canvas.toDataURL('image/png')"), 'same-gesture iOS image share path missing');
 assert(helper.includes('files: [file]'), 'Web Share file payload missing');
+assert(helper.includes('function shiftReportShareTitle(root)'), 'contextual WhatsApp title helper missing');
+assert(helper.includes('const model = collectModel(root);'), 'WhatsApp title must read the current report form model');
+assert(helper.includes("return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;"), 'WhatsApp title must contain selected date and shift');
+assert(helper.includes('navigator.share({ title: shiftReportShareTitle(root), files: [file] })'), 'WhatsApp image share must use contextual title');
 assert(helper.includes('[data-rak-share-action="whatsapp"]'), 'WhatsApp image interception missing');
 assert(helper.includes("saveButton.textContent = 'Uložit PNG';"), 'PNG action missing');
 const compiler=String(pkg.scripts&& (pkg.scripts['legacy:vercel-build']||pkg.scripts['vercel-build']) || '');
