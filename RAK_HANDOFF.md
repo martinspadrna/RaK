@@ -561,6 +561,12 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 Následující požadavky jsou otevřený realizační backlog uvnitř stávajících 13 oblastí. Nejsou novými čtrnáctými a dalšími body a samy o sobě nemění bezpečnostní akceptační zlomky ani procenta, dokud není tematický balík implementován, vydán a doložen příslušnými testy. Každý funkční release zvyšuje viditelnou verzi právě jednou; další práce probíhá nejprve na TEST a produkce se bez nového souhlasu nemění.
 
+### Kontrola doplňkového seznamu vlastníka · 25. 9. 2026
+
+- **◐ Už implementováno, ale ještě ne úplně převzaté:** lokální Dashboard před online synchronizací (A), odstranění místních neuložených návrhů a kompaktní rozpis (C), přepnutí účtu bez dědění starého jména, account-scoped vzhled a owner invariant (D), sjednocení karet pravidel generátoru/Kantýny/Jídelny/Správců (E). U těchto bodů zůstává jen přesně uvedená fyzická mobilní, dvouzařízení nebo řízená owner akceptace; nové duplicitní úkoly se nezakládají.
+- **✅ Implementace hotová a automaticky doložená:** v administraci Rozpisů se už nezobrazuje blok „Místní neuložené návrhy rozpisů“; bezpečné mazací/recovery API zůstalo zachované. Stejně tak je hotový kompaktní přehled strojů s výchozím rozbalením a popisky `tnk`, `w01`, `w02` (uložené klíče se nemění).
+- **⏳ Nově zapsané budoucí úkoly:** administrační mazací „×“ u kalendáře (viz B), jednodenní generátor neplánované absence s přepočtem jen dotčených dnů (viz C) a datum + směna v titulku WhatsApp reportu (viz G).
+
 ### A. Lokální start a dostupnost aplikace · P2.1 / P2.3
 
 **Stav v aktuálním 1.7.88 (základ implementován v 1.7.84):** runtime část je implementovaná a vydaná do TEST preview: ověřená lokální Rotace se načítá před vzdáleným syncem, Dashboard může vykreslit směnu okamžitě a měří se první použitelný render. Automatické Chromium důkazy jsou PASS. Zbývá cílený fyzický iPhone test studeného, teplého a offline startu; do něj se P2.1 procento nemění.
@@ -578,6 +584,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 - U každé směny umožnit přiřadit jeden nebo více Google kalendářů. Dashboard po klepnutí na kalendář otevře jen kalendář či výběr kalendářů určený pro směnu přihlášeného člověka.
 - Pracovníci vedení v rozpisu dědí směnu z rozpisu; účty mimo rozpis dostanou explicitně nastavitelnou směnu. Výchozí provozní pravidlo pro skupinu pracovníků se musí nastavit v administraci, ne natvrdo podle osobních identifikátorů.
 - Odkazy musí mít validační allowlist a nesmějí se objevit v soukromých logách, exportech nebo cache mimo určený veřejný konfigurační rozsah.
+- V administračním editoru kalendářů vystředit znak `×` uvnitř jeho ohraničeného tlačítka pro odebrání; zachovat minimální dotykovou plochu, přístupný popisek a přidat vizuální regresi pro mobilní šířku.
 
 ### C. Rotace, rozpisy a absence · P2.2 / P2.3
 
@@ -588,6 +595,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 - Přehled jmen a skupin strojů ponechat ve výchozím stavu rozbalený a zúžit sloupce pro mobil; v tomto přehledu používat kompaktní popisky `tnkso1 → tnk`, `tpkw01 → w01`, `tpkw02 → w02`, aniž se změní uložené klíče strojů.
 - Kliknutí na obsazené jméno má nabídnout stabilní a zřetelnou akci odebrání. Kliknutí na prázdné místo má nabídnout jen osoby, které daný den nejsou ani v rozpisu, ani v absenci; nabídka nesmí odskakovat mimo cílovou buňku.
 - U absence má datum přednostně nabízet dny s chybějícím člověkem bez záznamu absence a jméno osoby chybějící ve zvoleném dni. Datum i jméno musí zůstat ručně editovatelné a serverová validace musí odmítnout nekonzistentní zápis.
+- Přidat Administrace → Rozpisy → **Neplánovaná změna (generátor)**: kliknutí na osobu v konkrétním dni otevře formulář s předvyplněným, ale editovatelným datem, jménem, důvodem absence a rozsahem od–do. Uložení musí zapsat absenci a přegenerovat pouze zadaný den/dny podle aktuálních pravidel a vyvážení; ostatní dny, fronta a recovery zůstanou nedotčené. Přidat serverovou validaci, idempotenci a regresní testy pro částečný přepočet.
 
 ### D. Účty, pracovníci, správci a relace · P0.1 / P0.4 / P1.2 / P2.2
 
@@ -632,6 +640,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 - Opravit skloňování odpočtu na „do Vánoc“.
 - Vynucený portrétní režim má při otočení telefonu zobrazit animovaného raka z přihlašovací obrazovky místo současné statické výzvy; respektovat omezení pohybu a nezvětšit kritický start.
 - V Reportu směny opravit pravý okraj rámečku pole data, který zasahuje do nastavení směny, a přidat vizuální regresi pro mobilní šířku.
+- Při sdílení reportu směny přes WhatsApp nastavit titul obrázku na `RaK – Report směny diferenciály · <datum> · směna <R/N…>` podle právě zvoleného reportu; datum i směna musí pocházet z formuláře a mít regresní test, aby se nevracel statický titul bez kontextu.
 
 ### H. Úplná záloha RaK · P1.5 / P0.3
 
