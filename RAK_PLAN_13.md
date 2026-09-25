@@ -37,7 +37,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Aktuální ověřený provozní stav k 25. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.104`: první funkční commit `c3914ec9f2c5d264c7118d1bceffb8c7339c5477`, následný inherited-gate commit `3dd674ce8730e4180444a6b9c87c4271d412b044` a přesný zelený/nasazený SHA `11a0fcf4fee1940e0d452205ffec918a196b2709`. Release vznikl z fyzického iPhone retestu 1.7.103: v Nastavení korekcí rozšířil `+/−` na všechna podepsaná pole Frézek a Brusů a Report směny převedl z nativně vykreslovaného iOS date rámečku na vlastní viditelný 124px shell s průhledným nativním pickerem. CAS/revize 1.7.102 i opravy 1.7.103 zůstávají zachované.
+- Poslední ověřený **funkční** development release je `1.7.104`: funkční základ je `c3914ec9f2c5d264c7118d1bceffb8c7339c5477`; přesný současný zelený a nasazený test-only následník je `0d807337dac50d610fad83b80ee35697d2f1c3d6`. Runtime se od funkčního 1.7.104 nezměnil. Následníky po fyzickém PASS přidaly přímou UI regresní paritu proti immutable 1.7.69 a přesnou CDP mobilní emulaci, nikoli novou funkci aplikace.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_EXHQZaxfG62MWEG3FjhP7YQkBPQL`, READY / SHA `11a0fcf4fee1940e0d452205ffec918a196b2709`. Přesný nasazený SHA prošel [Actions #337](https://github.com/martinspadrna/RaK/actions/runs/36136733748) SUCCESS včetně dvou kanonických buildů, celého `npm run check`, zděděných/current gate testů, rollback/ZIP/CRC, reálného Chromium online→offline→online, benchmarků, TEST HTTP i release-preview. Chromium pro Report naměřilo datum 124 px, pravý okraj 1 px a mezeru 10 px; šest nových admin `+/−` má 48×44 px. Release evidence `rak-release-evidence-11a0fcf4fee1940e0d452205ffec918a196b2709` má artefakt ID `10864886914`, SHA-256 `168c7f1c86b09212551f85be359f73a4e2f1f5f092f605fabe0039c2d3835b57`; isolated-build artefakt `rak-170104-isolated-build-11a0fcf4fee1940e0d452205ffec918a196b2709` má ID `10865376838`, SHA-256 `a2e30be570ea33e40a6376a345804924846eb366551ce2cd3323837c9d8aef66`. Rollback cíl je předchozí READY development deployment `dpl_4vZqwVaxksuVXivat1qSzkmFvCk8` / SHA `6aaa7c7b43c8b7b15f0e4151fcbe6a528de7cc92`.
+- Stabilní development alias nyní ukazuje na `dpl_fGQpgVSDZw8bYJCKSmRUn9AzzUVQ`, READY / SHA `0d807337dac50d610fad83b80ee35697d2f1c3d6`. [Actions #342](https://github.com/martinspadrna/RaK/actions/runs/36141187662) je SUCCESS. Nová P2.2 brána čte referenční `index.html` přímo z immutable SHA 1.7.69 (`1693c8631c13d6e381e44a96810a55140ad6aa62`, blob `430afd4c122fc5648224e1ca11077d99ca57c1be`), porovnává kritické page-rooty a mapování spodní navigace se současným kanonickým buildem a v reálném Chromium přes CDP vynucuje přesné mobilní viewporty 390×844 a 430×932. Na 390 px byly všechny kritické rooty 366 px široké s `docWidth=390`, navigace 380 px; na 430 px rooty 406 px s `docWidth=430`, navigace 416 px. Bez horizontálního overflow a všechny čtyři nav cíle byly viditelné. Release evidence `rak-release-evidence-0d807337dac50d610fad83b80ee35697d2f1c3d6` má ID `10867020777`, SHA-256 `9b2eb7a8483f2ed98957a9ac9e0ceba21e7e80a9a082287fff5500f9a4f9212e`; isolated build ID `10867215287`, SHA-256 `6675a355e1181dc6e2f541abc46d05fbbc21e1324b1725affdf6267cad4d54a0`. Produkce ani `main` se nezměnily.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -69,8 +69,8 @@ Vlastník ukončuje toto vlákno kvůli příliš pomalému průběhu a chce pok
 
 ### Přesný bod předání
 - aktuální ověřený runtime je **RaK 1.7.104**;
-- přesný zelený a nasazený SHA: `11a0fcf4fee1940e0d452205ffec918a196b2709`; funkční základ balíku je `c3914ec9f2c5d264c7118d1bceffb8c7339c5477`;
-- [Actions #337](https://github.com/martinspadrna/RaK/actions/runs/36136733748) je SUCCESS, development Vercel `dpl_EXHQZaxfG62MWEG3FjhP7YQkBPQL` je READY;
+- přesný zelený a nasazený test-only SHA: `0d807337dac50d610fad83b80ee35697d2f1c3d6`; funkční základ balíku zůstává `c3914ec9f2c5d264c7118d1bceffb8c7339c5477`;
+- [Actions #342](https://github.com/martinspadrna/RaK/actions/runs/36141187662) je SUCCESS, development Vercel `dpl_fGQpgVSDZw8bYJCKSmRUn9AzzUVQ` je READY;
 - metadata stabilního development aliasu jsou `1.7.104` / cache `v1.7.104` / build `v1.7.104-iphone-retest2`;
 - TEST Supabase `cgshssdjgzzuprlwnabl` zůstává oddělená; produkční Supabase `bkqamcbkiwumsvelahxr` se nesmí měnit bez nového výslovného souhlasu;
 - GitHub `main` je `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, ale produkční Vercel stále běží na dříve schváleném SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat ani automaticky „dorovnávat“;
@@ -101,11 +101,11 @@ Zelená **1.7.100** na SHA `ae6719947736dbdd678a411ba7420a3d7a906693`, Actions #
 
 ### Doporučené pořadí pro nový chat
 1. Znovu zjistit živý SHA `development`; dokumentační následník po 1.7.104 nesmí být zaměněn za nový runtime.
-2. Ověřit, že stabilní development alias stále běží na 1.7.104 / SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` a produkce zůstala nedotčená.
+2. Ověřit, že stabilní development alias stále běží na 1.7.104 / test-only SHA `0d807337dac50d610fad83b80ee35697d2f1c3d6` a produkce zůstala nedotčená.
 3. iPhone regresní balík 1.7.103/1.7.104 je fyzicky uzavřený: picker, OS sloupec, kalkulačka, landscape, kompletní admin `+/−` i Report datum jsou PASS.
 4. U P1.5 zbývá jen doložit, zda byl nabídnutý 23,3MB ZIP úplné zálohy skutečně stažen a otevřen; bez tohoto potvrzení checkbox ani 43 % neměnit.
 5. Konfliktní workflow 1.7.101 testovat pouze při skutečném zadrženém konfliktu. CAS 1.7.102 testovat jen bezpečným dvouzařízení scénářem.
-6. P2.2 dál zůstává 40 %, protože jeho otevřené checkboxy jsou širší než tyto dva právě potvrzené prvky: kompletní screenshotový průchod světlý/tmavý režim + safe-area/klávesnice/spodní navigace/editace/export, role owner/admin/deputy/user a stabilní před/po regresní porovnání.
+6. P2.2 je **60 % (3/5)**: stabilní před/po regresní porovnání je uzavřené Actions #342. Zbývá kompletní fyzický screenshotový průchod světlý/tmavý režim + safe-area/klávesnice/spodní navigace/editace/export a proklik rolí owner/admin/deputy/user.
 
 ## Stav fyzické přejímky a fáze B
 
@@ -142,7 +142,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 
 **Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Při založení šlo o změnu plánu, nikoli dokončenou opravu aplikace; aktuální produkční stav je vždy uveden v následujícím odstavci a v nejnovějším záznamu aktualizací. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
 
-**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime je 1.7.104 na přesném zeleném/nasazeném SHA `11a0fcf4fee1940e0d452205ffec918a196b2709`; [Actions #337](https://github.com/martinspadrna/RaK/actions/runs/36136733748) SUCCESS a Vercel `dpl_EXHQZaxfG62MWEG3FjhP7YQkBPQL` READY. Stabilní development alias vrací metadata 1.7.104 / `v1.7.104` / build `v1.7.104-iphone-retest2` a TEST Supabase. Produkční GitHub/Vercel/Supabase stav zůstal beze změny. Fyzický iPhone retest 1.7.104 dne 25. 9. 2026 potvrdil oba poslední regresní body: kompletní `+/−` v Nastavení korekcí i správný celý rámeček/funkci data Reportu. Konkrétní iPhone-regresní balík 1.7.103/1.7.104 je tím uzavřen. P1.5 zůstává 43 % do potvrzení skutečného otevření 23,3MB ZIPu; P2.2 zůstává 40 % kvůli širším otevřeným UI/role/export checkboxům; P2.3 zůstává 63 % kvůli skutečnému konfliktnímu workflow a dvouzařízení CAS.
+**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime zůstává 1.7.104; přesný zelený a nasazený test-only SHA je `0d807337dac50d610fad83b80ee35697d2f1c3d6`, [Actions #342](https://github.com/martinspadrna/RaK/actions/runs/36141187662) SUCCESS a Vercel `dpl_fGQpgVSDZw8bYJCKSmRUn9AzzUVQ` READY. Stabilní alias vrací metadata 1.7.104 / `v1.7.104` / build `v1.7.104-iphone-retest2` a TEST Supabase `cgshssdjgzzuprlwnabl`. Produkční GitHub/Vercel/Supabase stav zůstal beze změny. P2.2 je nově 60 % (3/5) díky přímé UI paritě proti 1.7.69 a přesné mobilní CDP emulaci; P1.5 zůstává 43 % do pozdějšího otevření 23,3MB ZIPu a P2.3 63 % do skutečného konfliktního/dvouzařízení scénáře.
 
 ## 0. Jak budeme počítat a aktualizovat procenta
 
@@ -166,7 +166,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
 | P2.1 | Výkon startu PWA | **20 % (1/5)** | Otevřeno |
-| P2.2 | Rozložení, DOM, CSS a interakce | **40 % (2/5)** | Otevřeno |
+| P2.2 | Rozložení, DOM, CSS a interakce | **60 % (3/5)** | Otevřeno |
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **33 % (2/6)** | Otevřeno |
 
@@ -315,15 +315,15 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** opakovatelné měření a nepřekročené prahy na reálném telefonu i CI.
 
-### P2.2 – Rozložení, CSS, DOM a interakce · **40 % (2/5)**
+### P2.2 – Rozložení, CSS, DOM a interakce · **60 % (3/5)**
 
 - [x] Chromium ověřuje Home, navigaci, mobilní viewport a offline návrat.
 - [x] Existují regresní kontroly geometrie TO/MO, absence a přetečení pro emulované rozměry.
 - [ ] Reálné iPhone screenshoty světlého/tmavého režimu, safe-area, klávesnice, spodní navigace, editace tabulek a exportu.
 - [ ] Proklik rolí owner/admin/deputy/běžný uživatel; ověřit DOM události a skutečné interakce, ne jen přítomnost textu v HTML.
-- [ ] Porovnat před/po migraci kritické obrazovky a přidat stabilní regresní testy bez křehkých textových výřezů.
+- [x] Porovnat před/po migraci kritické obrazovky a přidat stabilní regresní testy bez křehkých textových výřezů.
 
-**Důkaz 1.7.103/1.7.104 bez změny procenta:** fyzický iPhone retest 1.7.103 potvrdil picker Rozpisů, širší OS sloupec, landscape a `+/−` v kalkulačce; 1.7.104 dne 25. 9. 2026 následně fyzicky potvrdila i kompletní znaménka v Nastavení korekcí a správný celý rámeček/funkci data Reportu. Reálný Chromium na přesném SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` zároveň naměřil datum 124 px, pravý okraj 1 px, mezeru 10 px, nulové překrytí a šest admin znamének 48×44 px. Konkrétní regresní balík je uzavřený, ale široké P2.2 checkboxy zahrnují další obrazovky, role, safe-area/klávesnici, editaci/export a před/po porovnání, proto P2.2 poctivě zůstává 40 % (2/5).
+**Důkaz P2.2 po 1.7.104:** fyzický iPhone retest uzavřel konkrétní regresní balík picker/OS/landscape/kalkulačka/admin korekce/Report. Test-only následníky `5f1d97d6481ba2bfdb3518980f75f109afe69466` → `6d5c0a3b55a5e2084ddd7ea4b3f461491ed146c4` → `0d807337dac50d610fad83b80ee35697d2f1c3d6` doplnily stabilní před/po UI paritu bez screenshotových pixelů a českých textových výřezů. CI čte baseline přímo přes `git show` z immutable 1.7.69, ověřuje stejné kritické page-rooty a semantické mapování spodní navigace a následně měří současný kanonický shell přes CDP na přesných 390×844 a 430×932. Actions #342 prošel bez horizontálního overflow na všech osmi kritických rootech; tím je třetí checkbox doložen a P2.2 se zvyšuje na **60 % (3/5)**. Otevřené zůstávají pouze kompletní fyzický screenshotový průchod a role owner/admin/deputy/běžný uživatel.
 
 **Dokončení:** žádné kritické překryvy, uříznutá tlačítka či nefunkční akce na fyzickém iPhonu.
 
