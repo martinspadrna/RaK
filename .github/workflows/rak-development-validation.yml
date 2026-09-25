@@ -71,10 +71,10 @@ jobs:
       - name: Verify source backup ZIP inventory, excluded files and CRC
         working-directory: .rak-canonical-build/work
         run: node tools/backup-source-integrity-17051.mjs
-      - name: Real Chromium mobile start, offline restart and online recovery
+      - name: Real Chromium mobile offline, slow network and service-worker update recovery
         working-directory: .rak-canonical-build/work
         run: |
-          node --test tools/pwa-offline-17052.test.mjs
+          node --test tools/pwa-offline-17052.test.mjs tools/network-resilience-17104.test.mjs
           node tools/browser-offline-17052.mjs
           node tools/browser-absence-layout-17061.mjs
           node tools/browser-soft-grid-17066.mjs

@@ -19,6 +19,9 @@ const expected=RELEASE_METADATA.displayVersion;
 assert(/^1\.7\.\d+$/.test(expected),'[17052-browser] expected release missing from metadata');
 assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'[17052-browser] preview must use TEST database');
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml','.jpg':'image/jpeg','.woff2':'font/woff2','.ico':'image/x-icon'};
+const NETWORK_BUDGET=JSON.parse(fs.readFileSync(path.join(ROOT,'tools/network-resilience-17104.json'),'utf8'));
+assert.equal(NETWORK_BUDGET.schema,'rak-network-resilience-budget-v1');
+let ciSwGeneration=0;
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);}catch{res.writeHead(400);res.end();return;}
@@ -29,6 +32,10 @@ const server=http.createServer((req,res)=>{
   if(error||!stat.isFile()){res.writeHead(404);res.end();return;}
   res.writeHead(200,{'content-type':mime[path.extname(filename)]||'application/octet-stream','cache-control':'public,max-age=60','service-worker-allowed':'/'});
   if(req.method==='HEAD'){res.end();return;}
+  if(pathname==='/sw.js'){
+   const worker=fs.readFileSync(filename,'utf8')+'\n// RAK_CI_SW_GENERATION='+ciSwGeneration+'\n';
+   res.end(worker);return;
+  }
   fs.createReadStream(filename).pipe(res);
  });
 });
@@ -61,7 +68,9 @@ async function boot(label,expectedRelease){
  assert.match(data.title,/Rotace a Kalkulačky/);assert.equal(data.version,expectedRelease,'[17052-browser] unexpected release');
  assert(data.home&&data.nav,'[17052-browser] mobile shell/nav missing');
  assert(data.docWidth<=data.width+4,`[17052-browser] horizontal overflow ${data.docWidth} > ${data.width}`);
- console.log(`[17052-browser] ${label} PASS ${Date.now()-start}ms viewport=${data.width} document=${data.docWidth} SW=${data.controller}`);
+ const elapsedMs=Date.now()-start;
+ data.elapsedMs=elapsedMs;
+ console.log(`[17052-browser] ${label} PASS ${elapsedMs}ms viewport=${data.width} document=${data.docWidth} SW=${data.controller}`);
  return data;
 }
 try{
@@ -101,10 +110,10 @@ try{
  await Promise.all([send('Page.enable'),send('Runtime.enable'),send('Network.enable')]);
  // All remote HTTPS is blocked before navigation; synthetic anonymous tests only.
  await send('Fetch.enable',{patterns:[{urlPattern:'https://*',requestStage:'Request'}]});
- await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true});
+ await send('Emulation.setDeviceMetricsOverride',{width:NETWORK_BUDGET.profile.viewport.width,height:NETWORK_BUDGET.profile.viewport.height,deviceScaleFactor:NETWORK_BUDGET.profile.viewport.deviceScaleFactor,mobile:true});
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
  const navigation=await send('Page.navigate',{url:base});assert(!navigation.errorText,'[17052-browser] '+navigation.errorText);
- await boot('cold mobile',expected);
+ const cold=await boot('cold mobile',expected);
  await until('!!navigator.serviceWorker?.controller',30000);
  await until('!!window.__rotacePwaBootstrapped');
  await check("window.__rotaceRequestPwaCacheStatus?.('ci-mobile-offline') || false");
@@ -168,12 +177,16 @@ try{
  assert(offlineIcons.count>=12,'[17052-browser] dashboard/navigation icons were not rendered');
  assert.deepEqual(offlineIcons.broken,[],'[17052-browser] offline dashboard/navigation icons missing');
  assert.equal(httpFailures.length,before,'[17052-browser] offline shell/rotation caused HTTP errors');
+ assert(offline.elapsedMs<=NETWORK_BUDGET.hardMs.offlineStart,`[17052-network] offline start ${offline.elapsedMs}ms exceeds ${NETWORK_BUDGET.hardMs.offlineStart}ms`);
+ const reconnectStart=Date.now();
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await check(`(()=>{window.dispatchEvent(new Event('online'));return true})()`);
  await until('!!window.supabase?.createClient',20000);
+ const reconnectMs=Date.now()-reconnectStart;
+ assert(reconnectMs<=NETWORK_BUDGET.hardMs.reconnectWithoutReload,`[17052-network] reconnect ${reconnectMs}ms exceeds ${NETWORK_BUDGET.hardMs.reconnectWithoutReload}ms`);
  const reconnectWithoutReload=await check(`(()=>({sdk:!!window.supabase?.createClient,rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',marker:Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'))}))()`);
  assert.deepEqual(reconnectWithoutReload,{sdk:true,rotationReady:true,syncReady:true,scheduleModel:true,dashboard:true,marker:true},'[17052-browser] online recovery did not rehydrate Rotation-driven UI without reload');
- await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);
+ await send('Page.reload',{ignoreCache:false});const onlineRecovery=await boot('online recovery',expected);
  const recovered=await check(`(async()=>{
    await window.rakEnsureFeature('sync');
    await new Promise(resolve=>setTimeout(resolve,50));
@@ -182,9 +195,71 @@ try{
    return {conflictCount:Number(status.conflictCount||0),conflict:/Konflikt synchronizace/.test(String(status.label||'')),queueLength:queue.length};
  })()`);
  assert.deepEqual(recovered,{conflictCount:0,conflict:false,queueLength:0},'[17052-browser] online recovery created a false conflict');
+
+ // P2.1 network resilience: cached PWA under a bounded slow cellular profile.
+ const slow=NETWORK_BUDGET.profile.slowNetwork;
+ await send('Network.clearBrowserCache');
+ await send('Network.emulateNetworkConditions',{offline:false,latency:slow.latencyMs,downloadThroughput:slow.downloadBytesPerSec,uploadThroughput:slow.uploadBytesPerSec,connectionType:slow.connectionType});
+ await send('Page.reload',{ignoreCache:false});
+ const slowReload=await boot('slow cached reload',expected);
+ assert(slowReload.elapsedMs<=NETWORK_BUDGET.hardMs.slowCachedReload,`[17052-network] slow reload ${slowReload.elapsedMs}ms exceeds ${NETWORK_BUDGET.hardMs.slowCachedReload}ms`);
+ await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+
+ // P2.1 service-worker update: serve changed worker bytes, require waiting state,
+ // visible confirmation, then activate via the app's actual update button.
+ ciSwGeneration+=1;
+ const swWaitStart=Date.now();
+ const updateResult=await check(`(async()=>{
+   const registration=await navigator.serviceWorker.getRegistration('./');
+   if(!registration)return {ok:false,reason:'missing-registration'};
+   await registration.update();
+   return {ok:true};
+ })()`);
+ assert.equal(updateResult?.ok,true,'[17052-network] service-worker update() unavailable');
+ await until(`(async()=>{const r=await navigator.serviceWorker.getRegistration('./');return !!r?.waiting;})()`,NETWORK_BUDGET.hardMs.serviceWorkerWaiting);
+ const swWaitingMs=Date.now()-swWaitStart;
+ assert(swWaitingMs<=NETWORK_BUDGET.hardMs.serviceWorkerWaiting,`[17052-network] SW waiting ${swWaitingMs}ms exceeds budget`);
+ await until("!!document.querySelector('.rakUpdateToast .rakUpdateToastAction')",5000);
+ const swActivateStart=Date.now();
+ const clicked=await check(`(()=>{const b=document.querySelector('.rakUpdateToast .rakUpdateToastAction');if(!b)return false;b.click();return true;})()`);
+ assert.equal(clicked,true,'[17052-network] update confirmation button missing');
+ await until(`(async()=>{
+   const r=await navigator.serviceWorker.getRegistration('./');
+   return document.readyState==='complete' && !!navigator.serviceWorker.controller && !!r?.active && !r?.waiting && !r?.installing;
+ })()`,NETWORK_BUDGET.hardMs.serviceWorkerActivation);
+ const swActivationMs=Date.now()-swActivateStart;
+ assert(swActivationMs<=NETWORK_BUDGET.hardMs.serviceWorkerActivation,`[17052-network] SW activation ${swActivationMs}ms exceeds budget`);
+ const afterUpdate=await boot('service worker updated',expected);
+ assert(afterUpdate.controller,'[17052-network] controller missing after SW update');
+
+ const networkEvidence={
+   schema:'rak-pwa-network-resilience-v1',
+   result:'PASS',
+   sourceCommit:String(process.env.GITHUB_SHA||''),
+   release:expected,
+   profile:NETWORK_BUDGET.profile,
+   hardMs:NETWORK_BUDGET.hardMs,
+   measurementsMs:{
+     coldStart:cold.elapsedMs,
+     offlineStart:offline.elapsedMs,
+     reconnectWithoutReload:reconnectMs,
+     onlineRecovery:onlineRecovery.elapsedMs,
+     slowCachedReload:slowReload.elapsedMs,
+     serviceWorkerWaiting:swWaitingMs,
+     serviceWorkerActivation:swActivationMs,
+     postUpdateBoot:afterUpdate.elapsedMs
+   },
+   serviceWorker:{generation:ciSwGeneration,waitingObserved:true,confirmationObserved:true,activationObserved:true}
+ };
+ if(process.env.GITHUB_SHA)assert.equal(networkEvidence.sourceCommit,process.env.GITHUB_SHA,'[17052-network] evidence SHA mismatch');
+ const evidenceRoot=process.env.GITHUB_WORKSPACE?path.join(process.env.GITHUB_WORKSPACE,'.rak-canonical-build'):path.resolve(ROOT,'..');
+ fs.mkdirSync(evidenceRoot,{recursive:true});
+ fs.writeFileSync(path.join(evidenceRoot,'network-resilience.json'),JSON.stringify(networkEvidence,null,2)+'\n');
+ console.log('[17052-network] PASS '+JSON.stringify(networkEvidence));
+
  const severe=exceptions.filter(t=>!/NetworkError|Failed to fetch|fetch|Supabase|network|offline/i.test(t));
  assert(severe.length<=2,'[17052-browser] uncaught browser exceptions ('+severe.length+'/'+exceptions.length+'): '+severe.slice(0,5).join(' | '));
- console.log('[17052-browser] PASS mobile cold-start, canonical cached Rotation offline, semantic conflict-free recovery, cache version and viewport');
+ console.log('[17052-browser] PASS mobile cold-start, canonical cached Rotation offline, semantic conflict-free recovery, slow network, confirmed SW update, cache version and viewport');
 }catch(error){console.error('[17052-browser] FAIL '+error.stack);process.exitCode=1;
 }finally{
  for(const p of pending.values()){clearTimeout(p.timeout);p.reject(Error('Chrome closing'));}pending.clear();

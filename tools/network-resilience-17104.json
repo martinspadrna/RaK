@@ -1,0 +1,23 @@
+{
+  "schema": "rak-network-resilience-budget-v1",
+  "profile": {
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 3
+    },
+    "slowNetwork": {
+      "latencyMs": 350,
+      "downloadBytesPerSec": 256000,
+      "uploadBytesPerSec": 128000,
+      "connectionType": "cellular3g"
+    }
+  },
+  "hardMs": {
+    "offlineStart": 4000,
+    "reconnectWithoutReload": 3500,
+    "slowCachedReload": 8000,
+    "serviceWorkerWaiting": 15000,
+    "serviceWorkerActivation": 15000
+  }
+}
