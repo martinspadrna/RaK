@@ -65,7 +65,7 @@ Vlastník ukončuje toto vlákno kvůli příliš pomalému průběhu a chce pok
 - Fyzický retest 1.7.103 proběhl 25. 9. 2026. PASS: picker Rozpisů; OS sloupec +50 %; `+/−` v kalkulačce; landscape bez textu pouze se správným login rakem; úplná záloha došla až k nabídce stažení 23,3 MB. U zálohy nebylo výslovně potvrzeno otevření ZIPu.
 - PARTIAL/FAIL na 1.7.103: v Nastavení korekcí bylo `+/−` jen u části polí Frézek/Brusů; Report měl na skutečném iPhonu stále chybějící/oříznutý pravý okraj data.
 - Tyto dva nálezy opravuje zelená a nasazená **1.7.104**. Přesný zelený/nasazený SHA je `11a0fcf4fee1940e0d452205ffec918a196b2709`, Actions #337 SUCCESS, Vercel `dpl_EXHQZaxfG62MWEG3FjhP7YQkBPQL` READY.
-- Další bezprostřední krok je fyzický iPhone retest pouze bodů **3 a 5** na 1.7.104; již potvrzené picker/OS/landscape/kalkulačka ani cesta zálohy se bez nové regrese znovu neotvírají. Konfliktní workflow 1.7.101 a dvouzařízení CAS 1.7.102 se nadále testují jen při bezpečném přirozeném scénáři.
+- Fyzický iPhone retest 1.7.104 je nyní **PASS pro oba zbývající body**: kompletní `+/−` v Nastavení korekcí i celý rámeček/picker data v Reportu směny. Z iPhone-regresního balíku 1.7.103/1.7.104 už nezůstává otevřený žádný bod. Další otevřené fyzické kroky patří jiným oblastem: otevření staženého 23,3MB ZIPu úplné zálohy, případný skutečný konfliktní workflow 1.7.101 a bezpečný dvouzařízení CAS 1.7.102.
 
 ### Přesný bod předání
 - aktuální ověřený runtime je **RaK 1.7.104**;
@@ -102,10 +102,10 @@ Zelená **1.7.100** na SHA `ae6719947736dbdd678a411ba7420a3d7a906693`, Actions #
 ### Doporučené pořadí pro nový chat
 1. Znovu zjistit živý SHA `development`; dokumentační následník po 1.7.104 nesmí být zaměněn za nový runtime.
 2. Ověřit, že stabilní development alias stále běží na 1.7.104 / SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` a produkce zůstala nedotčená.
-3. Na fyzickém iPhonu retestovat Nastavení korekcí: Frézky musí mít `+/−` u obou hodnot před korekcí, obou změn ve stroji i obou výsledků po korekci; Brusy musí mít `+/−` u L/P hodnot ve všech třech fázích Před / Provedené / Po korekci.
-4. Retestovat Report směny: datum má mít celý viditelný 4stranný rámeček, pravý okraj nesmí být oříznutý, klepnutí musí otevřít nativní iOS datumový picker a po změně se musí zobrazené datum aktualizovat.
-5. PASS/FAIL zapsat jednotlivě do tohoto handoffu. Procenta měnit jen tehdy, když fyzický důkaz skutečně splní konkrétní checkbox.
-6. Konfliktní workflow 1.7.101 testovat pouze při skutečném zadrženém konfliktu. CAS 1.7.102 testovat jen bezpečným dvouzařízení scénářem.
+3. iPhone regresní balík 1.7.103/1.7.104 je fyzicky uzavřený: picker, OS sloupec, kalkulačka, landscape, kompletní admin `+/−` i Report datum jsou PASS.
+4. U P1.5 zbývá jen doložit, zda byl nabídnutý 23,3MB ZIP úplné zálohy skutečně stažen a otevřen; bez tohoto potvrzení checkbox ani 43 % neměnit.
+5. Konfliktní workflow 1.7.101 testovat pouze při skutečném zadrženém konfliktu. CAS 1.7.102 testovat jen bezpečným dvouzařízení scénářem.
+6. P2.2 dál zůstává 40 %, protože jeho otevřené checkboxy jsou širší než tyto dva právě potvrzené prvky: kompletní screenshotový průchod světlý/tmavý režim + safe-area/klávesnice/spodní navigace/editace/export, role owner/admin/deputy/user a stabilní před/po regresní porovnání.
 
 ## Stav fyzické přejímky a fáze B
 
@@ -115,7 +115,7 @@ RaK 1.7.82 prošla 23. 9. 2026 fyzickým iPhone testem bez mazání dat: online 
 
 **RaK 1.7.103 – fyzický retest proběhl 25. 9. 2026.** PASS: picker Rozpisů; OS sloupec +50 %; `+/−` v kalkulačce; landscape bez textu pouze se správným login rakem; úplná záloha došla k nabídce stažení 23,3 MB. PARTIAL/FAIL: v Nastavení korekcí bylo `+/−` jen u části polí Frézek a Brusů; Report směny měl na screenshotu stále chybějící/oříznutý pravý okraj data. U zálohy nebylo výslovně potvrzeno otevření staženého ZIPu, takže příslušný P1.5 checkbox zůstává otevřený.
 
-**RaK 1.7.104 – fyzický retest čeká pouze pro body 3 a 5.** Nastavení korekcí nyní generuje `+/−` pro všech šest Frézkových podepsaných polí a pro všechny L/P hodnoty Brusů ve fázích Před / Provedené / Po. Report používá vlastní viditelný 124px date shell s úplným rámečkem a průhledným nativním iOS date inputem jako klikací vrstvou. Automatický Chromium důkaz na SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` naměřil 124px datum, 1px pravý okraj, 10px mezeru a šest admin znamének 48×44 px; fyzický iPhone PASS však musí dodat vlastník.
+**RaK 1.7.104 – fyzický retest PASS 25. 9. 2026.** Vlastník potvrdil oba zbývající body: **1) Nastavení korekcí OK** – kompletní `+/−` u Frézek i Brusů; **2) Report směny OK** – datum má správný celý rámeček a fungující picker. Tím je konkrétní iPhone-regresní balík 1.7.103/1.7.104 fyzicky uzavřen. Automatický Chromium důkaz na SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` nadále dokládá 124px datum, 1px pravý okraj, 10px mezeru a šest admin znamének 48×44 px.
 
 Bod 1.7.101 se testuje jen při existenci skutečného zadrženého konfliktu: soukromě exportovat jednu položku, provést read-only kontrolu, potvrdit důsledek a ověřit, že se odstranila právě jedna lokální položka, server se nepřepsal a ostatní fronta zůstala. CAS 1.7.102 ověřit při bezpečném přirozeném dvouzařízení scénáři: obě zařízení načtou stejnou baseline, první uloží změnu a stale druhé uložení musí být odmítnuté s požadavkem na nové online načtení; novější serverová data se nesmějí tiše přepsat. Bez skutečného konfliktu nebo bezpečného dvouzařízení scénáře nevytvářet umělý destruktivní stav jen kvůli checkboxu.
 Dne 24. 9. 2026 vlastník výslovně potvrdil celý fyzický iPhone checklist verze 1.7.83: běžné přihlášení, owner/admin přihlášení a zařízení, Dashboard, Rotaci, „O aplikaci“ i restart instalované PWA bez mazání dat. Chromium výsledek se za tento fyzický test nevydává.
@@ -142,7 +142,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 
 **Výchozí audit: 21. 9. 2026.** Repo `martinspadrna/RaK`, výchozí `development` SHA `ae0ed9d5cacffbabe38486b171a8793ee281d6a4`, poslední ověřená funkční testovací verze `1.7.69` na commitu `1693c8631c13d6e381e44a96810a55140ad6aa62`; technická verze musí zůstat `1.7.0`. Při založení šlo o změnu plánu, nikoli dokončenou opravu aplikace; aktuální produkční stav je vždy uveden v následujícím odstavci a v nejnovějším záznamu aktualizací. Podrobné provedení stabilizace: [RAK_STABILIZATION_PLAN.md](RAK_STABILIZATION_PLAN.md); historický stav a důkazy: [RAK_PLAN_17068_STATUS.md](RAK_PLAN_17068_STATUS.md) a předchozí stavové soubory. Stabilizační milníky S1–S6 jsou podúkoly níže uvedených oblastí, **ne čtrnáctý bod**.
 
-**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime je 1.7.104 na přesném zeleném/nasazeném SHA `11a0fcf4fee1940e0d452205ffec918a196b2709`; [Actions #337](https://github.com/martinspadrna/RaK/actions/runs/36136733748) SUCCESS a Vercel `dpl_EXHQZaxfG62MWEG3FjhP7YQkBPQL` READY. Stabilní development alias vrací metadata 1.7.104 / `v1.7.104` / build `v1.7.104-iphone-retest2` a TEST Supabase. Produkční GitHub/Vercel/Supabase stav zůstal beze změny. Fyzický retest 1.7.103 uzavřel picker, OS sloupec, landscape a kalkulačkové znaménko; 1.7.104 čeká už jen na fyzické ověření kompletních znamének v Nastavení korekcí a nového rámečku data Reportu. P2.3 zůstává 63 % (5/8) kvůli samostatně otevřenému skutečnému konfliktnímu workflow a dvouzařízení CAS.
+**Aktuální online stav k 25. 9. 2026:** nejnovější TEST runtime je 1.7.104 na přesném zeleném/nasazeném SHA `11a0fcf4fee1940e0d452205ffec918a196b2709`; [Actions #337](https://github.com/martinspadrna/RaK/actions/runs/36136733748) SUCCESS a Vercel `dpl_EXHQZaxfG62MWEG3FjhP7YQkBPQL` READY. Stabilní development alias vrací metadata 1.7.104 / `v1.7.104` / build `v1.7.104-iphone-retest2` a TEST Supabase. Produkční GitHub/Vercel/Supabase stav zůstal beze změny. Fyzický iPhone retest 1.7.104 dne 25. 9. 2026 potvrdil oba poslední regresní body: kompletní `+/−` v Nastavení korekcí i správný celý rámeček/funkci data Reportu. Konkrétní iPhone-regresní balík 1.7.103/1.7.104 je tím uzavřen. P1.5 zůstává 43 % do potvrzení skutečného otevření 23,3MB ZIPu; P2.2 zůstává 40 % kvůli širším otevřeným UI/role/export checkboxům; P2.3 zůstává 63 % kvůli skutečnému konfliktnímu workflow a dvouzařízení CAS.
 
 ## 0. Jak budeme počítat a aktualizovat procenta
 
@@ -323,7 +323,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [ ] Proklik rolí owner/admin/deputy/běžný uživatel; ověřit DOM události a skutečné interakce, ne jen přítomnost textu v HTML.
 - [ ] Porovnat před/po migraci kritické obrazovky a přidat stabilní regresní testy bez křehkých textových výřezů.
 
-**Důkaz 1.7.103/1.7.104 bez změny procenta:** fyzický iPhone retest 1.7.103 potvrdil picker Rozpisů, širší OS sloupec, landscape a `+/−` v kalkulačce, ale odhalil neúplná znaménka v Nastavení korekcí a oříznutý pravý okraj data Reportu. 1.7.104 tyto dvě konkrétní vady opravuje; reálný Chromium na přesném SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` naměřil datum 124 px, pravý okraj 1 px, mezeru 10 px, nulové překrytí a šest admin znamének 48×44 px. Fyzický iPhone PASS bodů 3 a 5 ale ještě chybí a široké P2.2 checkboxy zahrnují další obrazovky/role, proto P2.2 zůstává 40 % (2/5).
+**Důkaz 1.7.103/1.7.104 bez změny procenta:** fyzický iPhone retest 1.7.103 potvrdil picker Rozpisů, širší OS sloupec, landscape a `+/−` v kalkulačce; 1.7.104 dne 25. 9. 2026 následně fyzicky potvrdila i kompletní znaménka v Nastavení korekcí a správný celý rámeček/funkci data Reportu. Reálný Chromium na přesném SHA `11a0fcf4fee1940e0d452205ffec918a196b2709` zároveň naměřil datum 124 px, pravý okraj 1 px, mezeru 10 px, nulové překrytí a šest admin znamének 48×44 px. Konkrétní regresní balík je uzavřený, ale široké P2.2 checkboxy zahrnují další obrazovky, role, safe-area/klávesnici, editaci/export a před/po porovnání, proto P2.2 poctivě zůstává 40 % (2/5).
 
 **Dokončení:** žádné kritické překryvy, uříznutá tlačítka či nefunkční akce na fyzickém iPhonu.
 
