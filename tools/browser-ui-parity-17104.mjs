@@ -98,6 +98,16 @@ try{
   throw new Error(String(err&&err.message||err)+'\n'+stderr);
 }finally{
   if(cdp)cdp.close();
-  if(proc&&!proc.killed)proc.kill('SIGTERM');
-  fs.rmSync(tmp,{recursive:true,force:true});
+  if(proc&&proc.exitCode===null){
+    proc.kill('SIGTERM');
+    await Promise.race([
+      new Promise(resolve=>proc.once('exit',resolve)),
+      sleep(1200).then(()=>{if(proc.exitCode===null)proc.kill('SIGKILL');})
+    ]);
+  }
+  let removed=false;
+  for(let attempt=0;attempt<5&&!removed;attempt++){
+    try{fs.rmSync(tmp,{recursive:true,force:true,maxRetries:3,retryDelay:100});removed=true;}
+    catch(err){if(attempt===4)throw err;await sleep(150);}
+  }
 }
