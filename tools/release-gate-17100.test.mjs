@@ -46,5 +46,5 @@ test('npm check retains 1.7.100 while CI runs the current successor gate',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const pkg=JSON.parse(read('package.json'));
   assert(pkg.scripts.check.includes('tools/release-gate-17100.test.mjs'));
-  assert(workflow.includes('node --test tools/release-gate-17101.test.mjs'));
+  assert(/node --test tools\/release-gate-1710[1-9]\.test\.mjs/.test(workflow));
 });

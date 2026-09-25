@@ -58,12 +58,14 @@ test('calendar settings have their own admin page and preserve the legacy D cale
   assert(nav.includes("const links = { calendar: current.links.calendar };"));
 });
 
-test('shift calendar settings use the existing authenticated machine-settings RPC path',()=>{
+test('shift calendar settings remain on the authenticated machine-settings RPC path in successors',()=>{
   const bridge=read('supabase-bridge.js');
   assert(bridge.includes("category === 'shift_calendar_settings'"));
   assert(bridge.includes("key === 'SHIFT_CALENDAR_SETTINGS'"));
-  assert(bridge.includes("rpc('rak_admin_save_machine_settings_v2'"));
+  assert(bridge.includes("rpc('rak_admin_save_machine_settings_v3'"));
+  assert(bridge.includes('p_expected_revision: state.machineSettingsRevision'));
   assert(bridge.includes("if (!hasSecureAdminContext()) throw new Error('admin authentication required')"));
+  assert(!bridge.includes("rpc('rak_admin_save_machine_settings_v2'"));
 });
 
 test('npm check retains the 1.7.86 milestone while CI runs the current release gate',()=>{
