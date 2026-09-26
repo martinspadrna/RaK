@@ -1,3 +1,11 @@
+## RaK 1.7.111 (development)
+
+- WhatsApp report: automatický text je zkrácen na `RaK – Report směny diferenciály · <datum> · <Ranní/Noční/Ranní 8 h/Noční 8 h>`; nadbytečné slovo `směna` před názvem směny je pryč.
+- Administrace → Rozpisy → Neplánovaná změna: kliknutí na obsazené jméno nabízí nový formulář s předvyplněným pracovníkem a dnem, editovatelným důvodem a rozsahem Od–Do. Generátor vytvoří celý výpočet pouze jako pracovní podklad, do výsledku ale splice-ne výhradně zvolené dny; explicitní izolace odmítne jakoukoli změnu jiného dne.
+- Neplánovaná změna se ukládá jen online přes nový TEST RPC `rak_admin_apply_unplanned_absence_v1`: stávající admin auth, CAS revize, automatická záloha, serverová diff allowlist validace a 30denní idempotence podle operation UUID. Lokální queue/recovery cesta se nepoužívá. Živý rollback test TEST DB prokázal první zápis právě jednou, bezpečný identický retry a odmítnutí reuse stejného operation ID s jiným požadavkem.
+- P2.4: runtime má pevně kategorizovanou diagnostiku zamítnutých operací bez raw message/payloadu/JWT. Uživatelsky spuštěný TEST Auth probe po kryptografickém ověření skutečného tokenu provede i záměrně neplatný rotation RPC s polem místo objektu; server ho odmítne před zápisem a klient ověří jen sanitizovanou kategorii `invalid-request`.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.110 (development)
 
 - WhatsApp report: předvyplněná zpráva už nepoužívá interní kódy směny `R / N / R8 / N8`, ale čitelné české názvy `Ranní / Noční / Ranní 8 h / Noční 8 h`.

@@ -24,7 +24,7 @@ for (const [label, source] of [['helper', helper], ['live runtime', runtime]]) {
   assert(source.includes('const model = collectModel(root);'), label + ': WhatsApp caption must read the current report form model');
   assert(source.includes("const shift = ['N', 'R', 'N8', 'R8'].includes(rawShift) ? shiftLabel(rawShift) : '—';"), label + ': WhatsApp caption must translate shift code to a human label');
   assert(source.includes("return ({ N: 'Noční', R: 'Ranní', N8: 'Noční 8 h', R8: 'Ranní 8 h' })"), label + ': human shift labels missing');
-  assert(source.includes("return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;"), label + ': WhatsApp caption must contain selected date and human-readable shift');
+  assert(source.includes("return 'RaK – Report směny diferenciály · ' + date + ' · ' + shift;"), label + ': WhatsApp caption must contain selected date and human-readable shift');
   assert(source.includes('const caption = shiftReportShareTitle(root);'), label + ': image share must build one contextual caption');
   assert(source.includes('navigator.share({ title: caption, text: caption, files: [file] })'), label + ': image share must pass contextual text with the PNG');
   assert(!source.includes("navigator.share({ title: 'RaK – Report směny diferenciály', files: [file] })"), label + ': stale static WhatsApp message must not remain');

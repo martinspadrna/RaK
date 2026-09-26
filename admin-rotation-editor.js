@@ -1381,13 +1381,21 @@ function adminShowRotationQuickRemove(input) {
       box = document.createElement('div');
       box.id = 'adminRotationQuickRemove';
       box.className = 'adminRotationQuickRemove';
-      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button>';
+      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><div class="adminRotationQuickRemoveActions"><button type="button" class="adminRotationQuickUnplannedBtn">Neplánovaná změna</button><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button></div>';
       document.body.appendChild(box);
       box.addEventListener('click', (ev) => {
-        const btn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickRemoveBtn') : null;
-        if (!btn) return;
+        const unplannedBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickUnplannedBtn') : null;
+        const removeBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickRemoveBtn') : null;
+        if (!unplannedBtn && !removeBtn) return;
         ev.preventDefault();
         const target = window.__rakAdminRotationQuickRemoveInput;
+        if (unplannedBtn) {
+          if (target && target.isConnected && target.matches('[data-rot-field^="cell-"]') && typeof adminOpenUnplannedChangeDialog === 'function') {
+            adminCloseRotationQuickRemove();
+            adminOpenUnplannedChangeDialog(target);
+          }
+          return;
+        }
         if (target && target.isConnected) {
           target.value = '';
           target.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1401,13 +1409,16 @@ function adminShowRotationQuickRemove(input) {
     window.__rakAdminRotationQuickRemoveShownAt = Date.now();
     const txt = box.querySelector('.adminRotationQuickRemoveText');
     if (txt) txt.textContent = 'Jméno: ' + value;
+    const unplannedBtn = box.querySelector('.adminRotationQuickUnplannedBtn');
+    if (unplannedBtn) unplannedBtn.hidden = !input.matches('[data-rot-field^="cell-"]');
     const rect = input.getBoundingClientRect();
     const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
     const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
-    const pickerHeight = 48;
+    const pickerHeight = input.matches('[data-rot-field^="cell-"]') ? 86 : 48;
     let top = Math.round(rect.bottom + 6);
     if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
-    const left = Math.max(8, Math.min(vw - 196, Math.round(rect.left + (rect.width / 2) - 94)));
+    const pickerWidth = input.matches('[data-rot-field^="cell-"]') ? 230 : 196;
+    const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
     box.style.top = String(top) + 'px';
     box.style.left = String(left) + 'px';
     box.classList.add('isVisible');

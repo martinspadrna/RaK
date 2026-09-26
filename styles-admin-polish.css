@@ -2481,3 +2481,59 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
     margin:0 !important;
   }
 }
+
+
+/* RaK 1.7.111 – Neplánovaná změna: stabilní mobilní quick menu + izolovaný formulář. */
+.adminRotationQuickRemove{
+  min-width:214px !important;
+  max-width:calc(100vw - 16px) !important;
+}
+.adminRotationQuickRemoveActions{
+  display:flex !important;
+  gap:6px !important;
+  margin-top:5px !important;
+}
+.adminRotationQuickRemoveActions button{
+  min-height:34px !important;
+  border-radius:10px !important;
+  white-space:nowrap !important;
+}
+.adminUnplannedChangeOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:2147483647 !important;
+  display:grid !important;
+  place-items:center !important;
+  padding:12px !important;
+  background:rgba(0,0,0,.68) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.adminUnplannedChangeDialog{
+  width:min(430px,100%) !important;
+  max-height:min(720px,calc(100dvh - 24px)) !important;
+  overflow:auto !important;
+  display:grid !important;
+  gap:12px !important;
+  padding:18px !important;
+  border-radius:24px !important;
+  background:var(--surface,#17191c) !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  box-shadow:0 24px 70px rgba(0,0,0,.45) !important;
+}
+.adminUnplannedRange{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:10px !important;
+  min-width:0 !important;
+}
+.adminUnplannedChangeDialog .appMenuFieldLabel{
+  display:grid !important;
+  gap:6px !important;
+  min-width:0 !important;
+}
+.adminUnplannedChangeDialog .appMenuSelect,
+.adminUnplannedChangeDialog .appMenuInput{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}

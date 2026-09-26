@@ -149,6 +149,7 @@ function renderAdminMenuBody(body, section) {
     '  <div class="appMenuCardTitle">Rozpisy</div>',
     '  <div class="appMenuText">',
     '    <div>Vyber měsíc, nejdřív doplň absence / svátek / odstávku a až potom vygeneruj návrh. Změny jdou online až po kliknutí na Uložit rozpis.</div>',
+    '    <div class="smallText">Pro nečekanou absenci klikni přímo na jméno v konkrétním dni a zvol Neplánovaná změna.</div>',
     '    <div class="smallText" id="adminOnlineSaveStatus">Před generováním zkontroluj absence a dny měsíce. Stav uložení se zobrazí po kliknutí na Uložit rozpis.</div>',
     '  </div>',
     renderAdminMonthPickerHtml(monthKey),
@@ -691,6 +692,28 @@ async function rakRunLiveAuthDiagnostic() {
       return;
     }
     await adminResponse.body?.cancel();
+
+    // Deliberately invalid signed write: array payload is rejected before any rotation mutation.
+    const rejectedWriteResponse = await probe('/rest/v1/rpc/rak_admin_save_rotation_v2', 'POST', {
+      p_key: 'main',
+      p_payload: [],
+      p_meta: { source: 'live-auth-diagnostic-reject' },
+      p_expected_revision: null
+    });
+    if (rejectedWriteResponse.ok) {
+      await rejectedWriteResponse.body?.cancel();
+      setStatus('NEPROŠLO: diagnostický neplatný zápis nebyl serverem odmítnut.', false);
+      return;
+    }
+    const rejection = window.RAK_DIAGNOSTICS && typeof window.RAK_DIAGNOSTICS.diagnoseRejectedOperation === 'function'
+      ? window.RAK_DIAGNOSTICS.diagnoseRejectedOperation('rotation-save', { status: rejectedWriteResponse.status })
+      : null;
+    await rejectedWriteResponse.body?.cancel();
+    if (!rejection || rejection.reason !== 'invalid-request') {
+      setStatus('NEPROŠLO: zamítnutou operaci se nepodařilo bezpečně zařadit.', false);
+      return;
+    }
+
     // Owner-only read-only RPC is our positive/negative privilege boundary.
     const ownerResponse = await probe('/rest/v1/rpc/rak_owner_list_admin_profiles');
     const privilegePass = role === 'owner' ? ownerResponse.ok : [401, 403].includes(ownerResponse.status);
@@ -699,7 +722,7 @@ async function rakRunLiveAuthDiagnostic() {
       setStatus('NEPROŠLO: práva vlastníka neodpovídají ověřené roli.', false);
       return;
     }
-    setStatus('PROŠLO: skutečný Auth token, vazba na účet, administrátorské čtení a oddělení práv vlastníka (' + (role === 'owner' ? 'vlastník' : 'administrátor') + '). Ostatní role je nutné otestovat jejich vlastním přihlášením.', true);
+    setStatus('PROŠLO: skutečný Auth token, vazba na účet, administrátorské čtení, bezpečně diagnostikované odmítnutí neplatné operace a oddělení práv vlastníka (' + (role === 'owner' ? 'vlastník' : 'administrátor') + '). Ostatní role je nutné otestovat jejich vlastním přihlášením.', true);
   } catch (_error) {
     // Never expose fetch headers, JWT, private RPC payloads or error objects.
     setStatus('Kontrola nedokončena: chyba spojení nebo odpovědi. Žádná data nebyla změněna.', false);

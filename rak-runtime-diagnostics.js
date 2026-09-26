@@ -34,6 +34,9 @@
     const code = typeof value === 'string' || typeof value === 'number' ? String(value).trim().toUpperCase() : '';
     if (!code) return '';
     if (code === '40001') return 'revision-conflict';
+    if (code === '42501') return 'authorization';
+    if (code === '22023') return 'invalid-request';
+    if (code === '429') return 'rate-limit';
     if (/^PGRST\d{3}$/.test(code)) return 'data-api';
     if (/^(?:401|403)$/.test(code)) return 'authorization';
     if (/^RAK_(?:MACHINE|ROTATION|REVISION|CONFLICT|AUTH|SESSION|OFFLINE|QUEUE|BACKUP|REPORT)/.test(code)) return 'application';
@@ -145,11 +148,42 @@
     }
   }
 
+
+  const rejectedOperationNames = new Set([
+    'auth-user',
+    'admin-context',
+    'admin-audit-read',
+    'owner-profile-read',
+    'rotation-save',
+    'unplanned-absence'
+  ]);
+
+  function diagnoseRejectedOperation(operation, value) {
+    const safeOperation = rejectedOperationNames.has(String(operation || '')) ? String(operation) : 'other';
+    const codeClass = classifyCode(ownDataValue(value, 'code'));
+    const status = ownDataValue(value, 'status');
+    const httpStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : 0;
+    let reason = 'operation-rejected';
+    if (codeClass === 'revision-conflict' || httpStatus === 409) reason = 'revision-conflict';
+    else if (codeClass === 'authorization' || httpStatus === 401 || httpStatus === 403) reason = httpStatus === 401 ? 'authentication-required' : 'permission-denied';
+    else if (codeClass === 'invalid-request' || httpStatus === 400 || httpStatus === 422) reason = 'invalid-request';
+    else if (codeClass === 'rate-limit' || httpStatus === 429) reason = 'rate-limited';
+    else if (httpStatus === 404) reason = 'endpoint-unavailable';
+    else if (codeClass === 'data-api') reason = 'data-api-rejected';
+    return Object.freeze({
+      operation: safeOperation,
+      reason,
+      codeClass: codeClass || 'none',
+      httpStatus
+    });
+  }
+
   const api = Object.freeze({
     installed: true,
     policy: 'aggregate-only-v1',
     sanitizeError: sanitizeValue,
     sanitizeValue,
+    diagnoseRejectedOperation,
     safeLog(level, category, value) {
       return emit(level, arguments.length >= 3 ? [String(category || ''), value] : [String(category || '')]);
     }

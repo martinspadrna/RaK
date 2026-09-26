@@ -766,6 +766,262 @@ function adminBuildRotationGeneratorPreviewHtml(month, monthKey) {
   ].join('');
 }
 
+
+function adminRotationUnplannedDateLabels(month) {
+  const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+  const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+  const maxRows = Math.max(hardRows.length, softRows.length);
+  const labels = [];
+  const seen = new Set();
+  for (let idx = 0; idx < maxRows; idx += 1) {
+    const label = String((hardRows[idx] && hardRows[idx].date) || (softRows[idx] && softRows[idx].date) || '').trim();
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+  }
+  return labels;
+}
+
+function adminRotationUnplannedDateIndex(labels, value) {
+  const wanted = String(value || '').trim();
+  let idx = labels.indexOf(wanted);
+  if (idx >= 0) return idx;
+  const base = typeof adminRotationDateBaseKey === 'function' ? adminRotationDateBaseKey(wanted) : wanted;
+  return labels.findIndex((label) => {
+    const candidate = typeof adminRotationDateBaseKey === 'function' ? adminRotationDateBaseKey(label) : label;
+    return candidate === base;
+  });
+}
+
+function adminRotationUnplannedApplyAbsenceNotes(month, allowedDateLabels, person, reason) {
+  const clone = JSON.parse(JSON.stringify(month || {}));
+  const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
+  const knownNames = adminGetKnownNames();
+  const canonicalPerson = adminRotationCanonicalName(person, knownNames);
+  if (!canonicalPerson || !knownNames.includes(canonicalPerson)) throw new Error('Vyber platného pracovníka.');
+  const safeReason = String(reason || '').trim();
+  if (!safeReason) throw new Error('Vyplň důvod absence.');
+
+  const existing = Array.isArray(clone.notes) ? clone.notes : [];
+  clone.notes = existing.filter((note) => {
+    const date = String(note && note.date || '').trim();
+    const notePerson = adminRotationCanonicalName(note && note.person || '', knownNames);
+    return !(allowed.has(date) && notePerson === canonicalPerson);
+  });
+  for (const date of allowed) {
+    const parsed = typeof parseDateToken === 'function' ? parseDateToken(date) : null;
+    const shift = parsed && parsed.shift ? String(parsed.shift) : '';
+    clone.notes.push({
+      date,
+      person: canonicalPerson,
+      code: safeReason,
+      shift,
+      text: canonicalPerson + ' ' + safeReason
+    });
+  }
+  return clone;
+}
+
+function adminRotationUnplannedGenerationSeed(month) {
+  const clone = JSON.parse(JSON.stringify(month || {}));
+  for (const sectionKey of ['hard','soft']) {
+    const section = clone[sectionKey];
+    const rows = Array.isArray(section && section.rows) ? section.rows : [];
+    const machineCount = sectionKey === 'hard' ? HARD_MACHINE_HEADERS.length : SOFT_MACHINE_HEADERS.length;
+    rows.forEach((row) => { row.cells = Array(machineCount).fill(''); });
+  }
+  return clone;
+}
+
+function adminRotationUnplannedSpliceGeneratedDays(sourceMonth, generatedMonth, allowedDateLabels) {
+  const result = JSON.parse(JSON.stringify(sourceMonth || {}));
+  const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
+  for (const sectionKey of ['hard','soft']) {
+    const sourceRows = Array.isArray(result && result[sectionKey] && result[sectionKey].rows) ? result[sectionKey].rows : [];
+    const generatedRows = Array.isArray(generatedMonth && generatedMonth[sectionKey] && generatedMonth[sectionKey].rows)
+      ? generatedMonth[sectionKey].rows : [];
+    const generatedByDate = new Map(generatedRows.map((row) => [String(row && row.date || '').trim(), row]));
+    sourceRows.forEach((row) => {
+      const date = String(row && row.date || '').trim();
+      if (!allowed.has(date)) return;
+      const generated = generatedByDate.get(date);
+      if (!generated || !Array.isArray(generated.cells)) throw new Error('Generátor nevrátil vybraný den ' + date + '.');
+      row.cells = generated.cells.slice();
+    });
+  }
+  return result;
+}
+
+function adminRotationUnplannedAssertIsolation(beforeMonth, afterMonth, allowedDateLabels) {
+  const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
+  for (const sectionKey of ['hard','soft']) {
+    const beforeRows = Array.isArray(beforeMonth && beforeMonth[sectionKey] && beforeMonth[sectionKey].rows) ? beforeMonth[sectionKey].rows : [];
+    const afterRows = Array.isArray(afterMonth && afterMonth[sectionKey] && afterMonth[sectionKey].rows) ? afterMonth[sectionKey].rows : [];
+    if (beforeRows.length !== afterRows.length) throw new Error('Částečný přepočet změnil počet řádků.');
+    beforeRows.forEach((beforeRow, idx) => {
+      const date = String(beforeRow && beforeRow.date || '').trim();
+      if (!allowed.has(date) && JSON.stringify(beforeRow) !== JSON.stringify(afterRows[idx])) {
+        throw new Error('Částečný přepočet sáhl na jiný den: ' + date + '.');
+      }
+    });
+  }
+  return true;
+}
+
+function adminRotationUnplannedIssueKey(issue) {
+  return [String(issue && issue.severity || ''), String(issue && issue.type || issue && issue.code || ''), String(issue && issue.message || '')].join('|');
+}
+
+function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input) {
+  const data = input && typeof input === 'object' ? input : {};
+  const labels = adminRotationUnplannedDateLabels(sourceMonth);
+  const fromIndex = adminRotationUnplannedDateIndex(labels, data.fromDate);
+  const toIndex = adminRotationUnplannedDateIndex(labels, data.toDate);
+  if (fromIndex < 0 || toIndex < 0) throw new Error('Vybraný den není v rozpisu.');
+  if (toIndex < fromIndex) throw new Error('Datum Do musí být stejné nebo pozdější než Datum Od.');
+  const allowedDateLabels = labels.slice(fromIndex, toIndex + 1);
+  if (!allowedDateLabels.length) throw new Error('Není vybraný žádný den.');
+
+  const knownNames = adminGetKnownNames();
+  const person = adminRotationCanonicalName(data.person, knownNames);
+  if (!person || !knownNames.includes(person)) throw new Error('Vyber platného pracovníka.');
+  const reason = String(data.reason || '').trim();
+  if (!reason) throw new Error('Vyplň důvod absence.');
+
+  const original = JSON.parse(JSON.stringify(sourceMonth || {}));
+  const withAbsence = adminRotationUnplannedApplyAbsenceNotes(original, allowedDateLabels, person, reason);
+  const seed = adminRotationUnplannedGenerationSeed(withAbsence);
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false });
+  if (!generated || !generated.normalized) throw new Error('Částečný návrh se nepodařilo vygenerovat.');
+  const candidate = adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels);
+  adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels);
+
+  const beforeCheck = adminRotationValidateMonthRules(original, monthKey, { source: 'manual-save' });
+  const afterCheck = adminRotationValidateMonthRules(candidate, monthKey, { source: 'generator' });
+  const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
+  const newErrors = (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'error' && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
+  if (newErrors.length) {
+    throw new Error('Změnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
+  }
+  return { month: candidate, allowedDateLabels, person, reason, warnings: (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'warn') };
+}
+
+function adminRotationUnplannedOperationId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  if (!(window.crypto && typeof window.crypto.getRandomValues === 'function')) throw new Error('Bezpečný identifikátor operace není dostupný.');
+  const bytes = new Uint8Array(16);
+  window.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+}
+
+function adminCloseUnplannedChangeDialog() {
+  const overlay = document.getElementById('adminUnplannedChangeOverlay');
+  if (overlay) overlay.remove();
+}
+
+function adminOpenUnplannedChangeDialog(input) {
+  const body = document.getElementById('appMenuBody');
+  if (!body || body.dataset.adminView !== 'rotation') return;
+  if (app && app.adminRotationDirty === true) {
+    const status = document.getElementById('adminRotationDraftStatus') || document.getElementById('adminOnlineSaveStatus');
+    if (status) status.textContent = 'Nejdřív ulož nebo zahoď rozepsané ruční změny. Neplánovaná změna vyžaduje ověřený online základ.';
+    return;
+  }
+  const monthKey = String((body.querySelector('#adminMonthSelect') && body.querySelector('#adminMonthSelect').value) || getAdminSelectedMonthKey() || '').trim();
+  const sourceMonth = typeof readAdminRotationFromDom === 'function' && body.querySelector('#adminRotationEditor')
+    ? readAdminRotationFromDom(monthKey)
+    : (app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null);
+  if (!monthKey || !sourceMonth) throw new Error('Nejdřív načti měsíc rozpisu.');
+
+  const row = input && input.closest ? input.closest('tr[data-rotation-section]') : null;
+  const prefillDate = String(row && row.querySelector('[data-rot-field="date"]')?.value || adminRotationUnplannedDateLabels(sourceMonth)[0] || '').trim();
+  const prefillPerson = String(input && input.value || '').trim();
+  const labels = adminRotationUnplannedDateLabels(sourceMonth);
+  const knownNames = adminGetKnownNames();
+  const optionHtml = (values, selected) => values.map((value) => '<option value="' + escapeHtml(value) + '"' + (String(value) === String(selected) ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
+
+  adminCloseUnplannedChangeDialog();
+  const overlay = document.createElement('div');
+  overlay.id = 'adminUnplannedChangeOverlay';
+  overlay.className = 'adminUnplannedChangeOverlay';
+  overlay.dataset.operationId = '';
+  overlay.innerHTML = [
+    '<div class="adminUnplannedChangeDialog" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
+    '  <div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna (generátor)</div>',
+    '  <div class="smallText">Zapíše absenci a přepočítá jen zvolený den nebo rozsah. Ostatní dny, lokální fronta a recovery zůstanou beze změny.</div>',
+    '  <label class="appMenuFieldLabel">Pracovník<select id="adminUnplannedPerson" class="appMenuSelect">' + optionHtml(knownNames, prefillPerson) + '</select></label>',
+    '  <label class="appMenuFieldLabel">Důvod absence<input id="adminUnplannedReason" class="appMenuInput" list="adminUnplannedReasonOptions" value="D" maxlength="80"></label>',
+    '  <datalist id="adminUnplannedReasonOptions"><option value="D"><option value="N"><option value="NV"><option value="§"><option value="Lázně"><option value="Školení"></datalist>',
+    '  <div class="adminUnplannedRange">',
+    '    <label class="appMenuFieldLabel">Od<select id="adminUnplannedFrom" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
+    '    <label class="appMenuFieldLabel">Do<select id="adminUnplannedTo" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
+    '  </div>',
+    '  <div class="smallText" id="adminUnplannedStatus" role="status" aria-live="polite">Změna se uloží přímo online až po potvrzení.</div>',
+    '  <div class="appMenuActionRow"><button type="button" class="appMenuAction" data-unplanned-action="cancel">Zrušit</button><button type="button" class="appMenuAction isActive" data-unplanned-action="save">Uložit a přepočítat</button></div>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', async (event) => {
+    const actionButton = event.target && event.target.closest ? event.target.closest('[data-unplanned-action]') : null;
+    if (!actionButton) {
+      if (event.target === overlay) adminCloseUnplannedChangeDialog();
+      return;
+    }
+    const action = actionButton.getAttribute('data-unplanned-action');
+    if (action === 'cancel') {
+      adminCloseUnplannedChangeDialog();
+      return;
+    }
+    if (action !== 'save' || overlay.dataset.saving === '1') return;
+    const status = overlay.querySelector('#adminUnplannedStatus');
+    overlay.dataset.saving = '1';
+    actionButton.disabled = true;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Neplánovanou změnu lze uložit jen online.');
+      const fromDate = String(overlay.querySelector('#adminUnplannedFrom')?.value || '');
+      const toDate = String(overlay.querySelector('#adminUnplannedTo')?.value || '');
+      const person = String(overlay.querySelector('#adminUnplannedPerson')?.value || '');
+      const reason = String(overlay.querySelector('#adminUnplannedReason')?.value || '').trim();
+      if (status) status.textContent = 'Přepočítávám jen vybraný rozsah…';
+      const candidate = adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, { fromDate, toDate, person, reason });
+      const payload = JSON.parse(JSON.stringify(app.rotation || {}));
+      if (!payload.months || typeof payload.months !== 'object') throw new Error('Aktuální rozpis nemá měsíce.');
+      payload.months[monthKey] = candidate.month;
+
+      if (!overlay.dataset.operationId) overlay.dataset.operationId = adminRotationUnplannedOperationId();
+      const bridge = window.RotationSupabaseBridge;
+      if (!bridge || typeof bridge.applyUnplannedAbsenceChange !== 'function') throw new Error('Bezpečné online uložení neplánované změny není připravené.');
+      if (status) status.textContent = 'Ověřuji serverový rozsah změny a ukládám…';
+      const result = await bridge.applyUnplannedAbsenceChange(payload, {
+        operationId: overlay.dataset.operationId,
+        monthKey,
+        person: candidate.person,
+        reason: candidate.reason,
+        allowedDateLabels: candidate.allowedDateLabels
+      });
+      if (!result || result.ok === false) {
+        const reasonLabel = result && result.diagnostic && result.diagnostic.reason ? result.diagnostic.reason : 'operation-rejected';
+        throw new Error('Server změnu odmítl (' + reasonLabel + ').');
+      }
+      if (result.payload && typeof applyRakRotationState === 'function') applyRakRotationState(result.payload, { force: true });
+      if (typeof adminRotationGeneratorClearPendingDraft === 'function') adminRotationGeneratorClearPendingDraft(monthKey);
+      adminCloseUnplannedChangeDialog();
+      renderAdminMenuBody(body, 'rotation');
+      const nextStatus = document.getElementById('adminOnlineSaveStatus') || document.getElementById('adminRotationDraftStatus');
+      if (nextStatus) nextStatus.textContent = 'Neplánovaná změna uložená online ✓ · přepočteno dnů: ' + String(candidate.allowedDateLabels.length) + '.';
+    } catch (err) {
+      if (status) status.textContent = err && err.message ? err.message : 'Neplánovaná změna se nepodařila.';
+    } finally {
+      overlay.dataset.saving = '0';
+      if (actionButton.isConnected) actionButton.disabled = false;
+    }
+  });
+}
+
 function adminOpenRotationGeneratorWizard(monthKey) {
   const suggested = adminRotationGetNextMonthKeyFrom(monthKey || getAdminSelectedMonthKey());
   const prefill = adminRotationGeneratorBuildPrefillState(suggested);

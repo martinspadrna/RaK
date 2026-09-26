@@ -990,9 +990,12 @@ function adminRotationFormatRuleIssues(issues) {
 }
 
 
-function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
+function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
+  const generationOptions = options && typeof options === 'object' ? options : {};
   if (!monthKey) throw new Error('Chybí měsíc.');
-  const domMonth = adminRotationGeneratorCanReadEditorDraftFromDom() ? readAdminRotationFromDom(monthKey) : null;
+  const domMonth = generationOptions.ignoreDom === true
+    ? null
+    : (adminRotationGeneratorCanReadEditorDraftFromDom() ? readAdminRotationFromDom(monthKey) : null);
   const fallback = domMonth || preparedMonth || (app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null);
   if (!fallback) throw new Error('Pro vybraný měsíc nejsou připravené řádky.');
   const model = adminBuildRotationGenerationModel(monthKey);
@@ -1079,7 +1082,7 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
   const finalFilledCells = hardRows.concat(softRows).reduce((count, row) => count +
     (Array.isArray(row && row.cells) ? row.cells : []).filter((name) => adminRotationIsRealName(name, model.knownNames)).length, 0);
   const normalized = normalizeMonthForImport(month, fallback);
-  adminRotationGeneratorSetPendingDraft(monthKey, normalized);
+  if (generationOptions.persistPending !== false) adminRotationGeneratorSetPendingDraft(monthKey, normalized);
   return {
     normalized,
     days,

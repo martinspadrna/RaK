@@ -4919,6 +4919,78 @@
     }
   }
 
+
+  function diagnoseSupabaseRejection(operation, error) {
+    try {
+      if (window.RAK_DIAGNOSTICS && typeof window.RAK_DIAGNOSTICS.diagnoseRejectedOperation === 'function') {
+        return window.RAK_DIAGNOSTICS.diagnoseRejectedOperation(operation, error || {});
+      }
+    } catch (_) {}
+    return Object.freeze({ operation: 'other', reason: 'operation-rejected', codeClass: 'none', httpStatus: 0 });
+  }
+
+  async function applyUnplannedAbsenceChange(rotation, options) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const client = getClient();
+    if (!hasAdminWriteCredential() || !hasSecureAdminContext()) {
+      return { ok: false, reason: 'admin-auth-required', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'authentication-required', codeClass: 'authorization', httpStatus: 0 }) };
+    }
+    if (!client || !navigator.onLine) return { ok: false, reason: 'admin-online-required' };
+    if (!Number.isSafeInteger(state.rotationRevision) || state.rotationRevision < 0) {
+      return { ok: false, reason: 'revision-unverified', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'revision-conflict', codeClass: 'revision-conflict', httpStatus: 0 }) };
+    }
+    const operationId = String(opts.operationId || '').trim();
+    const monthKey = String(opts.monthKey || '').trim();
+    const person = String(opts.person || '').trim();
+    const reason = String(opts.reason || '').trim();
+    const allowedDateLabels = Array.isArray(opts.allowedDateLabels) ? opts.allowedDateLabels.map((value) => String(value || '').trim()).filter(Boolean) : [];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
+        || !monthKey || !person || !reason || !allowedDateLabels.length) {
+      return { ok: false, reason: 'invalid-request', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'invalid-request', codeClass: 'application', httpStatus: 0 }) };
+    }
+    try {
+      const { data, error } = await runSupabaseOperation('rotation.unplanned-absence-v1', () => client.rpc('rak_admin_apply_unplanned_absence_v1', {
+        p_key: 'main',
+        p_payload: rotation && typeof rotation === 'object' ? rotation : null,
+        p_meta: { source: 'unplanned-absence-generator', monthKey },
+        p_expected_revision: state.rotationRevision,
+        p_operation_id: operationId,
+        p_month_key: monthKey,
+        p_person: person,
+        p_reason: reason,
+        p_allowed_date_labels: allowedDateLabels
+      }), { mode: 'write', attempts: 2, timeoutMs: 18000 });
+      if (error) throw error;
+      const row = data && typeof data === 'object' ? data : null;
+      if (!row || !row.payload || !Number.isFinite(Number(row.revision))) throw new Error('Server nevrátil ověřený rozpis po neplánované změně.');
+      state.rotationRevision = Number(row.revision);
+      state.rotationSnapshot = row.payload;
+      state.lastError = null;
+      state.rotationSync.lastWriteAt = new Date().toISOString();
+      state.rotationSync.lastWriteRevision = state.rotationRevision;
+      state.rotationSync.lastError = null;
+      state.rotationSync.lastSource = 'remote-write';
+      state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(row.payload, {
+        revision: state.rotationRevision,
+        remoteUpdatedAt: row.updated_at || '',
+        source: 'unplanned-absence-write'
+      });
+      return {
+        ok: true,
+        payload: row.payload,
+        revision: state.rotationRevision,
+        updatedAt: row.updated_at || '',
+        idempotentReplay: row.idempotent_replay === true
+      };
+    } catch (err) {
+      state.lastError = err;
+      state.rotationSync.lastError = err;
+      const diagnostic = diagnoseSupabaseRejection('unplanned-absence', err);
+      try { if (window.RAK_DIAGNOSTICS) window.RAK_DIAGNOSTICS.safeLog('warn', 'rotation unplanned change rejected', diagnostic); } catch (_) {}
+      return { ok: false, reason: diagnostic.reason, diagnostic };
+    }
+  }
+
   async function listRotationBackups(options) {
     const client = getClient();
     const opts = options || {};
@@ -5432,6 +5504,7 @@
     persistRotationOfflineSnapshot,
     getRotationOfflineDiagnostics,
     saveRotationState,
+    applyUnplannedAbsenceChange,
     listRotationBackups,
     restoreRotationBackup,
     loadGomokuWins,

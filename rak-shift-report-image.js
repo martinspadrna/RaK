@@ -527,7 +527,7 @@
     const rawShift = String(model.shift || '').trim().toUpperCase();
     const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? formatDate(rawDate) : '—';
     const shift = ['N', 'R', 'N8', 'R8'].includes(rawShift) ? shiftLabel(rawShift) : '—';
-    return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;
+    return 'RaK – Report směny diferenciály · ' + date + ' · ' + shift;
   }
 
   async function buildBlob(root) {
