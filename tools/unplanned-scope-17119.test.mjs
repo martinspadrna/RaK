@@ -28,7 +28,7 @@ test('unplanned absence and Kalírna allow intermediate full-month errors only b
   assert(rotation.includes('if (criticalIssues.length && !allowScopedRuleErrors)'));
 });
 
-test('final candidate still rejects newly introduced errors after the selected-day splice', () => {
+test('final candidate compares before and after with the same strict rules and rejects only newly introduced errors', () => {
   const absenceStart=wizard.indexOf('function adminRotationBuildUnplannedChangeCandidate(');
   const absenceEnd=wizard.indexOf('\nfunction adminRotationUnplannedFindAssignment(',absenceStart);
   const absence=wizard.slice(absenceStart,absenceEnd);
@@ -37,8 +37,8 @@ test('final candidate still rejects newly introduced errors after the selected-d
   const kal=wizard.slice(kalStart,kalEnd);
   for(const block of [absence,kal]){
     assert(block.includes("adminRotationValidateMonthRules("));
-    assert(block.includes("source: 'manual-save'"));
-    assert(block.includes("source: 'generator'"));
+    assert.equal((block.match(/source: 'generator'/g)||[]).length,2);
+    assert(!block.includes("source: 'manual-save'"));
     assert(block.includes('previousErrors'));
     assert(block.includes('newErrors'));
   }

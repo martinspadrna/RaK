@@ -910,7 +910,7 @@ function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input
   const candidate = adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels);
   adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels);
 
-  const beforeCheck = adminRotationValidateMonthRules(original, monthKey, { source: 'manual-save' });
+  const beforeCheck = adminRotationValidateMonthRules(original, monthKey, { source: 'generator' });
   const afterCheck = adminRotationValidateMonthRules(candidate, monthKey, { source: 'generator' });
   const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
   const newErrors = (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'error' && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
@@ -1015,7 +1015,7 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     }
   }
 
-  const beforeCheck = adminRotationValidateMonthRules(sourceMonth, monthKey, { source: 'manual-save' });
+  const beforeCheck = adminRotationValidateMonthRules(sourceMonth, monthKey, { source: 'generator' });
   const afterCheck = adminRotationValidateMonthRules(regenerated, monthKey, { source: 'generator' });
   const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
   const newErrors = (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'error' && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
