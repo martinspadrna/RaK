@@ -1,3 +1,11 @@
+## RaK 1.7.116 (development)
+
+- Neplánovaná změna → `Odešel na kalírnu`: pracovník se dál ukládá jako skutečná `dayMods: kalirnaOut` výjimka a **nevzniká mu absence**, ale pro generátor je ve vybraném dni nedostupný stejně jako nepřítomný pracovník.
+- Vybraný den se nově přepočítá stejným generátorem a stejnými personálními pravidly jako běžný rozpis. Pro 4 dostupné lidi na MO zůstává MFKF06 prázdná a rozložení je 3 soustruhy + 1 člověk na MFKF10; pro 3 dostupné lidi jsou 2 soustruhy + 1 MFKF10. Při nedostatku na TO se dál použije stávající kvalifikované doplnění z MO a vyvažování.
+- Přepočet smí změnit pouze zvolený den nebo rozsah. Serverový TEST RPC kontroluje CAS/idempotenci, nedotčené ostatní dny a výjimky a odmítne uložení, pokud člověk označený jako Kalírna zůstane na některém stroji.
+- Osobní Rotace/Dashboard zachovají pracovníka na Kalírně i po jeho odebrání ze strojních buněk; značka `→K` se po přeskupení nesmí přenést na náhradníka.
+- Pevný výběr pěti důvodů z 1.7.115 se nemění. Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.115 (development)
 
 - Neplánovaná změna: pole Důvod je nyní pevný výběr přesně pěti položek podle zadání vlastníka: `Dovolená`, `Náhradní volno`, `Paragraf`, `Lékař`, `Odešel na kalírnu`. Volné psaní a ostatní důvody byly odstraněny.

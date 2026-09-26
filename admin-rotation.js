@@ -677,6 +677,18 @@ function adminRotationNamesForAbsenceDate(notesRows, dateLabel, knownNames) {
   return blocked;
 }
 
+function adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) {
+  const blocked = adminRotationNamesForAbsenceDate(month && month.notes, dateLabel, knownNames);
+  const wanted = adminRotationDateBaseKey(dateLabel);
+  (Array.isArray(month && month.dayMods) ? month.dayMods : []).forEach((mod) => {
+    if (!mod || String(mod.type || '').trim() !== 'kalirnaOut') return;
+    if (adminRotationDateBaseKey(mod.date) !== wanted) return;
+    const name = adminRotationCanonicalName(mod.person, knownNames);
+    if (name) blocked.add(name);
+  });
+  return blocked;
+}
+
 function adminRotationGetPressRotationOverride(month, dateLabel) {
   const baseKey = adminRotationDateBaseKey(dateLabel);
   if (typeof getRotationPressRotationOverride === 'function') return getRotationPressRotationOverride(month, baseKey);
@@ -898,7 +910,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
         if (!dateLabel) continue;
         const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
         if (adminRotationGeneratorIsDayBlocked(dayNotes)) continue;
-        const absences = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+        const absences = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
         if (!absences.has(name)) return true;
       }
       return false;
@@ -1023,7 +1035,7 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
     if (!hardRow && !softRow) continue;
     const dateLabel = (hardRow && hardRow.date) || (softRow && softRow.date) || '';
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     blockedByAbsence += absenceNames.size;
     if (adminRotationGeneratorIsDayBlocked(dayNotes)) {
       if (hardRow) hardRow.cells = Array(HARD_MACHINE_HEADERS.length).fill('');

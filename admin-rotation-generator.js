@@ -489,7 +489,7 @@ function adminBuildRotationGenerationModel(targetMonthKey) {
       const dateLabel = String(hardRow && hardRow.date || softRow && softRow.date || '');
       const historyNotes = adminRotationGeneratorDateNotes(month, dateLabel);
       if (dateLabel && !adminRotationGeneratorIsDayBlocked(historyNotes)) {
-        replaySoftCoreSkippedAbsence(adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames));
+        replaySoftCoreSkippedAbsence(adminRotationUnavailableNamesForDate(month, dateLabel, knownNames));
       }
       const hasAny = hardCells.concat(softCells).some((name) => adminRotationIsRealName(name, knownNames));
       if (!hasAny) continue;
@@ -858,7 +858,7 @@ function adminRotationGeneratorSoftCoreFutureAvailability(month, knownNames, row
     if (!dateLabel) continue;
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
     if (adminRotationGeneratorIsDayBlocked(dayNotes)) continue;
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     if (!absenceNames.has(candidate)) score += 1;
   }
   return score;
@@ -876,7 +876,7 @@ function adminRotationGeneratorRemainingSoftCoreWorkDays(month, knownNames, rowI
     if (!dateLabel) continue;
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
     if (adminRotationGeneratorIsDayBlocked(dayNotes)) continue;
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     if (core.some((name) => !absenceNames.has(name))) count += 1;
   }
   return count;
@@ -1503,7 +1503,7 @@ function adminRotationGeneratorFindSoftCoreSequenceIssues(month, monthKey, known
     let completedBySkippedAbsence = false;
     if (assigned.size) {
       const dateLabel = String(row && row.date || '');
-      const absences = adminRotationNamesForAbsenceDate(month.notes, dateLabel, names);
+      const absences = adminRotationUnavailableNamesForDate(month, dateLabel, names);
       const remaining = core.filter((name) => !assigned.has(name));
       if (remaining.length && remaining.every((name) => absences.has(name))) {
         const ordered = core.slice(personCursor).concat(core.slice(0, personCursor));
@@ -2768,7 +2768,7 @@ function adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey) {
     if (!dateLabel || adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) return;
     const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells : [];
     if (!hardCells.length) return;
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     const available = knownNames.filter((name) => !absenceNames.has(name));
     const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
     let hardFilled = hardCells.filter((cell) => adminRotationCanonicalName(cell, knownNames)).length;

@@ -995,14 +995,42 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     });
   });
 
+  // Kalírna není absence do statistik, ale pro personální plán dne je člověk
+  // stejně nedostupný. Generátor proto dostane dayMod už v seedu a použije
+  // beze změny stávající pravidla 4/3 lidí na MO i doplnění TO z MO.
+  const seed = adminRotationUnplannedGenerationSeed(candidate);
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false });
+  if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
+  const regenerated = adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels);
+  adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels);
+
+  for (const date of allowedDateLabels) {
+    for (const sectionKey of ['hard','soft']) {
+      const rows = Array.isArray(regenerated && regenerated[sectionKey] && regenerated[sectionKey].rows) ? regenerated[sectionKey].rows : [];
+      const row = rows.find((item) => String(item && item.date || '').trim() === String(date || '').trim());
+      const stillAssigned = Array.isArray(row && row.cells)
+        ? row.cells.some((value) => adminRotationCanonicalName(value, knownNames) === person)
+        : false;
+      if (stillAssigned) throw new Error('Pracovník označený jako Kalírna zůstal ve stroji: ' + date + '.');
+    }
+  }
+
+  const beforeCheck = adminRotationValidateMonthRules(sourceMonth, monthKey, { source: 'manual-save' });
+  const afterCheck = adminRotationValidateMonthRules(regenerated, monthKey, { source: 'generator' });
+  const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
+  const newErrors = (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'error' && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
+  if (newErrors.length) {
+    throw new Error('Kalírnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
+  }
+
   return {
-    month: candidate,
+    month: regenerated,
     allowedDateLabels,
     person,
     reason: 'kalirnaOut',
     reasonLabel: reasonOption.label,
     changeKind: 'daymod',
-    warnings: []
+    warnings: (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'warn')
   };
 }
 
@@ -1071,7 +1099,7 @@ function adminOpenUnplannedChangeDialog(input) {
     '<div class="adminUnplannedChangeDialog adminUnplannedChangePage" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
     '  <div class="adminUnplannedChangeHeader"><div><div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna</div><div class="smallText">Generátor rozpisu</div></div><button type="button" class="adminUnplannedClose" data-unplanned-action="cancel" aria-label="Zavřít">×</button></div>',
     '  <div class="adminUnplannedChangeBody">',
-    '  <div class="smallText">Dovolená, náhradní volno, paragraf a lékař přepočítají jen vybraný den nebo rozsah. Kalírna se uloží jako stejná Výjimka dne jako v rozpisu.</div>',
+    '  <div class="smallText">Dovolená, náhradní volno, paragraf a lékař přepočítají vybraný den nebo rozsah a zapíšou absenci. Kalírna není absence, ale člověk se pro generátor bere jako nedostupný a den se přeskupí podle běžných pravidel.</div>',
     '  <label class="appMenuFieldLabel">Pracovník<select id="adminUnplannedPerson" class="appMenuSelect">' + optionHtml(knownNames, prefillPerson) + '</select></label>',
     '  <label class="appMenuFieldLabel">Důvod<select id="adminUnplannedReason" class="appMenuSelect">' + reasonOptionHtml + '</select></label>',
     '  <div class="adminUnplannedRange">',
