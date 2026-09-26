@@ -59,6 +59,18 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Předání novému chatu – 25. 9. 2026
 
+### ROZPRACOVANÝ JEDINÝ ÚKOL – 26. 9. 2026, 1.7.112 popup Neplánované změny
+
+Od tohoto bodu platí přání vlastníka **striktně po jednom úkolu**. Další backlog se nesmí rozpracovat, dokud tento popup nebude zelený, nasazený a fyzicky přijatý.
+
+- Funkční implementace 1.7.112 je na SHA `14958ae50265bd49a5d97996bdb8583fa6f87d0d`, build `v1.7.112-unplanned-popup1`.
+- Po fyzické připomínce k 1.7.111 byl malý plovoucí picker nahrazen záměrem **vyskakovací stránky**: tap na obsazené jméno má otevřít velký modal s formulářem Neplánované změny; první tap se zachytí před focus inputu, aby iOS nevytáhl klávesnici. Popup má hlavičku s ×, scrollovatelný obsah, spodní akční lištu a explicitní `Ručně upravit`.
+- Druhý commit stejného releasu přesunul pointer route i nové popup styly výhradně do deferred admin modulů; `app-menu.js` a globální `styles-admin-polish.css` byly vrácené na stav 1.7.111, aby tento UX bod nezvětšoval běžný startup.
+- **1.7.112 zatím NENÍ nasazená na stable TEST alias.** Actions #388 na SHA `4a6c9af...` a následné pokusy selhaly jen performance parity; po deferred optimalizaci Actions #389 na SHA `14958ae...` prošel buildy, npm check, popup gates, rollback, ZIP/CRC, Chromium i PWA budgety, ale performance parity opakovaně zůstala fail-closed. Poslední pokus měl startupReady P50 baseline/current `295/363 ms`, limit `333 ms`; předchozí optimalizovaný pokus FCP `316/352 ms`, limit `348 ms`. Limity ani test nebyly uvolněné.
+- Proto **kanonický zelený runtime zůstává 1.7.111** na SHA `643fc7600e56f77ac75c993dca122c7e7bb464d8`, deployment `dpl_6JWTputmRHCLkrsZXog4jUU5YYjf`. 1.7.112 neoznačovat za hotovou ani ji nenasazovat proti červenému gate.
+- WhatsApp text bez slova `směna` je fyzicky potvrzený **OK** a už se k němu nevracet.
+- Další krok v novém chatu: pokračovat **jen v tomto popup úkolu**. Neřešit P2.4 ani další backlog, dokud 1.7.112 nebude zelená a vlastník popup fyzicky nepotvrdí.
+
 ### NEJNOVĚJŠÍ závěrečné předání – 26. 9. 2026, release 1.7.111
 
 Tato podsekce **přebíjí všechny starší SHA/run/deployment údaje níže**. Dokumentační commit po tomto zápisu může posunout živý HEAD, ale ověřený runtime zůstává na níže uvedeném SHA.
