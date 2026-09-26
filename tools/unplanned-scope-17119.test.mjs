@@ -19,9 +19,10 @@ test('1.7.119 keeps exactly the five owner-approved unplanned reasons', () => {
 
 test('unplanned absence and Kalírna allow intermediate full-month errors only before selected-day splice', () => {
   assert.equal((wizard.match(/allowScopedRuleErrors: true/g)||[]).length,2);
-  assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
+  assert(wizard.includes('scopedDateLabels: allowedDateLabels'));
+  assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
   assert(wizard.includes('adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels)'));
-  assert(wizard.includes('adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels)'));
+  assert(wizard.includes('adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels)'));
   assert(wizard.includes('adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels)'));
   assert(wizard.includes('adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels)'));
   assert(wizard.includes("throw new Error('Částečný přepočet sáhl na jiný den: ' + date + '.')"));

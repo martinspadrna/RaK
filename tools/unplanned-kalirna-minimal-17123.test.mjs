@@ -80,7 +80,7 @@ test('Kalírna from MFKF10 moves only the MFKF06 worker onto MFKF10',()=>{
   assert.deepEqual(Array.from(target.soft.rows[0].cells),['F','G','H','','I']);
 });
 
-test('qualification can require a two-person chain but still chooses the smallest valid change',()=>{
+test('qualification tie prefers moving mill workers instead of disturbing another lathe worker',()=>{
   const source=month(['F','Blažek','G','H','I']);
   const target=withKalirna(source,'Blažek');
   const ctx=makeContext((name,machine)=>{

@@ -41,7 +41,9 @@ test('unplanned-change server RPC is admin-only, CAS-bound, idempotent and day-s
 test('partial generator never persists a full generated draft and explicitly protects non-target days', () => {
   assert(rotation.includes('generationOptions.ignoreDom === true'));
   assert(rotation.includes('generationOptions.persistPending !== false'));
-  assert(wizard.includes("adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels })"));
+  assert(wizard.includes('persistPending: false'));
+  assert(wizard.includes('scopedDateLabels: allowedDateLabels'));
+  assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
   assert(wizard.includes('adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels)'));
   assert(wizard.includes("throw new Error('Částečný přepočet sáhl na jiný den: ' + date + '.')"));
   assert(editor.includes('adminRotationQuickUnplannedBtn'));

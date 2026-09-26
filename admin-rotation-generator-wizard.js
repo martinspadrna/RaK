@@ -1126,8 +1126,16 @@ function adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, targetMo
         const after = adminRotationCanonicalName(value, knownNames);
         return sum + (before === after ? 0 : 1);
       }, 0);
-      if (!best || movedPeople < best.movedPeople || (movedPeople === best.movedPeople && changedCells < best.changedCells)) {
-        best = { cells: cells.slice(), movedPeople, changedCells };
+      const movedLathePeople = remaining.reduce((sum, name) => {
+        const fromIdx = Number(originalIndexByName.get(name));
+        const toIdx = cells.findIndex((value) => adminRotationCanonicalName(value, knownNames) === name);
+        return sum + (fromIdx >= 0 && fromIdx < 3 && toIdx >= 0 && fromIdx !== toIdx ? 1 : 0);
+      }, 0);
+      if (!best
+        || movedPeople < best.movedPeople
+        || (movedPeople === best.movedPeople && movedLathePeople < best.movedLathePeople)
+        || (movedPeople === best.movedPeople && movedLathePeople === best.movedLathePeople && changedCells < best.changedCells)) {
+        best = { cells: cells.slice(), movedPeople, movedLathePeople, changedCells };
       }
       return;
     }

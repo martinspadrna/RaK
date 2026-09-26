@@ -20,7 +20,8 @@ test('1.7.121 runtime wrapper fix remains present in successors',()=>{
   assert(readiness.includes('adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth, generationOptions)'));
   assert(readiness.includes('return original(monthKey, preparedMonth, generationOptions);'));
   assert(!readiness.includes('return original(monthKey, preparedMonth);'));
-  assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
+  assert(wizard.includes('scopedDateLabels: allowedDateLabels'));
+  assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
 });
 
 test('1.7.121 regression gate remains wired after successor releases',()=>{

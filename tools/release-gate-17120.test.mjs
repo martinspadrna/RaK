@@ -19,7 +19,8 @@ test('1.7.120 scoped reflow protections remain present in successors',()=>{
   const wizard=read('admin-rotation-generator-wizard.js');
   assert(rotation.includes('const scopedGeneration = scopedDateLabels.length > 0;'));
   assert(rotation.includes("const tnksBalance = scopedGeneration ? scopedNoop()"));
-  assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
+  assert(wizard.includes('scopedDateLabels: allowedDateLabels'));
+  assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
   assert((wizard.match(/adminRotationUnplannedIssueTouchesSelectedDate\(issue, allowedDateLabels\)/g)||[]).length >= 3);
   assert(wizard.includes(': při čtyřech lidech na MO musí být 3 soustruhy a 1 fréza.'));
 });

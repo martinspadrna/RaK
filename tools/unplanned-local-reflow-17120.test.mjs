@@ -21,7 +21,8 @@ test('scoped unplanned generation skips month-wide rebalance and repair passes',
   assert(rotation.includes("const tnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine"));
   assert(rotation.includes('const finalSoloMillStreakRepair = scopedGeneration ? scopedNoop()'));
   assert(rotation.includes('const finalTpkw02Balance = scopedGeneration ? scopedNoop()'));
-  assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
+  assert(wizard.includes('scopedDateLabels: allowedDateLabels'));
+  assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
 });
 
 test('selected-date issue filter ignores 30.9 when only 26.9 is edited',()=>{

@@ -13,8 +13,9 @@ test('legacy monthKey wrapper forwards scoped generator options instead of dropp
   assert(!readiness.includes('return original(monthKey, preparedMonth);'));
 });
 
-test('both unplanned paths pass scoped options all the way to the generator',()=>{
-  assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
+test('absence scope and Kalírna fallback scope both reach the generator',()=>{
+  assert(wizard.includes('scopedDateLabels: allowedDateLabels'));
+  assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
   assert.equal((wizard.match(/allowScopedRuleErrors: true/g)||[]).length,2);
   assert(rotation.includes('const scopedGeneration = scopedDateLabels.length > 0;'));
   assert(rotation.includes('const scopedDateLabels = Array.isArray(generationOptions.scopedDateLabels)'));
