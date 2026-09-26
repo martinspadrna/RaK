@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.110`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.111`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.110` na SHA `f47758929462d16a19807fa662916fe9819c258a`. Vlastník fyzicky potvrdil oba body 1.7.109 jako **OK**: WhatsApp psací pole už obsahuje dynamické datum + směnu a `Datum směny` / `Směna` jsou zarovnané. 1.7.110 proto mění už jen zobrazení směny v automatickém WhatsApp textu z interních kódů `R / N / R8 / N8` na čitelné názvy `Ranní / Noční / Ranní 8 h / Noční 8 h`. Runtime, technická/modulová/cache/package/SW verze jsou sjednocené na `1.7.110`, build `v1.7.110-whatsapp-shift-label1`.
+- Poslední ověřený **funkční** development release je `1.7.111` na SHA `643fc7600e56f77ac75c993dca122c7e7bb464d8`. Release je GREEN na Actions #386 a stable TEST alias ukazuje na `dpl_6JWTputmRHCLkrsZXog4jUU5YYjf`. Vlastník fyzicky potvrdil WhatsApp text **OK** i po finálním zkrácení na `RaK – Report směny diferenciály · <datum> · <Ranní/Noční/...>` bez slova `směna`; tento bod je uzavřený. Další práce se od tohoto potvrzení vede striktně po jednom úkolu; jediný aktivní úkol je nyní **Neplánovaná změna (generátor)**.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -58,6 +58,26 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
 ## Předání novému chatu – 25. 9. 2026
+
+### NEJNOVĚJŠÍ závěrečné předání – 26. 9. 2026, release 1.7.111
+
+Tato podsekce **přebíjí všechny starší SHA/run/deployment údaje níže**. Dokumentační commit po tomto zápisu může posunout živý HEAD, ale ověřený runtime zůstává na níže uvedeném SHA.
+
+#### Přesný online stav
+- Ověřený runtime je **RaK 1.7.111** na SHA `643fc7600e56f77ac75c993dca122c7e7bb464d8`, build `v1.7.111-unplanned-diagnostics1`.
+- [Actions #386](https://github.com/martinspadrna/RaK/actions/runs/36214422728) je **SUCCESS** na první pokus finálního SHA. Oba canonical buildy, npm check, zděděné/current gates, rollback/ZIP/CRC, Chromium online/offline/recovery, performance budgety/parita, quality thresholds i TEST HTTP jsou PASS.
+- Immutable Vercel `dpl_6JWTputmRHCLkrsZXog4jUU5YYjf` je READY; stable development alias na něj ukazuje. Rollback je předchozí READY `dpl_HR4nW91RHFqrFk2pFPxEdi1GnnGt`.
+- Performance parity PASS: `startupReady` P50 388→386 ms, P95 428→433 ms; FCP P50 312→304 ms, P95 336→344 ms. PWA budgety PASS: cold mobile P50/P95 `1493/1882 ms`, offline reload `1231/1391 ms`, online recovery `545/576 ms`.
+- Release evidence ID `10896843012`, SHA-256 `5a2a1ef9090f7d08e62dd3f2d30a42aadd460e00db8a893e3576a0af6b422e4c`; CI proof ID `10896144745`, SHA-256 `d42cb89a15633c66dc90dc5f8a9e186a4229e10eef54682c98189c48d4ec783e`.
+- TEST Supabase migrace `20260926030451_rak_unplanned_absence_generator_17111` je aplikovaná. Serverový rollback test pro nový RPC prokázal CAS, právě jeden první zápis, idempotentní retry bez druhého zápisu a odmítnutí reuse operation ID s jiným payloadem; transakce skončila ROLLBACK, takže test nezanechal změnu rozpisu.
+- `main`, produkční Vercel i produkční Supabase se nezměnily.
+
+#### Fyzicky uzavřeno
+- WhatsApp automatický text po finální úpravě **OK**: bez slova `směna`, tedy např. `RaK – Report směny diferenciály · 26. 9. 2026 · Noční`.
+- Datum/Směna i administrační `×` z předchozích releasů zůstávají fyzicky potvrzené **OK**.
+
+#### Jediný aktivní úkol od tohoto bodu
+**Neplánovaná změna (generátor)**. Přestože 1.7.111 už obsahuje implementaci i serverové TEST zabezpečení, od této chvíle se postupuje striktně po jednom úkolu: nejdřív fyzická/uživatelská přejímka a případné opravy tohoto generátoru. Až po jeho uzavření se smí přejít na další backlog. P2.4 diagnostické změny, které byly historicky zabalené do stejného 1.7.111 releasu, teď **neposouvat ani dále nerozvíjet**, dokud generátor nebude uzavřený.
 
 ### NEJNOVĚJŠÍ závěrečné předání – 26. 9. 2026, release 1.7.110
 
@@ -648,7 +668,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 - **◐ Už implementováno, ale ještě ne úplně převzaté:** lokální Dashboard před online synchronizací (A), odstranění místních neuložených návrhů a kompaktní rozpis (C), přepnutí účtu bez dědění starého jména, account-scoped vzhled a owner invariant (D), sjednocení karet pravidel generátoru/Kantýny/Jídelny/Správců (E). U těchto bodů zůstává jen přesně uvedená fyzická mobilní, dvouzařízení nebo řízená owner akceptace; nové duplicitní úkoly se nezakládají.
 - **✅ Implementace hotová a automaticky doložená:** v administraci Rozpisů se už nezobrazuje blok „Místní neuložené návrhy rozpisů“; bezpečné mazací/recovery API zůstalo zachované. Stejně tak je hotový kompaktní přehled strojů s výchozím rozbalením a popisky `tnk`, `w01`, `w02` (uložené klíče se nemění).
-- **✅ Fyzicky potvrzeno 26. 9. 2026:** administrační `×` u kalendáře je na iPhonu centrované; dynamický WhatsApp text z živého runtime je **OK**; Datum/Směna jsou **OK**. **◐ 1.7.110 čeká už jen na kontrolu slovního názvu směny** (`Ranní / Noční / Ranní 8 h / Noční 8 h`) místo interního kódu. **⏳ Budoucí úkol z tohoto doplňku zůstává:** jednodenní generátor neplánované absence s přepočtem jen dotčených dnů (viz C).
+- **✅ Fyzicky potvrzeno 26. 9. 2026:** administrační `×`, Datum/Směna i finální WhatsApp text jsou na iPhonu **OK**. WhatsApp používá čitelný název směny a finální tvar bez slova `směna`. **◐ Jediný aktivní úkol:** Neplánovaná změna (generátor) – implementace je v 1.7.111 a čeká na fyzickou/uživatelskou přejímku.
 
 ### A. Lokální start a dostupnost aplikace · P2.1 / P2.3
 
@@ -680,7 +700,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 - Přehled jmen a skupin strojů ponechat ve výchozím stavu rozbalený a zúžit sloupce pro mobil; v tomto přehledu používat kompaktní popisky `tnkso1 → tnk`, `tpkw01 → w01`, `tpkw02 → w02`, aniž se změní uložené klíče strojů.
 - Kliknutí na obsazené jméno má nabídnout stabilní a zřetelnou akci odebrání. Kliknutí na prázdné místo má nabídnout jen osoby, které daný den nejsou ani v rozpisu, ani v absenci; nabídka nesmí odskakovat mimo cílovou buňku.
 - U absence má datum přednostně nabízet dny s chybějícím člověkem bez záznamu absence a jméno osoby chybějící ve zvoleném dni. Datum i jméno musí zůstat ručně editovatelné a serverová validace musí odmítnout nekonzistentní zápis.
-- Přidat Administrace → Rozpisy → **Neplánovaná změna (generátor)**: kliknutí na osobu v konkrétním dni otevře formulář s předvyplněným, ale editovatelným datem, jménem, důvodem absence a rozsahem od–do. Uložení musí zapsat absenci a přegenerovat pouze zadaný den/dny podle aktuálních pravidel a vyvážení; ostatní dny, fronta a recovery zůstanou nedotčené. Přidat serverovou validaci, idempotenci a regresní testy pro částečný přepočet.
+- **◐ Implementováno v 1.7.111, nyní jediný aktivní úkol k přejímce:** Administrace → Rozpisy → **Neplánovaná změna (generátor)**. Kliknutí na obsazenou osobu nabízí formulář s předvyplněným pracovníkem/dnem, editovatelným důvodem a rozsahem Od–Do. Klient splice-ne jen zvolené dny a explicitně odmítá změnu jiného dne; serverový TEST RPC navíc kontroluje allowlist diff, CAS revizi a idempotenci operation UUID. Serverový rollback test je PASS. Teď je potřeba fyzicky ověřit skutečný iPhone tok a případné UX chyby; do té doby bod neoznačovat za uzavřený.
 
 ### D. Účty, pracovníci, správci a relace · P0.1 / P0.4 / P1.2 / P2.2
 
@@ -718,7 +738,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 ### G. Obsah a drobné mobilní UX · P2.2
 
-**Stav 1.7.110:** fyzický iPhone test potvrdil oba body 1.7.109 jako **OK**: WhatsApp psací pole používá dynamické datum + směnu a Datum/Směna jsou zarovnané. 1.7.110 už jen nahrazuje interní kód směny lidským českým názvem (`Ranní / Noční / Ranní 8 h / Noční 8 h`) v předvyplněné WhatsApp zprávě. Automatické gate testy jsou PASS; zbývá pouze fyzicky potvrdit tento textový detail. P2.2 proto zůstává 60 %.
+**Stav 1.7.111 / fyzický iPhone 26. 9.:** finální WhatsApp text je **OK** i po odstranění slova `směna`; výsledný tvar je `RaK – Report směny diferenciály · <datum> · <Ranní/Noční/Ranní 8 h/Noční 8 h>`. Tento konkrétní UX bod je uzavřený. P2.2 jako celek zůstává 60 %, protože jeho zbývající checklist je širší.
 
 **Stav 1.7.97:** všechny čtyři položky jsou implementované v TEST; Report směny navíc prošel reálnou Chromium geometrií na 390 px. Fyzický iPhone test landscape animace, safe-area a reportového okraje zůstává otevřený.
 
