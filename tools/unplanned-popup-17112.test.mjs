@@ -26,6 +26,10 @@ test('occupied schedule tap opens a full two-action menu before the input can fo
   assert(editor.includes(".adminRotationQuickRemove.isVisible{display:grid!important;grid-template-columns:1fr!important;align-items:stretch!important;justify-content:stretch!important}"));
   assert(editor.includes("box.style.setProperty('display', 'grid', 'important')"));
   assert(editor.includes("box.style.setProperty('grid-template-columns', '1fr', 'important')"));
+  assert(editor.includes("actions.style.setProperty('display', 'grid', 'important')"));
+  assert(editor.includes("actions.style.setProperty('grid-template-columns', '1fr', 'important')"));
+  assert(editor.includes("button.style.setProperty('width', '100%', 'important')"));
+  assert(editor.includes("button.style.setProperty('display', 'block', 'important')"));
   assert(editor.includes("adminOpenUnplannedChangeDialog(target)"), 'unplanned menu action must still open the large popup');
 });
 

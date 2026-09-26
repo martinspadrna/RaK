@@ -1411,6 +1411,22 @@ function adminShowRotationQuickRemove(input) {
     if (txt) txt.textContent = 'Jméno: ' + value;
     const unplannedBtn = box.querySelector('.adminRotationQuickUnplannedBtn');
     if (unplannedBtn) unplannedBtn.hidden = !input.matches('[data-rot-field^="cell-"]');
+    const actions = box.querySelector('.adminRotationQuickRemoveActions');
+    const removeBtn = box.querySelector('.adminRotationQuickRemoveBtn');
+    if (actions) {
+      actions.style.setProperty('display', 'grid', 'important');
+      actions.style.setProperty('grid-template-columns', '1fr', 'important');
+      actions.style.setProperty('width', '100%', 'important');
+      actions.style.setProperty('gap', '8px', 'important');
+    }
+    for (const button of [unplannedBtn, removeBtn]) {
+      if (!button) continue;
+      button.style.setProperty('display', 'block', 'important');
+      button.style.setProperty('width', '100%', 'important');
+      button.style.setProperty('min-width', '0', 'important');
+      button.style.setProperty('white-space', 'normal', 'important');
+      button.style.setProperty('box-sizing', 'border-box', 'important');
+    }
     const rect = input.getBoundingClientRect();
     const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
     const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);

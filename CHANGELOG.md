@@ -1,3 +1,9 @@
+## RaK 1.7.114 (development)
+
+- Administrace → Rozpisy: po fyzickém iPhone retestu je svislé menu opravené ještě o úroveň níž. Při každém otevření se přímo inline s `!important` vynutí jednosloupcový grid na `.adminRotationQuickRemoveActions` a 100% šířka obou tlačítek.
+- Tím se odstraní poslední možnost, aby staré `display:flex !important` v globálním stylesheetu znovu natlačilo `Neplánovaná dovolená` a `Odebrat` vedle sebe.
+- Velký popup i serverová logika Neplánované změny zůstávají beze změny. Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.113 (development)
 
 - Administrace → Rozpisy: akční nabídka po klepnutí na obsazené jméno je kořenově opravena proti starému `.adminRotationQuickRemove.isVisible{display:flex!important}`. Celý box se nyní při zobrazení vynutí jako jednosloupcový grid, takže `Neplánovaná dovolená` a `Odebrat` jsou skutečně pod sebou a přes celou šířku.
