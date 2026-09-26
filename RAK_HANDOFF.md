@@ -34,6 +34,9 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
+- **Komunikační pravidlo vlastníka od 26. 9. 2026:** když po testu aktuálního úkolu napíše pouze **„ok“**, znamená to **fyzický PASS a uzavření právě testovaného úkolu**. Neptat se znovu, zda tím myslel potvrzení.
+- Po každém takto potvrzeném úkolu: (1) zapsat PASS do `RAK_HANDOFF.md`; (2) v odpovědi uvést **orientační odhad zaplnění aktuálního chatu v %** – výslovně jako odhad, protože přesný systémový ukazatel není k dispozici; (3) navrhnout **jeden konkrétní další úkol**; (4) říct, zda podle odhadu zbývající kapacita chatu na jeho bezpečné dokončení stačí.
+- Pokud podle odhadu kapacita na další úkol **nestačí**, nepouštět se do něj v tomto chatu. Rovnou doporučit nový chat a dodat **krátký copy/paste prompt** ve stylu: „Pokračuj v projektu RaK podle aktuálního `RAK_HANDOFF.md` na HEAD větve `development`. Všechno důležité je zapsané v tomto souboru. Teď udělej úkol: <konkrétní úkol>.“
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
@@ -77,11 +80,12 @@ Vlastník požádal vybrat jeden zbývající úkol a dokončit jej samostatně.
 - Performance/quality PASS; release evidence ID `10911142502`, CI proof ID `10910884275`.
 - Produkce beze změny: `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, Vercel `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, produkční Supabase ACTIVE_HEALTHY.
 
-#### Jediný zbývající krok tohoto úkolu
+#### Fyzická PWA přejímka 1.7.124 – PASS
 
-Cílená fyzická PWA přejímka: na bezpečném neprodukčním admin scénáři ověřit, že **5 znaků je odmítnuto a 6 znaků lze uložit a následně se tím heslem znovu přihlásit**. Neprovádět kvůli testu rizikovou změnu jediného owner hesla, pokud není k dispozici bezpečný nižší admin/test účet.
-
-Po tomto PASS lze požadavek „heslo stačí 6 znaků“ označit jako fyzicky uzavřený. Do té doby nepřecházet na další úkol, pokud vlastník výslovně neřekne jinak.
+- **26. 9. 2026 vlastník odpověděl „ok“ a následně výslovně upřesnil, že jeho stručné „ok“ znamená, že právě testovaný aktuální úkol je v pořádku.**
+- Požadavek **minimum hesla správce/admina 12 → 6 znaků** je tímto fyzicky potvrzený a uzavřený.
+- Tento konkrétní podúkol znovu neotvírat bez nové konkrétní regrese.
+- Širší P1.2 zůstává otevřená na 80 %, protože stále zahrnuje samostatné session/device Safari/PWA scénáře.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.123
 
@@ -138,11 +142,11 @@ Procenta 13 oblastí se tímto fyzickým potvrzením nemění: **5/13 uzavřený
 
 #### Nově přidané otevřené požadavky vlastníka – 26. 9. 2026
 
-- **P1.2 – implementováno v 1.7.124:** minimum hesla pro správce/admin role je sníženo z 12 na **6 znaků** konzistentně v klientovi i TEST Edge Function; automatické testy a deployment jsou PASS. Zbývá jen cílená fyzická přejímka 6znakového hesla v PWA na neprodukčním/bezpečném admin scénáři.
+- **P1.2 – HOTOVO pro tento konkrétní podúkol v 1.7.124:** minimum hesla pro správce/admin role je sníženo z 12 na **6 znaků** konzistentně v klientovi i TEST Edge Function; automatické testy, deployment i fyzická PWA přejímka jsou PASS. Vlastník potvrdil „ok“ 26. 9. 2026.
 - **P2.1/P2.2:** zkrátit dobu po spuštění, kdy je UI viditelné, ale ještě nereaguje na kliknutí; nově měřit i čas do první použitelné interakce.
 - **P1.2/P2.2:** oprávněným uživatelům zobrazit a zpřístupnit **Report a další role-gated položky ve Více** výrazně dřív; nečekat zbytečně na celý vzdálený bootstrap, ale zároveň nikdy krátce nezobrazit cizí privilegia.
 
-Z těchto tří bodů je **heslo 6 znaků implementované v TEST a čeká jen fyzickou přejímku**; oba výkonnostní/role-menu body zůstávají otevřený realizační backlog. Procenta 13 oblastí se tím nemění.
+Z těchto tří bodů je **heslo 6 znaků kompletně uzavřené včetně fyzického PASS**; oba výkonnostní/role-menu body zůstávají otevřený realizační backlog. Procenta 13 oblastí se tím nemění.
 
 #### Co je už fyzicky potvrzené a neotvírat znovu
 
@@ -702,7 +706,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** konzistentní serverová ochrana i po restartu a odvolání, nikoli pouze klientský příznak `adminUnlocked`.
 
-**Release 1.7.124 – heslo 6 znaků:** klientské validace pro nový admin účet i změnu owner/vlastního admin hesla používají minimum 6 a maximum 128 znaků; stejné tři validační cesty jsou nasazené v TEST `rak-admin-users` v6. Současné heslo se před změnou dál serverově ověřuje přes Auth a správa jiných účtů zůstává owner-only. Automatický gate 1.7.124 je PASS; širší P1.2 zůstává 80 %, protože stále chybí fyzický Safari/PWA session/device scénář.
+**Release 1.7.124 – heslo 6 znaků:** klientské validace pro nový admin účet i změnu owner/vlastního admin hesla používají minimum 6 a maximum 128 znaků; stejné tři validační cesty jsou nasazené v TEST `rak-admin-users` v6. Současné heslo se před změnou dál serverově ověřuje přes Auth a správa jiných účtů zůstává owner-only. Automatický gate 1.7.124 je PASS a vlastník fyzicky potvrdil tento konkrétní 6znakový podúkol jako **PASS („ok“) 26. 9. 2026**. Širší P1.2 zůstává 80 %, protože stále chybí samostatný fyzický Safari/PWA session/device scénář.
 
 
 **Společný bezpečnostní audit 23. 9. 2026:** proti přesnému SHA `b52745fe6c84a58b3187bc0f5fdd39593c9df59f` a výhradně TEST `cgshssdjgzzuprlwnabl` proběhla čtecí inventura 20 tabulek, 24 RPC vystavených typovým API, 48 migračních souborů a čtyř RaK Edge Functions. Actions run #202 na témže SHA doložil 18 anonymních/neplatných-JWT HTTP sond bez zápisu; navíc ruční sondy odmítly anonymní i záměrně neplatný JWT na `rak-admin-users` a `rak-absence-calendar` HTTP 401. Navazující živý katalogový audit na development HEAD `a9486dc5f38e06a2957d8a6d09c14b17eb346655` ověřil přímo v TEST `pg_catalog`, `pg_policies` a tabulková GRANT oprávnění: všech 20 veřejných tabulek má RLS zapnuté; `anon` ani `authenticated` nemají na veřejných tabulkách přímý `INSERT`/`UPDATE`/`DELETE`; anonymní RPC allowlist tvoří přesně šest funkcí. Pět z nich je záměrně veřejných `SECURITY DEFINER` endpointů (`rak_admin_account_requires_auth`, `rak_app_keepalive`, login V1/V2 a `rak_submit_bug_report_v2`), šestá `rak_admin_auth_capabilities` není SECURITY DEFINER. Drift testu byl opraven přidáním záměrně veřejného, rate-limitovaného `rak_lookup_account_for_login_v2`; opravená rollback-only matice byla před commitem spuštěna přímo proti TEST a prošla: anonymní i unsigned-authenticated kontext neviděl maskovaná admin nastavení, ověřená owner session se syntetickými request claims je viděla a transakce byla vrácena. Supabase security advisor tyto veřejné SECURITY DEFINER funkce správně hlásí jako body k vědomému posouzení; současný provozní model je používá jako omezené veřejné API a bez důkazu se jejich EXECUTE grant neruší. Skutečně podepsaná end-to-end role matrix owner/admin/deputy/cizí/odvolaná relace stále chybí, proto P0.1, P0.3, P0.4, P1.1 a P1.2 zůstávají procentně beze změny. Žádný platný JWT, service-role klíč ani osobní obsah nebyl zapsán do logu nebo repozitáře.
