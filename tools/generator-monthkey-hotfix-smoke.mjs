@@ -13,6 +13,8 @@ assert(rotation.includes("const soloMillRebalance = scopedGeneration ? scopedNoo
 assert((rotation.match(/adminRotationGeneratorBalanceSoloMill\(month, model\)/g)||[]).length >= 3, 'normal month generator lost solo-mill balancing calls');
 assert(readiness.includes('setupRakGeneratorMonthKeyHotfix'), 'runtime generator monthKey hotfix missing');
 assert(readiness.includes('__rakGeneratorMonthKeyHotfixWrapped'), 'runtime generator monthKey wrapper marker missing');
+assert(readiness.includes('adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth, generationOptions)'), 'generator wrapper must accept the third generation options argument');
+assert(readiness.includes('return original(monthKey, preparedMonth, generationOptions);'), 'generator wrapper must forward scoped generation options unchanged');
 assert(wizard.includes("if (action === 'generator-run')"), 'generator-run wizard action missing');
 assert(wizard.includes('adminGenerateRotationMonthDraft(state.monthKey, preparedMonth)'), 'wizard must pass selected month into generator');
 

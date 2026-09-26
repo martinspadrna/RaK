@@ -1,3 +1,11 @@
+## RaK 1.7.121 (development)
+
+- Oprava skutečné runtime příčiny, proč fyzický iPhone stále vracel Blažka do stroje při **26. 9. R → Dovolená** i **Odešel na kalírnu**.
+- Starší `module-readiness.js` obaloval `adminGenerateRotationMonthDraft` kvůli monthKey hotfixu, ale wrapper předával jen první dva argumenty. Třetí `generationOptions` se tedy v reálném browser runtime zahodil.
+- Wrapper nyní předává i třetí argument beze změny. Díky tomu se v Neplánované změně skutečně aktivují `scopedDateLabels` a `allowScopedRuleErrors`, které už byly implementované v 1.7.119–1.7.120.
+- Přidán regresní gate přes celý řetězec: oba unplanned vstupy posílají scoped options → legacy wrapper je musí přeposlat → generátor je musí použít pro lokální režim bez měsíčních repair/balance přesunů.
+- Žádná změna databáze ani serverového CAS/idempotentního RPC; TEST Supabase zůstává beze změny.
+
 ## RaK 1.7.120 (development)
 
 - Oprava fyzického iPhone testu Neplánované změny pro **26. 9. R / Blažek / Odešel na kalírnu** a stejnou cestu pro jednodenní absenci.

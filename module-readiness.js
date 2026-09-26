@@ -173,12 +173,12 @@
   function patchGenerator() {
     const original = window.adminGenerateRotationMonthDraft;
     if (typeof original !== 'function' || original.__rakGeneratorMonthKeyHotfixWrapped) return false;
-    const wrapped = function adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth) {
+    const wrapped = function adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth, generationOptions) {
       const hadOwnMonthKey = Object.prototype.hasOwnProperty.call(window, 'monthKey');
       const previousMonthKey = window.monthKey;
       try {
         window.monthKey = String(monthKey || '').trim();
-        return original(monthKey, preparedMonth);
+        return original(monthKey, preparedMonth, generationOptions);
       } finally {
         try {
           if (hadOwnMonthKey) window.monthKey = previousMonthKey;
