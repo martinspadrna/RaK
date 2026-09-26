@@ -75,9 +75,10 @@ test('unplanned Kalírna candidate runs the same generator, tolerates only inter
   for(const marker of [
     "type: 'kalirnaOut'",
     'adminRotationUnplannedGenerationSeed(candidate)',
-    'adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true })',
+    'adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels })',
     'adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels)',
     'adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels)',
+    'adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels)',
     "throw new Error('Pracovník označený jako Kalírna zůstal ve stroji: ' + date + '.')",
     "changeKind: 'daymod'"
   ]) assert(block.includes(marker),marker);

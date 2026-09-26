@@ -885,6 +885,57 @@ function adminRotationUnplannedIssueKey(issue) {
   return [String(issue && issue.severity || ''), String(issue && issue.type || issue && issue.code || ''), String(issue && issue.message || '')].join('|');
 }
 
+function adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels) {
+  const haystack = [issue && issue.message, issue && issue.detail]
+    .map((value) => String(value || '').replace(/\s+/g, '').toLocaleLowerCase('cs-CZ'))
+    .join(' ');
+  return (Array.isArray(allowedDateLabels) ? allowedDateLabels : []).some((label) => {
+    const raw = String(label || '').replace(/\s+/g, '').toLocaleLowerCase('cs-CZ');
+    const base = (typeof adminRotationDateBaseKey === 'function' ? adminRotationDateBaseKey(label) : String(label || ''))
+      .replace(/\s+/g, '').toLocaleLowerCase('cs-CZ');
+    return !!((raw && haystack.includes(raw)) || (base && haystack.includes(base)));
+  });
+}
+
+function adminRotationUnplannedAssertSelectedDayStaffing(month, allowedDateLabels) {
+  const knownNames = adminGetKnownNames();
+  const labels = Array.isArray(allowedDateLabels) ? allowedDateLabels : [];
+  labels.forEach((date) => {
+    const blocked = adminRotationUnavailableNamesForDate(month, date, knownNames);
+    const available = knownNames.filter((name) => !blocked.has(name));
+    const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+    const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+    const hardRow = hardRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const softRow = softRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells : [];
+    const softCells = Array.isArray(softRow && softRow.cells) ? softRow.cells : [];
+    const hardAssigned = hardCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter(Boolean);
+    const softAssigned = softCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter(Boolean);
+    const assigned = hardAssigned.concat(softAssigned);
+    const duplicate = assigned.find((name, idx) => assigned.indexOf(name) !== idx);
+    if (duplicate) throw new Error(String(date || '') + ': ' + duplicate + ' je po přepočtu přiřazen dvakrát.');
+    const blockedAssigned = assigned.find((name) => blocked.has(name));
+    if (blockedAssigned) throw new Error(String(date || '') + ': ' + blockedAssigned + ' je nedostupný, ale po přepočtu zůstal ve stroji.');
+
+    const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+    const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
+    if (hardAssigned.length !== hardTarget || softAssigned.length !== softTarget || assigned.length !== available.length) {
+      throw new Error(String(date || '') + ': přepočet nemá správný počet lidí na TO/MO.');
+    }
+
+    if (softTarget === 4) {
+      const latheIndexes = ['MSKC01','MSKC03','MSKC04'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const millIndexes = ['MFKF06','MFKF10'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const latheCount = latheIndexes.filter((idx) => idx >= 0 && adminRotationCanonicalName(softCells[idx], knownNames)).length;
+      const millCount = millIndexes.filter((idx) => idx >= 0 && adminRotationCanonicalName(softCells[idx], knownNames)).length;
+      if (latheCount !== 3 || millCount !== 1) {
+        throw new Error(String(date || '') + ': při čtyřech lidech na MO musí být 3 soustruhy a 1 fréza.');
+      }
+    }
+  });
+  return true;
+}
+
 function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input) {
   const data = input && typeof input === 'object' ? input : {};
   const labels = adminRotationUnplannedDateLabels(sourceMonth);
@@ -905,15 +956,19 @@ function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input
   const original = JSON.parse(JSON.stringify(sourceMonth || {}));
   const withAbsence = adminRotationUnplannedApplyAbsenceNotes(original, allowedDateLabels, person, reason);
   const seed = adminRotationUnplannedGenerationSeed(withAbsence);
-  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true });
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels });
   if (!generated || !generated.normalized) throw new Error('Částečný návrh se nepodařilo vygenerovat.');
   const candidate = adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels);
   adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels);
+  adminRotationUnplannedAssertSelectedDayStaffing(candidate, allowedDateLabels);
 
   const beforeCheck = adminRotationValidateMonthRules(original, monthKey, { source: 'generator' });
   const afterCheck = adminRotationValidateMonthRules(candidate, monthKey, { source: 'generator' });
   const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
-  const newErrors = (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'error' && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
+  const newErrors = (afterCheck.issues || []).filter((issue) => issue
+    && issue.severity === 'error'
+    && adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels)
+    && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
   if (newErrors.length) {
     throw new Error('Změnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
   }
@@ -999,10 +1054,11 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
   // stejně nedostupný. Generátor proto dostane dayMod už v seedu a použije
   // beze změny stávající pravidla 4/3 lidí na MO i doplnění TO z MO.
   const seed = adminRotationUnplannedGenerationSeed(candidate);
-  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true });
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels });
   if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
   const regenerated = adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels);
   adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels);
+  adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels);
 
   for (const date of allowedDateLabels) {
     for (const sectionKey of ['hard','soft']) {
@@ -1018,7 +1074,10 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
   const beforeCheck = adminRotationValidateMonthRules(sourceMonth, monthKey, { source: 'generator' });
   const afterCheck = adminRotationValidateMonthRules(regenerated, monthKey, { source: 'generator' });
   const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
-  const newErrors = (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'error' && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
+  const newErrors = (afterCheck.issues || []).filter((issue) => issue
+    && issue.severity === 'error'
+    && adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels)
+    && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
   if (newErrors.length) {
     throw new Error('Kalírnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
   }

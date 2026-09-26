@@ -1,3 +1,12 @@
+## RaK 1.7.120 (development)
+
+- Oprava fyzického iPhone testu Neplánované změny pro **26. 9. R / Blažek / Odešel na kalírnu** a stejnou cestu pro jednodenní absenci.
+- Scoped přepočet už po sestavení dne nespouští měsíční balance/repair průchody, které mohly nedostupného pracovníka vrátit do vybraného dne.
+- Pro jednoho nedostupného z 10 lidí se vybraný den musí uzavřít jako **5 TO + 4 MO**; na MO jsou při čtyřech lidech **3 soustruhy + 1 fréza**. Nedostupný pracovník nesmí zůstat v žádném stroji.
+- Finální fail-closed kontrola Neplánované změny blokuje jen nově vzniklé chyby, které se dotýkají vybraného dne/rozsahu. Historická nebo návazná chyba jiného dne (např. 30. 9.) sama o sobě změnu 26. 9. nezablokuje.
+- Izolace zůstává zachovaná: do výsledného měsíce se splice-nou pouze zvolené dny a serverový CAS/idempotentní allowlist se nemění. Žádná nová Supabase migrace.
+- Pět schválených důvodů zůstává beze změny: **Dovolená, Náhradní volno, Paragraf, Lékař, Odešel na kalírnu**.
+
 ## RaK 1.7.119 (development)
 
 - Neplánovaná změna zůstává přesně na pěti schválených důvodech: **Dovolená, Náhradní volno, Paragraf, Lékař, Odešel na kalírnu**.

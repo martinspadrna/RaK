@@ -1057,31 +1057,39 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   month.soft.rows = softRows;
   month.soft.machines = SOFT_MACHINE_HEADERS.slice();
   month.soft.title = month.soft.title || 'Rotace měkota';
-  const tnksBalance = adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
-  const soloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);
-  const softTotalBalance = adminRotationGeneratorBalanceSoftTotals(month, model, monthKey);
-  const softKindBalance = adminRotationGeneratorBalanceSoftKind(month, model);
-  const soloMillRebalance = adminRotationGeneratorBalanceSoloMill(month, model);
-  const kminekNovotnyMoToBalance = adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model);
-  const emptyHardRepair = adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey);
-  const tnksPostRepairBalance = emptyHardRepair && Number(emptyHardRepair.repairs || 0)
+  const scopedDateLabels = Array.isArray(generationOptions.scopedDateLabels)
+    ? generationOptions.scopedDateLabels.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+  const scopedGeneration = scopedDateLabels.length > 0;
+  const scopedNoop = () => ({ swaps: 0, repairs: 0, spread: 0, tbkSpread: 0, unresolved: [], disabled: false });
+  // Neplánovaná změna potřebuje jen čistý výsledek BuildDay pro vybraný den.
+  // Měsíční dorovnávací/repair průchody mohou legitimně prohazovat jiné dny a
+  // v minulosti tím vracely absenci/Kalírnu zpět do právě přepočítaného dne.
+  const tnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
+  const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const softTotalBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftTotals(month, model, monthKey);
+  const softKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
+  const soloMillRebalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const kminekNovotnyMoToBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model);
+  const emptyHardRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey);
+  const tnksPostRepairBalance = !scopedGeneration && emptyHardRepair && Number(emptyHardRepair.repairs || 0)
     ? adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey)
-    : { swaps: 0 };
-  const tnksConsecutiveRepair = adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey);
-  const finalSoftKindBalance = adminRotationGeneratorBalanceSoftKind(month, model);
-  const finalTnksBalance = adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
-  const tpkw02Balance = adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
-  const finalSoloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);
+    : scopedNoop();
+  const tnksConsecutiveRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey);
+  const finalSoftKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
+  const finalTnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
+  const tpkw02Balance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
+  const finalSoloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
   // RAK_GENERATOR_FINAL_SOLO_MILL_CALL_17008
-  const finalSoloMillStreakRepair = adminRotationGeneratorRepairConsecutiveSoloMill17008(month, model, monthKey);
+  const finalSoloMillStreakRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairConsecutiveSoloMill17008(month, model, monthKey);
   // RAK_GENERATOR_SOLO_MILL_SPREAD_CALL_17009
-  const finalSoloMillSpreadRepair = adminRotationGeneratorRepairSoloMillSpread17009(month, model, monthKey);
+  const finalSoloMillSpreadRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairSoloMillSpread17009(month, model, monthKey);
   // RAK_GENERATOR_SUNDAY_TBK_FAIRNESS_CALL_17011
-  const annualSundayTbkrCleanupBalance = adminRotationGeneratorBalanceSundayTbkrCleanup17011(month, model, monthKey);
+  const annualSundayTbkrCleanupBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSundayTbkrCleanup17011(month, model, monthKey);
   // RAK_GENERATOR_PRESS_HALF_STEP_CALL_17012
-  const pressHalfStepBalance = adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey);
+  const pressHalfStepBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey);
   // RAK_TPKW02_FINAL_CALL_17013
-  const finalTpkw02Balance = adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey);
+  const finalTpkw02Balance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey);
   const ruleCheck = adminRotationValidateMonthRules(month, monthKey, { source: 'generator' });
   if (finalTpkw02Balance.spread > 1 && !finalTpkw02Balance.disabled) {
     ruleCheck.issues.push({ severity: 'warn', code: 'tpkw02-month-spread', message: 'TPKW02 nelze s aktuální kvalifikací bezpečně vyrovnat na rozdíl 1 směny.' });

@@ -19,6 +19,7 @@ test('1.7.119 keeps exactly the five owner-approved unplanned reasons', () => {
 
 test('unplanned absence and Kalírna allow intermediate full-month errors only before selected-day splice', () => {
   assert.equal((wizard.match(/allowScopedRuleErrors: true/g)||[]).length,2);
+  assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
   assert(wizard.includes('adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels)'));
   assert(wizard.includes('adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels)'));
   assert(wizard.includes('adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels)'));
@@ -41,6 +42,7 @@ test('final candidate compares before and after with the same strict rules and r
     assert(!block.includes("source: 'manual-save'"));
     assert(block.includes('previousErrors'));
     assert(block.includes('newErrors'));
+    assert(block.includes('adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels)'));
   }
 });
 
