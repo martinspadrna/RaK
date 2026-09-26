@@ -793,6 +793,19 @@ function adminRotationUnplannedDateIndex(labels, value) {
   });
 }
 
+const ADMIN_UNPLANNED_REASON_OPTIONS = Object.freeze([
+  Object.freeze({ value: 'D', label: 'Dovolená', kind: 'absence' }),
+  Object.freeze({ value: 'NV', label: 'Náhradní volno', kind: 'absence' }),
+  Object.freeze({ value: '§', label: 'Paragraf', kind: 'absence' }),
+  Object.freeze({ value: 'LEK', label: 'Lékař', kind: 'absence' }),
+  Object.freeze({ value: 'kalirnaOut', label: 'Odešel na kalírnu', kind: 'daymod' })
+]);
+
+function adminRotationUnplannedReasonOption(value) {
+  const wanted = String(value || '').trim();
+  return ADMIN_UNPLANNED_REASON_OPTIONS.find((item) => item.value === wanted) || null;
+}
+
 function adminRotationUnplannedApplyAbsenceNotes(month, allowedDateLabels, person, reason) {
   const clone = JSON.parse(JSON.stringify(month || {}));
   const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
@@ -886,7 +899,8 @@ function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input
   const person = adminRotationCanonicalName(data.person, knownNames);
   if (!person || !knownNames.includes(person)) throw new Error('Vyber platného pracovníka.');
   const reason = String(data.reason || '').trim();
-  if (!reason) throw new Error('Vyplň důvod absence.');
+  const reasonOption = adminRotationUnplannedReasonOption(reason);
+  if (!reasonOption || reasonOption.kind !== 'absence') throw new Error('Vyber platný důvod absence.');
 
   const original = JSON.parse(JSON.stringify(sourceMonth || {}));
   const withAbsence = adminRotationUnplannedApplyAbsenceNotes(original, allowedDateLabels, person, reason);
@@ -903,7 +917,93 @@ function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input
   if (newErrors.length) {
     throw new Error('Změnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
   }
-  return { month: candidate, allowedDateLabels, person, reason, warnings: (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'warn') };
+  return {
+    month: candidate,
+    allowedDateLabels,
+    person,
+    reason,
+    reasonLabel: reasonOption.label,
+    changeKind: 'absence',
+    warnings: (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'warn')
+  };
+}
+
+function adminRotationUnplannedFindAssignment(month, dateLabel, person, knownNames) {
+  const matches = [];
+  for (const sectionKey of ['hard','soft']) {
+    const rows = Array.isArray(month && month[sectionKey] && month[sectionKey].rows) ? month[sectionKey].rows : [];
+    rows.forEach((row) => {
+      if (String(row && row.date || '').trim() !== String(dateLabel || '').trim()) return;
+      const cells = Array.isArray(row && row.cells) ? row.cells : [];
+      cells.forEach((value, cellIndex) => {
+        const canonical = adminRotationCanonicalName(value, knownNames);
+        if (canonical === person) matches.push({ section: sectionKey, cellIndex });
+      });
+    });
+  }
+  if (matches.length !== 1) {
+    throw new Error(matches.length
+      ? 'Pracovník je ve vybraném dni přiřazen vícekrát: ' + String(dateLabel || '') + '.'
+      : 'Pracovník není ve vybraném dni v rozpisu: ' + String(dateLabel || '') + '.');
+  }
+  return matches[0];
+}
+
+function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input) {
+  const data = input && typeof input === 'object' ? input : {};
+  const labels = adminRotationUnplannedDateLabels(sourceMonth);
+  const fromIndex = adminRotationUnplannedDateIndex(labels, data.fromDate);
+  const toIndex = adminRotationUnplannedDateIndex(labels, data.toDate);
+  if (fromIndex < 0 || toIndex < 0) throw new Error('Vybraný den není v rozpisu.');
+  if (toIndex < fromIndex) throw new Error('Datum Do musí být stejné nebo pozdější než Datum Od.');
+  const allowedDateLabels = labels.slice(fromIndex, toIndex + 1);
+  if (!allowedDateLabels.length) throw new Error('Není vybraný žádný den.');
+
+  const knownNames = adminGetKnownNames();
+  const person = adminRotationCanonicalName(data.person, knownNames);
+  if (!person || !knownNames.includes(person)) throw new Error('Vyber platného pracovníka.');
+  const reasonOption = adminRotationUnplannedReasonOption(data.reason);
+  if (!reasonOption || reasonOption.kind !== 'daymod' || reasonOption.value !== 'kalirnaOut') {
+    throw new Error('Vyber platnou výjimku dne.');
+  }
+
+  const candidate = JSON.parse(JSON.stringify(sourceMonth || {}));
+  const allowed = new Set(allowedDateLabels);
+  const existing = Array.isArray(candidate.dayMods) ? candidate.dayMods : [];
+  candidate.dayMods = existing.filter((mod) => {
+    const modDate = String(mod && mod.date || '').trim();
+    const modPerson = adminRotationCanonicalName(mod && mod.person || '', knownNames);
+    return !(allowed.has(modDate) && modPerson === person);
+  });
+
+  allowedDateLabels.forEach((date) => {
+    const assignment = adminRotationUnplannedFindAssignment(sourceMonth, date, person, knownNames);
+    candidate.dayMods.push({
+      section: assignment.section,
+      date,
+      cellIndex: Number(assignment.cellIndex),
+      person,
+      type: 'kalirnaOut',
+      time: '',
+      restReason: '',
+      workedHours: null,
+      restHours: null,
+      overtime: null,
+      toSection: '',
+      toCellIndex: null,
+      note: ''
+    });
+  });
+
+  return {
+    month: candidate,
+    allowedDateLabels,
+    person,
+    reason: 'kalirnaOut',
+    reasonLabel: reasonOption.label,
+    changeKind: 'daymod',
+    warnings: []
+  };
 }
 
 function adminRotationUnplannedOperationId() {
@@ -960,6 +1060,7 @@ function adminOpenUnplannedChangeDialog(input) {
   const labels = adminRotationUnplannedDateLabels(sourceMonth);
   const knownNames = adminGetKnownNames();
   const optionHtml = (values, selected) => values.map((value) => '<option value="' + escapeHtml(value) + '"' + (String(value) === String(selected) ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
+  const reasonOptionHtml = ADMIN_UNPLANNED_REASON_OPTIONS.map((item) => '<option value="' + escapeHtml(item.value) + '">' + escapeHtml(item.label) + '</option>').join('');
 
   adminCloseUnplannedChangeDialog();
   const overlay = document.createElement('div');
@@ -970,10 +1071,9 @@ function adminOpenUnplannedChangeDialog(input) {
     '<div class="adminUnplannedChangeDialog adminUnplannedChangePage" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
     '  <div class="adminUnplannedChangeHeader"><div><div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna</div><div class="smallText">Generátor rozpisu</div></div><button type="button" class="adminUnplannedClose" data-unplanned-action="cancel" aria-label="Zavřít">×</button></div>',
     '  <div class="adminUnplannedChangeBody">',
-    '  <div class="smallText">Zapíše absenci a přepočítá jen zvolený den nebo rozsah. Ostatní dny, lokální fronta a recovery zůstanou beze změny.</div>',
+    '  <div class="smallText">Dovolená, náhradní volno, paragraf a lékař přepočítají jen vybraný den nebo rozsah. Kalírna se uloží jako stejná Výjimka dne jako v rozpisu.</div>',
     '  <label class="appMenuFieldLabel">Pracovník<select id="adminUnplannedPerson" class="appMenuSelect">' + optionHtml(knownNames, prefillPerson) + '</select></label>',
-    '  <label class="appMenuFieldLabel">Důvod absence<input id="adminUnplannedReason" class="appMenuInput" list="adminUnplannedReasonOptions" value="D" maxlength="80"></label>',
-    '  <datalist id="adminUnplannedReasonOptions"><option value="D"><option value="N"><option value="NV"><option value="§"><option value="Lázně"><option value="Školení"></datalist>',
+    '  <label class="appMenuFieldLabel">Důvod<select id="adminUnplannedReason" class="appMenuSelect">' + reasonOptionHtml + '</select></label>',
     '  <div class="adminUnplannedRange">',
     '    <label class="appMenuFieldLabel">Od<select id="adminUnplannedFrom" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
     '    <label class="appMenuFieldLabel">Do<select id="adminUnplannedTo" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
@@ -1013,20 +1113,27 @@ function adminOpenUnplannedChangeDialog(input) {
       const toDate = String(overlay.querySelector('#adminUnplannedTo')?.value || '');
       const person = String(overlay.querySelector('#adminUnplannedPerson')?.value || '');
       const reason = String(overlay.querySelector('#adminUnplannedReason')?.value || '').trim();
-      if (status) status.textContent = 'Přepočítávám jen vybraný rozsah…';
-      const candidate = adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, { fromDate, toDate, person, reason });
+      const reasonOption = adminRotationUnplannedReasonOption(reason);
+      if (!reasonOption) throw new Error('Vyber důvod změny.');
+      if (status) status.textContent = reasonOption.kind === 'daymod'
+        ? 'Připravuji výjimku Kalírna…'
+        : 'Přepočítávám jen vybraný rozsah…';
+      const candidate = reasonOption.kind === 'daymod'
+        ? adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, { fromDate, toDate, person, reason })
+        : adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, { fromDate, toDate, person, reason });
       const payload = JSON.parse(JSON.stringify(app.rotation || {}));
       if (!payload.months || typeof payload.months !== 'object') throw new Error('Aktuální rozpis nemá měsíce.');
       payload.months[monthKey] = candidate.month;
 
       if (!overlay.dataset.operationId) overlay.dataset.operationId = adminRotationUnplannedOperationId();
       const bridge = window.RotationSupabaseBridge;
-      if (!bridge || typeof bridge.applyUnplannedAbsenceChange !== 'function') throw new Error('Bezpečné online uložení neplánované změny není připravené.');
+      if (!bridge || typeof bridge.applyUnplannedChange !== 'function') throw new Error('Bezpečné online uložení neplánované změny není připravené.');
       if (status) status.textContent = 'Ověřuji serverový rozsah změny a ukládám…';
-      const result = await bridge.applyUnplannedAbsenceChange(payload, {
+      const result = await bridge.applyUnplannedChange(payload, {
         operationId: overlay.dataset.operationId,
         monthKey,
         person: candidate.person,
+        changeKind: candidate.changeKind,
         reason: candidate.reason,
         allowedDateLabels: candidate.allowedDateLabels
       });
@@ -1039,7 +1146,7 @@ function adminOpenUnplannedChangeDialog(input) {
       adminCloseUnplannedChangeDialog();
       renderAdminMenuBody(body, 'rotation');
       const nextStatus = document.getElementById('adminOnlineSaveStatus') || document.getElementById('adminRotationDraftStatus');
-      if (nextStatus) nextStatus.textContent = 'Neplánovaná změna uložená online ✓ · přepočteno dnů: ' + String(candidate.allowedDateLabels.length) + '.';
+      if (nextStatus) nextStatus.textContent = 'Neplánovaná změna uložená online ✓ · ' + candidate.reasonLabel + ' · dnů: ' + String(candidate.allowedDateLabels.length) + '.';
     } catch (err) {
       if (status) status.textContent = err && err.message ? err.message : 'Neplánovaná změna se nepodařila.';
     } finally {

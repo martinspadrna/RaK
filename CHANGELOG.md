@@ -1,3 +1,10 @@
+## RaK 1.7.115 (development)
+
+- Neplánovaná změna: pole Důvod je nyní pevný výběr přesně pěti položek podle zadání vlastníka: `Dovolená`, `Náhradní volno`, `Paragraf`, `Lékař`, `Odešel na kalírnu`. Volné psaní a ostatní důvody byly odstraněny.
+- První čtyři volby používají stávající bezpečný částečný generátor absence. `Odešel na kalírnu` se neukládá jako falešná absence: vytvoří skutečnou `dayMods` výjimku typu `kalirnaOut` na právě přiřazené buňce a nerozhází ostatní dny ani strojové obsazení.
+- TEST Supabase migrace `20260926081926_rak_unplanned_reason_catalog_17115` přidává admin-only RPC v2 s CAS/idempotencí a odděleným allowlistem: absence jen D/NV/§/LEK, denní výjimka jen `kalirnaOut`. Anon nemá EXECUTE.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.114 (development)
 
 - Administrace → Rozpisy: po fyzickém iPhone retestu je svislé menu opravené ještě o úroveň níž. Při každém otevření se přímo inline s `!important` vynutí jednosloupcový grid na `.adminRotationQuickRemoveActions` a 100% šířka obou tlačítek.
