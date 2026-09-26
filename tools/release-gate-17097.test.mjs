@@ -62,7 +62,8 @@ test('shift report mobile geometry has an explicit gap and is covered by real Ch
   const report=read('rak-shift-report.js');
   const workflow=read('.github/workflows/rak-development-validation.yml');
   const browser=read('tools/browser-fourth-bundle-17097.mjs');
-  assert(report.includes('grid-template-columns:124px 112px;align-items:end;gap:10px'));
+  assert(report.includes('grid-template-columns:124px 112px;align-items:start;gap:10px'));
+  assert(report.includes('.rakShiftContext .rakShiftMetaLabel{grid-template-rows:auto 48px;align-content:start}'));
   assert(report.includes('.rakShiftDateShell{position:relative;width:124px'));
   assert(report.includes('border:1px solid rgba(255,255,255,.18)'));
   assert(report.includes('.rakShiftContext label{overflow:hidden}'));
