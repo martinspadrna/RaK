@@ -1,3 +1,9 @@
+## RaK 1.7.113 (development)
+
+- Administrace → Rozpisy: akční nabídka po klepnutí na obsazené jméno je kořenově opravena proti starému `.adminRotationQuickRemove.isVisible{display:flex!important}`. Celý box se nyní při zobrazení vynutí jako jednosloupcový grid, takže `Neplánovaná dovolená` a `Odebrat` jsou skutečně pod sebou a přes celou šířku.
+- Oprava zůstává v deferred admin modulu; velký popup Neplánované změny ani serverová logika se nemění.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.112 (development)
 
 - Neplánovaná změna – mobilní UX: klepnutí na obsazené jméno v Rozpisech nejdřív otevře kompaktní akční nabídku se dvěma celými volbami `Neplánovaná dovolená` a `Odebrat`. Volba Neplánovaná dovolená následně otevře velkou vyskakovací stránku s formulářem.

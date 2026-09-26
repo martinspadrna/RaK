@@ -1421,6 +1421,10 @@ function adminShowRotationQuickRemove(input) {
     const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
     box.style.top = String(top) + 'px';
     box.style.left = String(left) + 'px';
+    box.style.setProperty('display', 'grid', 'important');
+    box.style.setProperty('grid-template-columns', '1fr', 'important');
+    box.style.setProperty('align-items', 'stretch', 'important');
+    box.style.setProperty('justify-content', 'stretch', 'important');
     box.classList.add('isVisible');
   } catch (err) {
     console.warn('Admin quick remove failed', err);
@@ -1623,6 +1627,7 @@ function adminEnsureRotationNameActionMenuStyles() {
   style.id = 'rakRotationNameActionMenuStyles';
   style.textContent = [
     '.adminRotationQuickRemove{width:min(260px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;padding:12px!important;box-sizing:border-box!important}',
+    '.adminRotationQuickRemove.isVisible{display:grid!important;grid-template-columns:1fr!important;align-items:stretch!important;justify-content:stretch!important}',
     '.adminRotationQuickRemoveActions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;margin-top:8px!important}',
     '.adminRotationQuickRemoveActions button{width:100%!important;min-width:0!important;min-height:44px!important;padding:8px 12px!important;border-radius:12px!important;white-space:normal!important;line-height:1.15!important}',
     '.adminRotationQuickRemoveText{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'
