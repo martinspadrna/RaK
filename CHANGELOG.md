@@ -1,3 +1,9 @@
+## RaK 1.7.110 (development)
+
+- WhatsApp report: předvyplněná zpráva už nepoužívá interní kódy směny `R / N / R8 / N8`, ale čitelné české názvy `Ranní / Noční / Ranní 8 h / Noční 8 h`.
+- Datum, živý runtime synchronizovaný od 1.7.109 i PNG sdílení zůstávají beze změny.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.109 (development)
 
 - Report směny → WhatsApp: opravena skutečná živá cesta. Aplikace načítá `rak-shift-report-share.js`; jeho vložený PNG helper byl starší než samostatný `rak-shift-report-image.js`, takže i po 1.7.108 WhatsApp dostával statické `RaK – Report směny diferenciály`. Live runtime nyní používá kontext `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>` jako `title` i `text` spolu s PNG.

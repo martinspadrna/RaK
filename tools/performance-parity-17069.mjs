@@ -116,10 +116,10 @@ try{
   const builtConfig=fs.readFileSync(path.join(baselineRoot,'supabase-config.js'),'utf8');assert(builtConfig.includes('window.RAK_RELEASE_VERSION = "1.7.69";'),'[perf-parity] historical build is not 1.7.69');
   const currentMetadata=fs.readFileSync(path.join(ROOT,'rak-release-metadata.js'),'utf8');
   const currentPackage=JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8'));
-  assert(currentMetadata.includes("displayVersion: '1.7.109'"),'[perf-parity] current canonical release metadata is not 1.7.109');
-  assert.equal(currentPackage.version,'1.7.109','[perf-parity] current canonical package is not 1.7.109');
+  assert(currentMetadata.includes("displayVersion: '1.7.110'"),'[perf-parity] current canonical release metadata is not 1.7.110');
+  assert.equal(currentPackage.version,'1.7.110','[perf-parity] current canonical package is not 1.7.110');
   const baseline=[],current=[];
-  for(let round=1;round<=CONFIG.rounds;round++){baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));current.push(await measureRoot(ROOT,'current-1.7.109',round));}
+  for(let round=1;round<=CONFIG.rounds;round++){baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));current.push(await measureRoot(ROOT,'current-1.7.110',round));}
   const b=summarize(baseline),c=summarize(current),comparisons={};
   for(const [metric,spec] of Object.entries(CONFIG.metrics)){
     const medianGate=allowedMedian(b[metric],spec);
