@@ -736,10 +736,10 @@ function buildAdminPressRotationOverridesHtml(month, monthKey, hardRows) {
   ].join('');
 }
 
-// Pri 3 i 4 absencich zustava TPKW02 zamerne bez obsluhy.
-// Pri 3 absencich je 4 TO + 3 MO; pri 4 absencich 4 TO + 2 MO.
+// Pro tri absence je rezervovana jedna pozice na frezkach. Validujeme cely den,
+// ne jen celkovy pocet lidi: prazdne TPKW02, MSKC01 a MFKF06 jsou zamerne.
 function adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent) {
-  if (!Array.isArray(knownNames) || knownNames.length !== 10 || !absent || (absent.size !== 3 && absent.size !== 4)) return [];
+  if (!Array.isArray(knownNames) || knownNames.length !== 10 || !absent || absent.size !== 3) return [];
   const issues = [];
   const inspect = (headers, row, required) => {
     (Array.isArray(headers) ? headers : []).forEach((machine, idx) => {
@@ -752,7 +752,7 @@ function adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, a
     });
   };
   inspect(HARD_MACHINE_HEADERS, hardRow, ['TNKS01', 'TBKR07', 'TPKW01', 'TBKR01']);
-  inspect(SOFT_MACHINE_HEADERS, softRow, absent.size === 3 ? ['MSKC03', 'MSKC04', 'MFKF10'] : ['MSKC03', 'MFKF10']);
+  inspect(SOFT_MACHINE_HEADERS, softRow, ['MSKC03', 'MSKC04', 'MFKF10']);
   return issues;
 }
 
@@ -828,12 +828,9 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
     if (!adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) {
       const absent = new Set(noteNamesForDate(dateLabel).map((noteName) => noteName.canonical).filter((name) => knownNames.includes(name)));
       adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent).forEach((issue) => {
-        const staffingDetail = absent.size === 4
-          ? 'Při čtyřech absencích: 4 TO (bez TPKW02), 2 MO (MSKC03, MFKF10).'
-          : 'Při třech absencích: 4 TO (bez TPKW02), 3 MO (MSKC03, MSKC04, MFKF10).';
         addIssue('error', 'three-absence-staffing', String(dateLabel) + ': ' + issue.machine
           + (issue.shouldBeOccupied ? ' musí být obsazená.' : ' musí zůstat neobsazená.'),
-          staffingDetail);
+          'Při třech absencích: 4 TO (bez TPKW02), 3 MO (MSKC03, MSKC04, MFKF10).');
       });
       const unused = knownNames.filter((name) => !absent.has(name) && !assigned.has(name));
       if (unused.length) {

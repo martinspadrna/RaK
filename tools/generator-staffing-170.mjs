@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// RaK 1.7: three or four absences keep TPKW02 empty; final fairness includes TPKW02 and solo mills.
+// RaK 1.7: three absences reserve one mill operator; final fairness includes TPKW02 and solo mills.
 import fs from 'node:fs';
 const file = 'admin-rotation-generator.js';
 let src = fs.readFileSync(file, 'utf8');
@@ -11,22 +11,17 @@ function replaceOnce(before, after, label) {
 const helper = `function adminRotationGeneratorThreeAbsences(knownNames, available) {
   return Array.isArray(knownNames) && knownNames.length === 10 && Array.isArray(available) && available.length === 7;
 }
-function adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) {
-  if (!Array.isArray(knownNames) || knownNames.length !== 10 || !Array.isArray(available)) return false;
-  const missing = knownNames.length - available.length;
-  return missing === 3 || missing === 4;
-}
 function adminRotationGeneratorHardTarget(knownNames, available) {
-  return adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);
+  return adminRotationGeneratorThreeAbsences(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);
 }
 `;
 replaceOnce('function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey) {', helper + '\nfunction adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey) {', 'day helper');
 replaceOnce('  const hardTargetCount = Math.min(HARD_MACHINE_HEADERS.length, available.length);', '  const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);', 'day hard budget');
-replaceOnce("    const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';\n    if (machineIdx < 0 || !machineName || !name", "    const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';\n    if (adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && machineName === 'TPKW02') return false;\n    if (machineIdx < 0 || !machineName || !name", 'TPKW02 day closure');
-replaceOnce('    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0', "    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && cycleMachine === 'TPKW02')", 'soft-core closure');
-replaceOnce('    if (!exchangeSoft) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);', "    if (!exchangeSoft && !(adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);", 'preserve pending TPKW02 block');
+replaceOnce("    const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';\n    if (machineIdx < 0 || !machineName || !name", "    const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';\n    if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;\n    if (machineIdx < 0 || !machineName || !name", 'TPKW02 day closure');
+replaceOnce('    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0', "    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')", 'soft-core closure');
+replaceOnce('    if (!exchangeSoft) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);', "    if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);", 'preserve pending TPKW02 block');
 replaceOnce('    const hardTargetCount = Math.min(HARD_MACHINE_HEADERS.length, available.length);', '    const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);', 'repair hard budget');
-replaceOnce('    HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {\n      if (hardFilled >= hardTargetCount', "    HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {\n      if (adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && machineName === 'TPKW02') return;\n      if (hardFilled >= hardTargetCount", 'repair TPKW02 closure');
+replaceOnce('    HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {\n      if (hardFilled >= hardTargetCount', "    HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {\n      if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return;\n      if (hardFilled >= hardTargetCount", 'repair TPKW02 closure');
 const adjacentSolo = `function adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, person, knownNames) {
   const rows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
   const mill06 = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
@@ -60,4 +55,4 @@ const swapAnchor = '    soloMillBalanceSwaps: (soloMillBalance && Number(soloMil
 must(rotation.includes(swapAnchor), 'solo summary anchor missing');
 rotation = rotation.replace(swapAnchor, swapAnchor.replace('),', ') + (finalSoloMillBalance && Number(finalSoloMillBalance.swaps || 0)),') + "\n    tpkw02BalanceSwaps: tpkw02Balance && Number(tpkw02Balance.swaps || 0),");
 fs.writeFileSync('admin-rotation.js', rotation, 'utf8');
-console.log('[generator-staffing-170] OK 3/4 absences close TPKW02 in day + repair; final safe TPKW02 and solo balancing');
+console.log('[generator-staffing-170] OK three absences reserve MFKF10 and close TPKW02 in day + repair; final safe TPKW02 and solo balancing');

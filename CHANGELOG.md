@@ -1,3 +1,10 @@
+## RaK 1.7.118 (development)
+
+- Opravené nedorozumění z 1.7.117: speciální personální větev pro **4 chybějící** je odstraněná z generátoru, opravné fáze, validace i regresních testů. Čtyři a více chybějících se tímto releasem nezavádějí jako podporovaný provozní scénář.
+- Zachované pravidlo pro **3 chybějící**: 4 TO bez TPKW02 + 3 MO na MSKC03, MSKC04 a MFKF10; MSKC01 a MFKF06 zůstávají prázdné.
+- Pravidla pro 0–2 chybějící zůstávají beze změny. Release nepřidává novou databázovou migraci ani nemění TEST/produkční Supabase schéma.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.117 (development)
 
 - Generátor personálního obsazení: zachované pravidlo pro 3 absence se rozšiřuje i na **4 absence**. Při 3 i 4 chybějících z deseti lidí zůstává **TPKW02 bez obsluhy**.
