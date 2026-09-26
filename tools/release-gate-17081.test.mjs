@@ -15,8 +15,9 @@ test('Supabase SDK is emitted at the static output root and all runtime referenc
   const app=read('app.js');
   const sw=read('sw.js');
   assert(build.includes("SUPABASE_VENDOR_RELATIVE='supabase-vendor-2.110.7.js'"));
-  assert(index.includes('src="supabase-vendor-2.110.7.js"'));
+  assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'));
   assert(app.includes("RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"));
+  assert(app.includes('script.integrity = RAK_SUPABASE_SDK_INTEGRITY'));
   assert(sw.includes("'./supabase-vendor-2.110.7.js'"));
   for(const source of [build,index,app,sw]) assert(!source.includes('vendor/supabase-2.110.7.js'));
 });

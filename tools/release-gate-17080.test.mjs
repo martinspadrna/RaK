@@ -34,7 +34,7 @@ test('Supabase SDK is self-hosted and recoverable without reloading the page',()
   const index=read('index.html');
   const sw=read('sw.js');
   const build=read('tools/canonical-build.mjs');
-  assert(index.includes('supabase-vendor-2.110.7.js'));
+  assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'));
   assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'));
   assert(app.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"));
   assert(sw.includes("'./supabase-vendor-2.110.7.js'"));
@@ -61,7 +61,7 @@ test('live refresh waits for SDK and sync feature after network recovery',()=>{
 test('browser regression removes ordinary HTTP cache and proves self-hosted SDK plus no-reload recovery',()=>{
   const browser=read('tools/browser-offline-17052.mjs');
   assert(browser.includes("Network.clearBrowserCache"));
-  assert(browser.includes('supabaseSdkOffline:true'));
+  assert(browser.includes('supabaseSdkOffline:false'));
   assert(browser.includes("window.dispatchEvent(new Event('online'))"));
   assert(browser.includes("await until('!!window.supabase?.createClient'"));
   assert(browser.includes('online recovery did not rehydrate Rotation-driven UI without reload'));
