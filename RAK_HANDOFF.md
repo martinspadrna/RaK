@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.122`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.123`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.122` na SHA `fcd82dfbe05ab3a203ed405ec1fe233f67457aac`, build `v1.7.122-mo-only-absence1`. [Actions #406](https://github.com/martinspadrna/RaK/actions/runs/36247284927) je po fail-closed opakování stejného SHA kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_BXmAwB4WMgAfSfN2ck5DT41LUtJW`. Neplánovaná Dovolená/NV/Paragraf/Lékař nyní preferuje řešení jen uvnitř MO: pokud chybějící pracovník původně pracoval na MO a původní TO zůstává po absenci platné, TO se zamkne bajtově beze změny a přeskupí se pouze MO. Pokud to bezpečně nejde nebo chybí člověk z TO, použije se širší lokální přepočet.
+- Poslední ověřený **funkční** development release je `1.7.123` na SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6`, build `v1.7.123-kalirna-minimal1`. [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`. Neplánovaná změna → Odešel na kalírnu nyní nejprve hledá platný MO rozpis s nejmenším počtem přesunutých lidí; při shodném počtu přesunů preferuje přesuny lidí, kteří původně stáli na frézkách, aby zbytečně nerozhazovala další soustružníky. Typický 5→4 MO případ je MFKF06 → uvolněný soustruh a původní MFKF10 zůstává sám na frézkách. Scoped generátor se použije až jako fallback, pokud minimální lokální řešení kvůli kvalifikaci nebo staffing pravidlům neexistuje.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_BXmAwB4WMgAfSfN2ck5DT41LUtJW`, READY / SHA `fcd82dfbe05ab3a203ed405ec1fe233f67457aac`. [Actions #406](https://github.com/martinspadrna/RaK/actions/runs/36247284927) je SUCCESS ve 4. attemptu stejného SHA bez oslabení limitů. Performance parity PASS: startupReady P50 `352→326 ms`, P95 `389→411 ms`; FCP P50 `248→268 ms`, P95 `264→276 ms`. PWA budgety PASS: cold mobile P50/P95 `1154/1156 ms`, offline reload `884/973 ms`, online recovery `511/546 ms`. Release evidence ID `10908022272`, SHA-256 `9651b1c6170d6577648f39d4669bcc2416cac6170831a9f0c473c89e59568db2`; CI proof ID `10907887383`, SHA-256 `e40738525bc1c3bb762dd5332dc0140adddb34ebff0e204e078ee0ba07db4a1b`; historický isolated-build alias 1.7.121 ID `10907822443`, SHA-256 `9c490137462e21c4432bacfbb2c18cee61c903093a10b0bb643f1fa4bcc3d9d6`. Rollback cíl je předchozí READY `dpl_9HDBqbTnQxxJmSVBmpoZ8rH4DXTf`. TEST i produkční Supabase zůstávají ACTIVE_HEALTHY a beze změny; žádná nová migrace. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
+- Stabilní development alias nyní ukazuje na `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`, READY / SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6`. [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) je SUCCESS na první pokus finálního SHA. Performance parity PASS: startupReady P50 `418→397 ms`, P95 `510→443 ms`; FCP P50 `320→340 ms`, P95 `344→364 ms`. PWA budgety PASS: cold mobile P50/P95 `1701/1951 ms`, offline reload `1180/1740 ms`, online recovery `611/615 ms`. Release evidence ID `10908354728`, SHA-256 `9a9d05264f78eea9c971f1227994cc48dad928bfce9b656a0a5ed226d13240c0`; CI proof ID `10908832679`, SHA-256 `85ffd65ea01b693214752d8b4f94c87ae3852577132597f7a0d582e55bd7fcd3`; historický isolated-build alias 1.7.122 ID `10908428873`, SHA-256 `8edd48db02badb5dd2bf240b8c9d66866ac783e66593f65ef3f864f6e9866839`. Rollback cíl je předchozí READY `dpl_BXmAwB4WMgAfSfN2ck5DT41LUtJW`. TEST i produkční Supabase zůstávají ACTIVE_HEALTHY a beze změny; žádná nová migrace. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -58,6 +58,64 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
 ## Předání novému chatu – 25. 9. 2026
+
+### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.123
+
+Od tohoto bodu dál platí přání vlastníka **dělat vždy jen jednu věc, dokončit ji a až potom přejít na další**. Aktivní okruh je stále **Neplánovaná změna (generátor)**. Release 1.7.123 řeší pouze chování důvodu **Odešel na kalírnu** tak, aby se den nepřeskupoval víc, než je skutečně nutné.
+
+#### Přesný zelený výchozí bod
+
+- Runtime: **RaK 1.7.123**, SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6`, build `v1.7.123-kalirna-minimal1`.
+- [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517): **SUCCESS** na první pokus finálního SHA; verify i release-preview jsou SUCCESS.
+- Stable TEST Vercel: `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`, READY na přesném runtime SHA; rollback: `dpl_BXmAwB4WMgAfSfN2ck5DT41LUtJW`.
+- Release evidence ID `10908354728`, SHA-256 `9a9d05264f78eea9c971f1227994cc48dad928bfce9b656a0a5ed226d13240c0`.
+- CI proof ID `10908832679`, SHA-256 `85ffd65ea01b693214752d8b4f94c87ae3852577132597f7a0d582e55bd7fcd3`.
+- Historický isolated-build alias 1.7.122 ID `10908428873`, SHA-256 `8edd48db02badb5dd2bf240b8c9d66866ac783e66593f65ef3f864f6e9866839`.
+- Performance parity PASS: startupReady P50 `418→397 ms`, P95 `510→443 ms`; FCP P50 `320→340 ms`, P95 `344→364 ms`.
+- PWA budgety PASS: cold mobile `1701/1951 ms`, offline reload `1180/1740 ms`, online recovery `611/615 ms` (P50/P95).
+- TEST Supabase i produkční Supabase jsou ACTIVE_HEALTHY a beze změny; 1.7.123 nemá DB migraci.
+- `main`, produkční Vercel a produkční Supabase se releasem 1.7.123 nezměnily.
+
+#### Požadavek vlastníka a přesná logika 1.7.123
+
+Vlastník na fyzickém iPhonu zjistil, že při **Blažek → Odešel na kalírnu** se vybraný den sice personálně dopočítal, ale generátor přeskládal zbytečně mnoho lidí. Požadavek je vždy zvolit **nejmenší bezpečný zásah do existujícího dne**.
+
+- Minimal reflow se zkouší jako první pouze tehdy, když pracovník odchází z **MO** a celé původní **TO může zůstat beze změny**.
+- Zbývající MO pracovníci se rozmístí jen do slotů, které odpovídají stávajícím staffing pravidlům pro nový počet dostupných lidí.
+- Každá varianta musí respektovat kvalifikaci pracovníka na cílový stroj.
+- Primární skóre je **nejmenší počet lidí, kteří změní svůj původní stroj**.
+- Při shodném počtu přesunutých lidí je druhé kritérium **co nejméně přesunutých původních soustružníků**. Tím se preferuje řešení přes lidi z frézek.
+- Teprve třetí kritérium je nejmenší počet změněných buněk.
+- Typický stav 5 → 4 lidí na MO, kdy odchází člověk ze soustruhu: pracovník z **MFKF06** jde na jeho soustruh, **MFKF06 zůstane prázdná** a původní pracovník na **MFKF10 zůstane na místě a obsluhuje frézky sám**. Ostatní soustruhy a celé TO se nemění.
+- Pokud odchází pracovník přímo z MFKF06, nikdo další se nemusí pohnout. Pokud odchází z MFKF10, pracovník z MFKF06 se přesune na MFKF10.
+- Pokud přímý přesun z MFKF06 na uvolněný stroj neumožní kvalifikace, algoritmus může použít nejmenší nutný řetězec přesunů. Při shodně velkých řetězcích stále preferuje lidi z frézek před rozhazováním dalších soustružníků.
+- Pokud neexistuje žádná platná lokální permutace, až potom se daný konkrétní den předá dosavadnímu scoped generátoru. Ostatní vybrané dny, které šly vyřešit minimálně, se znovu negenerují.
+- Finální isolation/staffing validace, zákaz nedostupného člověka ve stroji, CAS/idempotence serverového zápisu i pravidla z 1.7.122 zůstávají zachované.
+
+#### CI průběh 1.7.123
+
+- [Actions #407](https://github.com/martinspadrna/RaK/actions/runs/36249701080) se fail-closed zastavil ještě před deploymentem. Odhalil jednak staré historické testy, které předpokládaly, že Kalírna vždy volá generátor pro celý vybraný rozsah, a jednak rovnost dvou dvoupřesunových variant, kde algoritmus ještě nerozlišoval frézky vs. další soustružník.
+- Kořenová oprava nepovolila žádný bezpečnostní limit: historické testy byly převedeny na novou semantiku **absence scope + Kalírna fallback scope** a algoritmus dostal druhé skóre `movedLathePeople`.
+- Finální SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6` prošel [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) kompletně na první pokus: dva canonical buildy, npm check, nové minimal-reflow regrese, zděděné/current gates, Chromium offline/recovery/SW update, performance budget/parita, quality thresholds, TEST HTTP, immutable preview i stable alias.
+
+#### Jediný další aktivní krok
+
+**Fyzická iPhone přejímka 1.7.123**, bez dalších úprav:
+1. Otevřít konkrétní den, kde je **Blažek na MO soustruhu** a současně jsou obsazené **MFKF06 i MFKF10**.
+2. Zvolit **Odešel na kalírnu** a uložit/přepočítat.
+3. Očekávání: celé **TO beze změny**; Blažek už není aktivně přiřazen na stroji; pokud má pracovník z MFKF06 potřebnou kvalifikaci, přesune se **jen on** na Blažkův původní soustruh; **MFKF06 bude prázdná**; původní MFKF10 zůstane na MFKF10 sám; ostatní MO pracovníci se nepohnou.
+4. Jiný den se nesmí změnit.
+
+Samostatné starší přání zobrazovat pracovníka na Kalírně vizuálně na MFKF06 s označením Kalírny, ale nepočítat jej do aktivního staffing počtu, **není součástí 1.7.123** a nesmí se do tohoto fyzického testu míchat. Řešit až po přijetí minimal-reflow chování.
+
+Procenta 13 oblastí se touto úpravou nemění: **5/13 uzavřených, 8/13 otevřených**.
+
+#### Co je už fyzicky potvrzené a neotvírat znovu
+
+- WhatsApp text reportu: datum + slovní název směny, bez slova `směna` – **OK**.
+- Zarovnání Datum/Směna v reportu – **OK**.
+- Admin kalendáře `×` – **OK**.
+- Popup Neplánované změny má být na iPhonu kompaktní, safe-area bounded a s viditelným vrškem; obsah smí scrollovat uvnitř.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.122
 
