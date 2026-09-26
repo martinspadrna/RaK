@@ -48,6 +48,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
 - Stabilní development alias nyní ukazuje na `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`, READY / SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6`. [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) je SUCCESS na první pokus finálního SHA. Performance parity PASS: startupReady P50 `418→397 ms`, P95 `510→443 ms`; FCP P50 `320→340 ms`, P95 `344→364 ms`. PWA budgety PASS: cold mobile P50/P95 `1701/1951 ms`, offline reload `1180/1740 ms`, online recovery `611/615 ms`. Release evidence ID `10908354728`, SHA-256 `9a9d05264f78eea9c971f1227994cc48dad928bfce9b656a0a5ed226d13240c0`; CI proof ID `10908832679`, SHA-256 `85ffd65ea01b693214752d8b4f94c87ae3852577132597f7a0d582e55bd7fcd3`; historický isolated-build alias 1.7.122 ID `10908428873`, SHA-256 `8edd48db02badb5dd2bf240b8c9d66866ac783e66593f65ef3f864f6e9866839`. Rollback cíl je předchozí READY `dpl_BXmAwB4WMgAfSfN2ck5DT41LUtJW`. TEST i produkční Supabase zůstávají ACTIVE_HEALTHY a beze změny; žádná nová migrace. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
+- **Fyzická přejímka 1.7.123 po deploymentu: PASS 26. 9. 2026.** Vlastník potvrdil minimal-change Kalírna reflow na iPhonu slovy „je to OK“. Jde o dokumentační uzavření již nasazeného runtime; verze se nezvyšuje a nový deployment se nevytváří.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -98,17 +99,19 @@ Vlastník na fyzickém iPhonu zjistil, že při **Blažek → Odešel na kalírn
 - Kořenová oprava nepovolila žádný bezpečnostní limit: historické testy byly převedeny na novou semantiku **absence scope + Kalírna fallback scope** a algoritmus dostal druhé skóre `movedLathePeople`.
 - Finální SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6` prošel [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) kompletně na první pokus: dva canonical buildy, npm check, nové minimal-reflow regrese, zděděné/current gates, Chromium offline/recovery/SW update, performance budget/parita, quality thresholds, TEST HTTP, immutable preview i stable alias.
 
-#### Jediný další aktivní krok
+#### Fyzická iPhone přejímka 1.7.123 – PASS
 
-**Fyzická iPhone přejímka 1.7.123**, bez dalších úprav:
-1. Otevřít konkrétní den, kde je **Blažek na MO soustruhu** a současně jsou obsazené **MFKF06 i MFKF10**.
-2. Zvolit **Odešel na kalírnu** a uložit/přepočítat.
-3. Očekávání: celé **TO beze změny**; Blažek už není aktivně přiřazen na stroji; pokud má pracovník z MFKF06 potřebnou kvalifikaci, přesune se **jen on** na Blažkův původní soustruh; **MFKF06 bude prázdná**; původní MFKF10 zůstane na MFKF10 sám; ostatní MO pracovníci se nepohnou.
-4. Jiný den se nesmí změnit.
+- **26. 9. 2026 vlastník po fyzickém iPhone testu výslovně potvrdil „je to OK“.**
+- Scénář **Blažek na MO → Odešel na kalírnu** po minimal-change reflow už nepřeskupuje den nesmyslně; řešení s minimem přesunů je uživatelsky přijaté.
+- Tím je fyzická přejímka minimal-reflow z 1.7.123 uzavřená a nemá se znovu otevírat bez nové konkrétní regrese.
 
-Samostatné starší přání zobrazovat pracovníka na Kalírně vizuálně na MFKF06 s označením Kalírny, ale nepočítat jej do aktivního staffing počtu, **není součástí 1.7.123** a nesmí se do tohoto fyzického testu míchat. Řešit až po přijetí minimal-reflow chování.
+#### Další navazující funkční krok
 
-Procenta 13 oblastí se touto úpravou nemění: **5/13 uzavřených, 8/13 otevřených**.
+Starší výslovný požadavek vlastníka zůstává otevřený: pracovníka označeného **Odešel na kalírnu** zobrazit evidenčně na **MFKF06 s označením Kalírny**, ale **nezapočítávat jej do aktivního staffing počtu MO**. Toto vizuální/evidenční chování nebylo součástí 1.7.123 a má se řešit jako samostatný další krok až po uzavřeném minimal-reflow.
+
+U neplánované **Dovolené/NV/Paragrafu/Lékaře** zůstává pravidlo 1.7.122: pokud pracovník chybí z MO a stávající TO je stále platné, má se změna vyřešit jen uvnitř MO; cílený fyzický retest této konkrétní MO-only optimalizace je ještě vhodné dokončit.
+
+Procenta 13 oblastí se tímto fyzickým potvrzením nemění: **5/13 uzavřených, 8/13 otevřených**.
 
 #### Co je už fyzicky potvrzené a neotvírat znovu
 
@@ -116,6 +119,7 @@ Procenta 13 oblastí se touto úpravou nemění: **5/13 uzavřených, 8/13 otev�
 - Zarovnání Datum/Směna v reportu – **OK**.
 - Admin kalendáře `×` – **OK**.
 - Popup Neplánované změny má být na iPhonu kompaktní, safe-area bounded a s viditelným vrškem; obsah smí scrollovat uvnitř.
+- **Neplánovaná změna → Odešel na kalírnu, minimal-change reflow 1.7.123 – fyzický iPhone PASS 26. 9. 2026.** Vlastník potvrdil „je to OK“; tento konkrétní způsob přeskupení znovu neotvírat bez nové regrese.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.122
 
@@ -792,7 +796,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 - **◐ Už implementováno, ale ještě ne úplně převzaté:** lokální Dashboard před online synchronizací (A), odstranění místních neuložených návrhů a kompaktní rozpis (C), přepnutí účtu bez dědění starého jména, account-scoped vzhled a owner invariant (D), sjednocení karet pravidel generátoru/Kantýny/Jídelny/Správců (E). U těchto bodů zůstává jen přesně uvedená fyzická mobilní, dvouzařízení nebo řízená owner akceptace; nové duplicitní úkoly se nezakládají.
 - **✅ Implementace hotová a automaticky doložená:** v administraci Rozpisů se už nezobrazuje blok „Místní neuložené návrhy rozpisů“; bezpečné mazací/recovery API zůstalo zachované. Stejně tak je hotový kompaktní přehled strojů s výchozím rozbalením a popisky `tnk`, `w01`, `w02` (uložené klíče se nemění).
-- **✅ Fyzicky potvrzeno 26. 9. 2026:** administrační `×`, Datum/Směna i finální WhatsApp text jsou na iPhonu **OK**. WhatsApp používá čitelný název směny a finální tvar bez slova `směna`. **✅ 1.7.118:** omyl se 4 absencemi je odstraněný. **◐ 1.7.119:** automatické CI/deploy je zelené; jediný aktivní úkol je fyzická iPhone přejímka opravené Neplánované změny (26. 9. Blažek → Kalírna + jednodenní Dovolená).
+- **✅ Fyzicky potvrzeno 26. 9. 2026:** administrační `×`, Datum/Směna i finální WhatsApp text jsou na iPhonu **OK**. WhatsApp používá čitelný název směny a finální tvar bez slova `směna`. **✅ 1.7.118:** omyl se 4 absencemi je odstraněný. **✅ 1.7.123:** Neplánovaná změna → Odešel na kalírnu s minimal-change reflow je fyzicky přijatá na iPhonu („je to OK“). Otevřený zůstává navazující evidenční požadavek zobrazit člověka na Kalírně na MFKF06 s markerem, ale nepočítat jej do aktivního MO staffing počtu.
 
 ### A. Lokální start a dostupnost aplikace · P2.1 / P2.3
 
@@ -824,7 +828,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 - Přehled jmen a skupin strojů ponechat ve výchozím stavu rozbalený a zúžit sloupce pro mobil; v tomto přehledu používat kompaktní popisky `tnkso1 → tnk`, `tpkw01 → w01`, `tpkw02 → w02`, aniž se změní uložené klíče strojů.
 - Kliknutí na obsazené jméno má nabídnout stabilní a zřetelnou akci odebrání. Kliknutí na prázdné místo má nabídnout jen osoby, které daný den nejsou ani v rozpisu, ani v absenci; nabídka nesmí odskakovat mimo cílovou buňku.
 - U absence má datum přednostně nabízet dny s chybějícím člověkem bez záznamu absence a jméno osoby chybějící ve zvoleném dni. Datum i jméno musí zůstat ručně editovatelné a serverová validace musí odmítnout nekonzistentní zápis.
-- **◐ Neplánovaná změna (generátor):** 1.7.119 opravuje konkrétní iPhone chybu: pouze 5 schválených důvodů, kompaktní popup, `kalirnaOut` správně nedostupný ve validátoru, stará chyba jiného dne neblokuje mezivýpočet, do měsíce se splice-nou jen vybrané dny a finální před/po kontrola používá stejná přísná pravidla. Automatický CI/deploy je PASS; zbývá fyzicky ověřit 26. 9. Blažek → Kalírna a jednodenní Dovolenou.
+- **✅ Neplánovaná změna (generátor), Kalírna:** přes 1.7.119–1.7.123 byla opravena izolace dne, runtime předávání scoped options, MO-only logika i minimal-change Kalírna reflow. **Fyzický iPhone PASS 26. 9. 2026 na 1.7.123** – vlastník potvrdil výsledné přeskupení jako OK. **Otevřeno:** evidenčně zobrazit pracovníka na Kalírně na MFKF06 s označením Kalírny, ale nezapočítávat jej do aktivního MO staffing počtu; a cíleně doretestovat MO-only optimalizaci neplánované Dovolené/NV/Paragrafu/Lékaře.
 
 ### D. Účty, pracovníci, správci a relace · P0.1 / P0.4 / P1.2 / P2.2
 
