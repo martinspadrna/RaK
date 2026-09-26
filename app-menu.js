@@ -1426,7 +1426,7 @@ function bindAppMenuHandlers(body) {
           : { ok: false, reason: 'missing-handler' };
         if (!result || result.ok === false) {
           const messages = {
-            'password-too-short': 'Nové heslo musí mít alespoň 12 znaků a současné nesmí být prázdné.',
+            'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.',
             'password-mismatch': 'Nová hesla se neshodují.',
             'password-unchanged': 'Nové heslo je stejné jako současné.',
             'invalid_current_password': 'Současné heslo není správné.'
@@ -1444,7 +1444,7 @@ function bindAppMenuHandlers(body) {
         if (statusEl) statusEl.textContent = 'Měním moje heslo…';
         const result = typeof rakAdminChangeOwnPassword === 'function' ? await rakAdminChangeOwnPassword(body) : { ok: false, reason: 'missing-handler' };
         if (!result || result.ok === false) {
-          const messages = { 'password-too-short': 'Nové heslo musí mít alespoň 12 znaků a současné nesmí být prázdné.', 'password-mismatch': 'Nová hesla se neshodují.', 'password-unchanged': 'Nové heslo je stejné jako současné.', 'invalid_current_password': 'Současné heslo není správné.' };
+          const messages = { 'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.', 'password-mismatch': 'Nová hesla se neshodují.', 'password-unchanged': 'Nové heslo je stejné jako současné.', 'invalid_current_password': 'Současné heslo není správné.' };
           throw (result && result.error ? result.error : new Error(messages[result && result.reason] || 'Změna hesla selhala.'));
         }
         renderAdminMenuBody(body, 'admin-accounts');

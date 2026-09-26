@@ -55,7 +55,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (action === "change-own-password") {
     const currentPassword = String(body.currentPassword || "");
     const newPassword = String(body.newPassword || "");
-    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 12 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 6 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
     if (currentPassword === newPassword) return jsonResponse(req, 400, { ok: false, error: "password_unchanged" });
     const accountEmail = `${String(actor.account_id || "").trim()}@admin.rak.local`;
     const { data: verified, error: verifyError } = await ctx.supabase.auth.signInWithPassword({ email: accountEmail, password: currentPassword });
@@ -77,7 +77,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (action === "change-owner-password") {
     const currentPassword = String(body.currentPassword || "");
     const newPassword = String(body.newPassword || "");
-    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 12 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 6 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
     if (currentPassword === newPassword) return jsonResponse(req, 400, { ok: false, error: "password_unchanged" });
     const ownerEmail = `${String(actor.account_id || "").trim()}@admin.rak.local`;
     const { data: verified, error: verifyError } = await ctx.supabase.auth.signInWithPassword({ email: ownerEmail, password: currentPassword });
@@ -93,7 +93,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   const role = String(body.role || "admin").trim();
   if (role !== "admin" && role !== "deputy") return jsonResponse(req, 400, { ok: false, error: "invalid_role" });
   if (!accountId || !displayName) return jsonResponse(req, 400, { ok: false, error: "invalid_admin_profile" });
-  if (password && (password.length < 12 || password.length > 128)) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+  if (password && (password.length < 6 || password.length > 128)) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
 
   try {
     const { data: existing, error: lookupError } = await ctx.supabaseAdmin.from("rak_admin_profiles")

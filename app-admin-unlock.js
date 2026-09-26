@@ -959,7 +959,7 @@ function buildAdminAccountEditableRowHtml(entry) {
     '<tr data-admin-account-row>',
     '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(safe.accountId || '') + '" placeholder="os. c."></td>',
     '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(safe.label || '') + '" placeholder="jmeno / poznamka"></td>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" value="" placeholder="' + (safe.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" minlength="6" maxlength="128" value="" placeholder="' + (safe.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
     '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (safe.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (safe.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
     '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (safe.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
     '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
@@ -1046,8 +1046,8 @@ function buildAdminOwnerPasswordHtml() {
     '  <div class="smallText">Po změně zůstane tento telefon přihlášený novým heslem.</div>',
     '  <div class="adminOwnerPasswordGrid">',
     '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-owner-password="current"></label>',
-    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-owner-password="new"></label>',
-    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-owner-password="confirm"></label>',
+    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="new"></label>',
+    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="confirm"></label>',
     '  </div>',
     '  <button type="button" class="appMenuAction isActive" data-admin-action="change-owner-password">Změnit moje heslo</button>',
     '</div>'
@@ -1063,8 +1063,8 @@ function buildAdminOwnPasswordHtml() {
     '  <div class="smallText">Měníš heslo pouze pro svůj admin účet ' + escapeHtml(accountId) + '.</div>',
     '  <div class="adminOwnerPasswordGrid">',
     '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
-    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-own-password="new"></label>',
-    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-own-password="confirm"></label>',
+    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="new"></label>',
+    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="confirm"></label>',
     '  </div>',
     '  <button type="button" class="appMenuAction isActive" data-admin-action="change-own-admin-password">Změnit moje heslo</button>',
     '</div>'
@@ -1077,7 +1077,7 @@ async function rakAdminChangeOwnerPassword(root) {
   const currentPassword = String(scope.querySelector('[data-admin-owner-password="current"]')?.value || '');
   const newPassword = String(scope.querySelector('[data-admin-owner-password="new"]')?.value || '');
   const confirmation = String(scope.querySelector('[data-admin-owner-password="confirm"]')?.value || '');
-  if (!currentPassword || newPassword.length < 12) return { ok: false, reason: 'password-too-short' };
+  if (!currentPassword || newPassword.length < 6) return { ok: false, reason: 'password-too-short' };
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;
@@ -1113,7 +1113,7 @@ async function rakAdminChangeOwnPassword(root) {
   const currentPassword = String(scope.querySelector('[data-admin-own-password="current"]')?.value || '');
   const newPassword = String(scope.querySelector('[data-admin-own-password="new"]')?.value || '');
   const confirmation = String(scope.querySelector('[data-admin-own-password="confirm"]')?.value || '');
-  if (!accountId || !currentPassword || newPassword.length < 12) return { ok: false, reason: 'password-too-short' };
+  if (!accountId || !currentPassword || newPassword.length < 6) return { ok: false, reason: 'password-too-short' };
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;

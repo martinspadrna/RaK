@@ -130,7 +130,7 @@
 
 // RaK 1.6 – srozumitelna validace hesla pri pridani noveho spravce.
 (function setupRakAdminPasswordGuard() {
-  const MIN_PASSWORD_LENGTH = 12;
+  const MIN_PASSWORD_LENGTH = 6;
 
   function patchSaveHandler() {
     const original = window.rakAdminSaveSecureAccounts;
@@ -140,7 +140,7 @@
       const rows = typeof reader === 'function' ? reader(root) : [];
       const invalid = rows.find((entry) => entry && entry.password && String(entry.password).length < MIN_PASSWORD_LENGTH);
       if (invalid) {
-        return { ok: false, error: new Error('Heslo nového správce musí mít alespoň 12 znaků.') };
+        return { ok: false, error: new Error('Heslo nového správce musí mít alespoň 6 znaků.') };
       }
       return original(root);
     };
@@ -152,9 +152,9 @@
   function hintPasswordInput(target) {
     if (!target || !target.matches || !target.matches('[data-admin-account-password]')) return;
     target.minLength = MIN_PASSWORD_LENGTH;
-    target.title = 'Heslo nového správce musí mít alespoň 12 znaků.';
+    target.title = 'Heslo nového správce musí mít alespoň 6 znaků.';
     if (!target.value && String(target.placeholder || '').toLowerCase() === 'heslo') {
-      target.placeholder = 'heslo min. 12 znaků';
+      target.placeholder = 'heslo min. 6 znaků';
     }
   }
 

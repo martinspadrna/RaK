@@ -1,3 +1,12 @@
+## RaK 1.7.124 (development)
+
+- Minimální délka hesla pro **owner/admin správce** je sjednocena z 12 na **6 znaků** ve všech aktuálních klientských i serverových validačních cestách.
+- Nový správce, změna hesla hlavního admina i změna vlastního hesla nižšího admina používají stejné minimum 6 znaků; maximum 128 znaků zůstává beze změny.
+- Klientské formuláře mají `minlength="6"` a odpovídající české hlášky. Serverová Edge Function `rak-admin-users` odmítá 5 znaků, ale už neblokuje 6 znaků.
+- Ověření současného hesla, owner-only správa ostatních účtů, role owner/admin a existující Supabase Auth relace zůstávají zachované.
+- Přidán regresní gate 1.7.124, který hlídá klienta, serverový zdroj i zachování bezpečnostních kontrol.
+- Produkční `main`, produkční Vercel a produkční Supabase se touto development změnou nemění.
+
 ## RaK 1.7.123 (development)
 
 - Neplánovaná změna → **Odešel na kalírnu** už nejdřív negeneruje celý vybraný den. Pokud pracovník odchází z MO, aplikace hledá platné rozložení se **zcela nejmenším počtem přesunutých lidí**.
