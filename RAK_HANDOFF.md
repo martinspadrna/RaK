@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.123`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.124`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.123` na SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6`, build `v1.7.123-kalirna-minimal1`. [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`. Neplánovaná změna → Odešel na kalírnu nyní nejprve hledá platný MO rozpis s nejmenším počtem přesunutých lidí; při shodném počtu přesunů preferuje přesuny lidí, kteří původně stáli na frézkách, aby zbytečně nerozhazovala další soustružníky. Typický 5→4 MO případ je MFKF06 → uvolněný soustruh a původní MFKF10 zůstává sám na frézkách. Scoped generátor se použije až jako fallback, pokud minimální lokální řešení kvůli kvalifikaci nebo staffing pravidlům neexistuje.
+- Poslední ověřený **funkční** development release je `1.7.124` na SHA `126bad60c4add3f0f8f2d6ba7a0a9c0d7e7f462b`, build `v1.7.124-admin-password-six1`. [Actions #409](https://github.com/martinspadrna/RaK/actions/runs/36257519573) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_3X1wfsuh67Sv9L414TQ9UsgF9DqD`. Minimum hesla pro owner/admin správce je sjednocené z 12 na **6 znaků** v klientovi i serverovém zdroji; maximum 128, ověření současného hesla a role zůstávají beze změny. TEST Edge Function `rak-admin-users` byla po zeleném CI nasazena jako ACTIVE v6, `verify_jwt=true`, platformní SHA-256 `a32a0628cdbf1d2e82249528ab3cbdcc8bd8ae99271f3f28075a201aed4f9a72`; její nasazený `index.ts` přesně odpovídá Git zdroji a obsahuje 2× změnu vlastního/owner hesla s minimem 6 + 1× create/update admin hesla s minimem 6, bez zbylé 12znakové kontroly.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`, READY / SHA `a4ccc7e80bb618ef7cadde16662e544c6d91d0c6`. [Actions #408](https://github.com/martinspadrna/RaK/actions/runs/36249941517) je SUCCESS na první pokus finálního SHA. Performance parity PASS: startupReady P50 `418→397 ms`, P95 `510→443 ms`; FCP P50 `320→340 ms`, P95 `344→364 ms`. PWA budgety PASS: cold mobile P50/P95 `1701/1951 ms`, offline reload `1180/1740 ms`, online recovery `611/615 ms`. Release evidence ID `10908354728`, SHA-256 `9a9d05264f78eea9c971f1227994cc48dad928bfce9b656a0a5ed226d13240c0`; CI proof ID `10908832679`, SHA-256 `85ffd65ea01b693214752d8b4f94c87ae3852577132597f7a0d582e55bd7fcd3`; historický isolated-build alias 1.7.122 ID `10908428873`, SHA-256 `8edd48db02badb5dd2bf240b8c9d66866ac783e66593f65ef3f864f6e9866839`. Rollback cíl je předchozí READY `dpl_BXmAwB4WMgAfSfN2ck5DT41LUtJW`. TEST i produkční Supabase zůstávají ACTIVE_HEALTHY a beze změny; žádná nová migrace. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
+- Stabilní development alias nyní ukazuje na `dpl_3X1wfsuh67Sv9L414TQ9UsgF9DqD`, READY / SHA `126bad60c4add3f0f8f2d6ba7a0a9c0d7e7f462b`. [Actions #409](https://github.com/martinspadrna/RaK/actions/runs/36257519573) je SUCCESS na první pokus. Performance parity PASS: startupReady P50 `445→418 ms`, P95 `483→438 ms`; FCP P50 `300→312 ms`, P95 `360→320 ms`. PWA budgety PASS: cold mobile P50/P95 `1619/1652 ms`, offline reload `1258/1374 ms`, online recovery `619/653 ms`. Release evidence ID `10911142502`, SHA-256 `7efb7d72d09729efce4e5315ba567dec2616948b977bc77a29daec030b78c8ef`; CI proof ID `10910884275`, SHA-256 `4324ee12811f76fb1f5c8b8eef53912a9ed9389fe7f1fe2ba9234b9be6cb114e`; historický isolated-build alias 1.7.123 ID `10910949180`, SHA-256 `a926f08dd735741d8f6540c451ba1176555845a5acc014d10fa7b41a0cee92ca`. Rollback cíl PWA je předchozí READY `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`. TEST Supabase `cgshssdjgzzuprlwnabl` je ACTIVE_HEALTHY; jediná TEST serverová změna je Edge `rak-admin-users` v6, bez DB migrace. Produkční Supabase je ACTIVE_HEALTHY a beze změny. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
 - **Fyzická přejímka 1.7.123 po deploymentu: PASS 26. 9. 2026.** Vlastník potvrdil minimal-change Kalírna reflow na iPhonu slovy „je to OK“. Jde o dokumentační uzavření již nasazeného runtime; verze se nezvyšuje a nový deployment se nevytváří.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
@@ -59,6 +59,29 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
 ## Předání novému chatu – 25. 9. 2026
+
+### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.124
+
+Vlastník požádal vybrat jeden zbývající úkol a dokončit jej samostatně. Vybraný úkol: **minimum hesla správce/admina 12 → 6 znaků**.
+
+#### Stav 1.7.124
+
+- Runtime SHA `126bad60c4add3f0f8f2d6ba7a0a9c0d7e7f462b`, build `v1.7.124-admin-password-six1`.
+- [Actions #409](https://github.com/martinspadrna/RaK/actions/runs/36257519573): **SUCCESS** na první pokus; verify i release-preview zelené.
+- Stable TEST Vercel: `dpl_3X1wfsuh67Sv9L414TQ9UsgF9DqD`, READY na přesném SHA. PWA rollback: `dpl_FpBSFZrqu6CHnc6qv1Xiffsze9JV`.
+- TEST Supabase: ACTIVE_HEALTHY. `rak-admin-users` nasazena po zeleném CI jako **v6**, ACTIVE, `verify_jwt=true`, SHA-256 `a32a0628cdbf1d2e82249528ab3cbdcc8bd8ae99271f3f28075a201aed4f9a72`; nasazený zdroj přesně odpovídá Git souboru.
+- Server: 2× změna vlastního/owner hesla a 1× heslo při create/update správce nyní odmítají jen délku pod **6** nebo nad 128. Žádná aktuální serverová kontrola `< 12` nezůstala.
+- Klient: nový správce, owner password a own-admin password používají minimum 6; formuláře mají `minlength="6"` a české texty uvádějí 6 znaků.
+- Zachováno: kontrola současného hesla přes `signInWithPassword`, zákaz stejného nového hesla, owner-only správa ostatních účtů, role owner/admin, JWT ochrana Edge Function.
+- Regrese: `tools/admin-password-min-17124.test.mjs` + `tools/release-gate-17124.test.mjs`.
+- Performance/quality PASS; release evidence ID `10911142502`, CI proof ID `10910884275`.
+- Produkce beze změny: `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, Vercel `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, produkční Supabase ACTIVE_HEALTHY.
+
+#### Jediný zbývající krok tohoto úkolu
+
+Cílená fyzická PWA přejímka: na bezpečném neprodukčním admin scénáři ověřit, že **5 znaků je odmítnuto a 6 znaků lze uložit a následně se tím heslem znovu přihlásit**. Neprovádět kvůli testu rizikovou změnu jediného owner hesla, pokud není k dispozici bezpečný nižší admin/test účet.
+
+Po tomto PASS lze požadavek „heslo stačí 6 znaků“ označit jako fyzicky uzavřený. Do té doby nepřecházet na další úkol, pokud vlastník výslovně neřekne jinak.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.123
 
@@ -115,11 +138,11 @@ Procenta 13 oblastí se tímto fyzickým potvrzením nemění: **5/13 uzavřený
 
 #### Nově přidané otevřené požadavky vlastníka – 26. 9. 2026
 
-- **P1.2:** snížit minimum hesla pro správce/admin role z 12 na **6 znaků**; zachovat konzistentní klient/server validaci.
+- **P1.2 – implementováno v 1.7.124:** minimum hesla pro správce/admin role je sníženo z 12 na **6 znaků** konzistentně v klientovi i TEST Edge Function; automatické testy a deployment jsou PASS. Zbývá jen cílená fyzická přejímka 6znakového hesla v PWA na neprodukčním/bezpečném admin scénáři.
 - **P2.1/P2.2:** zkrátit dobu po spuštění, kdy je UI viditelné, ale ještě nereaguje na kliknutí; nově měřit i čas do první použitelné interakce.
 - **P1.2/P2.2:** oprávněným uživatelům zobrazit a zpřístupnit **Report a další role-gated položky ve Více** výrazně dřív; nečekat zbytečně na celý vzdálený bootstrap, ale zároveň nikdy krátce nezobrazit cizí privilegia.
 
-Tyto tři body jsou **otevřený backlog**, ne hotová implementace; procenta 13 oblastí se jejich zapsáním nemění.
+Z těchto tří bodů je **heslo 6 znaků implementované v TEST a čeká jen fyzickou přejímku**; oba výkonnostní/role-menu body zůstávají otevřený realizační backlog. Procenta 13 oblastí se tím nemění.
 
 #### Co je už fyzicky potvrzené a neotvírat znovu
 
@@ -678,6 +701,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [ ] Reálný Safari/PWA test relací, znovuotevření, offline→online a UX odmítnutí.
 
 **Dokončení:** konzistentní serverová ochrana i po restartu a odvolání, nikoli pouze klientský příznak `adminUnlocked`.
+
+**Release 1.7.124 – heslo 6 znaků:** klientské validace pro nový admin účet i změnu owner/vlastního admin hesla používají minimum 6 a maximum 128 znaků; stejné tři validační cesty jsou nasazené v TEST `rak-admin-users` v6. Současné heslo se před změnou dál serverově ověřuje přes Auth a správa jiných účtů zůstává owner-only. Automatický gate 1.7.124 je PASS; širší P1.2 zůstává 80 %, protože stále chybí fyzický Safari/PWA session/device scénář.
 
 
 **Společný bezpečnostní audit 23. 9. 2026:** proti přesnému SHA `b52745fe6c84a58b3187bc0f5fdd39593c9df59f` a výhradně TEST `cgshssdjgzzuprlwnabl` proběhla čtecí inventura 20 tabulek, 24 RPC vystavených typovým API, 48 migračních souborů a čtyř RaK Edge Functions. Actions run #202 na témže SHA doložil 18 anonymních/neplatných-JWT HTTP sond bez zápisu; navíc ruční sondy odmítly anonymní i záměrně neplatný JWT na `rak-admin-users` a `rak-absence-calendar` HTTP 401. Navazující živý katalogový audit na development HEAD `a9486dc5f38e06a2957d8a6d09c14b17eb346655` ověřil přímo v TEST `pg_catalog`, `pg_policies` a tabulková GRANT oprávnění: všech 20 veřejných tabulek má RLS zapnuté; `anon` ani `authenticated` nemají na veřejných tabulkách přímý `INSERT`/`UPDATE`/`DELETE`; anonymní RPC allowlist tvoří přesně šest funkcí. Pět z nich je záměrně veřejných `SECURITY DEFINER` endpointů (`rak_admin_account_requires_auth`, `rak_app_keepalive`, login V1/V2 a `rak_submit_bug_report_v2`), šestá `rak_admin_auth_capabilities` není SECURITY DEFINER. Drift testu byl opraven přidáním záměrně veřejného, rate-limitovaného `rak_lookup_account_for_login_v2`; opravená rollback-only matice byla před commitem spuštěna přímo proti TEST a prošla: anonymní i unsigned-authenticated kontext neviděl maskovaná admin nastavení, ověřená owner session se syntetickými request claims je viděla a transakce byla vrácena. Supabase security advisor tyto veřejné SECURITY DEFINER funkce správně hlásí jako body k vědomému posouzení; současný provozní model je používá jako omezené veřejné API a bez důkazu se jejich EXECUTE grant neruší. Skutečně podepsaná end-to-end role matrix owner/admin/deputy/cizí/odvolaná relace stále chybí, proto P0.1, P0.3, P0.4, P1.1 a P1.2 zůstávají procentně beze změny. Žádný platný JWT, service-role klíč ani osobní obsah nebyl zapsán do logu nebo repozitáře.
