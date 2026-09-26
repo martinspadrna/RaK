@@ -64,13 +64,18 @@ async function boot(label,expectedRelease){
  const start=Date.now();
  await until("document.readyState==='complete' && !!document.querySelector('.dashboardAppTitle') && !!document.querySelector('#home')");
  await until('!!window.__rakBootV2StartupReady');
- const data=await check(`(()=>({title:document.title,version:window.RAK_RELEASE_VERSION||'',build:window.RAK_PWA_BUILD||'',width:innerWidth,docWidth:document.documentElement.scrollWidth,home:!!document.querySelector('#home'),nav:!!document.querySelector('.bottomNav'),controller:!!navigator.serviceWorker?.controller,connection:document.documentElement.dataset.connection||'',updateToast:!!document.querySelector('.rakUpdateToast')}))()`);
+ const data=await check(`(()=>({title:document.title,version:window.RAK_RELEASE_VERSION||'',build:window.RAK_PWA_BUILD||'',width:innerWidth,docWidth:document.documentElement.scrollWidth,home:!!document.querySelector('#home'),nav:!!document.querySelector('.bottomNav'),navBound:document.querySelector('.bottomNav')?.__rotaceBound===true,firstInteractiveMs:Number(window.__rakFirstInteractiveMs||0),startupReadyMs:Number(window.__rakBootV2StartupReadyMs||0),controller:!!navigator.serviceWorker?.controller,connection:document.documentElement.dataset.connection||'',updateToast:!!document.querySelector('.rakUpdateToast')}))()`);
  assert.match(data.title,/Rotace a Kalkulačky/);assert.equal(data.version,expectedRelease,'[17052-browser] unexpected release');
  assert(data.home&&data.nav,'[17052-browser] mobile shell/nav missing');
+ assert.equal(data.navBound,true,'[17125-interactive] bottom navigation is visible but not bound');
+ assert(Number.isFinite(data.firstInteractiveMs)&&data.firstInteractiveMs>0,'[17125-interactive] first interactive marker missing');
+ assert(Number.isFinite(data.startupReadyMs)&&data.startupReadyMs>0,'[17125-interactive] startupReady marker missing');
+ assert(data.firstInteractiveMs<=data.startupReadyMs,`[17125-interactive] shell became interactive after startupReady: ${data.firstInteractiveMs} > ${data.startupReadyMs}`);
  assert(data.docWidth<=data.width+4,`[17052-browser] horizontal overflow ${data.docWidth} > ${data.width}`);
  const elapsedMs=Date.now()-start;
  data.elapsedMs=elapsedMs;
  console.log(`[17052-browser] ${label} PASS ${elapsedMs}ms viewport=${data.width} document=${data.docWidth} SW=${data.controller}`);
+ console.log(`[17125-interactive] ${label} PASS firstInteractive=${data.firstInteractiveMs}ms startupReady=${data.startupReadyMs}ms`);
  return data;
 }
 try{

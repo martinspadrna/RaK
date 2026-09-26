@@ -1,3 +1,12 @@
+## RaK 1.7.125 (development)
+
+- Startup shell se nově stává **klikacím ještě před čekáním na lokální rehydrataci Rotace**. Spodní navigace a delegované základní akce se navážou hned po načtení startup modulů; pozdější post-ready instalace zůstává idempotentní.
+- Přidána runtime metrika `firstInteractiveMs` / `firstInteractiveSource`, aby se oddělil čas „aplikace je vidět“ od času „už lze skutečně ovládat navigaci“.
+- Běžné **Více** už při prvním otevření nečeká na Supabase `sync`; samotné menu je lokální UI a načte se přímo. Privilegovaná **Administrace** dál zachovává bezpečné pořadí `sync → admin`.
+- Background warmup menu a syncu je rozdělený: menu se může ohřát dřív lokálně, síťový sync běží odděleně na idle.
+- Reálný Chromium offline/network gate nově fail-closed vyžaduje navázanou spodní navigaci a metriku první interakce nejpozději do `startupReady`.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.124 (development)
 
 - Minimální délka hesla pro **owner/admin správce** je sjednocena z 12 na **6 znaků** ve všech aktuálních klientských i serverových validačních cestách.

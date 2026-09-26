@@ -100,9 +100,11 @@
   function ensureFeatureWithAuthOrder(feature) {
     if (typeof window.rakEnsureFeature !== 'function') return Promise.resolve(feature || '');
     const key = String(feature || '').trim();
-    if (key === 'menu' || key === 'admin') {
-      return window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature(key));
-    }
+    // RAK_17125_MENU_LOCAL_FIRST: the ordinary More menu is local UI and must
+    // not wait for Supabase/network bootstrap. Privileged Admin still preserves
+    // the authenticated sync-before-admin order.
+    if (key === 'menu') return window.rakEnsureFeature('menu');
+    if (key === 'admin') return window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('admin'));
     return window.rakEnsureFeature(key);
   }
 
@@ -374,8 +376,13 @@
     warmupStarted = true;
     Promise.allSettled(['rotation', 'calculators'].map((feature) => window.rakEnsureFeature(feature))).catch(() => {});
     scheduleIdle(() => {
-      window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('menu')).catch((err) => {
-        console.warn('Boot v2 sync/menu warmup failed', err);
+      window.rakEnsureFeature('menu').catch((err) => {
+        console.warn('Boot v2 menu warmup failed', err);
+      });
+    }, 900, 350);
+    scheduleIdle(() => {
+      window.rakEnsureFeature('sync').catch((err) => {
+        console.warn('Boot v2 sync warmup failed', err);
       });
     }, 1500, 650);
     scheduleIdle(() => {

@@ -374,6 +374,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return elapsed;
   };
 
+  function markRakFirstInteractive(source) {
+    if (Number(window.__rakFirstInteractiveMs || 0) > 0) return window.__rakFirstInteractiveMs;
+    const nav = document.querySelector('.bottomNav');
+    if (!nav || nav.__rotaceBound !== true) return null;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const elapsed = Math.max(0, Math.round(now - bootStartedAt));
+    window.__rakFirstInteractiveMs = elapsed;
+    window.__rakFirstInteractiveSource = String(source || 'startup-shell');
+    window.__rakFirstInteractiveAuthState = String(document.documentElement && document.documentElement.dataset.rakAuthState || '');
+    return elapsed;
+  }
+  window.rakMarkFirstInteractive = markRakFirstInteractive;
+
   function normalizeScriptPath(value) {
     return String(value || '').replace(/^\.\//, '').split('?')[0].trim();
   }
@@ -597,6 +610,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       startupReadyMs: Number(window.__rakBootV2StartupReadyMs || 0),
       firstUsableRenderMs: Number(window.__rakFirstUsableRenderMs || 0) || null,
       firstUsableRenderSource: String(window.__rakFirstUsableRenderSource || ''),
+      firstInteractiveMs: Number(window.__rakFirstInteractiveMs || 0) || null,
+      firstInteractiveSource: String(window.__rakFirstInteractiveSource || ''),
+      firstInteractiveAuthState: String(window.__rakFirstInteractiveAuthState || ''),
       localFirstRotation: window.__rakBootLocalFirstRotation || null,
       elapsedMs: Math.max(0, Math.round(now - bootStartedAt)),
       loadedModuleCount: modulePromises.size,
@@ -636,6 +652,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   await loadFiles(startupFiles);
+
+  // RAK_17125_EARLY_INTERACTION: the visual shell must become clickable before
+  // returning PWA starts await Rotation cache hydration. Feature routing already
+  // guards lazy destinations, so binding the shell here is safe and idempotent.
+  try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Early bottom nav binding failed', err); }
+  try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Early delegated action binding failed', err); }
+  try { markRakFirstInteractive('startup-shell-bound'); } catch (err) {}
 
   try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
   try {
