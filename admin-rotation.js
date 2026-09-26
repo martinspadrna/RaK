@@ -826,7 +826,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
       }
     });
     if (!adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) {
-      const absent = new Set(noteNamesForDate(dateLabel).map((noteName) => noteName.canonical).filter((name) => knownNames.includes(name)));
+      const absent = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
       adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent).forEach((issue) => {
         addIssue('error', 'three-absence-staffing', String(dateLabel) + ': ' + issue.machine
           + (issue.shouldBeOccupied ? ' musí být obsazená.' : ' musí zůstat neobsazená.'),
@@ -1087,7 +1087,8 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
     ruleCheck.issues.push({ severity: 'warn', code: 'tpkw02-month-spread', message: 'TPKW02 nelze s aktuální kvalifikací bezpečně vyrovnat na rozdíl 1 směny.' });
   }
   const criticalIssues = ruleCheck.issues.filter((issue) => issue && issue.severity === 'error');
-  if (criticalIssues.length) {
+  const allowScopedRuleErrors = generationOptions.allowScopedRuleErrors === true;
+  if (criticalIssues.length && !allowScopedRuleErrors) {
     throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · '));
   }
   // Po opravach a prohozech vrat skutecny pocet obsazenych bunek, ne puvodni odhad.

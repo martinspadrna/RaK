@@ -1,3 +1,11 @@
+## RaK 1.7.119 (development)
+
+- Neplánovaná změna zůstává přesně na pěti schválených důvodech: **Dovolená, Náhradní volno, Paragraf, Lékař, Odešel na kalírnu**.
+- Přepočet nyní bezpečně toleruje chyby v mezivýsledku mimo zvolený den/rozsah. Do uloženého měsíce se stále splice-nou jen vybrané dny a finální kandidát se porovnává s původním měsícem; nová chyba nebo zásah jiného dne zůstává fail-closed.
+- Validátor personální dostupnosti nyní počítá `kalirnaOut` stejně jako generátor. Starší Kalírna na jiném dni proto už nevytváří falešnou chybu „dostupný člověk není v rozpisu“.
+- Vybraný den se dál generuje plným generátorem včetně vyvážení MO/TO a návazných pravidel; ostatní dny se do výsledku nepropíšou.
+- iPhone popup Neplánované změny je kompaktnější, respektuje safe-area a scrolluje jen obsah. Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.118 (development)
 
 - Opravené nedorozumění z 1.7.117: speciální personální větev pro **4 chybějící** je odstraněná z generátoru, opravné fáze, validace i regresních testů. Čtyři a více chybějících se tímto releasem nezavádějí jako podporovaný provozní scénář.

@@ -43,10 +43,11 @@ test('Kalírna joins absences only in generator availability, not in absence dat
   assert.equal(month.notes.length,1,'Kalírna must not create an absence note');
 });
 
-test('all generator availability paths use the combined unavailable set', () => {
+test('all generator and validator staffing paths use the combined unavailable set', () => {
   assert(!generator.includes('adminRotationNamesForAbsenceDate(month.notes'), 'generator still has an absence-only availability path');
   assert((generator.match(/adminRotationUnavailableNamesForDate\(/g)||[]).length >= 5);
   assert(rotation.includes('const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);'));
+  assert(rotation.includes('const absent = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);'));
 });
 
 test('existing staffing rules give 3 lathes + 1 mill for four MO people and 2 lathes + 1 mill for three', () => {
@@ -66,7 +67,7 @@ test('existing staffing rules give 3 lathes + 1 mill for four MO people and 2 la
   assert(!three.includes('MFKF06'));
 });
 
-test('unplanned Kalírna candidate runs the same generator and only splices selected days', () => {
+test('unplanned Kalírna candidate runs the same generator, tolerates only intermediate unrelated errors and splices selected days', () => {
   const start=wizard.indexOf('function adminRotationBuildUnplannedDayModCandidate(');
   const end=wizard.indexOf('\nfunction adminRotationUnplannedOperationId(',start);
   assert(start>=0&&end>start);
@@ -74,7 +75,7 @@ test('unplanned Kalírna candidate runs the same generator and only splices sele
   for(const marker of [
     "type: 'kalirnaOut'",
     'adminRotationUnplannedGenerationSeed(candidate)',
-    'adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false })',
+    'adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true })',
     'adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels)',
     'adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels)',
     "throw new Error('Pracovník označený jako Kalírna zůstal ve stroji: ' + date + '.')",

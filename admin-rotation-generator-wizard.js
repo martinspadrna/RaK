@@ -905,7 +905,7 @@ function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input
   const original = JSON.parse(JSON.stringify(sourceMonth || {}));
   const withAbsence = adminRotationUnplannedApplyAbsenceNotes(original, allowedDateLabels, person, reason);
   const seed = adminRotationUnplannedGenerationSeed(withAbsence);
-  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false });
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true });
   if (!generated || !generated.normalized) throw new Error('Částečný návrh se nepodařilo vygenerovat.');
   const candidate = adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels);
   adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels);
@@ -999,7 +999,7 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
   // stejně nedostupný. Generátor proto dostane dayMod už v seedu a použije
   // beze změny stávající pravidla 4/3 lidí na MO i doplnění TO z MO.
   const seed = adminRotationUnplannedGenerationSeed(candidate);
-  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false });
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true });
   if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
   const regenerated = adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels);
   adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels);
@@ -1051,13 +1051,14 @@ function adminEnsureUnplannedChangePopupPageStyles() {
   const style = document.createElement('style');
   style.id = 'rakUnplannedChangePopupPageStyles';
   style.textContent = [
-    '.adminUnplannedChangeOverlay{align-items:stretch!important;justify-items:center!important;padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))!important}',
-    '.adminUnplannedChangeDialog.adminUnplannedChangePage{width:min(540px,100%)!important;height:100%!important;max-height:none!important;padding:0!important;overflow:hidden!important;grid-template-rows:auto minmax(0,1fr) auto!important;gap:0!important;border-radius:26px!important}',
-    '.adminUnplannedChangeHeader{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 18px 14px!important;border-bottom:1px solid rgba(255,255,255,.10)!important}',
-    '.adminUnplannedClose{width:44px!important;min-width:44px!important;height:44px!important;display:grid!important;place-items:center!important;padding:0!important;border-radius:50%!important;font-size:28px!important;line-height:1!important}',
-    '.adminUnplannedChangeBody{min-height:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch!important;display:grid!important;align-content:start!important;gap:14px!important;padding:16px 18px 22px!important}',
-    '.adminUnplannedChangeFooter{display:grid!important;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;gap:10px!important;padding:12px 18px max(14px,env(safe-area-inset-bottom))!important;border-top:1px solid rgba(255,255,255,.10)!important;background:inherit!important}',
-    '.adminUnplannedChangeFooter .appMenuAction{min-width:0!important;min-height:52px!important;white-space:normal!important}'
+    '.adminUnplannedChangeOverlay{align-items:center!important;justify-items:center!important;padding:max(14px,env(safe-area-inset-top)) 10px max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box!important;overflow:hidden!important}',
+    '.adminUnplannedChangeDialog.adminUnplannedChangePage{width:min(520px,100%)!important;height:auto!important;max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;padding:0!important;overflow:hidden!important;grid-template-rows:auto minmax(0,1fr) auto!important;gap:0!important;border-radius:24px!important;box-sizing:border-box!important}',
+    '.adminUnplannedChangeHeader{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:13px 15px 10px!important;border-bottom:1px solid rgba(255,255,255,.10)!important}',
+    '.adminUnplannedClose{width:40px!important;min-width:40px!important;height:40px!important;display:grid!important;place-items:center!important;padding:0!important;border-radius:50%!important;font-size:26px!important;line-height:1!important}',
+    '.adminUnplannedChangeBody{min-height:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch!important;display:grid!important;align-content:start!important;gap:11px!important;padding:12px 15px 14px!important}',
+    '.adminUnplannedChangeBody .appMenuFieldLabel{gap:6px!important}',
+    '.adminUnplannedChangeFooter{display:grid!important;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;gap:8px!important;padding:10px 15px max(10px,env(safe-area-inset-bottom))!important;border-top:1px solid rgba(255,255,255,.10)!important;background:inherit!important}',
+    '.adminUnplannedChangeFooter .appMenuAction{min-width:0!important;min-height:48px!important;white-space:normal!important}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -1099,7 +1100,7 @@ function adminOpenUnplannedChangeDialog(input) {
     '<div class="adminUnplannedChangeDialog adminUnplannedChangePage" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
     '  <div class="adminUnplannedChangeHeader"><div><div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna</div><div class="smallText">Generátor rozpisu</div></div><button type="button" class="adminUnplannedClose" data-unplanned-action="cancel" aria-label="Zavřít">×</button></div>',
     '  <div class="adminUnplannedChangeBody">',
-    '  <div class="smallText">Dovolená, náhradní volno, paragraf a lékař přepočítají vybraný den nebo rozsah a zapíšou absenci. Kalírna není absence, ale člověk se pro generátor bere jako nedostupný a den se přeskupí podle běžných pravidel.</div>',
+    '  <div class="smallText">Přepočítá se jen vybraný den nebo rozsah. Ostatní dny zůstanou beze změny.</div>',
     '  <label class="appMenuFieldLabel">Pracovník<select id="adminUnplannedPerson" class="appMenuSelect">' + optionHtml(knownNames, prefillPerson) + '</select></label>',
     '  <label class="appMenuFieldLabel">Důvod<select id="adminUnplannedReason" class="appMenuSelect">' + reasonOptionHtml + '</select></label>',
     '  <div class="adminUnplannedRange">',

@@ -49,7 +49,6 @@ test('popup page styles are injected only with the deferred admin feature, not i
   assert(wizard.includes('function adminEnsureUnplannedChangePopupPageStyles()'));
   assert(wizard.includes("style.id = 'rakUnplannedChangePopupPageStyles'"));
   for (const marker of [
-    'height:100%!important',
     'grid-template-rows:auto minmax(0,1fr) auto!important',
     '.adminUnplannedChangeHeader{',
     '.adminUnplannedChangeBody{',
@@ -57,5 +56,9 @@ test('popup page styles are injected only with the deferred admin feature, not i
     '.adminUnplannedChangeFooter{',
     'env(safe-area-inset-bottom)'
   ]) assert(wizard.includes(marker), 'missing deferred popup page CSS: ' + marker);
+  assert(
+    wizard.includes('height:100%!important') || (wizard.includes('height:auto!important') && wizard.includes('max-height:calc(100dvh')),
+    'successor must keep the popup page-like while allowing a compact safe-area bounded height'
+  );
   assert(!globalCss.includes('RaK 1.7.112 – Neplánovaná změna je mobilní popup stránka'), '1.7.112 popup CSS leaked into startup stylesheet');
 });
