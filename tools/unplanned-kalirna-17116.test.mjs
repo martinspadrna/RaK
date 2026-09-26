@@ -67,16 +67,18 @@ test('existing staffing rules give 3 lathes + 1 mill for four MO people and 2 la
   assert(!three.includes('MFKF06'));
 });
 
-test('unplanned Kalírna candidate runs the same generator, tolerates only intermediate unrelated errors and splices selected days', () => {
+test('unplanned Kalírna prefers minimal MO reflow and keeps the scoped generator as fallback', () => {
   const start=wizard.indexOf('function adminRotationBuildUnplannedDayModCandidate(');
   const end=wizard.indexOf('\nfunction adminRotationUnplannedOperationId(',start);
   assert(start>=0&&end>start);
   const block=wizard.slice(start,end);
   for(const marker of [
     "type: 'kalirnaOut'",
+    'adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, regenerated, date, person, knownNames)',
+    'fallbackDateLabels.push(date)',
     'adminRotationUnplannedGenerationSeed(candidate)',
-    'adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels })',
-    'adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels)',
+    'adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: fallbackDateLabels })',
+    'adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels)',
     'adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels)',
     'adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels)',
     "throw new Error('Pracovník označený jako Kalírna zůstal ve stroji: ' + date + '.')",

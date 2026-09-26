@@ -1,3 +1,11 @@
+## RaK 1.7.123 (development)
+
+- Neplánovaná změna → **Odešel na kalírnu** už nejdřív negeneruje celý vybraný den. Pokud pracovník odchází z MO, aplikace hledá platné rozložení se **zcela nejmenším počtem přesunutých lidí**.
+- Typický případ 5 → 4 lidí na MO: když odchází člověk ze soustruhu, přednostně ho nahradí pracovník z **MFKF06** a člověk na **MFKF10 zůstane sám na frézkách**. Ostatní soustruhy i celé TO zůstávají beze změny.
+- Když odchází člověk přímo z MFKF06, ostatní se nehýbou. Když odchází z MFKF10, pracovník z MFKF06 se přesune na MFKF10. Kvalifikace se kontrolují pro každý navržený stroj.
+- Pokud nejmenší lokální varianta kvůli kvalifikaci nebo staffing pravidlům neexistuje, teprve potom se použije dosavadní scoped generátor, a to jen pro konkrétní nevyřešený den.
+- Serverové CAS/idempotentní RPC, TEST Supabase, produkční Supabase i produkce se nemění.
+
 ## RaK 1.7.122 (development)
 
 - Neplánovaná Dovolená/Náhradní volno/Paragraf/Lékař nově **preferují řešení pouze uvnitř MO**, když je chybějící pracovník původně na MO a stávající TO zůstává po absenci platné.

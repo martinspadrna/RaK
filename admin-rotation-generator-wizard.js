@@ -1062,6 +1062,95 @@ function adminRotationUnplannedFindAssignment(month, dateLabel, person, knownNam
   return matches[0];
 }
 
+function adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, targetMonth, dateLabel, person, knownNames) {
+  let assignment = null;
+  try {
+    assignment = adminRotationUnplannedFindAssignment(sourceMonth, dateLabel, person, knownNames);
+  } catch (_) {
+    return false;
+  }
+  if (!assignment || assignment.section !== 'soft') return false;
+
+  const hardRows = Array.isArray(sourceMonth && sourceMonth.hard && sourceMonth.hard.rows) ? sourceMonth.hard.rows : [];
+  const sourceSoftRows = Array.isArray(sourceMonth && sourceMonth.soft && sourceMonth.soft.rows) ? sourceMonth.soft.rows : [];
+  const targetSoftRows = Array.isArray(targetMonth && targetMonth.soft && targetMonth.soft.rows) ? targetMonth.soft.rows : [];
+  const hardRow = hardRows.find((row) => String(row && row.date || '').trim() === String(dateLabel || '').trim()) || null;
+  const sourceSoftRow = sourceSoftRows.find((row) => String(row && row.date || '').trim() === String(dateLabel || '').trim()) || null;
+  const targetSoftRow = targetSoftRows.find((row) => String(row && row.date || '').trim() === String(dateLabel || '').trim()) || null;
+  if (!hardRow || !sourceSoftRow || !targetSoftRow) return false;
+
+  const blocked = adminRotationUnavailableNamesForDate(targetMonth, dateLabel, knownNames);
+  const available = knownNames.filter((name) => !blocked.has(name));
+  const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+  const hardCells = Array.isArray(hardRow.cells) ? hardRow.cells.slice(0, HARD_MACHINE_HEADERS.length) : [];
+  if (hardCells.length !== HARD_MACHINE_HEADERS.length) return false;
+
+  const hardNames = new Set();
+  let hardCount = 0;
+  for (let idx = 0; idx < hardCells.length; idx += 1) {
+    const name = adminRotationCanonicalName(hardCells[idx], knownNames);
+    if (!name) continue;
+    if (blocked.has(name) || hardNames.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, HARD_MACHINE_HEADERS[idx] || '')) return false;
+    hardNames.add(name);
+    hardCount += 1;
+  }
+  if (hardCount !== hardTarget) return false;
+
+  const sourceCells = Array.isArray(sourceSoftRow.cells) ? sourceSoftRow.cells.slice(0, SOFT_MACHINE_HEADERS.length) : [];
+  if (sourceCells.length !== SOFT_MACHINE_HEADERS.length) return false;
+  const sourcePerson = adminRotationCanonicalName(sourceCells[Number(assignment.cellIndex)], knownNames);
+  if (sourcePerson !== person) return false;
+
+  const originalIndexByName = new Map();
+  const remaining = [];
+  for (let idx = 0; idx < sourceCells.length; idx += 1) {
+    const name = adminRotationCanonicalName(sourceCells[idx], knownNames);
+    if (!name) continue;
+    if (originalIndexByName.has(name) || hardNames.has(name)) return false;
+    originalIndexByName.set(name, idx);
+    if (name === person) continue;
+    if (blocked.has(name)) return false;
+    remaining.push(name);
+  }
+
+  const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
+  if (remaining.length !== softTarget) return false;
+  const slots = adminRotationGeneratorSoftSlotPlan(softTarget);
+  if (!Array.isArray(slots) || slots.length !== softTarget || new Set(slots).size !== slots.length) return false;
+
+  let best = null;
+  const visit = (slotPos, pool, cells, movedPeople) => {
+    if (slotPos >= slots.length) {
+      const changedCells = cells.reduce((sum, value, idx) => {
+        const before = adminRotationCanonicalName(sourceCells[idx], knownNames);
+        const after = adminRotationCanonicalName(value, knownNames);
+        return sum + (before === after ? 0 : 1);
+      }, 0);
+      if (!best || movedPeople < best.movedPeople || (movedPeople === best.movedPeople && changedCells < best.changedCells)) {
+        best = { cells: cells.slice(), movedPeople, changedCells };
+      }
+      return;
+    }
+    const machineIdx = slots[slotPos];
+    const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
+    for (let idx = 0; idx < pool.length; idx += 1) {
+      const name = pool[idx];
+      if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) continue;
+      const nextCells = cells.slice();
+      nextCells[machineIdx] = name;
+      const nextPool = pool.slice(0, idx).concat(pool.slice(idx + 1));
+      const nextMoved = movedPeople + (Number(originalIndexByName.get(name)) === Number(machineIdx) ? 0 : 1);
+      if (best && nextMoved > best.movedPeople) continue;
+      visit(slotPos + 1, nextPool, nextCells, nextMoved);
+    }
+  };
+
+  visit(0, remaining.slice(), Array(SOFT_MACHINE_HEADERS.length).fill(''), 0);
+  if (!best) return false;
+  targetSoftRow.cells = best.cells;
+  return true;
+}
+
 function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input) {
   const data = input && typeof input === 'object' ? input : {};
   const labels = adminRotationUnplannedDateLabels(sourceMonth);
@@ -1108,13 +1197,25 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     });
   });
 
-  // Kalírna není absence do statistik, ale pro personální plán dne je člověk
-  // stejně nedostupný. Generátor proto dostane dayMod už v seedu a použije
-  // beze změny stávající pravidla 4/3 lidí na MO i doplnění TO z MO.
-  const seed = adminRotationUnplannedGenerationSeed(candidate);
-  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels });
-  if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
-  const regenerated = adminRotationUnplannedSpliceGeneratedDays(candidate, generated.normalized, allowedDateLabels);
+  // Kalírna se nejdřív řeší nejmenším možným zásahem. Pokud pracovník
+  // odchází z MO a stávající TO je stále platné, zůstanou všichni ostatní
+  // pokud možno na svém stroji. Typický případ 5 -> 4 na MO tak znamená:
+  // člověk z MFKF06 nahradí odcházejícího na soustruhu a MFKF10 zůstane sám.
+  // Teprve když kvalifikace nebo staffing lokální řešení nedovolí, použije
+  // se stávající scoped generátor jen pro konkrétní nevyřešené dny.
+  let regenerated = JSON.parse(JSON.stringify(candidate));
+  const fallbackDateLabels = [];
+  allowedDateLabels.forEach((date) => {
+    const applied = adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, regenerated, date, person, knownNames);
+    if (!applied) fallbackDateLabels.push(date);
+  });
+
+  if (fallbackDateLabels.length) {
+    const seed = adminRotationUnplannedGenerationSeed(candidate);
+    const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: fallbackDateLabels });
+    if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
+    regenerated = adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels);
+  }
   adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels);
   adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels);
 
