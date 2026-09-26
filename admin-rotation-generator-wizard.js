@@ -898,6 +898,55 @@ function adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels
   });
 }
 
+function adminRotationUnplannedPreserveHardCellsByDate(originalMonth, preparedMonth, allowedDateLabels, person, knownNames) {
+  const result = Object.create(null);
+  const labels = Array.isArray(allowedDateLabels) ? allowedDateLabels : [];
+  labels.forEach((date) => {
+    let assignment = null;
+    try {
+      assignment = adminRotationUnplannedFindAssignment(originalMonth, date, person, knownNames);
+    } catch (_) {
+      return;
+    }
+    if (!assignment || assignment.section !== 'soft') return;
+
+    const hardRows = Array.isArray(originalMonth && originalMonth.hard && originalMonth.hard.rows) ? originalMonth.hard.rows : [];
+    const hardRow = hardRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells.slice(0, HARD_MACHINE_HEADERS.length) : [];
+    if (hardCells.length !== HARD_MACHINE_HEADERS.length) return;
+
+    const blocked = adminRotationUnavailableNamesForDate(preparedMonth, date, knownNames);
+    const available = knownNames.filter((name) => !blocked.has(name));
+    const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+    const seen = new Set();
+    let count = 0;
+    for (let idx = 0; idx < hardCells.length; idx += 1) {
+      const name = adminRotationCanonicalName(hardCells[idx], knownNames);
+      if (!name) continue;
+      if (blocked.has(name) || seen.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, HARD_MACHINE_HEADERS[idx] || '')) return;
+      seen.add(name);
+      count += 1;
+    }
+    if (count !== hardTarget) return;
+    result[date] = hardCells;
+  });
+  return result;
+}
+
+function adminRotationUnplannedAssertHardPreserved(beforeMonth, afterMonth, preserveHardCellsByDate) {
+  const wanted = preserveHardCellsByDate && typeof preserveHardCellsByDate === 'object' ? preserveHardCellsByDate : {};
+  Object.keys(wanted).forEach((date) => {
+    const beforeRows = Array.isArray(beforeMonth && beforeMonth.hard && beforeMonth.hard.rows) ? beforeMonth.hard.rows : [];
+    const afterRows = Array.isArray(afterMonth && afterMonth.hard && afterMonth.hard.rows) ? afterMonth.hard.rows : [];
+    const beforeRow = beforeRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const afterRow = afterRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    if (JSON.stringify(beforeRow && beforeRow.cells || []) !== JSON.stringify(afterRow && afterRow.cells || [])) {
+      throw new Error(String(date || '') + ': neplánovanou absenci šlo vyřešit jen na MO, ale TO se změnilo.');
+    }
+  });
+  return true;
+}
+
 function adminRotationUnplannedAssertSelectedDayStaffing(month, allowedDateLabels) {
   const knownNames = adminGetKnownNames();
   const labels = Array.isArray(allowedDateLabels) ? allowedDateLabels : [];
@@ -956,11 +1005,19 @@ function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input
 
   const original = JSON.parse(JSON.stringify(sourceMonth || {}));
   const withAbsence = adminRotationUnplannedApplyAbsenceNotes(original, allowedDateLabels, person, reason);
+  const preserveHardCellsByDate = adminRotationUnplannedPreserveHardCellsByDate(original, withAbsence, allowedDateLabels, person, knownNames);
   const seed = adminRotationUnplannedGenerationSeed(withAbsence);
-  const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: allowedDateLabels });
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, {
+    ignoreDom: true,
+    persistPending: false,
+    allowScopedRuleErrors: true,
+    scopedDateLabels: allowedDateLabels,
+    preserveHardCellsByDate
+  });
   if (!generated || !generated.normalized) throw new Error('Částečný návrh se nepodařilo vygenerovat.');
   const candidate = adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels);
   adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels);
+  adminRotationUnplannedAssertHardPreserved(original, candidate, preserveHardCellsByDate);
   adminRotationUnplannedAssertSelectedDayStaffing(candidate, allowedDateLabels);
 
   const beforeCheck = adminRotationValidateMonthRules(original, monthKey, { source: 'generator' });

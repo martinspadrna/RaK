@@ -1,3 +1,11 @@
+## RaK 1.7.122 (development)
+
+- Neplánovaná Dovolená/Náhradní volno/Paragraf/Lékař nově **preferují řešení pouze uvnitř MO**, když je chybějící pracovník původně na MO a stávající TO zůstává po absenci platné.
+- V takovém dni se původní řádek TO předá generátoru jako chráněný. Generátor jej ponechá beze změny a přeskupí pouze zbývající dostupné lidi na MO.
+- Ochrana TO se aktivuje jen tehdy, když má původní TO správný počet dostupných, unikátních a kvalifikovaných lidí. Pokud chybí člověk z TO nebo staré TO už po absenci není platné, generátor automaticky dovolí širší lokální přepočet.
+- Po vygenerování je zachování TO kontrolováno fail-closed proti původnímu řádku; „MO-only“ větev tedy nemůže potichu změnit Tvrdotu.
+- Scoped přepočet, izolace vybraných dnů, pět schválených důvodů, serverový CAS/idempotentní RPC i Supabase schéma zůstávají beze změny.
+
 ## RaK 1.7.121 (development)
 
 - Oprava skutečné runtime příčiny, proč fyzický iPhone stále vracel Blažka do stroje při **26. 9. R → Dovolená** i **Odešel na kalírnu**.

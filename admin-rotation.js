@@ -1026,6 +1026,9 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   let skippedDays = 0;
   let protectedEmptyCells = 0;
   const knownNames = model.knownNames;
+  const preserveHardCellsByDate = generationOptions.preserveHardCellsByDate && typeof generationOptions.preserveHardCellsByDate === 'object'
+    ? generationOptions.preserveHardCellsByDate
+    : {};
 
   for (let rowIdx = 0; rowIdx < maxRows; rowIdx += 1) {
     if (!hardRows[rowIdx] && softRows[rowIdx]) hardRows[rowIdx] = { date: softRows[rowIdx].date || '', cells: Array(HARD_MACHINE_HEADERS.length).fill('') };
@@ -1043,7 +1046,10 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
       skippedDays += 1;
       continue;
     }
-    const generated = adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, absenceNames, monthKey);
+    const preserveHardCells = Array.isArray(preserveHardCellsByDate[dateLabel])
+      ? preserveHardCellsByDate[dateLabel]
+      : null;
+    const generated = adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, absenceNames, monthKey, { preserveHardCells });
     if (hardRow) hardRow.cells = generated.hardCells;
     if (softRow) softRow.cells = generated.softCells;
     filledCells += generated.filledCells;

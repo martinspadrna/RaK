@@ -1023,7 +1023,7 @@ function adminRotationGeneratorHardTarget(knownNames, available) {
   return adminRotationGeneratorThreeAbsences(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);
 }
 
-function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey) {
+function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey, dayOptions) {
   const knownNames = model.knownNames;
   const generatorRules = getAdminRotationGeneratorRules();
   const softPreferred = generatorRules.softPreferred.filter((name) => knownNames.includes(name));
@@ -1035,6 +1035,23 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   const softCells = Array(SOFT_MACHINE_HEADERS.length).fill('');
   const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
   const softTargetCount = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTargetCount));
+  const requestedHardCells = dayOptions && Array.isArray(dayOptions.preserveHardCells)
+    ? dayOptions.preserveHardCells.slice(0, HARD_MACHINE_HEADERS.length)
+    : null;
+  const preserveHardActive = !!(requestedHardCells && requestedHardCells.length === HARD_MACHINE_HEADERS.length && (() => {
+    const seen = new Set();
+    let count = 0;
+    for (let idx = 0; idx < HARD_MACHINE_HEADERS.length; idx += 1) {
+      const name = adminRotationCanonicalName(requestedHardCells[idx], knownNames);
+      if (!name) continue;
+      const machineName = HARD_MACHINE_HEADERS[idx] || '';
+      if (!available.includes(name) || seen.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
+      if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
+      seen.add(name);
+      count += 1;
+    }
+    return count === hardTargetCount;
+  })());
 
   if (!available.length) return { hardCells, softCells, filledCells: 0, emptyProtected: 0 };
 
@@ -1064,9 +1081,19 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     return true;
   };
 
+  if (preserveHardActive) {
+    requestedHardCells.forEach((value, machineIdx) => {
+      const name = adminRotationCanonicalName(value, knownNames);
+      if (!name) return;
+      hardCells[machineIdx] = name;
+      usedNames.add(name);
+      adminRotationGeneratorMarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[machineIdx] || '', name);
+    });
+  }
+
   // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
   // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
-  hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
+  if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
     if (usedNames.size >= hardTargetCount) return;
     const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
     const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, wantedMachine);
@@ -1084,13 +1111,15 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   let cycleMachine = softCoreBlock.machine;
   let cycleIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycleMachine);
   let exchangeSoft = '';
-  if (counters.softCoreGapPending) {
-    counters.softCoreGapPending = false;
-  } else {
-    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
-      ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
-      : '';
-    if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
+  if (!preserveHardActive) {
+    if (counters.softCoreGapPending) {
+      counters.softCoreGapPending = false;
+    } else {
+      exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
+        ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
+        : '';
+      if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
+    }
   }
   const displacedToSoft = [];
   if (exchangeSoft && cycleIdx >= 0 && available.includes(exchangeSoft) && !usedNames.has(exchangeSoft)) {
@@ -1109,7 +1138,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     .filter((name) => adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey));
 
   // 3) Doplnění zbytku Tvrdoty až po základním rozepsání a výměně.
-  HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
+  if (!preserveHardActive) HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
     if (hardCells[machineIdx] || hardCells.filter((cell) => String(cell || '').trim()).length >= hardTargetCount) return;
     const historicalCandidates = (model.dayTemplates[rowIdx % model.dayTemplates.length] && model.dayTemplates[rowIdx % model.dayTemplates.length].hardCells) || [];
     const suggested = adminRotationCanonicalName(historicalCandidates[machineIdx] || '', knownNames);
