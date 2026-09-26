@@ -35,7 +35,7 @@ test('1.7.106 release wiring and backup manifest remain protected by successors'
   assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v" + metadata.displayVersion + "'"));
   const workflow = read('.github/workflows/rak-development-validation.yml');
   assert(workflow.includes('tools/release-gate-17106.test.mjs'));
-  assert(workflow.includes('rak-170106-isolated-build-'));
+  assert(/rak-1701\d{2}-isolated-build-/.test(workflow));
   assert(read('CHANGELOG.md').includes('## RaK 1.7.106 (development)'));
 });
 
