@@ -7,7 +7,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.105 privacy milestone remains protected by the current unified identity',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.105');
-  assert.match(metadata.displayVersion,/^1\.7\.10[5-9]$/);
+  assert.match(metadata.displayVersion,/^1\.7\.(?:10[5-9]|1[1-9]\d|[2-9]\d{2,})$/);
   assert.equal(metadata.technicalVersion,metadata.displayVersion);
   assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
