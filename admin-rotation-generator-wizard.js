@@ -949,8 +949,9 @@ function adminOpenUnplannedChangeDialog(input) {
   overlay.className = 'adminUnplannedChangeOverlay';
   overlay.dataset.operationId = '';
   overlay.innerHTML = [
-    '<div class="adminUnplannedChangeDialog" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
-    '  <div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna (generátor)</div>',
+    '<div class="adminUnplannedChangeDialog adminUnplannedChangePage" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
+    '  <div class="adminUnplannedChangeHeader"><div><div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna</div><div class="smallText">Generátor rozpisu</div></div><button type="button" class="adminUnplannedClose" data-unplanned-action="cancel" aria-label="Zavřít">×</button></div>',
+    '  <div class="adminUnplannedChangeBody">',
     '  <div class="smallText">Zapíše absenci a přepočítá jen zvolený den nebo rozsah. Ostatní dny, lokální fronta a recovery zůstanou beze změny.</div>',
     '  <label class="appMenuFieldLabel">Pracovník<select id="adminUnplannedPerson" class="appMenuSelect">' + optionHtml(knownNames, prefillPerson) + '</select></label>',
     '  <label class="appMenuFieldLabel">Důvod absence<input id="adminUnplannedReason" class="appMenuInput" list="adminUnplannedReasonOptions" value="D" maxlength="80"></label>',
@@ -960,7 +961,8 @@ function adminOpenUnplannedChangeDialog(input) {
     '    <label class="appMenuFieldLabel">Do<select id="adminUnplannedTo" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
     '  </div>',
     '  <div class="smallText" id="adminUnplannedStatus" role="status" aria-live="polite">Změna se uloží přímo online až po potvrzení.</div>',
-    '  <div class="appMenuActionRow"><button type="button" class="appMenuAction" data-unplanned-action="cancel">Zrušit</button><button type="button" class="appMenuAction isActive" data-unplanned-action="save">Uložit a přepočítat</button></div>',
+    '  </div>',
+    '  <div class="adminUnplannedChangeFooter"><button type="button" class="appMenuAction" data-unplanned-action="manual">Ručně upravit</button><button type="button" class="appMenuAction isActive" data-unplanned-action="save">Uložit a přepočítat</button></div>',
     '</div>'
   ].join('');
   document.body.appendChild(overlay);
@@ -974,6 +976,13 @@ function adminOpenUnplannedChangeDialog(input) {
     const action = actionButton.getAttribute('data-unplanned-action');
     if (action === 'cancel') {
       adminCloseUnplannedChangeDialog();
+      return;
+    }
+    if (action === 'manual') {
+      adminCloseUnplannedChangeDialog();
+      window.setTimeout(() => {
+        try { if (input && input.isConnected) input.focus({ preventScroll: true }); } catch (_) { try { if (input && input.isConnected) input.focus(); } catch (_) {} }
+      }, 0);
       return;
     }
     if (action !== 'save' || overlay.dataset.saving === '1') return;

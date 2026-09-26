@@ -154,6 +154,27 @@ function bindAppMenuHandlers(body) {
   body.dataset.menuHandlersBound = '1';
   adminBindRotationZoomGuard();
 
+  body.addEventListener('pointerdown', (event) => {
+    if (body.dataset.adminView !== 'rotation') return;
+    const target = event.target && event.target.closest ? event.target.closest('[data-rot-field^="cell-"]') : null;
+    if (!target || !body.contains(target)) return;
+    const value = String(target.value || '').trim();
+    if (!value || (typeof adminRotationIsRemoveValue === 'function' && adminRotationIsRemoveValue(value))) return;
+    // A clean online baseline is required by the unplanned-change server contract.
+    // If the regular editor already has unsaved changes, keep the original manual-edit behavior.
+    if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) return;
+    if (typeof adminOpenUnplannedChangeDialog !== 'function') return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const active = document.activeElement;
+      if (active && active !== document.body && typeof active.blur === 'function') active.blur();
+    } catch (_) {}
+    try { adminCloseRotationQuickRemove(); } catch (_) {}
+    try { adminCloseAbsenceCodePicker(); } catch (_) {}
+    adminOpenUnplannedChangeDialog(target);
+  }, true);
+
   body.addEventListener('focusin', (event) => {
     const target = event.target;
     if (target && target.matches && target.matches('[data-rot-field^="cell-"], [data-note-field="person"]')) adminShowRotationSelectedRemove(target);

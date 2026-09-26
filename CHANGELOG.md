@@ -1,3 +1,11 @@
+## RaK 1.7.112 (development)
+
+- Neplánovaná změna – mobilní UX: klepnutí na obsazené jméno v Rozpisech otevírá rovnou velkou vyskakovací stránku s formulářem. Mezilehlé malé plovoucí menu se pro tento tap nepoužije.
+- První tap je zachycen ještě před focus inputu, takže se na iPhonu nemá automaticky vytáhnout klávesnice. Popup využívá dostupnou výšku obrazovky, safe-area, vlastní hlavičku s ×, scrollovatelný obsah a spodní akční lištu.
+- Ruční editace zůstává dostupná explicitním tlačítkem `Ručně upravit`; teprve po něm se vrátí běžný focus/klávesnice.
+- Serverový výpočet, CAS, idempotence, absence i rozsah změn z 1.7.111 se tímto releasem nemění.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.111 (development)
 
 - WhatsApp report: automatický text je zkrácen na `RaK – Report směny diferenciály · <datum> · <Ranní/Noční/Ranní 8 h/Noční 8 h>`; nadbytečné slovo `směna` před názvem směny je pryč.
