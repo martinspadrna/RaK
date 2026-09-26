@@ -13,7 +13,7 @@ const config = read('supabase-config.js');
 for (const file of ['admin-rotation-generator.js', 'admin-rotation.js', 'rotation-tasks.js', 'sw.js', 'supabase-config.js']) execFileSync(process.execPath, ['--check', file]);
 assert(generator.includes('const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);'), 'day must reserve mill staffing');
 assert(generator.includes('    const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);'), 'repair must respect staffing budget');
-assert(generator.includes("adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02'"), 'closed TPKW02 must be enforced in both generation and repair');
+assert(generator.includes("adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && machineName === 'TPKW02'"), 'closed TPKW02 must be enforced in both generation and repair');
 assert(generator.includes("cycleMachine === 'TPKW02'"), 'do not consume soft-core cycle when TPKW02 is closed');
 assert(generator.includes('adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, lowName, knownNames)'), 'solo swaps must check consecutive workdays');
 assert(generator.includes("!adminRotationGeneratorPersonKnowsMachine(lowName, 'MFKF10')"), 'solo swaps must respect machine skills');
@@ -24,8 +24,8 @@ assert(rotation.includes('const finalSoloMillBalance = adminRotationGeneratorBal
 assert(rotation.indexOf('const finalSoloMillBalance =') < rotation.indexOf("const ruleCheck = adminRotationValidateMonthRules(month, monthKey, { source: 'generator' });"), 'final balancing must precede rule validation');
 const helperSource = generator.match(/function adminRotationGeneratorThreeAbsences\([\s\S]*?(?=function adminRotationGeneratorBuildDay\()/);
 assert(helperSource, 'staffing helper not found');
-const targets = vm.runInNewContext(helperSource[0] + '\n[adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(7).fill("person")), adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(8).fill("person")), adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(10).fill("person"))]', { HARD_MACHINE_HEADERS: ['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'] });
-assert.deepEqual(Array.from(targets), [4, 5, 5], 'hard staffing targets must be 4/5/5 for 7/8/10 available');
+const targets = vm.runInNewContext(helperSource[0] + '\n[adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(6).fill("person")), adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(7).fill("person")), adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(8).fill("person")), adminRotationGeneratorHardTarget(Array(10).fill("person"), Array(10).fill("person"))]', { HARD_MACHINE_HEADERS: ['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'] });
+assert.deepEqual(Array.from(targets), [4, 4, 5, 5], 'hard staffing targets must be 4/4/5/5 for 6/7/8/10 available');
 const slotSource = generator.match(/function adminRotationGeneratorSoftSlotPlan\(softCount\) \{[\s\S]*?\n\}/);
 assert(slotSource, 'soft slots helper missing');
 const slots = vm.runInNewContext(slotSource[0] + '\nadminRotationGeneratorSoftSlotPlan(3)', {
@@ -33,6 +33,11 @@ const slots = vm.runInNewContext(slotSource[0] + '\nadminRotationGeneratorSoftSl
   adminRotationGeneratorMachineIndex: (headers, name) => headers.indexOf(name)
 });
 assert.deepEqual(Array.from(slots), [1, 2, 4], 'three MO workers must fill MSKC03/MSKC04/MFKF10');
+const slotsTwo = vm.runInNewContext(slotSource[0] + '\nadminRotationGeneratorSoftSlotPlan(2)', {
+  SOFT_MACHINE_HEADERS: ['MSKC01','MSKC03','MSKC04','MFKF06','MFKF10'],
+  adminRotationGeneratorMachineIndex: (headers, name) => headers.indexOf(name)
+});
+assert.deepEqual(Array.from(slotsTwo), [1, 4], 'two MO workers must fill MSKC03/MFKF10 when four workers are absent');
 assert(tasks.includes('sharedTpkw02: shouldShareTpkw02FromCard(card)'), 'task cards do not detect vacant TPKW02');
 assert(tasks.includes("tasksForMachine('TPKW02', normalizedShift)"), 'grinders do not inherit configured TPKW02 tasks');
 assert(tasks.includes('sharedMskc01: shouldShareMskc01FromCard(card)'), 'existing MSKC01 sharing lost');
@@ -52,4 +57,4 @@ for (const file of ['admin-rotation-generator.js','admin-rotation.js','rotation-
 assert(config.includes('window.RAK_RELEASE_VERSION = "1.7";'), 'visible version changed');
 assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.7";'), 'technical display changed');
 assert(config.includes('window.RAK_PWA_BUILD = "v1.7.0-release9";'), 'new build config missing');
-console.log('[generator-staffing-170-smoke] OK 7 workers => 4 TO / 3 MO, TPKW02 closed, final balancing, valid syntax, inherited configurable grinder tasks, RaK 1.7 PWA cache');
+console.log('[generator-staffing-170-smoke] OK 6/7 workers => TPKW02 closed; 4 TO + 2/3 MO, final balancing, valid syntax, inherited configurable grinder tasks, RaK 1.7 PWA cache');

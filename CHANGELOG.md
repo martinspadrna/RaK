@@ -1,3 +1,11 @@
+## RaK 1.7.117 (development)
+
+- Generátor personálního obsazení: zachované pravidlo pro 3 absence se rozšiřuje i na **4 absence**. Při 3 i 4 chybějících z deseti lidí zůstává **TPKW02 bez obsluhy**.
+- Při 3 absencích zůstává stávající rozložení 4 TO + 3 MO: bez TPKW02, MSKC01 a MFKF06.
+- Při 4 absencích je nově explicitně 4 TO + 2 MO: TO bez TPKW02; MO na MSKC03 a MFKF10. Generátor, opravná fáze i validační kontrola používají stejný práh.
+- Pravidla pro 0–2 a 5+ absencí se tímto releasem nemění. Výběr pěti důvodů a Kalírna reflow z 1.7.115/1.7.116 zůstávají beze změny.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
 ## RaK 1.7.116 (development)
 
 - Neplánovaná změna → `Odešel na kalírnu`: pracovník se dál ukládá jako skutečná `dayMods: kalirnaOut` výjimka a **nevzniká mu absence**, ale pro generátor je ve vybraném dni nedostupný stejně jako nepřítomný pracovník.

@@ -1019,8 +1019,13 @@ function adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, ma
 function adminRotationGeneratorThreeAbsences(knownNames, available) {
   return Array.isArray(knownNames) && knownNames.length === 10 && Array.isArray(available) && available.length === 7;
 }
+function adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) {
+  if (!Array.isArray(knownNames) || knownNames.length !== 10 || !Array.isArray(available)) return false;
+  const missing = knownNames.length - available.length;
+  return missing === 3 || missing === 4;
+}
 function adminRotationGeneratorHardTarget(knownNames, available) {
-  return adminRotationGeneratorThreeAbsences(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);
+  return adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);
 }
 
 function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey) {
@@ -1040,7 +1045,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
 
   const assignHardCell = (machineIdx, name, reason) => {
     const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';
-    if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
+    if (adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && machineName === 'TPKW02') return false;
     if (machineIdx < 0 || !machineName || !name || usedNames.has(name) || !available.includes(name) || hardCells[machineIdx]) return false;
     if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey, reason === 'soft-core-hard-block')) return false;
     if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
@@ -1087,10 +1092,10 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   if (counters.softCoreGapPending) {
     counters.softCoreGapPending = false;
   } else {
-    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
+    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && cycleMachine === 'TPKW02')
       ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
       : '';
-    if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
+    if (!exchangeSoft && !(adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
   }
   const displacedToSoft = [];
   if (exchangeSoft && cycleIdx >= 0 && available.includes(exchangeSoft) && !usedNames.has(exchangeSoft)) {
@@ -2785,7 +2790,7 @@ function adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey) {
     });
 
     HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
-      if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return;
+      if (adminRotationGeneratorTpkw02ClosedForStaffing(knownNames, available) && machineName === 'TPKW02') return;
       if (hardFilled >= hardTargetCount || String(hardCells[machineIdx] || '').trim()) return;
       const machineCounts = adminRotationGeneratorCountHardMachine(month, machineName, knownNames, monthKey);
       const unusedNames = available.filter((name) => !usedNames.has(name));

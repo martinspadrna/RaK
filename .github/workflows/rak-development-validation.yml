@@ -59,7 +59,7 @@ jobs:
           node --test tools/release-gate-17102.test.mjs
           node --test tools/release-gate-17103.test.mjs
           node --test tools/release-gate-17104.test.mjs
-          node --test tools/privacy-diagnostics-17105.test.mjs tools/release-gate-17105.test.mjs tools/release-gate-17106.test.mjs tools/release-gate-17107.test.mjs tools/release-gate-17108.test.mjs tools/release-gate-17109.test.mjs tools/release-gate-17110.test.mjs tools/unplanned-absence-17111.test.mjs tools/rejected-operation-diagnostics-17111.test.mjs tools/release-gate-17111.test.mjs tools/unplanned-popup-17112.test.mjs tools/release-gate-17112.test.mjs tools/release-gate-17113.test.mjs tools/release-gate-17114.test.mjs tools/unplanned-reasons-17115.test.mjs tools/release-gate-17115.test.mjs tools/unplanned-kalirna-17116.test.mjs tools/release-gate-17116.test.mjs
+          node --test tools/privacy-diagnostics-17105.test.mjs tools/release-gate-17105.test.mjs tools/release-gate-17106.test.mjs tools/release-gate-17107.test.mjs tools/release-gate-17108.test.mjs tools/release-gate-17109.test.mjs tools/release-gate-17110.test.mjs tools/unplanned-absence-17111.test.mjs tools/rejected-operation-diagnostics-17111.test.mjs tools/release-gate-17111.test.mjs tools/unplanned-popup-17112.test.mjs tools/release-gate-17112.test.mjs tools/release-gate-17113.test.mjs tools/release-gate-17114.test.mjs tools/unplanned-reasons-17115.test.mjs tools/release-gate-17115.test.mjs tools/unplanned-kalirna-17116.test.mjs tools/release-gate-17116.test.mjs tools/staffing-shortage-17117.test.mjs tools/release-gate-17117.test.mjs
           node --test tools/regression-parity-contract.test.mjs
           node --test tools/ui-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
@@ -124,12 +124,12 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-170116-isolated-build-${{ github.sha }}
+          name: rak-170117-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
       - name: Retain historical isolated-build evidence alias
         uses: actions/upload-artifact@v4
         with:
-          name: rak-170115-isolated-build-${{ github.sha }}
+          name: rak-170116-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
