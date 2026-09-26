@@ -19,7 +19,7 @@ test('contextual WhatsApp caption stays present in the helper and live runtime',
   for (const file of ['rak-shift-report-image.js','rak-shift-report-share.js']) {
     const source = read(file);
     assert(source.includes('function shiftReportShareTitle(root)'), file + ': caption helper missing');
-    assert(source.includes("return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;"), file + ': contextual caption missing');
+    assert(source.includes("return 'RaK – Report směny diferenciály · ' + date + ' · ' + shift;"), file + ': contextual caption missing');
     assert(source.includes('navigator.share({ title: caption, text: caption, files: [file] })'), file + ': caption text+file payload missing');
   }
 });
