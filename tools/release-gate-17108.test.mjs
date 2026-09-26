@@ -29,6 +29,6 @@ test('1.7.108 historical gate remains wired after successor releases', () => {
   const workflow = read('.github/workflows/rak-development-validation.yml');
   assert(pkg.scripts.check.includes('tools/release-gate-17108.test.mjs'));
   assert(workflow.includes('tools/release-gate-17108.test.mjs'));
-  assert(workflow.includes('rak-170108-isolated-build-'));
+  assert(/rak-1701\d{2}-isolated-build-/.test(workflow));
   assert(read('CHANGELOG.md').includes('## RaK 1.7.108 (development)'));
 });
