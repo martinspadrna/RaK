@@ -37,7 +37,7 @@ test('contextual WhatsApp share text still comes from the selected report date a
   assert(image.includes('const model = collectModel(root);'));
   assert(image.includes("const rawDate = String(model.date || '').trim();"));
   assert(image.includes("const rawShift = String(model.shift || '').trim().toUpperCase();"));
-  assert(image.includes("return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;"));
+  assert(image.includes("return 'RaK – Report směny diferenciály · ' + date + ' · ' + shift;"));
   assert(image.includes('title: caption'));
   assert(!image.includes("navigator.share({ title: 'RaK – Report směny diferenciály'"));
 });
