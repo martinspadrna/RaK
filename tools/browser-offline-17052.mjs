@@ -22,6 +22,7 @@ const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css'
 const NETWORK_BUDGET=JSON.parse(fs.readFileSync(path.join(ROOT,'tools/network-resilience-17104.json'),'utf8'));
 assert.equal(NETWORK_BUDGET.schema,'rak-network-resilience-budget-v1');
 let ciSwGeneration=0;
+let delayStartupDashboard=true;
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);}catch{res.writeHead(400);res.end();return;}
@@ -36,7 +37,9 @@ const server=http.createServer((req,res)=>{
    const worker=fs.readFileSync(filename,'utf8')+'\n// RAK_CI_SW_GENERATION='+ciSwGeneration+'\n';
    res.end(worker);return;
   }
-  fs.createReadStream(filename).pipe(res);
+  const sendFile=()=>fs.createReadStream(filename).pipe(res);
+  if(pathname==='/dashboard.js'&&delayStartupDashboard){setTimeout(sendFile,1800);return;}
+  sendFile();
  });
 });
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'rak-17052-chrome-'));
@@ -118,6 +121,22 @@ try{
  await send('Emulation.setDeviceMetricsOverride',{width:NETWORK_BUDGET.profile.viewport.width,height:NETWORK_BUDGET.profile.viewport.height,deviceScaleFactor:NETWORK_BUDGET.profile.viewport.deviceScaleFactor,mobile:true});
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
  const navigation=await send('Page.navigate',{url:base});assert(!navigation.errorText,'[17052-browser] '+navigation.errorText);
+ // RAK_17127_REAL_TAP_GATE: dashboard is intentionally held for 1.8s. Real
+ // navigation must still bind and complete before startupReady, otherwise iOS can
+ // show a visible but dead shell even when the old listener-only metric passes.
+ await until("document.querySelector('.bottomNav')?.__rotaceBound===true",10000);
+ assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] startup finished before delayed interaction probe');
+ await check("document.documentElement.dataset.rakAuthState='unlocked'");
+ const tapStarted=Date.now();
+ const tapIssued=await check("(()=>{const b=document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]');if(!b)return false;b.click();return true;})()");
+ assert.equal(tapIssued,true,'[17127-real-tap] calculators button missing');
+ await until("document.querySelector('#kalkulacky')?.classList.contains('active')===true",1200);
+ const earlyTapMs=Date.now()-tapStarted;
+ assert(earlyTapMs<=1200,'[17127-real-tap] real calculators navigation took '+earlyTapMs+'ms');
+ assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] navigation completed only after startupReady');
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
+ delayStartupDashboard=false;
+ console.log('[17127-real-tap] PASS calculators opened in '+earlyTapMs+'ms before delayed startupReady');
  const cold=await boot('cold mobile',expected);
  await until('!!navigator.serviceWorker?.controller',30000);
  await until('!!window.__rotacePwaBootstrapped');
@@ -169,7 +188,7 @@ try{
    const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
    return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:true},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI before ready');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:false},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI before ready or loaded Supabase SDK unnecessarily');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');

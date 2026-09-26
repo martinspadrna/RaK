@@ -470,8 +470,11 @@ assert(lazyExternalLibs.includes('sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or
 assert(lazyExternalLibs.includes("deadGamePaths"), 'ZIP export nemá runtime cleanup odstraněných Games cest');
 assert(lazyExternalLibs.includes("'assets/rak-memory-total-time-fix.js'"), 'ZIP cleanup nevyřazuje starý Memory/Pexeso guard');
 assert(lazyExternalLibs.includes("window.EXPORT_JS_FILES.includes('rak-lazy-external-libs.js')"), 'ZIP export nearchivuje nový lazy loader');
-assert(indexHtml.includes('supabase-vendor-2.110.7.js'), 'Lokální Supabase startup script zmizel z index.html');
-assert(!indexHtml.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase startup se nesmí vrátit na externí CDN');
+assert(!indexHtml.includes('<script src="supabase-vendor-2.110.7.js"'), 'Supabase SDK nesmí blokovat parser před interaktivním shellem');
+assert(appJs.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"), 'Lokální Supabase SDK musí zůstat připravené pro lazy load');
+assert(appJs.includes("const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"), 'Lazy Supabase SDK ztratilo integrity pin');
+assert(appJs.includes('script.integrity = RAK_SUPABASE_SDK_INTEGRITY'), 'Lazy Supabase loader nepoužívá integrity pin');
+assert(!indexHtml.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase se nesmí vrátit na externí CDN');
 if (String(process.env.VERCEL || '').trim()) {
   assert(!indexHtml.includes(xlsxUrl), 'V nasazovaném HTML zůstal eager XLSX');
   assert(!indexHtml.includes(jszipUrl), 'V nasazovaném HTML zůstal eager JSZip');
@@ -542,5 +545,5 @@ assert(appMenuJsV1578.indexOf('const confirmed = await adminRotationConfirmManua
 assert(stylesAdminRotationEditorCss.includes('RaK v1.5.80 – vlastní dialog pro vědomé uložení chybného rozpisu'), 'v1.5.80 chybí CSS custom override dialogu');
 assert(stylesAdminRotationEditorCss.includes('.adminRotationRuleOverrideSave') && stylesAdminRotationEditorCss.includes('.adminRotationRuleOverrideClose'), 'v1.5.80 chybí styly obou dialogových tlačítek');
 
-console.log('[critical-runtime-smoke] OK navigation+rotation+food baseline locked; stable qr.js boot; extended diagnostics idle; version sync ' + packageJson.version + '; Games removed; XLSX+JSZip lazy; Supabase eager; DOM security eager');
+console.log('[critical-runtime-smoke] OK navigation+rotation+food baseline locked; stable qr.js boot; extended diagnostics idle; version sync ' + packageJson.version + '; Games removed; XLSX+JSZip+Supabase lazy; DOM security eager');
 

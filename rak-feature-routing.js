@@ -92,8 +92,8 @@
       const feature = String(ACTION_FEATURE[String(nav.dataset.action || '').trim()] || '');
       return feature ? { element: nav, feature } : null;
     }
-    const admin = source.closest('#appMenuBody [data-menu-action="admin"]');
-    if (admin && document.documentElement.contains(admin)) return { element: admin, feature: 'admin' };
+    // RAK_17127_ADMIN_CLICK_OWNER: Admin is handled by app-menu itself so the
+    // click can paint an immediate loading state while the guarded admin feature loads.
     return null;
   }
 

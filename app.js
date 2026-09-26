@@ -89,22 +89,29 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-login-life.js"
   ];
 
-  const startupFiles = [
+  // RAK_17127_INTERACTION_FOUNDATION: the returning PWA must bind real navigation
+  // before auth helpers, dashboard work, local Rotation hydration or any network SDK.
+  const interactionCoreFiles = [
     "core.js",
+    "ui.js"
+  ];
+  const interactionShellFiles = [
     "lifecycle.js",
+    "app-navigation.js",
+    "app-bottom-nav.js",
+    "app-actions.js",
+    "rak-feature-routing.js"
+  ];
+
+  const startupFiles = [
     "app-runtime-guards.js",
     "qr.js",
     "payroll.js",
     "dashboard.js",
     "appearance-theme.js",
-    "ui.js",
-    "app-navigation.js",
-    "app-bottom-nav.js",
-    "app-actions.js",
     "app-pwa-connectivity.js",
     "app-home-boot.js",
-    "rak-runtime-stability.js",
-    "rak-feature-routing.js"
+    "rak-runtime-stability.js"
   ];
 
   const rotationFeatureFiles = [
@@ -620,6 +627,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         out[key] = featureState[key] || 'deferred';
         return out;
       }, {}),
+      interactionFiles: interactionCoreFiles.concat(interactionShellFiles),
       startupFiles: startupFiles.slice(),
       featureFileCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, spec.files.length]))
     };
@@ -628,12 +636,20 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   try {
     if (window.__rakModuleReadinessRegistry) {
       window.__rakModuleReadinessRegistry.expected = ['module-readiness.js', 'rak-namespace.js', 'rak-dom-security-hardening.js', 'app.js', 'data.js']
-        .concat(criticalFiles, startupFiles);
+        .concat(interactionCoreFiles, interactionShellFiles, criticalFiles, startupFiles);
       if (typeof initialRotationData !== 'undefined' && typeof window.rakMarkModuleReady === 'function') {
         window.rakMarkModuleReady('data.js', 'loaded', { source: 'index-preload' });
       }
     }
   } catch (err) {}
+
+  // Core/UI are ordered because ui.js reads core constants. The rest of the
+  // interaction shell can load in parallel and is fully local/cacheable.
+  for (const file of interactionCoreFiles) await loadScript(file);
+  await loadFiles(interactionShellFiles);
+  try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Earliest bottom nav binding failed', err); }
+  try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Earliest delegated action binding failed', err); }
+  try { markRakFirstInteractive('startup-shell-bound'); } catch (err) {}
 
   for (const file of criticalFiles) await loadScript(file);
 
@@ -651,14 +667,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
   }
 
+  // Menu is local UI. Warm it as soon as auth helpers exist, while the heavier
+  // dashboard/startup modules continue independently. Never await this warmup.
+  void ensureFeature('menu').catch((err) => console.warn('Early menu warmup failed', err));
+
   await loadFiles(startupFiles);
 
-  // RAK_17125_EARLY_INTERACTION: the visual shell must become clickable before
-  // returning PWA starts await Rotation cache hydration. Feature routing already
-  // guards lazy destinations, so binding the shell here is safe and idempotent.
+  // RAK_17125_EARLY_INTERACTION remains idempotently enforced here as well.
   try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Early bottom nav binding failed', err); }
   try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Early delegated action binding failed', err); }
-  try { markRakFirstInteractive('startup-shell-bound'); } catch (err) {}
 
   try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
   try {

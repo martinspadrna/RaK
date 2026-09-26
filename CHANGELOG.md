@@ -1,3 +1,12 @@
+## RaK 1.7.127 (development)
+
+- Fyzický iPhone test 1.7.126 odhalil, že původní `firstInteractiveMs` měřilo jen navázaný listener, ne skutečné dokončení klepnutí. Startup proto nově načte malý **interaction foundation** (core/UI/navigation/bottom-nav/router) ještě před auth helpery, Dashboardem, QR a lokální Rotation hydration.
+- Spodní navigace je v HTML už před `app.js`, takže ji startup může opravdu navázat hned. Reálný Chromium gate nově záměrně zdrží Dashboard o 1,8 s a vyžaduje, aby klepnutí na **Kalkulačky** skutečně otevřelo stránku do 1,2 s a ještě před `startupReady`.
+- `supabase-vendor-2.110.7.js` už není parser-blocking script v `index.html`. Zůstává lokální, integrity-pinned a PWA cacheovaný, ale načte se až při online syncu nebo skutečném login/admin požadavku. Offline start jej zbytečně nespouští.
+- Běžné **Více** se warmuje na pozadí hned po lehkých auth helperch. Ověřená role zároveň začíná na pozadí warmovat Admin.
+- Klik na **Administrace** už nezadržuje globální feature router. Menu okamžitě ukáže stav „Načítám administraci…“, bezpečně dokončí potřebný admin feature a kořen Administrace vykreslí bez čekání na `loadMachineSettings`; online nastavení se obnoví na pozadí.
+- Produkční větev, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.126 (development)
 
 - Položky s oprávněním ve **Více** se po obnovení secure role překreslí okamžitě i tehdy, když bylo menu otevřené dřív. Pasivní otevření Více nečeká na Supabase sync ani na nastavení strojů.

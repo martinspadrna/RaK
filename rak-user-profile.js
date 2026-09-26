@@ -221,6 +221,9 @@
   async function lookup(last4) {
     const suffix = String(last4 || '').replace(/\D/g, '').slice(-4);
     if (!/^\d{4}$/.test(suffix)) return { ok: false, reason: 'not-found' };
+    if (!(window.supabase && typeof window.supabase.createClient === 'function') && typeof window.rakEnsureSupabaseSdk === 'function') {
+      try { await window.rakEnsureSupabaseSdk({ force: true }); } catch (err) {}
+    }
     const clientFactory = window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient : null;
     const config = window.SUPABASE_CONFIG || {};
     if (!clientFactory || !config.url || !config.publishableKey) return { ok: false, reason: 'online-not-ready' };

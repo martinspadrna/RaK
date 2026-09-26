@@ -52,6 +52,9 @@
   async function accountNeedsAdminPassword(accountId) {
     const id = String(accountId || '').trim();
     if (!id) return false;
+    if (!(window.supabase && typeof window.supabase.createClient === 'function') && typeof window.rakEnsureSupabaseSdk === 'function') {
+      try { await window.rakEnsureSupabaseSdk({ force: true }); } catch (err) {}
+    }
     const client = supabaseClient();
     if (!client) throw new Error('admin-check-not-ready');
     const { data, error } = await client.rpc('rak_admin_account_requires_auth', { p_account_id: id });

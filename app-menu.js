@@ -125,6 +125,20 @@ function appMenuShouldOfferRoleRefresh() {
 }
 
 let appMenuRoleRestorePromise = null;
+let appMenuAdminWarmPromise = null;
+
+function appMenuWarmAdminFeature() {
+  if (!appMenuShouldShowAdminEntry() || typeof window === 'undefined' || typeof window.rakEnsureFeature !== 'function') return null;
+  if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin')) return Promise.resolve('admin');
+  if (appMenuAdminWarmPromise) return appMenuAdminWarmPromise;
+  const pending = window.rakEnsureFeature('admin').catch((err) => {
+    console.warn('Admin background warmup failed', err);
+    return false;
+  });
+  appMenuAdminWarmPromise = pending;
+  pending.finally(() => { if (appMenuAdminWarmPromise === pending) appMenuAdminWarmPromise = null; });
+  return pending;
+}
 
 function appMenuRenderRoot(body) {
   if (!body) return;
@@ -153,6 +167,7 @@ function appMenuRenderRoot(body) {
     '</div>',
     roleSection
   ].join('');
+  if (verifiedRole) void appMenuWarmAdminFeature();
 }
 
 function appMenuRerenderVisibleRoot() {
@@ -488,6 +503,19 @@ function bindAppMenuHandlers(body) {
         if (!adminReady) {
           openAppMenu('menu');
           return;
+        }
+        if (!(typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin'))) {
+          body.innerHTML = [
+            '<div class="appMenuCard appMenuAdminCard">',
+            '  <div class="appMenuCardTitle">Administrace</div>',
+            '  <div class="appMenuText">Načítám administraci…</div>',
+            '</div>'
+          ].join('');
+          const loaded = await appMenuWarmAdminFeature();
+          if (!loaded || !(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
+            openAppMenu('menu');
+            return;
+          }
         }
         openAppMenu('admin');
         return;
@@ -2013,15 +2041,11 @@ function openAppMenu(view) {
       return;
     } else if (v === 'admin') {
       bindAppMenuHandlers(body);
-      void (async () => {
-        try {
-          await loadAdminMachineSettingsFromSupabase();
-          renderAdminMenuBody(body, 'home');
-        } catch (err) {
-          console.warn('Admin preload failed', err);
-          renderAdminMenuBody(body, 'home');
-        }
-      })();
+      // RAK_17127_ADMIN_LOCAL_ROOT: render the navigation shell immediately.
+      // Machine settings refresh in background; individual data editors keep their
+      // own explicit online load before editing/saving.
+      renderAdminMenuBody(body, 'home');
+      void loadAdminMachineSettingsFromSupabase().catch((err) => console.warn('Admin background settings refresh failed', err));
     } else if (v === 'admin-machines') {
       void (async () => {
         try {
