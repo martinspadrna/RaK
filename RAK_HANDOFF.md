@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.119`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.120`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.119` na SHA `6be4bf1008c677e5f019c1b615e7806495217b8a`, build `v1.7.119-unplanned-scope1`. [Actions #399](https://github.com/martinspadrna/RaK/actions/runs/36239475985) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_9ptfi4mbW73vEnVTMaeyUpTWWP6M`. Release opravuje fyzicky nahlášený iPhone scénář Neplánované změny: popup je kompaktní a safe-area bounded; `kalirnaOut` se ve validátoru počítá jako nedostupný pracovník; mezivýsledek generátoru smí obsahovat staré chyby mimo zvolený rozsah, ale do kandidáta se splice-nou jen zvolené dny a finální před/po kontrola používá stejnou přísnou sadu pravidel. Důvody zůstávají přesně: Dovolená, Náhradní volno, Paragraf, Lékař, Odešel na kalírnu.
+- Poslední ověřený **funkční** development release je `1.7.120` na SHA `a34a82fa51167f5b586588d85e9184a6e3793004`, build `v1.7.120-unplanned-local1`. [Actions #402](https://github.com/martinspadrna/RaK/actions/runs/36240644586) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_FzDbxAW6xy1HNfe3KiJm3wXu14LR`. Release opravuje oba fyzicky nahlášené scénáře 26. 9. R: Blažek → Kalírna i jednodenní Dovolená. Scoped přepočet po sestavení dne nespouští měsíční balance/repair průchody, nedostupný pracovník nesmí zůstat ve stroji a při jednom nedostupném z 10 se vyžaduje 5 TO + 4 MO, na MO přesně 3 soustruhy + 1 fréza. Nová chyba jiného dne (např. 30. 9.) změnu 26. 9. neblokuje.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_9ptfi4mbW73vEnVTMaeyUpTWWP6M`, READY / SHA `6be4bf1008c677e5f019c1b615e7806495217b8a`. [Actions #399](https://github.com/martinspadrna/RaK/actions/runs/36239475985) je SUCCESS. Performance parity PASS: startupReady P50 `385→388 ms`, P95 `460→406 ms`; FCP P50 `300→308 ms`, P95 `352→360 ms`. PWA budgety PASS: cold mobile P50/P95 `1599/1648 ms`, offline reload `1203/1254 ms`, online recovery `598/612 ms`. Release evidence ID `10905387881`, SHA-256 `4a06dd7a12fc66ab3d2234b928415f33dbd2525ed315889d9f8231aca2d6251e`; CI proof ID `10905149000`, SHA-256 `24076f7610737262539d6f821152bca6688748acfcc096ddb168553a4bb4f091`; historický isolated-build alias 1.7.118 ID `10905034406`, SHA-256 `12872ef29f3940ff6f1e1bac7eb6fed96f7e14f28dbba1b82593273934136c50`. Rollback cíl je předchozí READY `dpl_Ep8bbyDsiYfFvUBUstznPL4XM2Rr`. TEST Supabase zůstává beze změny, poslední migrace jsou `20260926093641_rak_unplanned_kalirna_generator_17115` a `20260926094214_rak_unplanned_kalirna_reflow_17116`. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d` a produkční Supabase `bkqamcbkiwumsvelahxr` zůstává ACTIVE_HEALTHY.
+- Stabilní development alias nyní ukazuje na `dpl_FzDbxAW6xy1HNfe3KiJm3wXu14LR`, READY / SHA `a34a82fa51167f5b586588d85e9184a6e3793004`. [Actions #402](https://github.com/martinspadrna/RaK/actions/runs/36240644586) je SUCCESS. Performance parity PASS: startupReady P50 `396→399 ms`, P95 `473→455 ms`; FCP P50 `304→320 ms`, P95 `312→360 ms`. PWA budgety PASS: cold mobile P50/P95 `1642/1678 ms`, offline reload `1228/1285 ms`, online recovery `617/620 ms`. Release evidence ID `10905890835`, SHA-256 `f62563107efa91c7a8e911c937d8b4d09434efe09c85c7719290ba615d6d92e9`; CI proof ID `10905324597`, SHA-256 `2a0c4d1b443def924ab6a326a2ea45df3e404751203af7e54efafb1da5b5b516`; historický isolated-build alias 1.7.119 ID `10905384587`, SHA-256 `ad250c78528253246e8e6780dc92181a25d38afc2288e8224caa037649697bed`. Rollback cíl je předchozí READY `dpl_9ptfi4mbW73vEnVTMaeyUpTWWP6M`. TEST Supabase zůstává beze změny a ACTIVE_HEALTHY; žádná nová migrace. `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj` na SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -59,71 +59,71 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Předání novému chatu – 25. 9. 2026
 
-### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.119
+### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.120
 
-Od tohoto bodu dál platí přání vlastníka **dělat vždy jen jednu věc, dokončit ji a až potom přejít na další**. Oprava 4-absence větve zůstává uzavřená. Aktuální jediný funkční okruh je stále **Neplánovaná změna (generátor)**, ale po 1.7.119 už čeká pouze na cílenou fyzickou iPhone přejímku.
+Od tohoto bodu dál platí přání vlastníka **dělat vždy jen jednu věc, dokončit ji a až potom přejít na další**. Jediný aktivní funkční okruh je stále **Neplánovaná změna (generátor)** a po 1.7.120 čeká na fyzickou iPhone přejímku dvou konkrétních scénářů.
 
 #### Přesný zelený výchozí bod
 
-- Runtime: **RaK 1.7.119**, SHA `6be4bf1008c677e5f019c1b615e7806495217b8a`, build `v1.7.119-unplanned-scope1`.
-- [Actions #399](https://github.com/martinspadrna/RaK/actions/runs/36239475985): **SUCCESS**; verify i release-preview jsou SUCCESS.
-- Stable TEST Vercel: `dpl_9ptfi4mbW73vEnVTMaeyUpTWWP6M`, READY na přesném runtime SHA; rollback: `dpl_Ep8bbyDsiYfFvUBUstznPL4XM2Rr`.
-- Release evidence ID `10905387881`, SHA-256 `4a06dd7a12fc66ab3d2234b928415f33dbd2525ed315889d9f8231aca2d6251e`.
-- CI proof ID `10905149000`, SHA-256 `24076f7610737262539d6f821152bca6688748acfcc096ddb168553a4bb4f091`.
-- Historický isolated-build alias 1.7.118 ID `10905034406`, SHA-256 `12872ef29f3940ff6f1e1bac7eb6fed96f7e14f28dbba1b82593273934136c50`.
-- Performance parity PASS: startupReady P50 `385→388 ms`, P95 `460→406 ms`; FCP P50 `300→308 ms`, P95 `352→360 ms`.
-- PWA budgety PASS: cold mobile `1599/1648 ms`, offline reload `1203/1254 ms`, online recovery `598/612 ms` (P50/P95).
-- TEST Supabase: beze změny; poslední migrace `20260926093641_rak_unplanned_kalirna_generator_17115` a `20260926094214_rak_unplanned_kalirna_reflow_17116`.
-- `main`, produkční Vercel a produkční Supabase se releasem 1.7.119 nezměnily.
+- Runtime: **RaK 1.7.120**, SHA `a34a82fa51167f5b586588d85e9184a6e3793004`, build `v1.7.120-unplanned-local1`.
+- [Actions #402](https://github.com/martinspadrna/RaK/actions/runs/36240644586): **SUCCESS**; verify i release-preview jsou SUCCESS.
+- Stable TEST Vercel: `dpl_FzDbxAW6xy1HNfe3KiJm3wXu14LR`, READY na přesném runtime SHA; rollback: `dpl_9ptfi4mbW73vEnVTMaeyUpTWWP6M`.
+- Release evidence ID `10905890835`, SHA-256 `f62563107efa91c7a8e911c937d8b4d09434efe09c85c7719290ba615d6d92e9`.
+- CI proof ID `10905324597`, SHA-256 `2a0c4d1b443def924ab6a326a2ea45df3e404751203af7e54efafb1da5b5b516`.
+- Historický isolated-build alias 1.7.119 ID `10905384587`, SHA-256 `ad250c78528253246e8e6780dc92181a25d38afc2288e8224caa037649697bed`.
+- Performance parity PASS: startupReady P50 `396→399 ms`, P95 `473→455 ms`; FCP P50 `304→320 ms`, P95 `312→360 ms`.
+- PWA budgety PASS: cold mobile `1642/1678 ms`, offline reload `1228/1285 ms`, online recovery `617/620 ms` (P50/P95).
+- TEST Supabase zůstává beze změny a ACTIVE_HEALTHY; 1.7.120 nemá novou DB migraci.
+- `main`, produkční Vercel a produkční Supabase se releasem 1.7.120 nezměnily.
 
-#### Oprava 4-absence větve – stále platí z 1.7.118
+#### Fyzický nález, který vedl k 1.7.120
 
-Vlastník výslovně upřesnil, že **4 chybějící nejsou platný provozní scénář**. Platná logika zůstává:
-- **0 chybějících:** standardní plné obsazení.
-- **1 chybějící:** odebere se **1 frézka**; prakticky má zůstat jedna frézka, preferovaně MFKF10, MFKF06 prázdná.
-- **2 chybějící:** zůstává **1 frézka + 2 soustruhy**; cílový MO layout MSKC03 + MSKC04 + MFKF10, MSKC01 a MFKF06 prázdné.
-- **3 chybějící:** navíc se odebere **TPKW02**; tedy 4 TO bez TPKW02 + 3 MO podle předchozího pravidla.
-- **4+ chybějící:** žádná speciální podporovaná větev. Bez nového zadání vlastníka se pro 4+ nepřidává náhradní layout.
+Na iPhonu po 1.7.119:
+- **26. 9. R / Blažek / Odešel na kalírnu** skončilo hláškou `Pracovník označený jako Kalírna zůstal ve stroji: 26.9. R.`;
+- **26. 9. R / Blažek / Dovolená** skončilo hláškou, že Blažek má absenci a zároveň je v rozpisu, a současně změnu blokovala chyba `30.9. N: Synek je ve stejném bloku trojice na TPKW02 podruhé...`.
 
-#### Neplánovaná změna – stav po fyzické chybě a opravě 1.7.119
+Příčina: `BuildDay` uměl Blažka správně vynechat, ale následné **měsíční balance/repair průchody** generátoru mohly jména znovu proházet a vrátit nedostupného člověka do 26. 9. Navíc finální validace brala jako blokující i nově projevenou návaznou chybu jiného dne.
 
-Vlastník na iPhonu otestoval konkrétní scénář **26. 9. R: Blažek z MSKC03 → Odešel na kalírnu**. Před 1.7.119 se popup zobrazil přes téměř celý displej a uložení zablokovala starší chyba jiného dne: `12. 9. N: dostupný člověk není v rozpisu: Třasák`, protože Třasák byl historicky na Kalírně.
+#### Oprava v 1.7.120
 
-1.7.119 opravuje příčinu:
-- popup je `height:auto`, omezený safe-area / `100dvh`; scrolluje pouze vnitřní obsah a vršek okna má zůstat viditelný;
-- validátor používá stejnou množinu nedostupných pracovníků jako generátor, tedy absence **+ `kalirnaOut`**. Starší člověk na Kalírně se proto nesmí hlásit jako „dostupný člověk není v rozpisu“;
-- Neplánovaná změna smí při **mezivýpočtu** tolerovat už existující chyby jiných dnů, aby starý 12. 9. neblokoval změnu 26. 9.;
-- plný generátor stále vypočítá pro zvolený den/rozsah vhodnou kombinaci MO + TO podle současných pravidel a měsíčního kontextu;
-- do výsledného měsíce se splice-nou **jen vybrané dny**. `adminRotationUnplannedAssertIsolation` fail-closed zakazuje změnu jiného dne;
-- finální stav před/po se validuje **stejným přísným režimem `generator`**, takže se odmítne nově vzniklá chyba, ale nezměněná historická chyba mimo rozsah se nesmí stát novým blokátorem;
-- serverová TEST cesta zůstává admin-auth/CAS/idempotentní a allowlistem smí měnit jen zvolený měsíc + vybrané datum/rozsah. 1.7.119 nepotřebovala žádnou novou DB migraci.
+- Neplánovaná změna posílá do generátoru `scopedDateLabels`.
+- Pro scoped režim se po `BuildDay` **nespouštějí měsíční balance/repair průchody**. Běžné generování celého měsíce je používá dál beze změny.
+- Do uloženého měsíce se pořád splice-nou pouze zvolené dny; `adminRotationUnplannedAssertIsolation` dál fail-closed chrání ostatní řádky.
+- Nový guard `adminRotationUnplannedAssertSelectedDayStaffing` kontroluje zvolený den:
+  - nedostupný člověk nesmí zůstat na žádném stroji;
+  - nesmí být duplicita;
+  - počet přiřazených lidí musí odpovídat počtu dostupných;
+  - při jednom nedostupném z 10 musí být **5 TO + 4 MO**;
+  - při 4 lidech na MO musí být **3 soustruhy + 1 fréza**.
+- Stávající čtyřčlenný MO slot plan zůstává `MSKC01 + MSKC03 + MSKC04 + MFKF10`; MFKF06 je při jednom nedostupném prázdná.
+- Finální blokující `newErrors` se filtrují na vybraný den/rozsah. Chyba 30. 9. tedy sama nesmí blokovat změnu 26. 9.
+- Kalírna zůstává `dayMod kalirnaOut`, nikoli Absence. Dovolená/NV/Paragraf/Lékař zůstávají absencemi.
+- Serverové CAS/idempotentní RPC a allowlist se neměnily; žádná nová Supabase migrace.
 
 #### Důvody – závazný seznam vlastníka
 
-V poli **Důvod** mají zůstat **jen tyto položky**:
+V poli **Důvod** zůstává jen:
 - **Dovolená**
 - **Náhradní volno**
 - **Paragraf**
 - **Lékař**
 - **Odešel na kalírnu**
 
-**Nepřidávat** `Neplacené`, `Odešel dřív`, `Přišel později`, `Půl směny / přesun na jiný stroj` ani `Kalírna k nám` do Neplánované změny bez nového výslovného zadání vlastníka. Předchozí handoff text, který navrhoval sjednotit celý katalog Výjimek dne, byl nedorozumění a tímto je zrušen.
+Nic dalšího nepřidávat bez nového výslovného zadání.
 
-#### CI průběh 1.7.119
+#### CI průběh 1.7.120
 
-- [Actions #397](https://github.com/martinspadrna/RaK/actions/runs/36239254766) fail-closed zastavil release kvůli zastaralému historickému testu 1.7.118; nové 1.7.119 regresní testy byly PASS a žádný deployment nevznikl.
-- [Actions #398](https://github.com/martinspadrna/RaK/actions/runs/36239316390) měl celý verify SUCCESS. Během něj byl ale nalezen ještě rozdíl mezi přísností před/po validace a `development` se posunul; release-preview proto správně fail-closed odmítl nasadit starší SHA.
-- [Actions #399](https://github.com/martinspadrna/RaK/actions/runs/36239475985) je finální přesný SHA: celý verify i release-preview SUCCESS a stable TEST alias byl přesunut až po immutable HTTP + TEST-isolation kontrole.
+- [Actions #400](https://github.com/martinspadrna/RaK/actions/runs/36240494252) se fail-closed zastavil na historickém smoke testu s přesným textem volání balance funkce; deployment nevznikl.
+- [Actions #401](https://github.com/martinspadrna/RaK/actions/runs/36240550233) odhalil další historické gate/count předpoklady; deployment nevznikl.
+- [Actions #402](https://github.com/martinspadrna/RaK/actions/runs/36240644586) je finální běh přesného SHA: oba canonical buildy, npm check, nové regresní testy 26. 9., inherited gates, Chromium offline/recovery, performance budget/parita, quality thresholds, TEST HTTP, immutable deployment i stable alias jsou **SUCCESS**.
 
 #### Jediný další aktivní krok
 
-**Fyzická iPhone přejímka 1.7.119.** Nejprve zopakovat přesně scénář **26. 9. R → Blažek → Odešel na kalírnu**:
-1. vršek popupu musí být vidět a okno nemá zabírat zbytečně celý displej;
-2. nesmí se vrátit chyba o Třasákovi z 12. 9.;
-3. po uložení se má přepočítat obsazení MO + TO pro 26. 9. a Blažek nesmí zůstat na stroji;
-4. jiné dny se nesmí změnit.
+**Fyzická iPhone přejímka 1.7.120**, nejdřív bez dalších úprav:
+1. **26. 9. R → Blažek → Odešel na kalírnu → Uložit a přepočítat.** Musí se uložit, Blažek nesmí být na žádném stroji, TO musí mít 5 lidí, MO 4 lidi a z nich 3 soustruhy + 1 frézu. Jiný den se nesmí změnit.
+2. Potom **26. 9. R → Blažek → Dovolená → Uložit a přepočítat.** Stejný staffing a izolace dne; chyba 30. 9. nesmí změnu blokovat.
 
-Potom jako druhý fyzický check vyzkoušet **jednodenní Dovolenou** a ověřit stejnou izolaci dne. Do výsledku těchto dvou kontrol nepřecházet na další backlog.
+Do výsledku těchto dvou kontrol nepřecházet na další backlog.
 
 Procenta 13 oblastí se touto opravou nemění: **5/13 uzavřených, 8/13 otevřených**.
 
