@@ -75,6 +75,6 @@ test('existing soft-slot plan for four MO workers is 3 lathes and one mill',()=>
 });
 
 test('absence and Kalírna candidates validate only newly introduced selected-day errors',()=>{
-  assert.equal((wizard.match(/adminRotationUnplannedIssueTouchesSelectedDate\(issue, allowedDateLabels\)/g)||[]).length,2);
+  assert((wizard.match(/adminRotationUnplannedIssueTouchesSelectedDate\(issue, allowedDateLabels\)/g)||[]).length >= 3);
   assert.equal((wizard.match(/adminRotationUnplannedAssertSelectedDayStaffing\(/g)||[]).length>=3,true);
 });

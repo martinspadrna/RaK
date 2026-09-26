@@ -24,7 +24,7 @@ test('1.7.120 locally reflows only selected unplanned days',()=>{
   assert(rotation.includes('const scopedGeneration = scopedDateLabels.length > 0;'));
   assert(rotation.includes("const tnksBalance = scopedGeneration ? scopedNoop()"));
   assert.equal((wizard.match(/scopedDateLabels: allowedDateLabels/g)||[]).length,2);
-  assert.equal((wizard.match(/adminRotationUnplannedIssueTouchesSelectedDate\(issue, allowedDateLabels\)/g)||[]).length,2);
+  assert((wizard.match(/adminRotationUnplannedIssueTouchesSelectedDate\(issue, allowedDateLabels\)/g)||[]).length >= 3);
   assert(wizard.includes(': při čtyřech lidech na MO musí být 3 soustruhy a 1 fréza.'));
 });
 

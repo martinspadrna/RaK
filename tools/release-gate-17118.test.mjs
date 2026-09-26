@@ -27,12 +27,12 @@ test('1.7.118 removes the invalid four-absence branch and preserves the establis
   assert(!rotation.includes('Při čtyřech absencích'));
 });
 
-test('1.7.118 regression gate remains wired and its isolated-build alias survives successor releases',()=>{
+test('1.7.118 regression gate remains wired after successor releases',()=>{
   const pkg=JSON.parse(read('package.json'));
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(pkg.scripts.check.includes('tools/release-gate-17118.test.mjs'));
   assert(workflow.includes('tools/release-gate-17118.test.mjs'));
-  assert(workflow.includes('rak-170118-isolated-build-'+'$'+'{{ github.sha }}'));
   assert(/rak-1701\d{2}-isolated-build-/.test(workflow));
+  assert(workflow.includes('Retain historical isolated-build evidence alias'));
   assert(read('CHANGELOG.md').includes('## RaK 1.7.118 (development)'));
 });

@@ -885,6 +885,7 @@ function adminRotationUnplannedIssueKey(issue) {
   return [String(issue && issue.severity || ''), String(issue && issue.type || issue && issue.code || ''), String(issue && issue.message || '')].join('|');
 }
 
+// RaK 1.7.120: finální gate scoped změny smí řešit jen vybraný den/rozsah.
 function adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels) {
   const haystack = [issue && issue.message, issue && issue.detail]
     .map((value) => String(value || '').replace(/\s+/g, '').toLocaleLowerCase('cs-CZ'))
