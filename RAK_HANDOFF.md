@@ -113,6 +113,14 @@ U neplánované **Dovolené/NV/Paragrafu/Lékaře** zůstává pravidlo 1.7.122:
 
 Procenta 13 oblastí se tímto fyzickým potvrzením nemění: **5/13 uzavřených, 8/13 otevřených**.
 
+#### Nově přidané otevřené požadavky vlastníka – 26. 9. 2026
+
+- **P1.2:** snížit minimum hesla pro správce/admin role z 12 na **6 znaků**; zachovat konzistentní klient/server validaci.
+- **P2.1/P2.2:** zkrátit dobu po spuštění, kdy je UI viditelné, ale ještě nereaguje na kliknutí; nově měřit i čas do první použitelné interakce.
+- **P1.2/P2.2:** oprávněným uživatelům zobrazit a zpřístupnit **Report a další role-gated položky ve Více** výrazně dřív; nečekat zbytečně na celý vzdálený bootstrap, ale zároveň nikdy krátce nezobrazit cizí privilegia.
+
+Tyto tři body jsou **otevřený backlog**, ne hotová implementace; procenta 13 oblastí se jejich zapsáním nemění.
+
 #### Co je už fyzicky potvrzené a neotvírat znovu
 
 - WhatsApp text reportu: datum + slovní název směny, bez slova `směna` – **OK**.
@@ -802,10 +810,13 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 **Stav v aktuálním 1.7.88 (základ implementován v 1.7.84):** runtime část je implementovaná a vydaná do TEST preview: ověřená lokální Rotace se načítá před vzdáleným syncem, Dashboard může vykreslit směnu okamžitě a měří se první použitelný render. Automatické Chromium důkazy jsou PASS. Zbývá cílený fyzický iPhone test studeného, teplého a offline startu; do něj se P2.1 procento nemění.
 
+**Nový fyzický nález vlastníka 26. 9. 2026:** po spuštění RaK je někdy zbytečně dlouhá doba, kdy už je aplikace vidět, ale ještě **nejde na nic smysluplně kliknout**. Nestačí tedy měřit jen první vykreslení; otevřený úkol je zkrátit a měřit také **čas do první skutečně použitelné interakce**. Běžná navigace a lokální funkce nemají čekat na vzdálený sync/role, pokud to není bezpečnostně nutné.
 
 - Dashboard má hned po startu zobrazit „kam jdu dnes / příští směnu“ z ověřené lokální Rotace a po dokončení online synchronizace údaj bezpečně aktualizovat.
 - Navigace a běžné lokální funkce nesmějí být několik sekund zablokované jen proto, že se čeká na stav online; oprava nesmí znovu zavést falešný konflikt ani ztrátu fronty.
 - Přidat měření prvního použitelného vykreslení a cílený fyzický iPhone test studeného, teplého a offline startu.
+- **Nově 26. 9.:** přidat měření **time-to-first-interaction** na skutečném iPhonu i v browser testu a odstranit zbytečný globální blok vstupu po startu. Akceptace: základní navigace a lokální obrazovky jsou klikatelné co nejdřív; online synchronizace může bezpečně doběhnout na pozadí.
+
 
 ### B. Kalendáře podle směny · P2.2 / P0.3
 
@@ -834,6 +845,8 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 **Stav 1.7.96 UI části:** Pracovníci/Správci a kompaktní adresář jsou implementované v TEST a automaticky ověřené; čeká fyzická mobilní přejímka. Bezpečnostní/session checkboxy níže se tím automaticky neuzavírají.
 
+**Nové požadavky vlastníka 26. 9. 2026:** 1) administrační/správcovské heslo dnes vyžaduje minimálně **12 znaků**, vlastník chce minimum **6 znaků**; před implementací sladit klientskou i serverovou/Auth validaci a regresně ověřit změnu bez rozbití přihlášení, odvolání relací a rolí. 2) U účtů s oprávněním k **Reportu a dalším role-gated položkám ve „Více“** se nabídka někdy zobrazí až po delší době a do té doby na ni nelze kliknout. Opravit tak, aby známá lokální oprávnění/render menu byly dostupné co nejdřív a serverové ověření je následně bezpečně potvrdilo nebo odebralo; bez krátkého zobrazení cizích privilegií.
+
 **Stav v aktuálním 1.7.89 (základ implementován v 1.7.84):** první tři provozní rizika tohoto bloku mají nový systémový základ: při přepnutí účtu se nejdřív odstraní stará runtime identita bez plošného mazání storage, vzhled je account-scoped a synchronizovaný přes serverovou revizi/CAS a syntetická regrese dokazuje, že změna směny/rosteru nemění owner/Auth identitu. Od 1.7.89 profil navíc nese explicitní směnu A/B/C/D získanou single-account login cestou, takže běžný klient nemusí číst privátní roster; starý profil bez směny se online doplní bez mazání dat. Fyzický A→B test, skutečný dvouzařízení sync/offline konflikt a obecné úpravy UI Pracovníci/Správci zůstávají otevřené.
 
 
@@ -843,6 +856,9 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 - Needitovatelný seznam účtů pod formulářem zkompaktnit: sloupec jména přibližně o 40 % a osobního čísla přibližně o 80 %, s ověřením čitelnosti na mobilu.
 - V Administraci → Správci použít stejný vzor „existující + právě jeden prázdný řádek“ a celou stránku vizuálně sjednotit.
 - Regresně ověřit, že přesun vlastního účtu mimo rozpis nijak nemění jeho Supabase Auth identitu, owner profil ani owner oprávnění. Konkrétní osobní číslo se do veřejných testů ani logů nezapisuje.
+- **Heslo správce/admina:** snížit minimální délku z **12 na 6 znaků** podle požadavku vlastníka; upravit všechny klientské/serverové validační body konzistentně a přidat pozitivní/negativní testy pro 5/6 znaků.
+- **Role-gated nabídka ve Více:** Report a další oprávněné položky nesmějí čekat několik sekund jen na dokončení vzdáleného role/session bootstrapu. Přidat rychlý bezpečný lokální render známých oprávnění a následnou serverovou revalidaci; nikdy neukázat privilegovanou akci účtu, který na ni právo nemá.
+
 
 ### E. Přehlednost administrace a kalkulaček · P2.2
 
