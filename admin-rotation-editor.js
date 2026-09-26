@@ -1616,4 +1616,33 @@ function scheduleAdminRotationEditorMaintenance(body, reason, delayMs) {
   }
 }
 
+
+function adminBindUnplannedChangePopupRoute() {
+  if (window.__rakAdminUnplannedPopupRouteBound) return;
+  window.__rakAdminUnplannedPopupRouteBound = true;
+  document.addEventListener('pointerdown', (event) => {
+    const body = document.getElementById('appMenuBody');
+    if (!body || body.dataset.adminView !== 'rotation') return;
+    const target = event.target && event.target.closest ? event.target.closest('[data-rot-field^="cell-"]') : null;
+    if (!target || !body.contains(target)) return;
+    const value = String(target.value || '').trim();
+    if (!value || (typeof adminRotationIsRemoveValue === 'function' && adminRotationIsRemoveValue(value))) return;
+    // Unplanned change requires a verified clean baseline. Keep normal manual edit
+    // if the editor already contains unsaved changes.
+    if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) return;
+    if (typeof adminOpenUnplannedChangeDialog !== 'function') return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const active = document.activeElement;
+      if (active && active !== document.body && typeof active.blur === 'function') active.blur();
+    } catch (_) {}
+    try { adminCloseRotationQuickRemove(); } catch (_) {}
+    try { adminCloseAbsenceCodePicker(); } catch (_) {}
+    adminOpenUnplannedChangeDialog(target);
+  }, true);
+}
+
+try { adminBindUnplannedChangePopupRoute(); } catch (_) {}
+
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-rotation-editor.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}

@@ -917,12 +917,30 @@ function adminRotationUnplannedOperationId() {
   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
 }
 
+
+function adminEnsureUnplannedChangePopupPageStyles() {
+  if (document.getElementById('rakUnplannedChangePopupPageStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'rakUnplannedChangePopupPageStyles';
+  style.textContent = [
+    '.adminUnplannedChangeOverlay{align-items:stretch!important;justify-items:center!important;padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))!important}',
+    '.adminUnplannedChangeDialog.adminUnplannedChangePage{width:min(540px,100%)!important;height:100%!important;max-height:none!important;padding:0!important;overflow:hidden!important;grid-template-rows:auto minmax(0,1fr) auto!important;gap:0!important;border-radius:26px!important}',
+    '.adminUnplannedChangeHeader{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:18px 18px 14px!important;border-bottom:1px solid rgba(255,255,255,.10)!important}',
+    '.adminUnplannedClose{width:44px!important;min-width:44px!important;height:44px!important;display:grid!important;place-items:center!important;padding:0!important;border-radius:50%!important;font-size:28px!important;line-height:1!important}',
+    '.adminUnplannedChangeBody{min-height:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch!important;display:grid!important;align-content:start!important;gap:14px!important;padding:16px 18px 22px!important}',
+    '.adminUnplannedChangeFooter{display:grid!important;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;gap:10px!important;padding:12px 18px max(14px,env(safe-area-inset-bottom))!important;border-top:1px solid rgba(255,255,255,.10)!important;background:inherit!important}',
+    '.adminUnplannedChangeFooter .appMenuAction{min-width:0!important;min-height:52px!important;white-space:normal!important}'
+  ].join('');
+  document.head.appendChild(style);
+}
+
 function adminCloseUnplannedChangeDialog() {
   const overlay = document.getElementById('adminUnplannedChangeOverlay');
   if (overlay) overlay.remove();
 }
 
 function adminOpenUnplannedChangeDialog(input) {
+  adminEnsureUnplannedChangePopupPageStyles();
   const body = document.getElementById('appMenuBody');
   if (!body || body.dataset.adminView !== 'rotation') return;
   if (app && app.adminRotationDirty === true) {

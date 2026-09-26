@@ -18,14 +18,16 @@ test('1.7.112 has one unified runtime identity', () => {
 });
 
 test('1.7.112 changes only the unplanned-change interaction into a page-like popup', () => {
-  const menu = read('app-menu.js');
+  const editor = read('admin-rotation-editor.js');
   const wizard = read('admin-rotation-generator-wizard.js');
   const css = read('styles-admin-polish.css');
-  assert(menu.includes('adminOpenUnplannedChangeDialog(target)'));
-  assert(menu.includes('event.preventDefault()'));
+  assert(editor.includes('function adminBindUnplannedChangePopupRoute()'));
+  assert(editor.includes('adminOpenUnplannedChangeDialog(target)'));
+  assert(editor.includes('event.preventDefault()'));
   assert(wizard.includes('adminUnplannedChangePage'));
   assert(wizard.includes('data-unplanned-action="manual"'));
-  assert(css.includes('.adminUnplannedChangeDialog.adminUnplannedChangePage{'));
+  assert(wizard.includes('adminEnsureUnplannedChangePopupPageStyles'));
+  assert(!css.includes('RaK 1.7.112 – Neplánovaná změna je mobilní popup stránka'));
 });
 
 test('1.7.112 regression gate and evidence are wired into CI', () => {
