@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.107`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.108`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
-## Aktuální ověřený provozní stav k 25. 9. 2026
+## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.107` na SHA `9b465ae159b357acc2d0adb4ff8497ca849cb277`. Release přidává pouze dva malé UX body: centrované administrační `×` u kalendářů a kontextový titul PNG při WhatsApp/Web Share reportu s právě zvoleným datem a směnou. Runtime, technická/modulová/cache/package/SW verze jsou sjednocené na `1.7.107`, build `v1.7.107-calendar-whatsapp1`.
+- Poslední ověřený **funkční** development release je `1.7.108` na SHA `e4b71598c53e95c683011ed6bf26105cb763383a`. Po fyzickém testu 1.7.107 bylo potvrzeno centrování administračního `×`, ale upřesněno, že WhatsApp má dostat kontext jako **popisek přímo k obrázku**, nikoli jen Web Share `title`. 1.7.108 proto posílá stejný kontextový řetězec současně jako `title` i `text` spolu s PNG. Runtime, technická/modulová/cache/package/SW verze jsou sjednocené na `1.7.108`, build `v1.7.108-whatsapp-caption1`.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_FGtSwrVHYzTiYw8y24gzdgEaXFeo`, READY / SHA `9b465ae159b357acc2d0adb4ff8497ca849cb277`. [Actions #371](https://github.com/martinspadrna/RaK/actions/runs/36183023956) je SUCCESS na druhý pokus stejného SHA: první pokus doběhl až k výkonové paritě a selhal na runnerovém rozptylu (`startupReady` baseline P50 243 ms proti current 317 ms); bez změny limitů nebo runtime kódu opakovaný verify prošel. Ve druhém pokusu performance parity PASS: `startupReady` P50 395→400 ms, P95 478→480 ms; FCP P50 316→324 ms, P95 332→376 ms. PWA budgety PASS: cold mobile P50/P95 `1569/1598 ms`, offline reload `1171/1253 ms`, online recovery `621/652 ms`. Stable HTTP audit je PASS pro 1.7.107 a TEST izolaci. Release evidence `rak-release-evidence-9b465ae159b357acc2d0adb4ff8497ca849cb277`, ID `10886130192`, SHA-256 `9ddf51403e039aebda645b1a72b528f27eb44f79363a84c255ceaea13e1d934c`; CI proof ID `10885790730`, SHA-256 `f54115e780b16510fd277b7c219be3af0d10cba96d1e4987db93a59ac9dded73`; historický isolated-build alias ID `10885611388`, SHA-256 `bc8eb8d48e9ae5eda0ed3f826ff7f3dac587a87a39f2f4240fbdbddd57abf2c8`. Rollback cíl je předchozí READY `dpl_61pqc7RM6LvVd2wb5D3V1t99rni4`. Produkce ani `main` se nezměnily.
+- Stabilní development alias nyní ukazuje na `dpl_5vQSgCPrUrAX7NfatsQ6YSEQjeQi`, READY / SHA `e4b71598c53e95c683011ed6bf26105cb763383a`. [Actions #374](https://github.com/martinspadrna/RaK/actions/runs/36210915816) je SUCCESS; předchozí #373 byl správně zastaven starou 1.7.106 artifact-gate kontrolou a nic nenasadil. 1.7.108 prošla dvěma kanonickými buildy, celým `npm check`, inherited/current gates, rollback/ZIP/CRC, Chromium online/offline/recovery, performance budgety/paritou, quality thresholds a TEST HTTP. Performance parity PASS: `startupReady` P50 354→314 ms, P95 386→435 ms; FCP P50 248→248 ms, P95 260→268 ms. PWA budgety PASS: cold mobile P50/P95 `1272/1447 ms`, offline reload `942/1078 ms`, online recovery `532/565 ms`. Stable HTTP audit je PASS pro 1.7.108 a TEST izolaci. Release evidence `rak-release-evidence-e4b71598c53e95c683011ed6bf26105cb763383a`, ID `10895831055`, SHA-256 `1825a84cfae679be63520dccf0664d692dda598d0ae24f41da137e69b0a9a927`; CI proof ID `10896160486`, SHA-256 `8eea18bb7d983901cebbeec3eee5c46b06d0a9f9740bdc27663e67e760c4c4e3`; historický isolated-build alias ID `10896040766`, SHA-256 `9afb9ea96bdb2dff217190719197c36b45a0cbb0738c88897afbba7cbc523fa0`. Rollback cíl je předchozí READY `dpl_FGtSwrVHYzTiYw8y24gzdgEaXFeo`. Produkce ani `main` se nezměnily.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -58,6 +58,25 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
 ## Předání novému chatu – 25. 9. 2026
+
+### NEJNOVĚJŠÍ závěrečné předání – 26. 9. 2026, release 1.7.108
+
+Tato podsekce **přebíjí všechny starší SHA/run/deployment údaje níže**. Dokumentační commit po tomto zápisu může posunout živý HEAD, ale ověřený runtime zůstává na níže uvedeném SHA.
+
+#### Přesný online stav
+- Ověřený runtime je **RaK 1.7.108** na SHA `e4b71598c53e95c683011ed6bf26105cb763383a`, build `v1.7.108-whatsapp-caption1`.
+- [Actions #374](https://github.com/martinspadrna/RaK/actions/runs/36210915816) je **SUCCESS**. Release prošel dvojitým canonical buildem, npm check, release gates, rollback/ZIP/CRC, reálným Chromium offline/recovery, performance budgety/paritou, quality thresholds a TEST HTTP.
+- Immutable Vercel `dpl_5vQSgCPrUrAX7NfatsQ6YSEQjeQi` je READY; stable development alias `skoda-spada-git-development-martinspadrnas-projects.vercel.app` na něj ukazuje a veřejný HTTP audit je PASS.
+- Release evidence ID `10895831055`, SHA-256 `1825a84cfae679be63520dccf0664d692dda598d0ae24f41da137e69b0a9a927`; CI proof ID `10896160486`, SHA-256 `8eea18bb7d983901cebbeec3eee5c46b06d0a9f9740bdc27663e67e760c4c4e3`.
+- `main`, produkční Vercel i produkční Supabase se nezměnily. Development rollback je předchozí READY `dpl_FGtSwrVHYzTiYw8y24gzdgEaXFeo`.
+
+#### Jediný funkční úkol 1.7.108
+- Fyzický iPhone test 1.7.107 potvrdil administrační `×` jako **OK**.
+- U WhatsApp reportu vlastník upřesnil požadavek: nejde o share-sheet `title`, ale o **textový popisek přiložený k obrázku v konverzaci WhatsApp**.
+- 1.7.108 proto vytváří jeden kontextový řetězec z právě zvoleného data a směny a volá Web Share s `{ title: caption, text: caption, files: [PNG] }`. Regresní test výslovně vyžaduje `text: caption` ve stejném payloadu se souborem.
+- Cílená fyzická přejímka zůstává jediná: ve WhatsAppu ověřit, že pod/při obrázku je předvyplněný text `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>`.
+
+Procenta 13 oblastí se tímto jedním UX bodem nemění: **5/13 uzavřených, 8/13 otevřených**.
 
 ### NEJNOVĚJŠÍ závěrečné předání – 25. 9. 2026 večer, release 1.7.107
 
@@ -587,7 +606,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 - **◐ Už implementováno, ale ještě ne úplně převzaté:** lokální Dashboard před online synchronizací (A), odstranění místních neuložených návrhů a kompaktní rozpis (C), přepnutí účtu bez dědění starého jména, account-scoped vzhled a owner invariant (D), sjednocení karet pravidel generátoru/Kantýny/Jídelny/Správců (E). U těchto bodů zůstává jen přesně uvedená fyzická mobilní, dvouzařízení nebo řízená owner akceptace; nové duplicitní úkoly se nezakládají.
 - **✅ Implementace hotová a automaticky doložená:** v administraci Rozpisů se už nezobrazuje blok „Místní neuložené návrhy rozpisů“; bezpečné mazací/recovery API zůstalo zachované. Stejně tak je hotový kompaktní přehled strojů s výchozím rozbalením a popisky `tnk`, `w01`, `w02` (uložené klíče se nemění).
-- **◐ Nově implementováno v 1.7.107, čeká jen cílená fyzická přejímka:** administrační `×` u kalendáře je centrované a WhatsApp/Web Share titul reportu používá právě zvolené datum + směnu. **⏳ Budoucí úkol z tohoto doplňku zůstává:** jednodenní generátor neplánované absence s přepočtem jen dotčených dnů (viz C).
+- **✅ Fyzicky potvrzeno 26. 9. 2026:** administrační `×` u kalendáře je na iPhonu centrované. **◐ Opraveno v 1.7.108, čeká fyzická přejímka:** WhatsApp PNG dostává kontextové datum + směnu jako `text` ve stejném share payloadu s obrázkem, tedy jako požadovaný popisek, ne pouze `title`. **⏳ Budoucí úkol z tohoto doplňku zůstává:** jednodenní generátor neplánované absence s přepočtem jen dotčených dnů (viz C).
 
 ### A. Lokální start a dostupnost aplikace · P2.1 / P2.3
 
@@ -600,7 +619,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 ### B. Kalendáře podle směny · P2.2 / P0.3
 
-**Stav 1.7.107:** administrační `×` pro odebrání kalendáře je na zeleném TEST releasu centrované v zachované 54px dotykové ploše a chráněné regresní bránou. Zbývá pouze optické potvrzení na fyzickém iPhonu; širší P2.2/P0.3 procenta se tím zatím nemění.
+**Stav 1.7.107 / fyzický iPhone 26. 9.:** administrační `×` pro odebrání kalendáře je centrované v zachované 54px dotykové ploše, chráněné regresní bránou a vlastník ho fyzicky potvrdil jako **OK**. Širší P2.2/P0.3 procenta se tím samostatně nemění.
 
 **Stav 1.7.90:** implementováno a vydáno do TEST. Screenshoty z fyzického iPhone testu 1.7.89 potvrdily opravu mapování účtu na směnu A, plnou výšku modalu i centrované ×, ale Google iframe na iOS/PWA vyžadoval third-party cookies/přihlášení. 1.7.90 proto iframe kořenově odstraňuje: z uloženého Google calendar ID načte pouze veřejné `public/basic.ics` přes bounded same-origin endpoint a vykreslí vlastní měsíční kalendář, navigaci měsíců, dnešek, výběr dne a agendu; parser pokrývá běžné RRULE, EXDATE a RECURRENCE-ID. Bezpečnostní smoke hlídá, že endpoint není obecná proxy a neumí private ICS. Živá kontrola po deploymentu prokázala HTTP 200 a VCALENDAR na kontrolním veřejném kalendáři i směně D. A/B/C vracejí upstream nedostupnost, což izoluje zbývající problém na jejich Google public-ICS konfiguraci, nikoli RaK endpoint. Fyzický iPhone retest nativního UI čeká po zpřístupnění testovaného směnového kalendáře. Procenta P2.2/P0.3 se zatím nemění, protože jejich otevřené checkboxy jsou širší než tento funkční balík.
 
@@ -657,7 +676,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 
 ### G. Obsah a drobné mobilní UX · P2.2
 
-**Stav 1.7.107:** PNG sdílení přes WhatsApp/Web Share používá kontextový titul s právě zvoleným datem a směnou; unit/release gate zakazuje návrat statického titulku. Zbývá potvrzení skutečného iOS share sheetu na fyzickém iPhonu; P2.2 proto zůstává 60 %.
+**Stav 1.7.108:** fyzický test 1.7.107 ukázal, že Web Share `title` není požadovaný WhatsApp popisek obrázku. 1.7.108 proto posílá tentýž kontextový řetězec i jako `text` spolu s PNG (`title + text + files`). Automatické gate testy jsou PASS; zbývá jedině fyzicky potvrdit, že WhatsApp tento `text` předvyplní jako popisek k obrázku. P2.2 proto zůstává 60 %.
 
 **Stav 1.7.97:** všechny čtyři položky jsou implementované v TEST; Report směny navíc prošel reálnou Chromium geometrií na 390 px. Fyzický iPhone test landscape animace, safe-area a reportového okraje zůstává otevřený.
 
