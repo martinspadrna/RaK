@@ -167,7 +167,7 @@
   else document.addEventListener('DOMContentLoaded', () => { patchSaveHandler(); }, { once: true });
 })();
 
-// RaK 1.6 – generátor: chrání konkrétní runtime chybu `monthKey is not defined` v solo-mill balance.
+// RaK 1.7.121 – generátor: monthKey wrapper musí zachovat i scoped generationOptions z Neplánované změny.
 // Obalí celý běh generátoru přes přesný monthKey z jeho argumentu a po návratu globální kontext zase odstraní.
 (function setupRakGeneratorMonthKeyHotfix() {
   function patchGenerator() {

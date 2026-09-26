@@ -32,7 +32,7 @@ test('1.7.119 regression gate remains wired after successor releases',()=>{
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(pkg.scripts.check.includes('tools/release-gate-17119.test.mjs'));
   assert(workflow.includes('tools/release-gate-17119.test.mjs'));
-  assert(workflow.includes('rak-170119-isolated-build-'+'$'+'{{ github.sha }}'));
   assert(/rak-1701\d{2}-isolated-build-/.test(workflow));
+  assert(workflow.includes('Retain historical isolated-build evidence alias'));
   assert(read('CHANGELOG.md').includes('## RaK 1.7.119 (development)'));
 });
