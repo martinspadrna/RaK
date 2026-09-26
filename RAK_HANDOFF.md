@@ -79,9 +79,16 @@ Aktuální jediný úkol: **dlouhá doba po spuštění, kdy je RaK vidět, ale 
 - Chromium výsledky: cold `787/797 ms`, offline `306/963`, recovery `228/339`, slow-cache `296/453`, SW-update `229/685` ve formátu firstInteractive/startupReady.
 - Produkce ani Supabase se touto změnou nemění.
 
-#### Jediný zbývající krok
+#### Fyzická iPhone/PWA přejímka 1.7.125 – PASS
 
-**Fyzický iPhone/PWA test 1.7.125:** aplikaci úplně zavřít a znovu otevřít a hned po zobrazení Home několikrát zkusit spodní navigaci, hlavně **Více** a Kalkulačky/Rotaci. Cíl: UI už nemá působit jako několik sekund „mrtvé“. Pokud vlastník odpoví pouze **„ok“**, podle trvalého pravidla to znamená fyzický PASS tohoto úkolu; zapsat PASS do handoffu, uvést odhad zaplnění chatu, navrhnout jeden další úkol a posoudit kapacitu.
+- **26. 9. 2026 vlastník odpověděl „ok“**, což podle trvalého pravidla znamená fyzický PASS právě testovaného úkolu.
+- Úkol **dlouhá doba po spuštění, kdy je RaK vidět, ale ještě nejde normálně klikat** je tímto fyzicky potvrzený a uzavřený.
+- Oprava 1.7.125: spodní navigace a základní delegované akce jsou navázané ještě před returning-PWA hydration; běžné **Více** už při prvním otevření nečeká na síťový sync.
+- Tento konkrétní startup-interaction problém znovu neotvírat bez nové konkrétní regrese.
+
+#### Doporučený další úkol
+
+**Role-gated položky ve „Více“ – Report a další oprávněné akce se někdy zobrazí/odemknou až po delší době.** Navázat na 1.7.125 tak, aby se známá bezpečná lokální oprávnění vykreslila co nejdřív a serverová revalidace je následně potvrdila nebo odebrala; nikdy nesmí krátce probliknout cizí privilegia.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.124
 
@@ -163,7 +170,7 @@ Procenta 13 oblastí se tímto fyzickým potvrzením nemění: **5/13 uzavřený
 #### Nově přidané otevřené požadavky vlastníka – 26. 9. 2026
 
 - **P1.2 – HOTOVO pro tento konkrétní podúkol v 1.7.124:** minimum hesla pro správce/admin role je sníženo z 12 na **6 znaků** konzistentně v klientovi i TEST Edge Function; automatické testy, deployment i fyzická PWA přejímka jsou PASS. Vlastník potvrdil „ok“ 26. 9. 2026.
-- **P2.1/P2.2 – implementováno v 1.7.125, čeká fyzický PASS:** startup shell je klikací dřív, spodní navigace se váže před rehydratací a `Více` už nečeká na sync. Chromium měří `firstInteractiveMs` a všechny režimy prošly. Zbývá na iPhonu potvrdit, že po spuštění lze na navigaci/Více klepnout prakticky hned.
+- **P2.1/P2.2 – HOTOVO pro tento konkrétní podúkol v 1.7.125:** startup shell je klikací dřív, spodní navigace se váže před rehydratací a `Více` už nečeká na sync. Chromium měří `firstInteractiveMs`, všechny režimy prošly a vlastník fyzicky potvrdil PASS („ok“) 26. 9. 2026.
 - **P1.2/P2.2:** oprávněným uživatelům zobrazit a zpřístupnit **Report a další role-gated položky ve Více** výrazně dřív; nečekat zbytečně na celý vzdálený bootstrap, ale zároveň nikdy krátce nezobrazit cizí privilegia.
 
 Z těchto tří bodů je **heslo 6 znaků kompletně uzavřené včetně fyzického PASS**; oba výkonnostní/role-menu body zůstávají otevřený realizační backlog. Procenta 13 oblastí se tím nemění.
