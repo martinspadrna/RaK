@@ -602,7 +602,8 @@
     status(root, 'Otevírám sdílení obrázku – vyber WhatsApp.');
     let sharePromise;
     try {
-      sharePromise = navigator.share({ title: shiftReportShareTitle(root), files: [file] });
+      const caption = shiftReportShareTitle(root);
+      sharePromise = navigator.share({ title: caption, text: caption, files: [file] });
     } catch (err) {
       downloadEntry(entry);
       status(root, 'Sdílení obrázku není dostupné; PNG bylo uložené.');

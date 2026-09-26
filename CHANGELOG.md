@@ -1,3 +1,9 @@
+## RaK 1.7.108 (development)
+
+- Report směny → WhatsApp PNG: kontext `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>` se nově posílá nejen jako Web Share `title`, ale i jako `text` společně s PNG. WhatsApp tak může použít tento text přímo jako popisek odesílaného obrázku.
+- Datum i směna se dál čtou z právě zvoleného formuláře v okamžiku sdílení; regresní gate 1.7.108 vyžaduje `text: caption` i soubor v jednom share payloadu.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.107 (development)
 
 - Administrace → Kalendáře: tlačítko `×` pro odebrání kalendáře je centrované v celé 54px dotykové ploše; rozložení `×` + `Přidat kalendář` zůstává vedle sebe.
