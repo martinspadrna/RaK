@@ -22,8 +22,14 @@ assert(csp && csp.value.includes("frame-ancestors 'none'"), 'CSP frame protectio
 assert(csp.value.includes("object-src 'none'"), 'CSP object-src protection missing');
 assert(csp.value.includes("connect-src 'self' https://*.supabase.co wss://*.supabase.co"), 'Supabase connect-src contract changed');
 
-assert(index.includes('supabase-vendor-2.110.7.js'), 'Self-hosted pinned Supabase client missing');
-assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
+const appJs = read('app.js');
+const swJs = read('sw.js');
+assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'), 'Supabase SDK must not parser-block the interactive shell');
+assert(appJs.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"), 'Self-hosted Supabase lazy client missing');
+assert(appJs.includes("const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"), 'Self-hosted Supabase integrity pin missing');
+assert(appJs.includes('script.integrity = RAK_SUPABASE_SDK_INTEGRITY'), 'Supabase lazy loader must enforce the integrity pin');
+assert(swJs.includes("'./supabase-vendor-2.110.7.js'"), 'Self-hosted Supabase client must remain PWA-cached');
+assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js') && !appJs.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
 assert(!index.includes('xlsx.full.min.js'), 'XLSX must stay lazy after build transforms');
 assert(!index.includes('jszip.min.js'), 'JSZip must stay lazy after build transforms');
 assert(config.includes('cgshssdjgzzuprlwnabl.supabase.co'), 'Development Supabase isolation changed');
