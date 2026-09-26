@@ -8,8 +8,9 @@ const wizard = fs.readFileSync('admin-rotation-generator-wizard.js', 'utf8');
 
 assert(generator.includes('function adminRotationGeneratorBalanceSoloMill(month, model)'), 'expected current solo-mill generator signature changed; review monthKey hotfix');
 assert(generator.includes('adminRotationGeneratorCanUseSoloMill(month, rowIdx, lowName, knownNames, monthKey)'), 'expected solo-mill monthKey use missing; review hotfix');
-assert(rotation.includes('const soloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);'), 'first solo-mill balance call missing');
-assert(rotation.includes('const soloMillRebalance = adminRotationGeneratorBalanceSoloMill(month, model);'), 'second solo-mill balance call missing');
+assert(rotation.includes("const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);"), 'first solo-mill balance call missing or no longer guarded for scoped reflow');
+assert(rotation.includes("const soloMillRebalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);"), 'second solo-mill balance call missing or no longer guarded for scoped reflow');
+assert((rotation.match(/adminRotationGeneratorBalanceSoloMill\(month, model\)/g)||[]).length >= 3, 'normal month generator lost solo-mill balancing calls');
 assert(readiness.includes('setupRakGeneratorMonthKeyHotfix'), 'runtime generator monthKey hotfix missing');
 assert(readiness.includes('__rakGeneratorMonthKeyHotfixWrapped'), 'runtime generator monthKey wrapper marker missing');
 assert(wizard.includes("if (action === 'generator-run')"), 'generator-run wizard action missing');

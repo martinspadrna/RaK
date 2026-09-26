@@ -1062,7 +1062,7 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
     : [];
   const scopedGeneration = scopedDateLabels.length > 0;
   const scopedNoop = () => ({ swaps: 0, repairs: 0, spread: 0, tbkSpread: 0, unresolved: [], disabled: false });
-  // Neplánovaná změna potřebuje jen čistý výsledek BuildDay pro vybraný den.
+  // RaK 1.7.120: Neplánovaná změna potřebuje jen čistý výsledek BuildDay pro vybraný den.
   // Měsíční dorovnávací/repair průchody mohou legitimně prohazovat jiné dny a
   // v minulosti tím vracely absenci/Kalírnu zpět do právě přepočítaného dne.
   const tnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
