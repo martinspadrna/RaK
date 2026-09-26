@@ -30,7 +30,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.125`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.126`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
@@ -40,7 +40,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.125` na SHA `a75684ebaf650dc7fe48f2f1389ca83d4bd9b6f2`, build `v1.7.125-early-interaction1`. [Actions #410](https://github.com/martinspadrna/RaK/actions/runs/36259320890) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_9L4MqTNZCwMPKpKJjKPQhM4a4RGv`. Startup shell nově váže spodní navigaci a delegované základní akce ještě před čekáním na returning-PWA rehydrataci Rotace. Běžné `Více` už před otevřením nečeká na Supabase sync; privilegovaná Administrace dál zachovává pořadí `sync → admin`. Přidána skutečná metrika `firstInteractiveMs`.
+- Poslední ověřený **funkční** development release je `1.7.126` na SHA `de5a1b82a64751653e304defe09fdccf6699a050`, build `v1.7.126-menu-role-ready1`. [Actions #414](https://github.com/martinspadrna/RaK/actions/runs/36263283036) je kompletně SUCCESS (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_7xFEpV2MPoJzHjU9ieWUW7z7o2NP`. `Více` zůstává lokální a neblokuje se na sync; privilegované odkazy se nově vykreslí jen z ověřené secure role a otevřené menu se po obnovení role okamžitě překreslí. Secure restore je deduplikovaný, takže startup a otevření Více neposílají souběžné obnovy. Produkce zůstala beze změny. Fyzická iPhone/PWA přejímka tohoto role-menu úkolu ještě čeká.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -50,7 +50,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_9L4MqTNZCwMPKpKJjKPQhM4a4RGv`, READY / SHA `a75684ebaf650dc7fe48f2f1389ca83d4bd9b6f2`. [Actions #410](https://github.com/martinspadrna/RaK/actions/runs/36259320890) je SUCCESS na první pokus. Reálný Chromium interaction gate: cold `787 ms → startupReady 797 ms`, offline reload `306 → 963 ms`, online recovery `228 → 339 ms`, slow cached reload `296 → 453 ms`, po SW update `229 → 685 ms`; navigace tedy byla ve všech režimech navázaná nejpozději před `startupReady`. Performance budget PASS: cold P50/P95 `1561/1917 ms`, offline `1222/1462 ms`, recovery `613/637 ms`. Performance parity PASS: startupReady P50/P95 `410/497 ms`, FCP `320/352 ms`. Release evidence ID `10911523458`, SHA-256 `4d77eb2d5ddad1f733e82f63cfd77dfb3b89edeaea12c1fcba245ecbd590375e`; CI proof ID `10911124392`, SHA-256 `953a0d48e961c7ecd795d8fd5ce380d5aa89a0ab48dbc51f8f382e1ded56e1fe`; historický isolated-build alias 1.7.124 ID `10911318776`, SHA-256 `d525e1e05e4d1da3aa58fd4c40e7bf7a608d75025bf613fbcddff63e7cb08a4b`. Rollback PWA: `dpl_3X1wfsuh67Sv9L414TQ9UsgF9DqD`. Supabase se 1.7.125 nemění; produkce beze změny.
+- Stabilní development alias nyní ukazuje na `dpl_7xFEpV2MPoJzHjU9ieWUW7z7o2NP`, READY / SHA `de5a1b82a64751653e304defe09fdccf6699a050`. [Actions #414](https://github.com/martinspadrna/RaK/actions/runs/36263283036) je kompletně SUCCESS. Reálný Chromium interaction gate: cold `224 → 229 ms`, offline reload `186 → 485 ms`, online recovery `121 → 215 ms`, slow cached reload `189 → 289 ms`, po SW update `142 → 369 ms` ve formátu firstInteractive/startupReady. PWA performance budget PASS: cold P50/P95 `698/1249 ms`, offline `798/893 ms`, recovery `466/538 ms`. Performance parity PASS proti immutable 1.7.69: startupReady P50/P95 `322/374 ms` vs. `326/409 ms`, FCP `220/240 ms` vs. `208/236 ms`. Release evidence ID `10912159184`; CI proof ID `10913285719`; historický isolated-build alias 1.7.125 ID `10912659932`. Rollback PWA: `dpl_9L4MqTNZCwMPKpKJjKPQhM4a4RGv`. TEST Supabase zůstává `cgshssdjgzzuprlwnabl`; produkce a produkční Supabase beze změny.
 - **Fyzická přejímka 1.7.123 po deploymentu: PASS 26. 9. 2026.** Vlastník potvrdil minimal-change Kalírna reflow na iPhonu slovy „je to OK“. Jde o dokumentační uzavření již nasazeného runtime; verze se nezvyšuje a nový deployment se nevytváří.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
@@ -62,6 +62,32 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
 ## Předání novému chatu – 25. 9. 2026
+
+### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.126
+
+Aktuální jediný úkol: **role-gated položky ve „Více“ – Report a další oprávněné akce se někdy zobrazily/odemkly až po delší době**.
+
+#### Oprava 1.7.126
+
+- Runtime SHA `de5a1b82a64751653e304defe09fdccf6699a050`, build `v1.7.126-menu-role-ready1`.
+- [Actions #414](https://github.com/martinspadrna/RaK/actions/runs/36263283036): kompletně **SUCCESS**; verify i release-preview zelené.
+- Stable TEST: `dpl_7xFEpV2MPoJzHjU9ieWUW7z7o2NP`, READY; rollback `dpl_9L4MqTNZCwMPKpKJjKPQhM4a4RGv`.
+- Skutečné odkazy **Administrace / Report dovolené / Report směny** se už nevykreslují jen proto, že lokální stav naznačuje účet s admin heslem. Zobrazí se pouze tehdy, když `rakAdminCanOpenShiftReport()` potvrzuje aktuální secure kontext owner/admin/deputy.
+- Neověřený lokální stav může nabídnout pouze neprivilegované **Oprávnění → Ověřit přístup**. Deputy tak už nesmí ani krátce probliknout s Administrací nebo Reportem dovolené.
+- Otevření běžného `Více` je dál okamžité a lokální. Na pozadí se pouze spustí `rakAdminRestoreSecureSessionForActiveAccount('menu-open')`; nečeká se na `loadMachineSettings` ani na obecný Supabase sync.
+- Po úspěšném secure restore nebo uzamčení se vyšle lokální `rak-admin-access-changed`; je-li kořen `Více` právě otevřený, okamžitě se bezpečně překreslí bez nutnosti odejít a vrátit se.
+- Secure restore je deduplikovaný pro aktuální účet, takže startup retry a otevření `Více` nesoutěží paralelními restore RPC.
+- Historický gate 1.7.125 byl při prvním CI běhu převeden na successor-safe kontrakt. Performance parity skript byl zároveň převeden z natvrdo zapsané aktuální verze na `CONFIG.current.version`; baseline 1.7.69 a tolerance se nezměnily.
+- Reálný Chromium/PWA gate, performance budget, parity, quality thresholds, TEST HTTP, dva kanonické buildy i release evidence jsou PASS. Produkce se nezměnila.
+
+#### Fyzická iPhone/PWA přejímka 1.7.126 – ČEKÁ
+
+Na fyzickém iPhonu ověřit:
+1. Po spuštění RaK otevřít **Více co nejdřív**. Nastavení / O aplikaci / Kontakt / Pošli mi chybu musí být použitelné okamžitě; menu nesmí čekat na vzdálený sync.
+2. Na účtu owner/admin ponechat `Více` otevřené: jakmile se obnoví secure session, sekce **Správce** se musí objevit sama, bez zavření a znovuotevření menu. Administrace, Report dovolené a Report směny musí fungovat.
+3. Pokud je k dispozici deputy účet, po startu nesmí ani krátce probliknout **Administrace** ani **Report dovolené**; po ověření smí deputy vidět pouze **Zástupce → Report směny**.
+4. Pokud se objeví neověřený mezistav **Oprávnění → Ověřit přístup**, nesmí v něm být žádný privilegovaný odkaz. Po ručním ověření se mají zobrazit pouze odkazy odpovídající skutečné roli.
+5. Pokud vlastník odpoví pouze **„ok“**, znamená to fyzický PASS tohoto úkolu. Pak zapsat PASS sem, uzavřít role-menu úkol a teprve potom navrhnout jeden další úkol.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.125
 
@@ -171,9 +197,9 @@ Procenta 13 oblastí se tímto fyzickým potvrzením nemění: **5/13 uzavřený
 
 - **P1.2 – HOTOVO pro tento konkrétní podúkol v 1.7.124:** minimum hesla pro správce/admin role je sníženo z 12 na **6 znaků** konzistentně v klientovi i TEST Edge Function; automatické testy, deployment i fyzická PWA přejímka jsou PASS. Vlastník potvrdil „ok“ 26. 9. 2026.
 - **P2.1/P2.2 – HOTOVO pro tento konkrétní podúkol v 1.7.125:** startup shell je klikací dřív, spodní navigace se váže před rehydratací a `Více` už nečeká na sync. Chromium měří `firstInteractiveMs`, všechny režimy prošly a vlastník fyzicky potvrdil PASS („ok“) 26. 9. 2026.
-- **P1.2/P2.2:** oprávněným uživatelům zobrazit a zpřístupnit **Report a další role-gated položky ve Více** výrazně dřív; nečekat zbytečně na celý vzdálený bootstrap, ale zároveň nikdy krátce nezobrazit cizí privilegia.
+- **P1.2/P2.2 – NASAZENO v 1.7.126, čeká na fyzický PASS:** oprávněným uživatelům se role-gated položky ve **Více** obnovují na pozadí a otevřené menu se po secure revalidaci samo překreslí. Skutečné privilegované odkazy se vykreslují jen z ověřené role; neověřený stav může nabídnout pouze bezpečné „Ověřit přístup“.
 
-Z těchto tří bodů je **heslo 6 znaků kompletně uzavřené včetně fyzického PASS**; oba výkonnostní/role-menu body zůstávají otevřený realizační backlog. Procenta 13 oblastí se tím nemění.
+Z těchto tří bodů jsou **heslo 6 znaků** a **startup-interaction 1.7.125** kompletně uzavřené včetně fyzického PASS. Role-menu oprava je technicky nasazená v 1.7.126 a čeká už jen na fyzickou iPhone/PWA přejímku. Procenta 13 oblastí se do fyzického PASS nemění.
 
 #### Co je už fyzicky potvrzené a neotvírat znovu
 
