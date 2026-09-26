@@ -1,3 +1,10 @@
+## RaK 1.7.109 (development)
+
+- Report směny → WhatsApp: opravena skutečná živá cesta. Aplikace načítá `rak-shift-report-share.js`; jeho vložený PNG helper byl starší než samostatný `rak-shift-report-image.js`, takže i po 1.7.108 WhatsApp dostával statické `RaK – Report směny diferenciály`. Live runtime nyní používá kontext `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>` jako `title` i `text` spolu s PNG.
+- Kořenová oprava build pipeline: `tools/shift-report-image-170.mjs` při každém canonical buildu vložený helper v živém runtime synchronizuje; už nepřeskakuje aktualizaci jen proto, že marker existuje. Smoke test kontroluje pomocný i skutečně načítaný runtime.
+- Report směny na mobilu: `Datum směny` a `Směna` používají stejnou druhou grid řádku o výšce 48 px; select má explicitní 48px výšku, nulový margin a border-box, aby byly oba ovládací prvky srovnané.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.108 (development)
 
 - Report směny → WhatsApp PNG: kontext `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>` se nově posílá nejen jako Web Share `title`, ale i jako `text` společně s PNG. WhatsApp tak může použít tento text přímo jako popisek odesílaného obrázku.

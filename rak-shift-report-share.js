@@ -175,10 +175,10 @@
 #rakShiftReport .rakShiftIntro{font-size:12px;line-height:1.4;opacity:.68;max-width:38rem}
 
 #rakShiftReport .rakShiftContext{display:block!important;width:100%;max-width:246px!important;min-width:0}
-#rakShiftReport .rakShiftMetaGrid{display:grid;width:max-content;max-width:100%;min-width:0;grid-template-columns:124px 112px;gap:10px;align-items:end;justify-content:start}
-#rakShiftReport .rakShiftMetaLabel{display:grid;width:100%;gap:6px;font-size:12px;font-weight:750;opacity:.94;min-width:0;overflow:hidden}
+#rakShiftReport .rakShiftMetaGrid{display:grid;width:max-content;max-width:100%;min-width:0;grid-template-columns:124px 112px;gap:10px;align-items:start;justify-content:start}
+#rakShiftReport .rakShiftMetaLabel{display:grid;width:100%;grid-template-rows:auto 48px;align-content:start;gap:6px;font-size:12px;font-weight:750;opacity:.94;min-width:0;overflow:hidden}
 #rakShiftReport .rakShiftMetaLabel>.rakShiftInput,
-#rakShiftReport .rakShiftMetaLabel>.rakShiftSelect{width:100%!important;max-width:100%!important;min-width:0!important;min-height:48px;border-radius:14px;font-size:17px;font-weight:700;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.038));border-color:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
+#rakShiftReport .rakShiftMetaLabel>.rakShiftSelect{width:100%!important;max-width:100%!important;min-width:0!important;height:48px!important;min-height:48px!important;margin:0!important;box-sizing:border-box!important;border-radius:14px;font-size:17px;font-weight:700;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.038));border-color:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
 #rakShiftReport .rakShiftDateShell{position:relative;width:124px!important;inline-size:124px!important;max-width:124px!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;overflow:hidden!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:14px!important;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.038))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important}
 #rakShiftReport .rakShiftDateDisplay{position:absolute;inset:0;z-index:1;display:grid;place-items:center;padding:0 8px;box-sizing:border-box;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
 #rakShiftReport .rakShiftDate{position:absolute!important;inset:0!important;z-index:2!important;display:block!important;width:100%!important;inline-size:100%!important;max-width:none!important;min-width:0!important;min-inline-size:0!important;height:100%!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;opacity:0!important;font-size:16px!important;color:transparent!important}
@@ -888,6 +888,15 @@
     return 'RaK_report_smeny_' + date + '_' + shift + '.png';
   }
 
+  function shiftReportShareTitle(root) {
+    const model = collectModel(root);
+    const rawDate = String(model.date || '').trim();
+    const rawShift = String(model.shift || '').trim().toUpperCase();
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? formatDate(rawDate) : '—';
+    const shift = ['N', 'R', 'N8', 'R8'].includes(rawShift) ? rawShift : '—';
+    return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;
+  }
+
   async function buildBlob(root) {
     const model = collectModel(root);
     const sig = signature(model);
@@ -960,7 +969,8 @@
     status(root, 'Otevírám sdílení obrázku – vyber WhatsApp.');
     let sharePromise;
     try {
-      sharePromise = navigator.share({ title: 'RaK – Report směny diferenciály', files: [file] });
+      const caption = shiftReportShareTitle(root);
+      sharePromise = navigator.share({ title: caption, text: caption, files: [file] });
     } catch (err) {
       downloadEntry(entry);
       status(root, 'Sdílení obrázku není dostupné; PNG bylo uložené.');

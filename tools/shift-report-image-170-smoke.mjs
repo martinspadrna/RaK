@@ -19,15 +19,20 @@ assert(helper.includes('const MIN_CANVAS_HEIGHT = 1920;'), 'portrait PNG minimum
 assert(helper.includes('canvas.toBlob'), 'PNG blob export missing');
 assert(helper.includes("canvas.toDataURL('image/png')"), 'same-gesture iOS image share path missing');
 assert(helper.includes('files: [file]'), 'Web Share file payload missing');
-assert(helper.includes('function shiftReportShareTitle(root)'), 'contextual WhatsApp title helper missing');
-assert(helper.includes('const model = collectModel(root);'), 'WhatsApp title must read the current report form model');
-assert(helper.includes("return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;"), 'WhatsApp title must contain selected date and shift');
-assert(helper.includes('const caption = shiftReportShareTitle(root);'), 'WhatsApp image share must build one contextual caption');
-assert(helper.includes('navigator.share({ title: caption, text: caption, files: [file] })'), 'WhatsApp image share must pass contextual text with the PNG so WhatsApp can use it as the image caption');
+for (const [label, source] of [['helper', helper], ['live runtime', runtime]]) {
+  assert(source.includes('function shiftReportShareTitle(root)'), label + ': contextual WhatsApp caption helper missing');
+  assert(source.includes('const model = collectModel(root);'), label + ': WhatsApp caption must read the current report form model');
+  assert(source.includes("return 'RaK – Report směny diferenciály · ' + date + ' · směna ' + shift;"), label + ': WhatsApp caption must contain selected date and shift');
+  assert(source.includes('const caption = shiftReportShareTitle(root);'), label + ': image share must build one contextual caption');
+  assert(source.includes('navigator.share({ title: caption, text: caption, files: [file] })'), label + ': image share must pass contextual text with the PNG');
+  assert(!source.includes("navigator.share({ title: 'RaK – Report směny diferenciály', files: [file] })"), label + ': stale static WhatsApp message must not remain');
+}
 assert(helper.includes('[data-rak-share-action="whatsapp"]'), 'WhatsApp image interception missing');
 assert(helper.includes("saveButton.textContent = 'Uložit PNG';"), 'PNG action missing');
 const compiler=String(pkg.scripts&& (pkg.scripts['legacy:vercel-build']||pkg.scripts['vercel-build']) || '');
 assert(compiler.includes('node tools/shift-report-image-170.mjs'), 'frozen compatibility compiler missing');
+const compilerSource = fs.readFileSync('tools/shift-report-image-170.mjs', 'utf8');
+assert(compilerSource.includes('runtime.lastIndexOf(helperHeader)'), 'compatibility compiler must synchronize the embedded live helper on every build');
 assert(String(pkg.scripts && pkg.scripts.check || '').includes('node tools/shift-report-image-170-smoke.mjs'), 'smoke not wired into npm run check');
 
 const helperMarkerCount = helper.split(marker).length - 1;
