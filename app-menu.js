@@ -113,12 +113,85 @@ function rakAdminMenuResolveActiveAccountId() {
 }
 
 function appMenuShouldShowAdminEntry() {
+  return !!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport());
+}
+
+function appMenuShouldOfferRoleRefresh() {
   const activeId = rakAdminMenuResolveActiveAccountId();
-  if (!activeId) return false;
-  if (typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport()) return true;
-  if (typeof rakAdminAccountRequiresPassword === 'function' && rakAdminAccountRequiresPassword(activeId)) return true;
+  if (!activeId || appMenuShouldShowAdminEntry()) return false;
   if (activeId === '9811') return true;
+  if (typeof rakAdminAccountRequiresPassword === 'function' && rakAdminAccountRequiresPassword(activeId)) return true;
   return appMenuPersistentAdminSessionMatches(activeId);
+}
+
+let appMenuRoleRestorePromise = null;
+
+function appMenuRenderRoot(body) {
+  if (!body) return;
+  const verifiedRole = appMenuShouldShowAdminEntry();
+  const deputy = verifiedRole && typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy();
+  const roleSection = verifiedRole
+    ? '<section class="appMenuAdminQuickLinks" aria-label="' + (deputy ? 'Zástupce' : 'Správce') + '">' +
+        '<div class="appMenuAdminQuickLinksTitle">' + (deputy ? 'Zástupce' : 'Správce') + '</div>' +
+        '<div class="appMenuGrid">' +
+          (deputy ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
+          '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>' +
+        '</div>' +
+      '</section>'
+    : (appMenuShouldOfferRoleRefresh()
+      ? '<section class="appMenuAdminQuickLinks" aria-label="Oprávnění">' +
+          '<div class="appMenuAdminQuickLinksTitle">Oprávnění</div>' +
+          '<div class="appMenuGrid"><button type="button" class="appMenuAction" data-menu-action="role-refresh">Ověřit přístup</button></div>' +
+        '</section>'
+      : '');
+  body.innerHTML = [
+    '<div class="appMenuGrid">',
+    '  <button type="button" class="appMenuAction" data-menu-action="settings">Nastavení</button>',
+    '  <button type="button" class="appMenuAction" data-menu-action="about">O aplikaci</button>',
+    '  <button type="button" class="appMenuAction" data-menu-action="contact">Kontakt</button>',
+    '  <button type="button" class="appMenuAction" data-menu-action="bug-report">Pošli mi chybu</button>',
+    '</div>',
+    roleSection
+  ].join('');
+}
+
+function appMenuRerenderVisibleRoot() {
+  try {
+    const page = document.getElementById('menu');
+    const body = document.getElementById('appMenuBody');
+    if (!page || !body || !page.classList.contains('active') || String(body.dataset.adminView || '') !== '') return;
+    appMenuRenderRoot(body);
+  } catch (err) {}
+}
+
+function appMenuBindRoleEvents() {
+  if (typeof window === 'undefined' || window.__rakMenuRoleEventsBound === true) return;
+  window.__rakMenuRoleEventsBound = true;
+  window.addEventListener('rak-admin-access-changed', appMenuRerenderVisibleRoot);
+}
+
+async function appMenuRefreshRoleAccess(reason) {
+  if (appMenuShouldShowAdminEntry()) {
+    appMenuRerenderVisibleRoot();
+    return true;
+  }
+  if (appMenuRoleRestorePromise) return await appMenuRoleRestorePromise;
+  const pending = (async () => {
+    try {
+      if (typeof rakAdminRestoreSecureSessionForActiveAccount !== 'function') return false;
+      return !!(await rakAdminRestoreSecureSessionForActiveAccount(reason || 'menu-open'));
+    } catch (err) {
+      return false;
+    }
+  })();
+  appMenuRoleRestorePromise = pending;
+  try {
+    const restored = await pending;
+    if (restored) appMenuRerenderVisibleRoot();
+    return restored;
+  } finally {
+    if (appMenuRoleRestorePromise === pending) appMenuRoleRestorePromise = null;
+  }
 }
 
 async function appMenuEnsureAdminAccessFromMenu() {
@@ -401,6 +474,12 @@ function bindAppMenuHandlers(body) {
       }
       if (menuAction === 'bug-report-submit') {
         await handleBugReportAction(menuAction);
+        return;
+      }
+      if (menuAction === 'role-refresh') {
+        event.preventDefault();
+        await appMenuEnsureAdminAccessFromMenu();
+        appMenuRenderRoot(body);
         return;
       }
       if (menuAction === 'admin') {
@@ -2193,23 +2272,11 @@ function openAppMenu(view) {
         }
       })();
     } else {
-      body.innerHTML = [
-        '<div class="appMenuGrid">',
-        '  <button type="button" class="appMenuAction" data-menu-action="settings">Nastavení</button>',
-        '  <button type="button" class="appMenuAction" data-menu-action="about">O aplikaci</button>',
-        '  <button type="button" class="appMenuAction" data-menu-action="contact">Kontakt</button>',
-        '  <button type="button" class="appMenuAction" data-menu-action="bug-report">Pošli mi chybu</button>',
-        '</div>',
-        (appMenuShouldShowAdminEntry() ?
-          '<section class="appMenuAdminQuickLinks" aria-label="Správce">' +
-            '<div class="appMenuAdminQuickLinksTitle">' + (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy() ? 'Zástupce' : 'Správce') + '</div>' +
-            '<div class="appMenuGrid">' +
-              // RAK_REPORT_ONLY_DEPUTY_17019
-              (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy() ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
-              '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>' +
-            '</div>' +
-          '</section>' : '')
-      ].join('');
+      // RAK_17126_ROLE_READY_MENU: ordinary More remains local. Privileged links
+      // are rendered only from a verified secure role; restore runs in the background.
+      appMenuRenderRoot(body);
+      appMenuBindRoleEvents();
+      void appMenuRefreshRoleAccess('menu-open');
     }
 
     bindAppMenuHandlers(body);

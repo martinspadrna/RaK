@@ -1,3 +1,10 @@
+## RaK 1.7.126 (development)
+
+- Položky s oprávněním ve **Více** se po obnovení secure role překreslí okamžitě i tehdy, když bylo menu otevřené dřív. Pasivní otevření Více nečeká na Supabase sync ani na nastavení strojů.
+- **Administrace, Report dovolené a Report směny se už nevykreslují jen podle lokálního náznaku, že účet může mít heslo.** Skutečné privilegované odkazy vyžadují ověřenou secure roli owner/admin/deputy; neověřený stav může nabídnout jen neprivilegované „Ověřit přístup“.
+- Obnova secure session je deduplikovaná, takže souběžný startup a otevření Více neposílají zbytečně paralelní obnovy. Změna role/uzamčení vysílá lokální událost pro okamžité bezpečné překreslení menu.
+- Produkční větev, produkční Vercel ani produkční Supabase se tímto releasem nemění.
+
 ## RaK 1.7.125 (development)
 
 - Startup shell se nově stává **klikacím ještě před čekáním na lokální rehydrataci Rotace**. Spodní navigace a delegované základní akce se navážou hned po načtení startup modulů; pozdější post-ready instalace zůstává idempotentní.

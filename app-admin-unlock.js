@@ -13,6 +13,17 @@ const RAK_ADMIN_DEVICE_ID_KEY = 'adminDeviceIdV1';
 const RAK_ADMIN_SESSION_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const RAK_ADMIN_SESSION_TOUCH_MS = 30 * 60 * 1000;
 const RAK_ADMIN_TRUSTED_SESSION_MARKER = '::rak-trusted-session::';
+let rakAdminSecureRestorePromise = null;
+let rakAdminSecureRestoreAccountId = '';
+
+function rakAdminNotifyAccessChanged(reason) {
+  void reason;
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new Event('rak-admin-access-changed'));
+    }
+  } catch (err) {}
+}
 
 // Synchronni SHA-256 (bez Web Crypto), aby hesla nizsich adminu nemusela byt
 // ulozena/porovnavana jako plaintext v Supabase radku ani v uplne zaloze nastaveni.
@@ -244,6 +255,7 @@ function rakAdminApplySecureContext(context, capabilities) {
   rakAdminClearPersistentSession();
   if (typeof updateImportBoxVisibility === 'function') updateImportBoxVisibility();
   if (role === 'owner') void rakAdminLoadSecureDirectory();
+  rakAdminNotifyAccessChanged('secure-context');
   return true;
 }
 
@@ -374,11 +386,29 @@ async function rakAdminRestoreSecureSessionForActiveAccount(reason) {
   const activeId = rakAdminGetActiveAccountId();
   const bridge = window.RotationSupabaseBridge;
   if (!activeId || !bridge || typeof bridge.restoreAdminAuthSession !== 'function') return false;
-  const capabilities = await rakAdminGetSecureCapabilities(false);
-  if (!capabilities.available) return false;
-  const result = await bridge.restoreAdminAuthSession(activeId, rakAdminSecureDevicePayload());
-  if (!result || !result.ok) return false;
-  return rakAdminApplySecureContext(result.context, capabilities);
+  if (rakAdminCanOpenShiftReport()
+    && typeof app !== 'undefined' && app
+    && String(app.adminAccountId || '') === activeId) return true;
+  if (rakAdminSecureRestorePromise && rakAdminSecureRestoreAccountId === activeId) {
+    return await rakAdminSecureRestorePromise;
+  }
+  const pending = (async () => {
+    const capabilities = await rakAdminGetSecureCapabilities(false);
+    if (!capabilities.available) return false;
+    const result = await bridge.restoreAdminAuthSession(activeId, rakAdminSecureDevicePayload());
+    if (!result || !result.ok) return false;
+    return rakAdminApplySecureContext(result.context, capabilities);
+  })();
+  rakAdminSecureRestorePromise = pending;
+  rakAdminSecureRestoreAccountId = activeId;
+  try {
+    return await pending;
+  } finally {
+    if (rakAdminSecureRestorePromise === pending) {
+      rakAdminSecureRestorePromise = null;
+      rakAdminSecureRestoreAccountId = '';
+    }
+  }
 }
 
 async function rakAdminSecureSignIn(accountId, password) {
@@ -507,6 +537,7 @@ function rakAdminLock(options) {
     const bridge = window.RotationSupabaseBridge;
     if (bridge && typeof bridge.signOutAdminAccount === 'function') void bridge.signOutAdminAccount();
   } catch (err) {}
+  rakAdminNotifyAccessChanged('locked');
 }
 
 function rakAdminSessionMatchesSettings(session, settings) {
