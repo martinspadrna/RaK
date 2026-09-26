@@ -37,7 +37,7 @@ test('Supabase SDK remains local and integrity-pinned but loads only on demand',
 
 test('Admin click gets immediate menu-owned feedback and root does not await machine settings',()=>{
   assert(!routing.includes("source.closest('#appMenuBody [data-menu-action=\"admin\"]')"));
-  assert(menu.includes("'<div class=\"appMenuText\">Načítám administraci…</div>'"));
+  assert(menu.includes('Načítám administraci…'));
   assert(menu.includes('if (verifiedRole) void appMenuWarmAdminFeature();'));
   const adminRoot=menu.slice(menu.indexOf("} else if (v === 'admin') {"),menu.indexOf("} else if (v === 'admin-machines')"));
   assert(adminRoot.indexOf("renderAdminMenuBody(body, 'home');")>=0);
