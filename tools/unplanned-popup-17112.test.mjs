@@ -7,19 +7,23 @@ const editor = read('admin-rotation-editor.js');
 const wizard = read('admin-rotation-generator-wizard.js');
 const globalCss = read('styles-admin-polish.css');
 
-test('occupied schedule tap opens unplanned-change popup before the input can focus', () => {
-  const start = editor.indexOf('function adminBindUnplannedChangePopupRoute()');
-  const end = editor.indexOf("try { adminBindUnplannedChangePopupRoute(); }", start);
-  assert(start >= 0 && end > start, 'deferred admin popup pointer route missing');
+test('occupied schedule tap opens a full two-action menu before the input can focus', () => {
+  const start = editor.indexOf('function adminBindRotationNameActionMenuRoute()');
+  const end = editor.indexOf("try { adminBindRotationNameActionMenuRoute(); }", start);
+  assert(start >= 0 && end > start, 'deferred name action menu route missing');
   const block = editor.slice(start, end);
   assert(block.includes("closest('[data-rot-field^=\"cell-\"]')"));
   assert(block.includes("String(target.value || '').trim()"));
-  assert(block.includes("app.adminRotationDirty === true"));
   assert(block.includes('event.preventDefault()'));
   assert(block.includes('event.stopPropagation()'));
   assert(block.includes("typeof active.blur === 'function'"));
-  assert(block.includes('adminOpenUnplannedChangeDialog(target)'));
-  assert(block.indexOf('event.preventDefault()') < block.indexOf('adminOpenUnplannedChangeDialog(target)'));
+  assert(block.includes('adminShowRotationQuickRemove(target)'));
+  assert(block.indexOf('event.preventDefault()') < block.indexOf('adminShowRotationQuickRemove(target)'));
+  assert(editor.includes('Neplánovaná dovolená'));
+  assert(editor.includes('adminRotationQuickRemoveBtn">Odebrat</button>'));
+  assert(editor.includes("grid-template-columns:1fr!important"));
+  assert(editor.includes("width:min(260px,calc(100vw - 16px))!important"));
+  assert(editor.includes("adminOpenUnplannedChangeDialog(target)"), 'unplanned menu action must still open the large popup');
 });
 
 test('unplanned change is rendered as a page-like modal and still offers explicit manual editing', () => {

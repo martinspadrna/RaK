@@ -1,7 +1,7 @@
 ## RaK 1.7.112 (development)
 
-- Neplánovaná změna – mobilní UX: klepnutí na obsazené jméno v Rozpisech otevírá rovnou velkou vyskakovací stránku s formulářem. Mezilehlé malé plovoucí menu se pro tento tap nepoužije.
-- První tap je zachycen ještě před focus inputu, takže se na iPhonu nemá automaticky vytáhnout klávesnice. Popup využívá dostupnou výšku obrazovky, safe-area, vlastní hlavičku s ×, scrollovatelný obsah a spodní akční lištu. Obsluha i 1.7.112 popup CSS jsou pouze v deferred admin modulu; běžný startup/menu shell se tím nezvětšuje.
+- Neplánovaná změna – mobilní UX: klepnutí na obsazené jméno v Rozpisech nejdřív otevře kompaktní akční nabídku se dvěma celými volbami `Neplánovaná dovolená` a `Odebrat`. Volba Neplánovaná dovolená následně otevře velkou vyskakovací stránku s formulářem.
+- První tap na obsazené jméno je zachycen ještě před focus inputu, takže se na iPhonu nemá automaticky vytáhnout klávesnice a obě akce zůstanou celé viditelné. Popup využívá dostupnou výšku obrazovky, safe-area, vlastní hlavičku s ×, scrollovatelný obsah a spodní akční lištu. Obsluha i 1.7.112 popup CSS jsou pouze v deferred admin modulu; běžný startup/menu shell se tím nezvětšuje.
 - Ruční editace zůstává dostupná explicitním tlačítkem `Ručně upravit`; teprve po něm se vrátí běžný focus/klávesnice.
 - Serverový výpočet, CAS, idempotence, absence i rozsah změn z 1.7.111 se tímto releasem nemění.
 - Produkční Vercel, `main` ani produkční Supabase se nemění.

@@ -1381,7 +1381,7 @@ function adminShowRotationQuickRemove(input) {
       box = document.createElement('div');
       box.id = 'adminRotationQuickRemove';
       box.className = 'adminRotationQuickRemove';
-      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><div class="adminRotationQuickRemoveActions"><button type="button" class="adminRotationQuickUnplannedBtn">Neplánovaná změna</button><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button></div>';
+      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><div class="adminRotationQuickRemoveActions"><button type="button" class="adminRotationQuickUnplannedBtn">Neplánovaná dovolená</button><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button></div>';
       document.body.appendChild(box);
       box.addEventListener('click', (ev) => {
         const unplannedBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickUnplannedBtn') : null;
@@ -1414,10 +1414,10 @@ function adminShowRotationQuickRemove(input) {
     const rect = input.getBoundingClientRect();
     const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
     const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
-    const pickerHeight = input.matches('[data-rot-field^="cell-"]') ? 86 : 48;
+    const pickerHeight = input.matches('[data-rot-field^="cell-"]') ? 142 : 48;
     let top = Math.round(rect.bottom + 6);
     if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
-    const pickerWidth = input.matches('[data-rot-field^="cell-"]') ? 230 : 196;
+    const pickerWidth = input.matches('[data-rot-field^="cell-"]') ? Math.min(260, vw - 16) : 196;
     const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
     box.style.top = String(top) + 'px';
     box.style.left = String(left) + 'px';
@@ -1617,9 +1617,23 @@ function scheduleAdminRotationEditorMaintenance(body, reason, delayMs) {
 }
 
 
-function adminBindUnplannedChangePopupRoute() {
-  if (window.__rakAdminUnplannedPopupRouteBound) return;
-  window.__rakAdminUnplannedPopupRouteBound = true;
+function adminEnsureRotationNameActionMenuStyles() {
+  if (document.getElementById('rakRotationNameActionMenuStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'rakRotationNameActionMenuStyles';
+  style.textContent = [
+    '.adminRotationQuickRemove{width:min(260px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;padding:12px!important;box-sizing:border-box!important}',
+    '.adminRotationQuickRemoveActions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;margin-top:8px!important}',
+    '.adminRotationQuickRemoveActions button{width:100%!important;min-width:0!important;min-height:44px!important;padding:8px 12px!important;border-radius:12px!important;white-space:normal!important;line-height:1.15!important}',
+    '.adminRotationQuickRemoveText{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'
+  ].join('');
+  document.head.appendChild(style);
+}
+
+function adminBindRotationNameActionMenuRoute() {
+  if (window.__rakAdminRotationNameActionMenuBound) return;
+  window.__rakAdminRotationNameActionMenuBound = true;
+  adminEnsureRotationNameActionMenuStyles();
   document.addEventListener('pointerdown', (event) => {
     const body = document.getElementById('appMenuBody');
     if (!body || body.dataset.adminView !== 'rotation') return;
@@ -1627,22 +1641,17 @@ function adminBindUnplannedChangePopupRoute() {
     if (!target || !body.contains(target)) return;
     const value = String(target.value || '').trim();
     if (!value || (typeof adminRotationIsRemoveValue === 'function' && adminRotationIsRemoveValue(value))) return;
-    // Unplanned change requires a verified clean baseline. Keep normal manual edit
-    // if the editor already contains unsaved changes.
-    if (typeof app !== 'undefined' && app && app.adminRotationDirty === true) return;
-    if (typeof adminOpenUnplannedChangeDialog !== 'function') return;
     event.preventDefault();
     event.stopPropagation();
     try {
       const active = document.activeElement;
       if (active && active !== document.body && typeof active.blur === 'function') active.blur();
     } catch (_) {}
-    try { adminCloseRotationQuickRemove(); } catch (_) {}
     try { adminCloseAbsenceCodePicker(); } catch (_) {}
-    adminOpenUnplannedChangeDialog(target);
+    adminShowRotationQuickRemove(target);
   }, true);
 }
 
-try { adminBindUnplannedChangePopupRoute(); } catch (_) {}
+try { adminBindRotationNameActionMenuRoute(); } catch (_) {}
 
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-rotation-editor.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}

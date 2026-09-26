@@ -21,7 +21,10 @@ test('1.7.112 changes only the unplanned-change interaction into a page-like pop
   const editor = read('admin-rotation-editor.js');
   const wizard = read('admin-rotation-generator-wizard.js');
   const css = read('styles-admin-polish.css');
-  assert(editor.includes('function adminBindUnplannedChangePopupRoute()'));
+  assert(editor.includes('function adminBindRotationNameActionMenuRoute()'));
+  assert(editor.includes('adminShowRotationQuickRemove(target)'));
+  assert(editor.includes('Neplánovaná dovolená'));
+  assert(editor.includes('adminRotationQuickRemoveBtn">Odebrat</button>'));
   assert(editor.includes('adminOpenUnplannedChangeDialog(target)'));
   assert(editor.includes('event.preventDefault()'));
   assert(wizard.includes('adminUnplannedChangePage'));
