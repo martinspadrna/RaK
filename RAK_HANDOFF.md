@@ -30,14 +30,14 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.112`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný ověřený development runtime je `1.7.113`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
 
 ## Aktuální ověřený provozní stav k 26. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.112` na SHA `55cf8290ebfa4158031abb95771fd786bd5232fd`. [Actions #390](https://github.com/martinspadrna/RaK/actions/runs/36226017748) je GREEN na první pokus finálního SHA a stable TEST alias ukazuje na `dpl_3wG8JryWVQ4GaLP3bc9gci1cMFor`. Jediný aktivní úkol zůstává **Neplánovaná změna (generátor)**: tap na obsazené jméno teď otevře mobilní akční nabídku se dvěma celými volbami `Neplánovaná dovolená` a `Odebrat`; první tap je zachycen před focus inputu, takže se nemá otevřít klávesnice. `Neplánovaná dovolená` otevře velkou popup stránku formuláře, `Odebrat` zachová rychlé odebrání jména. Čeká pouze fyzická iPhone přejímka tohoto UX toku.
+- Poslední ověřený **funkční** development release je `1.7.113` na SHA `c17b6a8b42caa8a39511532903aef24bbaaf1f3d`. [Actions #391](https://github.com/martinspadrna/RaK/actions/runs/36226640520) je GREEN na první pokus finálního SHA a stable TEST alias ukazuje na `dpl_9ztNpFUsYJdvApL7hd3D5865vsTk`. Jediný aktivní úkol zůstává **Neplánovaná změna (generátor)**. Fyzický screenshot 1.7.112 odhalil skutečnou příčinu oříznuté nabídky: staré pravidlo `.adminRotationQuickRemove.isVisible{display:flex!important}` drželo celý box vodorovně. 1.7.113 proto při zobrazení kořenově vynucuje celý box jako jednosloupcový grid, takže `Neplánovaná dovolená` a `Odebrat` mají být skutečně pod sebou a celé viditelné. Čeká pouze fyzická iPhone přejímka tohoto jediného detailu.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -47,7 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Produkční Edge Function `rak-admin-users`: ACTIVE, verze 8, `verify_jwt=true`, platformní SHA-256 `95b4e0b95f4d8d2e8a1109557c62377bb552aac68425c00f299fe86c50b98ffc`.
 - Produkční důkaz: artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d`, ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`.
 - Nedestruktivní produkční rollback: READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`.
-- Stabilní development alias nyní ukazuje na `dpl_3wG8JryWVQ4GaLP3bc9gci1cMFor`, READY / SHA `55cf8290ebfa4158031abb95771fd786bd5232fd`. [Actions #390](https://github.com/martinspadrna/RaK/actions/runs/36226017748) je SUCCESS na první pokus finálního SHA. Dva canonical buildy, npm check, release gates, rollback/ZIP/CRC, mobilní Chromium/offline/recovery, performance budgety/parita, quality thresholds, immutable HTTP i stable-alias HTTP jsou PASS. Performance parity: startupReady P50 `386→381 ms`, P95 `439→430 ms`; FCP P50 `308→312 ms`, P95 `316→344 ms`. PWA budgety: cold mobile P50/P95 `1568/1873 ms`, offline reload `1187/1256 ms`, online recovery `629/643 ms`. Release evidence `rak-release-evidence-55cf8290ebfa4158031abb95771fd786bd5232fd`, ID `10900877191`, SHA-256 `57fb0e56f8758df34d67eb87723c353e319be76baea4418dda9e3970e7e81ff8`; CI proof ID `10900073760`, SHA-256 `c307d07cb1e11a512bfcffb218b7b5d187a9f674aa7f2a5b8d10ea861329d00c`; historický isolated-build alias ID `10900328081`, SHA-256 `2274840f0beea300114ff80adb398793d570ed93b830118d9b5cffbd76779a9e`. Rollback cíl je předchozí READY `dpl_6JWTputmRHCLkrsZXog4jUU5YYjf`. Produkce ani `main` se nezměnily.
+- Stabilní development alias nyní ukazuje na `dpl_9ztNpFUsYJdvApL7hd3D5865vsTk`, READY / SHA `c17b6a8b42caa8a39511532903aef24bbaaf1f3d`. [Actions #391](https://github.com/martinspadrna/RaK/actions/runs/36226640520) je SUCCESS na první pokus finálního SHA. Dva canonical buildy, npm check, release gates, rollback/ZIP/CRC, mobilní Chromium/offline/recovery, performance budgety/parita, quality thresholds, immutable HTTP i stable-alias HTTP jsou PASS. Performance parity: startupReady P50 `422→424 ms`, P95 `485→481 ms`; FCP P50 `336→336 ms`, P95 `360→356 ms`. PWA budgety: cold mobile P50/P95 `1617/1677 ms`, offline reload `1295/1371 ms`, online recovery `623/647 ms`. Release evidence `rak-release-evidence-c17b6a8b42caa8a39511532903aef24bbaaf1f3d`, ID `10900179108`, SHA-256 `730ab9cac09991e52eb66a724d80bfc498f472228a6af205f37b021267cdd76f`; CI proof ID `10901022637`, SHA-256 `6d05bf8c8a63aea132f4d99c5831b9284422559c5478a8510bd100366f9d81a3`; historický isolated-build alias ID `10900774004`, SHA-256 `82b362ae3b62f823e1f01f289c35dd0d02cc4de289c175ccdf1d170d11e60a92`. Rollback cíl je předchozí READY `dpl_3wG8JryWVQ4GaLP3bc9gci1cMFor`. Produkce ani `main` se nezměnily.
 - Release 1.7.103 uzavřel konkrétní release chybu úplné zálohy: kanonický build vytvářel správný Git ZIP, ale Vercel Build Output dříve ponechal 145bajtový tracked placeholder. Pipeline od 1.7.103 kopíruje celý `.rak-dist` a fail-closed kontroluje skutečný ZIP před deployem i po HTTP.
 - Fyzický iPhone retest 1.7.103 dne 25. 9. 2026 potvrdil picker Rozpisů, OS sloupec +50 %, `+/−` v kalkulačce, landscape pouze se správným login rakem a úplnou zálohu až po nabídku stažení souboru o velikosti 23,3 MB. Nepotvrdil však úplné otevření staženého ZIPu. V Nastavení korekcí zůstalo `+/−` jen u části polí a screenshot Reportu ukázal chybějící/oříznutý pravý okraj data; právě tyto dva fyzické nálezy opravuje 1.7.104.
 - Release 1.7.102 prošel dvěma kanonickými buildy, celým `npm run check`, server-CAS unit testy, zděděnými/current gate testy, rollback/ZIP kontrolami, reálným Chromium online→offline→online, benchmarky a TEST HTTP. TEST Supabase má aplikované stage i cutover migrace `rak_revision_cas_stage_17102` a `rak_revision_cas_cutover_17102`. Nastavení strojů i měsíční rozpis se načítají spolu s revizí; zápis musí poslat přesně načtenou revizi, server zamkne revizní řádek a stale revizi odmítne SQLSTATE `40001`. Neověřená revize se odmítne už v klientovi před síťovým zápisem.
@@ -59,19 +59,17 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Předání novému chatu – 25. 9. 2026
 
-### AKTUÁLNÍ JEDINÝ ÚKOL – 26. 9. 2026, 1.7.112 Neplánovaná dovolená / Odebrat
+### AKTUÁLNÍ JEDINÝ ÚKOL – 26. 9. 2026, 1.7.113 Neplánovaná dovolená / Odebrat
 
 Od tohoto bodu platí přání vlastníka **striktně po jednom úkolu**. Další backlog se nesmí rozpracovat, dokud tento tok nebude fyzicky přijatý.
 
-- Ověřený runtime je **1.7.112** na SHA `55cf8290ebfa4158031abb95771fd786bd5232fd`, build `v1.7.112-unplanned-popup1`.
-- [Actions #390](https://github.com/martinspadrna/RaK/actions/runs/36226017748) je **SUCCESS na první pokus finálního SHA**. Stable TEST alias ukazuje na `dpl_3wG8JryWVQ4GaLP3bc9gci1cMFor`; rollback je `dpl_6JWTputmRHCLkrsZXog4jUU5YYjf`.
-- Po fyzické připomínce byla interakce upravená takto: tap na obsazené jméno se zachytí před focus inputu a otevře kompaktní mobilní nabídku bez klávesnice. V ní musí být celé vidět dvě volby pod sebou: **Neplánovaná dovolená** a **Odebrat**.
-- **Neplánovaná dovolená** otevře velkou popup stránku z 1.7.112 (hlavička s ×, scrollovatelný formulář, spodní akce). **Odebrat** rychle vyprázdní zvolené jméno jako dříve.
-- Menu je šířkově omezené na viewport a tlačítka jsou full-width v jednom sloupci, takže se už druhá akce nesmí uříznout mimo obrazovku.
-- Popup route i jeho styly zůstávají v deferred admin modulech, takže běžný startup nebyl rozšířen; právě finální SHA prošel performance paritou bez rerunu.
-- Release evidence ID `10900877191`, SHA-256 `57fb0e56f8758df34d67eb87723c353e319be76baea4418dda9e3970e7e81ff8`; CI proof ID `10900073760`, SHA-256 `c307d07cb1e11a512bfcffb218b7b5d187a9f674aa7f2a5b8d10ea861329d00c`.
-- WhatsApp text zůstává fyzicky potvrzený **OK**.
-- **Teď už jen fyzická iPhone přejímka tohoto jediného toku.** Neřešit žádný další backlog, dokud vlastník nepotvrdí nabídku a otevření popupu.
+- Ověřený runtime je **1.7.113** na SHA `c17b6a8b42caa8a39511532903aef24bbaaf1f3d`, build `v1.7.113-unplanned-menu-stack1`.
+- [Actions #391](https://github.com/martinspadrna/RaK/actions/runs/36226640520) je **SUCCESS na první pokus finálního SHA**. Stable TEST alias ukazuje na `dpl_9ztNpFUsYJdvApL7hd3D5865vsTk`; rollback je `dpl_3wG8JryWVQ4GaLP3bc9gci1cMFor`.
+- Fyzický screenshot 1.7.112 ukázal, že dvě akce stále vypadají vodorovně a text první volby je oříznutý. Kořenová příčina byla stará specifická CSS větev `.adminRotationQuickRemove.isVisible{display:flex!important}`, která přebíjela jednosloupcový blok akcí.
+- 1.7.113 při každém zobrazení boxu nastavuje inline `display:grid !important`, `grid-template-columns:1fr !important`, `align-items:stretch !important` a stejný kontrakt má i deferred CSS. Tím mají být **Neplánovaná dovolená** a **Odebrat** opravdu pod sebou, každé přes celou šířku nabídky.
+- Velký popup, serverová logika, CAS/idempotence ani další backlog se tímto releasem nemění.
+- Performance parity prošla bez rerunu; release evidence ID `10900179108`, SHA-256 `730ab9cac09991e52eb66a724d80bfc498f472228a6af205f37b021267cdd76f`.
+- **Teď už jen fyzická iPhone přejímka této svislé nabídky.** Neřešit nic dalšího, dokud ji vlastník nepotvrdí.
 
 ### NEJNOVĚJŠÍ závěrečné předání – 26. 9. 2026, release 1.7.111
 
