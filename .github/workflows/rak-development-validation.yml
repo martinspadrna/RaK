@@ -124,9 +124,17 @@ jobs:
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-170128-isolated-build-${{ github.sha }}
+          name: rak-170129-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
       - name: Retain previous isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170128-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain historical isolated-build evidence alias
         uses: actions/upload-artifact@v4
         with:
           name: rak-170127-isolated-build-${{ github.sha }}
@@ -134,7 +142,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 90
-      - name: Retain historical isolated-build evidence alias
+      - name: Retain older isolated-build evidence alias
         uses: actions/upload-artifact@v4
         with:
           name: rak-170126-isolated-build-${{ github.sha }}

@@ -71,7 +71,8 @@ test('capture router preloads bottom-nav features without swallowing the user cl
   assert(navigateFirst.includes("el.closest('nav.bottomNav')"));
   assert(navigateFirst.includes('return;'));
   assert(bottom.includes('function openRakEarlyMenuShell()'));
-  assert(bottom.includes('Načítám nabídku…'));
+  assert(bottom.includes('function rakEarlyMenuLocalRootHtml()'));
+  for (const label of ['Nastavení','O aplikaci','Kontakt','Pošli mi chybu']) assert(bottom.includes(label),label);
   assert(bottom.includes("menu: () => { openRakEarlyMenuShell(); }"));
 });
 
@@ -91,4 +92,7 @@ test('real Chromium gate proves a physical navigation completes before delayed s
   assert(browser.includes("document.querySelector('#kalkulacky')?.classList.contains('active')===true"));
   assert(browser.includes("assert(earlyTapMs<=1200"));
   assert(browser.includes("navigation completed only after startupReady"));
+  assert(browser.includes('RAK_17129_MORE_BEFORE_SYNC_GATE'));
+  assert(browser.includes("[17129-more-before-sync] local More waited for sync feature"));
+  assert(browser.includes("['Nastavení','O aplikaci','Kontakt','Pošli mi chybu']"));
 });
