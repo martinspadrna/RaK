@@ -20,8 +20,8 @@ test('secure Admin root is a local shell while full tools preserve sync dependen
   const app=read('app.js');
   const shell=app.slice(app.indexOf('const adminShellFeatureFiles'),app.indexOf('const adminFeatureFiles'));
   const full=app.slice(app.indexOf('const adminFeatureFiles'),app.indexOf('const deferredFiles'));
-  assert(shell.includes('"app-menu-admin-renderer.js"'));
-  assert(!full.includes('"app-menu-admin-renderer.js"'),'renderer must not be paid twice by full Admin');
+  assert(!shell.includes('"app-menu-admin-renderer.js"'),'admin-shell must have no network-loaded renderer');
+  assert(full.includes('"app-menu-admin-renderer.js"'),'heavy renderer belongs to full Admin only');
   assert.match(app,/"admin-shell":\s*Object\.freeze\(\{\s*files:\s*adminShellFeatureFiles,\s*dependencies:\s*Object\.freeze\(\["menu"\]\)/s);
   assert.match(app,/admin:\s*Object\.freeze\(\{\s*files:\s*adminFeatureFiles,\s*dependencies:\s*Object\.freeze\(\["admin-shell",\s*"sync"\]\)/s);
   const menu=read('app-menu.js');
@@ -35,50 +35,39 @@ test('secure Admin root is a local shell while full tools preserve sync dependen
 });
 
 
-test('Admin home renderer short-circuits before heavy subpage builders',()=>{
-  const source=read('app-menu-admin-renderer.js');
-  const page={dataset:{}};
-  const body={dataset:{},innerHTML:'',querySelectorAll(){return [];}};
-  const context={
-    window:{},
-    document:{getElementById(id){return id==='menu'?page:null;}},
-    app:{adminCompactOpenGroup:''},
-    escapeHtml(value){return String(value??'').replace(/[&<>"']/g,'');},
-    rakAdminCanOpenAdmin(){return true;},
-    rakAdminCanManageAdmins(){return false;},
-    console,
-    setTimeout,
-    clearTimeout
-  };
-  vm.createContext(context);
-  vm.runInContext(source,context,{filename:'app-menu-admin-renderer.js'});
-  context.getAdminRotationMonthKeys=()=>{throw new Error('heavy rotation helper reached');};
-  context.getAdminSelectedMonthKey=()=>{throw new Error('heavy month helper reached');};
-  context.buildAdminMachineSettingsTableHtml=()=>{throw new Error('heavy machine builder reached');};
-  context.renderAdminMenuBody(body,'home');
-  assert.equal(body.dataset.adminView,'home');
-  assert(body.innerHTML.includes('Administrace'));
-  assert(body.innerHTML.includes('Rychlý přístup'));
-  assert(source.indexOf('RAK_17134_ADMIN_HOME_SHORT_CIRCUIT')<source.indexOf('const months = getAdminRotationMonthKeys();'));
-  assert(!read('app-menu-admin-service.js').includes('function buildAdminMenuSectionHtml('),'tiny root helper must stay in shell renderer');
+test('Admin home is rendered by the already-local menu module before heavy builders',()=>{
+  const menu=read('app-menu.js');
+  const rootStart=menu.indexOf('function renderAdminRootMenuBody(body)');
+  const rootEnd=menu.indexOf('function appMenuWarmAdminShellFeature()',rootStart);
+  assert(rootStart>=0&&rootEnd>rootStart);
+  const rootBlock=menu.slice(rootStart,rootEnd);
+  assert(rootBlock.includes("rakAdminCanOpenAdmin"));
+  assert(rootBlock.includes('Rychlý přístup'));
+  assert(!rootBlock.includes('getAdminRotationMonthKeys'));
+  assert(!rootBlock.includes('getAdminSelectedMonthKey'));
+
+  const renderer=read('app-menu-admin-renderer.js');
+  const homeBranch=renderer.slice(renderer.indexOf("if (mode === 'home')"),renderer.indexOf('const months = getAdminRotationMonthKeys();'));
+  assert(homeBranch.includes('renderAdminRootMenuBody(body)'));
+  assert(!homeBranch.includes('buildAdminMachineSettingsTableHtml'));
 });
 
-test('renderer keeps an independent secure gate even when shell code is cached',()=>{
-  const source=read('app-menu-admin-renderer.js');
+test('local Admin root keeps an independent fail-closed role gate',()=>{
+  const menu=read('app-menu.js');
+  const rootStart=menu.indexOf('function renderAdminRootMenuBody(body)');
+  const rootEnd=menu.indexOf('function appMenuWarmAdminShellFeature()',rootStart);
+  const source=menu.slice(rootStart,rootEnd);
   const body={dataset:{},innerHTML:'',querySelectorAll(){return [];}};
   const context={
-    window:{},
     document:{getElementById(){return null;}},
     app:{},
     escapeHtml(value){return String(value??'');},
     rakAdminCanOpenAdmin(){return false;},
-    console,
-    setTimeout,
-    clearTimeout
+    console
   };
   vm.createContext(context);
-  vm.runInContext(source,context,{filename:'app-menu-admin-renderer.js'});
-  context.renderAdminMenuBody(body,'home');
+  vm.runInContext(source,context,{filename:'admin-root-shell.js'});
+  context.renderAdminRootMenuBody(body);
   assert(body.innerHTML.includes('Administrace není přístupná.'));
   assert(!body.innerHTML.includes('Rychlý přístup'));
 });
@@ -99,6 +88,7 @@ test('Admin warmup is role-driven and ordinary local-first surfaces stay indepen
   const offline=sw.slice(sw.indexOf('const OFFLINE_REQUIRED'),sw.indexOf('const STATIC_EXT'));
   assert(warm.includes('app-menu-admin-renderer.js?v=1.7.134'));
   assert(offline.includes('app-menu-admin-renderer.js?v=1.7.134'));
+  assert(read('app-menu.js').includes('RAK_17134_LOCAL_ADMIN_ROOT'));
   const app=read('app.js');
   const localStart=app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine');
   const localEnd=app.indexOf('const startupReadyAt',localStart);

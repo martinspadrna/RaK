@@ -1,10 +1,10 @@
 ## RaK 1.7.134 (development)
 
-- Opraven kořen občas pomalého **prvního otevření Administrace**. Administrace už není jeden monolitický lazy-load: lehký `admin-shell` obsahuje pouze secure kořenovou navigaci, zatímco editory rozpisů, generátor, export/import, zálohy, servis a další těžké nástroje zůstávají v plném `admin` feature.
+- Opraven kořen občas pomalého **prvního otevření Administrace**. Secure kořenová navigace je přímo v již lokálním modulu Více a `admin-shell` je nulový readiness boundary bez dalšího síťového skriptu; těžký renderer, editory rozpisů, generátor, export/import, zálohy, servis a další nástroje zůstávají v plném `admin` feature.
 - Secure role gate zůstává beze změny a je ještě utažený na konkrétní `rakAdminCanOpenAdmin()`: shell ani jeho background warmup se nespouští pro běžného uživatele ani zástupce. Samotný renderer znovu kontroluje oprávnění před vykreslením.
-- Hlavní Admin renderer při `home` nově končí hned po sestavení navigačního shellu. Už předem nevytváří HTML všech administračních podstránek ani nespouští jejich buildery.
+- Kořen Administrace vykresluje `renderAdminRootMenuBody()` přímo z lokálního modulu Více; první otevření proto nenačítá 45kB heavy renderer ani nesestavuje HTML admin podstránek. Plný renderer při návratu na home deleguje zpět na tento lokální kořen.
 - Plný Admin dál zachovává závislost na `sync`, ale tato závislost už neblokuje první kořenovou obrazovku. Těžké moduly se už automaticky newarmují po startu ani po otevření Více/kořene Administrace; načtou se až při skutečném vstupu do konkrétní podsekce. Tím nekonkurují local-first startupu.
-- `app-menu-admin-renderer.js` je součástí warm/offline cache, takže lehký secure shell je lokálně dostupný stejně deterministicky jako menu, aniž by se privilegované položky přidávaly do běžného preboot UI.
+- `app-menu-admin-renderer.js` zůstává ve warm/offline cache pro skutečné podsekce, ale první secure kořen na něm už vůbec nezávisí. Privilegované položky se dál nepřidávají do běžného preboot UI.
 - Reálný Chromium gate drží startup `sync` záměrně nedokončený, vloží již ověřený admin kontext a vyžaduje, aby se kořen Administrace otevřel do 900 ms se stavem `admin-shell=true`, `admin=false`, `sync=false`; po pozdějším dokončení syncu navíc ověřuje, že se plný Admin bez uživatelského požadavku sám nenačetl.
 - Home, Rotace/Rozpisy, Kalkulačky a běžné Více zůstávají local-first; produkční `main`, produkční Vercel ani produkční Supabase se nemění.
 

@@ -152,13 +152,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-shift-report-share.js"
   ];
 
-  // RAK_17134_ADMIN_SHELL_SPLIT: the first secure Admin view is a tiny local
-  // renderer. Heavy editors/exporters remain in the full admin feature.
-  const adminShellFeatureFiles = [
-    "app-menu-admin-renderer.js"
-  ];
+  // RAK_17134_ADMIN_SHELL_SPLIT: the secure Admin root renderer lives in
+  // the already-local menu module, so first open has no extra script/network race.
+  // This zero-file feature remains as an explicit readiness/security boundary.
+  const adminShellFeatureFiles = [];
 
   const adminFeatureFiles = [
+    "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",
     "admin-rotation-overtime.js",
     "admin-rotation-generator.js",
