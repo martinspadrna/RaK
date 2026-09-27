@@ -799,7 +799,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **57 % (4/7)** | Otevřeno; fyzické stažení/rozbalení owner ZIPu potvrzeno, plná oddělená obnova zůstává neprovedená |
 | P2.1 | Výkon startu PWA | **100 % (5/5)** | Uzavřeno; 5× cold + 5× warm fyzické iPhone/PWA měření PASS |
-| P2.2 | Rozložení, DOM, CSS a interakce | **60 % (3/5)** | Otevřeno |
+| P2.2 | Rozložení, DOM, CSS a interakce | **80 % (4/5)** | Otevřeno; fyzický iPhone layout/klávesnice/export PASS, zbývá proklik rolí |
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **67 % (4/6)** | Otevřeno |
 
@@ -952,15 +952,17 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** splněno – opakovatelné fyzické měření i CI časové/paritní prahy jsou doložené.
 
-### P2.2 – Rozložení, CSS, DOM a interakce · **60 % (3/5)**
+### P2.2 – Rozložení, CSS, DOM a interakce · **80 % (4/5)**
 
 - [x] Chromium ověřuje Home, navigaci, mobilní viewport a offline návrat.
 - [x] Existují regresní kontroly geometrie TO/MO, absence a přetečení pro emulované rozměry.
-- [ ] Reálné iPhone screenshoty světlého/tmavého režimu, safe-area, klávesnice, spodní navigace, editace tabulek a exportu.
+- [x] Reálný iPhone vizuální průchod podporovaných vzhledů, safe-area, klávesnice, spodní navigace, editace tabulek a exportu; původní formulace „světlý/tmavý režim“ byla legacy a současné UI používá jednotné pojmenované vzhledy.
 - [ ] Proklik rolí owner/admin/deputy/běžný uživatel; ověřit DOM události a skutečné interakce, ne jen přítomnost textu v HTML.
 - [x] Porovnat před/po migraci kritické obrazovky a přidat stabilní regresní testy bez křehkých textových výřezů.
 
 **Důkaz P2.2 po 1.7.104:** fyzický iPhone retest uzavřel konkrétní regresní balík picker/OS/landscape/kalkulačka/admin korekce/Report. Test-only následníky `5f1d97d6481ba2bfdb3518980f75f109afe69466` → `6d5c0a3b55a5e2084ddd7ea4b3f461491ed146c4` → `0d807337dac50d610fad83b80ee35697d2f1c3d6` doplnily stabilní před/po UI paritu bez screenshotových pixelů a českých textových výřezů. CI čte baseline přímo přes `git show` z immutable 1.7.69, ověřuje stejné kritické page-rooty a semantické mapování spodní navigace a následně měří současný kanonický shell přes CDP na přesných 390×844 a 430×932. Actions #342 prošel bez horizontálního overflow na všech osmi kritických rootech; tím je třetí checkbox doložen a P2.2 se zvyšuje na **60 % (3/5)**. Otevřené zůstávají pouze kompletní fyzický screenshotový průchod a role owner/admin/deputy/běžný uživatel.
+
+**Fyzický iPhone/PWA vizuální PASS 27. 9. 2026 – runtime 1.7.134:** přibližně minutový screen recording na skutečném iPhonu prošel podporovanými vzhledy **Neonový orbit → Ledovec → Noční laser**, hlavními obrazovkami Home/Rotace/Kalkulačky/Více, administrací s tabulkovou editací a otevřenou iOS klávesnicí a Reportem směny až k viditelným exportním akcím. Spodní navigace zůstala v safe-area, editace a klávesnice nezpůsobily kritické překryvy ani uříznutá ovládání a report/exportní část zůstala dosažitelná. Aktuální `appearance-theme.js` výslovně označuje staré samostatné palety/pozadí jako **legacy mapu pouze pro převod nastavení**; současný picker používá jednotné pojmenované `RAK_APPEARANCE_DEFS`, takže historický požadavek „světlý/tmavý režim“ se hodnotí podle aktuálně podporovaných vzhledů, nikoli podle již nepoužívaného legacy pickeru. Čtvrtý checkbox je tím splněn a P2.2 se zvyšuje na **80 % (4/5)**. Zbývá pouze fyzický proklik owner/admin/deputy/běžný uživatel se skutečnými interakcemi.
 
 **Dokončení:** žádné kritické překryvy, uříznutá tlačítka či nefunkční akce na fyzickém iPhonu.
 
@@ -1123,6 +1125,8 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **27. 9. 2026 – P2.2 fyzický iPhone vizuální průchod PASS:** screen recording runtime 1.7.134 ověřil podporované vzhledy Neonový orbit/Ledovec/Noční laser, safe-area spodní navigace, hlavní obrazovky, tabulkovou editaci s iOS klávesnicí a Report směny až k exportním akcím bez kritického překryvu nebo uříznutého ovládání. Staré označení „světlý/tmavý režim“ bylo upřesněno na současný jednotný appearance systém; legacy palety zůstávají jen pro migraci starého nastavení. P2.2 se zvyšuje na **80 % (4/5)**; otevřený zůstává pouze fyzický role clickthrough owner/admin/deputy/běžný uživatel. Jde pouze o vyhodnocení a dokumentaci, runtime, TEST aplikace, `main`, produkční Vercel ani produkční Supabase se nemění.
 
 - **27. 9. 2026 – P2.1 fyzický iPhone/PWA start uzavřen:** vyhodnocen souvislý screen recording se střídavým pořadím cold → warm, celkem 5× cold + 5× warm. Cold **1,4 / 1,1 / 1,2 / 1,2 / 1,1 s** (medián **1,2 s**, max **1,4 s**), warm **0,1 / 0,1 / 0,1 / 0,1 / 0,1 s** (medián **0,1 s**, max **0,1 s**), celkový medián **0,6 s**, celkové maximum **1,4 s**, přesnost přibližně ±0,1 s. Měřeno do stabilního local-first Home, nikoli do zeleného online syncu. P2.1 se uzavírá na **100 % (5/5)**; bilance je **9/13 uzavřeno, 4/13 otevřené**. Runtime, TEST aplikace, main, produkční Vercel ani produkční Supabase se tímto dokumentačním commitem nemění. Vlastník následně opravené střídavé pořadí a výsledek potvrdil „ok“; fyzický PASS je tím výslovně potvrzen.
 
