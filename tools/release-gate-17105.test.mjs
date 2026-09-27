@@ -35,7 +35,7 @@ test('performance parity preserves immutable baseline and tolerances after 1.7.1
   const script=read('tools/performance-parity-17069.mjs');
   assert.equal(config.baseline.sha,'1693c8631c13d6e381e44a96810a55140ad6aa62');
   assert.equal(config.current.version,JSON.parse(read('package.json')).version);
-  assert.equal(config.rounds,5);
+  assert(config.rounds>=20,'P95 parity must use enough samples to tolerate at most one isolated runner outlier');
   assert(script.includes("const currentLabel='current-'+currentVersion"));
   assert(script.includes('CONFIG.current&&CONFIG.current.version'));
   for(const spec of Object.values(config.metrics)){
