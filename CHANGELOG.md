@@ -1,3 +1,11 @@
+## RaK 1.7.128 (development)
+
+- Generátor rozpisu a Report dovolených/absencí už nepoužívají samostatný Supabase secret pro kalendář. Načítají stejné veřejné Google Calendar zdroje, které jsou nastavené v Administraci → Kalendáře.
+- Zdroj se vybírá automaticky podle přihlášeného účtu: pracovník z rozpisu vždy používá směnu D, účet mimo rozpis používá svoji přiřazenou směnu A/B/C/D.
+- Podporováno je více kalendářů na směnu; záznamy se sloučí bez duplicit. Report směny D navíc zachová spojení s absencemi už uloženými v rozpisu, zatímco A/B/C nepřebírají D data.
+- Tím odpadá závislost Generátoru a Reportu dovolených na starém `RAK_ABSENCE_ICS_URL`, který v TEST prostředí vracel HTTP 500.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.127 (development)
 
 - Fyzický iPhone test 1.7.126 odhalil, že původní `firstInteractiveMs` měřilo jen navázaný listener, ne skutečné dokončení klepnutí. Startup proto nově načte malý **interaction foundation** (core/UI/navigation/bottom-nav/router) ještě před auth helpery, Dashboardem, QR a lokální Rotation hydration.

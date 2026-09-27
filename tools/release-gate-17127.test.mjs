@@ -8,13 +8,12 @@ import {assertCurrentReleaseIdentity,RELEASE_METADATA} from './release-metadata-
 const root=fileURLToPath(new URL('..',import.meta.url));
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('1.7.127 has one unified runtime identity',()=>{
-  assert.equal(RELEASE_METADATA.displayVersion,'1.7.127');
+test('1.7.127 interaction milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.127');
-  assert.equal(metadata.buildId,'v1.7.127-real-interaction1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.7.127');
-  assert(read('index.html').includes('app.js?v=1.7.127'));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.127'"));
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
+  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"'"));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.127 (development)'));
 });
 
 test('1.7.127 keeps privilege checks while removing network work from visible shell',()=>{
@@ -37,5 +36,5 @@ test('1.7.127 interaction regression and evidence gates are wired into CI',()=>{
   }
   assert(workflow.includes('rak-170127-isolated-build-'+'$'+'{{ github.sha }}'));
   assert(workflow.includes('rak-170126-isolated-build-'+'$'+'{{ github.sha }}'));
-  assert(read('CHANGELOG.md').startsWith('## RaK 1.7.127 (development)'));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.127 (development)'));
 });
