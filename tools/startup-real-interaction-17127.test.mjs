@@ -45,6 +45,18 @@ test('Admin click gets immediate menu-owned feedback and root does not await mac
   assert(!adminRoot.includes('await loadAdminMachineSettingsFromSupabase()'));
 });
 
+test('capture router preloads bottom-nav features without swallowing the user click',()=>{
+  const routing=read('rak-feature-routing.js');
+  const bottom=read('app-bottom-nav.js');
+  assert(routing.includes('RAK_17127_NAVIGATE_FIRST'));
+  const navigateFirst=routing.slice(routing.indexOf('RAK_17127_NAVIGATE_FIRST'),routing.indexOf("event.preventDefault();",routing.indexOf('RAK_17127_NAVIGATE_FIRST')));
+  assert(navigateFirst.includes("el.closest('nav.bottomNav')"));
+  assert(navigateFirst.includes('return;'));
+  assert(bottom.includes('function openRakEarlyMenuShell()'));
+  assert(bottom.includes('Načítám nabídku…'));
+  assert(bottom.includes("menu: () => { openRakEarlyMenuShell(); }"));
+});
+
 test('real Chromium gate proves a physical navigation completes before delayed startupReady',()=>{
   assert(browser.includes('RAK_17127_REAL_TAP_GATE'));
   assert(browser.includes("pathname==='/dashboard.js'&&delayStartupDashboard"));

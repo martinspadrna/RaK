@@ -4,6 +4,8 @@
 - Spodní navigace je v HTML už před `app.js`, takže ji startup může opravdu navázat hned. Reálný Chromium gate nově záměrně zdrží Dashboard o 1,8 s a vyžaduje, aby klepnutí na **Kalkulačky** skutečně otevřelo stránku do 1,2 s a ještě před `startupReady`.
 - `supabase-vendor-2.110.7.js` už není parser-blocking script v `index.html`. Zůstává lokální, integrity-pinned a PWA cacheovaný, ale načte se až při online syncu nebo skutečném login/admin požadavku. Offline start jej zbytečně nespouští.
 - Běžné **Více** se warmuje na pozadí hned po lehkých auth helperch. Ověřená role zároveň začíná na pozadí warmovat Admin.
+- Globální feature router už **nesmí spolknout první klik spodní navigace**. `pointerdown` dál přednačítá lazy feature, ale vlastní klik okamžitě naviguje; Rotace se po dokončení lazy loadu sama dorenderuje.
+- **Více** má bezpečný lokální early shell „Načítám nabídku…“, takže první klepnutí reaguje okamžitě i tehdy, když `app-menu.js` ještě není načtený.
 - Klik na **Administrace** už nezadržuje globální feature router. Menu okamžitě ukáže stav „Načítám administraci…“, bezpečně dokončí potřebný admin feature a kořen Administrace vykreslí bez čekání na `loadMachineSettings`; online nastavení se obnoví na pozadí.
 - Produkční větev, produkční Vercel ani produkční Supabase se nemění.
 

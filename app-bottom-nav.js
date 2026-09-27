@@ -1,16 +1,54 @@
 // RaK 1.2 (1.155) – spodní navigace a její bezpečné metriky.
+function openRakEarlyMenuShell() {
+  if (typeof toggleAppMenu === 'function') {
+    toggleAppMenu();
+    return;
+  }
+  let page = document.getElementById('menu');
+  if (!page) {
+    page = document.createElement('div');
+    page.id = 'menu';
+    page.className = 'page appMenuPage';
+    page.dataset.rakEarlyMenuShell = '1';
+    page.innerHTML = [
+      '<div class="topBar appMenuTopBar"><div class="appMenuTitle">Více</div></div>',
+      '<div class="card appMenuPageCard"><div class="appMenuBody">',
+      '<div class="appMenuCard"><div class="appMenuCardTitle">Více</div><div class="appMenuText">Načítám nabídku…</div></div>',
+      '</div></div>'
+    ].join('');
+    const anchor = document.querySelector('.bottomNav');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(page, anchor);
+    else document.body.appendChild(page);
+  }
+  document.querySelectorAll('.page').forEach((node) => node.classList.remove('active'));
+  page.classList.add('active');
+  if (typeof setBottomNavActive === 'function') setBottomNavActive('menu');
+  if (typeof window.rakEnsureFeature === 'function') {
+    window.rakEnsureFeature('menu').then(() => {
+      if (typeof openAppMenu === 'function') {
+        delete page.dataset.rakEarlyMenuShell;
+        openAppMenu('menu');
+      }
+    }).catch((err) => {
+      const body = page.querySelector('.appMenuBody');
+      if (body) body.innerHTML = '<div class="appMenuCard"><div class="appMenuCardTitle">Více</div><div class="appMenuText">Nabídku se nepodařilo načíst.</div></div>';
+      if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, 'menu');
+    });
+  }
+}
+
 function installBottomNavBindings() {
   const nav = document.querySelector('.bottomNav');
   if (!nav || nav.__rotaceBound) return;
   nav.__rotaceBound = true;
 
   const actionMap = {
-    home: () => { showPage('home'); setBottomNavActive('home'); },
-    rotace: () => { openRotaceNames(); },
-    kalkulacky: () => { openKalkulacky(); },
-    rozpisy: () => { openRotaceMonths(); },
-    statistiky: () => { openRotaceStats(); },
-    menu: () => { toggleAppMenu(); }
+    home: () => { if (typeof showPage === 'function') showPage('home'); if (typeof setBottomNavActive === 'function') setBottomNavActive('home'); },
+    rotace: () => { if (typeof openRotaceNames === 'function') openRotaceNames(); else if (typeof showPage === 'function') showPage('rotace'); },
+    kalkulacky: () => { if (typeof openKalkulacky === 'function') openKalkulacky(); else if (typeof showPage === 'function') showPage('kalkulacky'); },
+    rozpisy: () => { if (typeof openRotaceMonths === 'function') openRotaceMonths(); else if (typeof showPage === 'function') showPage('rotace'); },
+    statistiky: () => { if (typeof openRotaceStats === 'function') openRotaceStats(); else if (typeof showPage === 'function') showPage('rotace'); },
+    menu: () => { openRakEarlyMenuShell(); }
   };
 
   nav.addEventListener('click', (event) => {

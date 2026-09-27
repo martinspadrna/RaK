@@ -344,6 +344,22 @@
       return;
     }
 
+    // RAK_17127_NAVIGATE_FIRST: bottom-nav clicks must never be swallowed while
+    // a lazy feature loads. pointerdown already started the preload; the normal
+    // bubble handler changes page immediately and hydration completes behind it.
+    if (el && el.closest && el.closest('nav.bottomNav')) {
+      const pending = startFeature(target);
+      if (pending && typeof pending.then === 'function') {
+        pending.then(() => {
+          try { el.classList.remove('rakFeatureLoading'); el.removeAttribute('aria-busy'); } catch (_) {}
+        }).catch((err) => {
+          try { el.classList.remove('rakFeatureLoading'); el.removeAttribute('aria-busy'); } catch (_) {}
+          if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, feature);
+        });
+      }
+      return;
+    }
+
     event.preventDefault();
     event.stopImmediatePropagation();
     if (el.dataset.rakFeatureReplay === '1') return;
@@ -403,6 +419,26 @@
 
   window.addEventListener('rak:feature-ready', (event) => {
     const feature = String(event && event.detail && event.detail.feature || '');
+    if (feature === 'rotation') {
+      try {
+        const page = document.getElementById('rotace');
+        if (page && page.classList.contains('active')) {
+          if (typeof setRotaceView === 'function') setRotaceView((typeof app !== 'undefined' && app && app.rotationView) || 'names');
+          if (typeof renderRotace === 'function') renderRotace();
+        }
+      } catch (err) { console.warn('Rotation hydrate-after-nav failed', err); }
+      return;
+    }
+    if (feature === 'menu') {
+      try {
+        const page = document.getElementById('menu');
+        if (page && page.classList.contains('active') && page.dataset.rakEarlyMenuShell === '1' && typeof openAppMenu === 'function') {
+          delete page.dataset.rakEarlyMenuShell;
+          openAppMenu('menu');
+        }
+      } catch (err) { console.warn('Menu hydrate-after-nav failed', err); }
+      return;
+    }
     if (feature !== 'admin') return;
     try {
       if (typeof window.adminBindRotationZoomGuard === 'function' && !window.adminBindRotationZoomGuard.__rakBootV2Stub) {
