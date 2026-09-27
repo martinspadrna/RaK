@@ -7,6 +7,7 @@
 - Globální feature router už **nesmí spolknout první klik spodní navigace**. `pointerdown` dál přednačítá lazy feature, ale vlastní klik okamžitě naviguje; Rotace se po dokončení lazy loadu sama dorenderuje.
 - **Více** má bezpečný lokální early shell „Načítám nabídku…“, takže první klepnutí reaguje okamžitě i tehdy, když `app-menu.js` ještě není načtený.
 - Critical auth/security balík se spouští paralelně s interaction foundation místo až po něm; před `startupReady` se už zároveň nespouští konkurenční warmup menu.
+- Neaktivní PNG ikony **Rotace/Kalkulačky** mají nízkou fetch prioritu, aby při prvním paintu nekonkurovaly render-blocking CSS; aktivní Home ikony zůstávají eager.
 - Obří vložená data osobních QR kódů byla vyjmuta z parseru `qr.js` do `rak-qr-data.js`. Food/brus logika zůstává ve startupu beze změny; QR payload se parsuje až při prvním zobrazení QR a je dál warm-cacheovaný pro offline použití.
 - Bootstrap `app.js` je načítán přes `defer`, takže HTML parser nejdřív objeví všechny zbývající CSS zdroje a bootstrap s nimi nesoutěží v parser-blocking fázi. Spodní navigace je už před skriptem v DOM.
 - Klik na **Administrace** už nezadržuje globální feature router. Menu okamžitě ukáže stav „Načítám administraci…“, bezpečně dokončí potřebný admin feature a kořen Administrace vykreslí bez čekání na `loadMachineSettings`; online nastavení se obnoví na pozadí.

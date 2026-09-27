@@ -73,6 +73,16 @@ test('capture router preloads bottom-nav features without swallowing the user cl
   assert(bottom.includes("menu: () => { openRakEarlyMenuShell(); }"));
 });
 
+test('non-active nav icons do not compete with render-blocking CSS for first paint',()=>{
+  for(const icon of ['rotace-gray.png','rotace-green.png','kalkulacky-gray.png','kalkulacky-green.png']){
+    const marker='src="assets/nav-icons/'+icon+'"';
+    const at=index.indexOf(marker);
+    assert(at>=0,icon);
+    assert(index.slice(at,at+180).includes('fetchpriority="low"'),icon+' must stay low priority');
+  }
+  assert(index.includes('src="assets/nav-icons/home-green.png"'));
+});
+
 test('real Chromium gate proves a physical navigation completes before delayed startupReady',()=>{
   assert(browser.includes('RAK_17127_REAL_TAP_GATE'));
   assert(browser.includes("pathname==='/dashboard.js'&&delayStartupDashboard"));
