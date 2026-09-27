@@ -122,7 +122,18 @@ try{
   assert.equal(currentPackage.version,currentVersion,'[perf-parity] current canonical package is not '+currentVersion);
   const currentLabel='current-'+currentVersion;
   const baseline=[],current=[];
-  for(let round=1;round<=CONFIG.rounds;round++){baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));current.push(await measureRoot(ROOT,currentLabel,round));}
+  // P95 needs enough samples to be a percentile rather than the single maximum.
+  // Alternate pair order as well, so scheduler/thermal drift cannot systematically
+  // penalize only the current release by always measuring it second.
+  for(let round=1;round<=CONFIG.rounds;round++){
+    if(round%2===1){
+      baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));
+      current.push(await measureRoot(ROOT,currentLabel,round));
+    }else{
+      current.push(await measureRoot(ROOT,currentLabel,round));
+      baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));
+    }
+  }
   const b=summarize(baseline),c=summarize(current),comparisons={};
   for(const [metric,spec] of Object.entries(CONFIG.metrics)){
     const medianGate=allowedMedian(b[metric],spec);
