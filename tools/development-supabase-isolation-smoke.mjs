@@ -39,7 +39,9 @@ assert(adminUsersApi.includes('admin_users_endpoint_moved') && adminUsersApi.inc
 assert(absenceApi.includes('calendar_endpoint_moved') && absenceApi.includes('status(410)'), 'retired absence Vercel endpoint must stay disabled');
 assert(bridge.includes('window.SUPABASE_CONFIG'), 'Supabase bridge must derive its client from the active public config');
 assert(userProfile.includes('window.SUPABASE_CONFIG'), 'user profile lookup must derive its client from the active public config');
-assert(generatorWizard.includes('window.SUPABASE_CONFIG'), 'generator absence calendar URL must derive from the active public config');
+assert(generatorWizard.includes("'/api/public-calendar?src='"), 'generator absences must use the configured public shift-calendar proxy');
+assert(generatorWizard.includes('getRakActiveShiftCalendarPublicSources'), 'generator absences must resolve the source from the active account shift');
+assert(!generatorWizard.includes('/functions/v1/rak-absence-calendar'), 'generator must not depend on the legacy Supabase absence-calendar secret');
 
 for (const [name, source] of [
   ['api/admin-users.js', adminUsersApi],
