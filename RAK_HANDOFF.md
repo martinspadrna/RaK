@@ -46,6 +46,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - **Reálný Chromium důkaz 1.7.134:** secure kořen Administrace se otevřel za **11 ms** ve stavu `admin-shell=true`, `admin=false`, `sync=false`; pozdější dokončení syncu plný Admin samo nenačetlo. Běžný local-first startup, Rotace → Více a předchozí navigation gates zůstaly PASS.
 - **Release gate 1.7.134:** Actions run `36336539544` je kompletně SUCCESS (verify + release-preview). Performance parity bez změny limitů PASS: current FCP P50/P95 **300/376 ms** vs immutable 1.7.69 **296/328 ms**, povolený P95 **403 ms**. Stable TEST alias ukazuje na READY `dpl_4ueCtMryKssCeEkcVxEjv4fh6XZH`, runtime SHA `ac4f00f32694db1b8449f75deeb0570d9823754f`; rollback je `dpl_5VTgKDJkcsU3KKP5rNSMsSEpcAVV`. `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, produkční Vercel i produkční Supabase zůstaly beze změny.
 - **Fyzický PASS 1.7.134:** vlastník po retestu na iPhonu odpověděl **„ok“**. Tím je potvrzeno, že **Více → Administrace** se po čerstvém spuštění otevírá bez znatelného čekání na zelenou Synchronizaci a běžné local-first UI zůstává funkční. Úkol pomalého prvního otevření Administrace je uzavřen.
+- **Fyzický PASS P0.4 – správa rolí a odvolání admin zařízení (27. 9. 2026):** vlastník na TEST verzi iPhone/PWA provedl změnu role správce a následné odvolání přihlášeného admin zařízení a potvrdil výsledek slovy **„je to ok“**. Nová role se správně propsala do privilegovaných položek a po odvolání zařízení nezůstal starý privilegovaný přístup použitelný bez nového ověření. P0.4 je tím uzavřeno na **100 % (5/5)**; runtime se tímto potvrzením nemění.
 - **Fyzický PASS 1.7.132 – local-first startup (27. 9. 2026):** vlastník potvrdil „ok“. Home, Rotace/Rozpisy, Kalkulačky i Více jsou dostupné bez čekání na zelenou Synchronizaci, Více má od začátku finální geometrii a dokončení background syncu už nepřepíná uživatelem otevřenou stránku zpět na Home. Ověřený runtime SHA je `21e93b20535cd4bf29f78ddc402bb9e8b13b8a5a`; Actions run `36317772613` je SUCCESS a stable TEST alias ukazuje na READY `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Produkční main/Vercel/Supabase tím nebyly změněny.
 - **Nový fyzický FAIL po PASS 1.7.132 – pouze Rotace → Více:** při přímém přechodu z Rotace na Více zůstává nad menu viditelný panel se jmény; ostatní kombinace přechodů jsou podle vlastníka v pořádku. Kořen je v local-first `openRakEarlyMenuShell()`: tato rychlá cesta úmyslně obchází `showPage()`, ale tím obcházela i `setRotaceNamesDockPortalActive(false,...)`, takže `#namesGrid` zůstával portovaný jako body-fixed.
 - **Fyzický PASS 1.7.133 – Rotace → Více (27. 9. 2026):** vlastník po testu odpověděl „ok“.  rychlá cesta Více před změnou aktivní stránky explicitně zruší Rotace names-dock portal a odstraní přechodové Rotace třídy. Reálný Chromium gate `RAK_17133_ROTACE_TO_MORE_PORTAL_GATE` reprodukuje skutečný body-fixed dock a po kliknutí Rotace → Více ověřuje, že `namesGrid` je zpět v `rotaceNamesPanel`, portal atribut i dock třídy zmizely a Rotace už není aktivní; v finálním runu PASS. Runtime SHA `f04c7d23a6d84d8b786f762108eb6bc7333a411c`, Actions run `36321513263` je kompletně SUCCESS (verify + release-preview). Stable TEST alias ukazuje na READY `dpl_5VTgKDJkcsU3KKP5rNSMsSEpcAVV`, rollback je `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Current isolated-build evidence ID `10931903767`, CI proof ID `10931738979`, release evidence ID `10932498755`. Hard PWA budget PASS a 20kolová FCP parity PASS bez změny limitů: current FCP P50/P95 `292/360 ms` vs immutable 1.7.69 `300/312 ms`, povolený P95 `387 ms`. Experiment s double-rAF byl po fail-closed pádu opakovaného PWA benchmarku zavržen a runtime zůstal na předchozím single-rAF chování. Produkční `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, produkční Vercel i produkční Supabase zůstaly beze změny.
@@ -787,7 +788,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P0.1 | Účty a data pracovníků | **100 % (5/5)** | Uzavřeno; dlouhodobé privacy/export regrese doložené na vydaném runtime |
 | P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno **pouze rozhodnutím o přijatém riziku** |
 | P0.3 | API, exporty a historické klienty | **80 % (4/5)** | Otevřeno |
-| P0.4 | Role vlastníka a administrátorů | **80 % (4/5)** | Otevřeno |
+| P0.4 | Role vlastníka a administrátorů | **100 % (5/5)** | Uzavřeno; fyzický iPhone/PWA průchod role + revoke zařízení potvrzen |
 | P1.1 | Databázová oprávnění, RLS a RPC | **100 % (5/5)** | Uzavřeno; fáze B nasazena atomicky po TEST, CI, fyzické přejímce a dvojím souhlasu |
 | P1.2 | Administrátorské heslo, relace a zařízení | **80 % (4/5)** | Otevřeno |
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
@@ -798,7 +799,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **67 % (4/6)** | Otevřeno |
 
-**Bilance: 5/13 uzavřeno (P0.1, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 8/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 6/13 uzavřeno (P0.1, P0.4, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 7/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
@@ -842,13 +843,13 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Kompletní audit zachovaných development preview, exportů a PWA 23. 9. 2026:** Vercel eviduje 34 deploymentů; z 18 development pokusů je 13 READY, čtyři ERROR a jeden CANCELED. Všech 13 READY buildů (`3c040643`, `cd6e8b89`, `630c1d0e`, `23b14e6b`, `2e710506`, `e0ea3d0a`, `445f6d18`, `173d57fd`, `b828a5e6`, `9eced072`, `50795a7c`, `7698b442`, `f2e064f8`) bylo prověřeno přes autentizovaný Vercel CLI bez shareable parametru: hlavní HTML, `sw.js`, manifest a `export.js` vracely HTTP 200; oba vyřazené endpointy `/api/admin-users` a `/api/rotation-absence-calendar` HTTP 410; konfigurace obsahovala pouze TEST `cgshssdjgzzuprlwnabl` a nikoli produkční `bkqamcbkiwumsvelahxr`. Přímý anonymní vstup na každý preview origin skončil HTTP 302 na `vercel.com/sso-api`; query parametry nebyly logovány. Starý i současný zdroj service workeru ignoruje cizí origin a `/api/`, necachuje odpovědi `no-store`/`private` a neobsahuje produkční ID ani Supabase runtime cache. Historické Vercel API před vyřazením ověřovalo bearer token přes `/auth/v1/user`, databázovou roli a owner gate. Běžný ZIP export balí zdroj aplikace a aktuální rotaci; od 1.7.78 při selhání načtení čistého `index.html` bezpečně skončí před vytvořením ZIPu a nikdy nepoužije klon živého DOM. Úspěšně vytvořený ZIP s aktuální rotací je i nadále soukromý soubor. Owner disaster-recovery ZIP záměrně obsahuje provozní osobní data a sanitizované Auth údaje, je chráněn owner-only RPC a po stažení jej nelze vzdáleně odvolat. Stejně nelze přepsat Git historii ani prohlásit za smazané dříve stažené ZIPy či PWA cache na cizích zařízeních; žádné mazání historie nebo uživatelských dat neproběhlo. Tím jsou historické podmínky P0.1 a P0.3 doložené a oba body se zvyšují na 80 % (4/5). Dlouhodobá regrese rozsahu osobních polí je následně doložena vydaným runtime 1.7.82; otevřené zůstává pouze fyzické soukromé otevření backup ZIPu na iPhonu v P0.3.
 **Dokončení:** každý export/API má zdokumentovaný datový rozsah a pozitivní i negativní test ve skutečném prostředí.
 
-### P0.4 – Role vlastníka a administrátorů · **80 % (4/5)**
+### P0.4 – Role vlastníka a administrátorů · **100 % (5/5)**
 
 - [x] Existuje logika odvolávání autentizovaných relací a přístupové diagnostiky bez zveřejňování tokenů.
 - [x] Existuje testovací SQL matice oprávnění v rollback transakci / syntetických rolích.
 - [x] Otestovat skutečné přihlášení owner, admin a deputy s platnými podepsanými relacemi.
 - [x] Ověřit hranice rolí: cizí účet, běžný zaměstnanec, anonymní přístup a odvolaná relace nesmějí získat privilegované operace.
-- [ ] Zopakovat přihlášení, správu a odvolání zařízení na skutečném iPhonu v Safari/PWA.
+- [x] Zopakovat přihlášení, správu a odvolání zařízení na skutečném iPhonu v Safari/PWA; fyzicky potvrzeno vlastníkem na TEST verzi 27. 9. 2026.
 
 **Dokončení:** pro každou roli doložené povolené i zakázané akce, bez změny OS-only režimu zaměstnanců.
 
@@ -1102,7 +1103,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 ## Pořadí práce – žádné další vrstvení záplat
 
 1. **P1.4 dokončeno:** automatický důkazní řetězec releasu je povinnou fail-closed bránou každého dalšího funkčního releasu.
-2. **P0.1/P0.3/P0.4/P1.1/P1.2:** společný bezpečnostní balík v TEST: inventář privilegovaných RPC, `SECURITY DEFINER`, `GRANT`, RLS a veřejných zápisových cest; negativní anonymní/neplatné JWT, rozsah osobních údajů, staré klienty/exporty/cache a skutečná role matrix owner/admin/deputy/běžný uživatel/cizí účet/odvolaná relace. Podepsané JWT nikdy nelogovat.
+2. **P0.1/P0.3/P1.1/P1.2:** společný bezpečnostní balík v TEST: inventář privilegovaných RPC, `SECURITY DEFINER`, `GRANT`, RLS a veřejných zápisových cest; negativní anonymní/neplatné JWT, rozsah osobních údajů, staré klienty/exporty/cache a skutečná role matrix owner/admin/deputy/běžný uživatel/cizí účet/odvolaná relace. Podepsané JWT nikdy nelogovat.
 3. **P1.5:** pokračovat přípravou obnovy a kontrolami záloh; placený nebo nový oddělený projekt až po předchozím souhlasu vlastníka.
 4. **P2.3 znovu aktivováno pokynem vlastníka 23. 9. 2026:** opravit persistence/arbitráž jako jednu klientskou vrstvu, nemazat frontu ani uživatelská data a nevydávat stav za opravený bez fyzického iPhone testu.
 5. **P2.1/P2.2/P2.4:** měřené Safari, vizuální a provozní regrese a bezpečná diagnostika po prioritním bezpečnostním balíku.
