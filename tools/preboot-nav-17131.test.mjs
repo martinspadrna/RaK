@@ -43,8 +43,8 @@ test('real Chromium gate clicks while nav is visible but deliberately unbound',(
   assert(browser.includes('RAK_17131_VISIBLE_NAV_PREBOOT_GATE'));
   assert(browser.includes("pathname==='/app-bottom-nav.js'&&delayStartupBottomNav"));
   assert(browser.includes("__rotaceBound===true\"),false"));
-  assert(browser.includes('[17131-preboot-nav] More only worked after full nav binding'));
-  assert(browser.includes('[17131-preboot-nav] Calculators only worked after full nav binding'));
+  assert(browser.includes('[17131-preboot-nav] More must render synchronously before full nav binding'));
+  assert(browser.includes('[17131-preboot-nav] Calculators must activate synchronously before full nav binding'));
   assert(browser.includes("accountNumber:'0000',fullName:'CI Returning User'"));
 });
 
