@@ -889,3 +889,15 @@ html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenu
   max-width:50px !important;margin:0 !important;padding-left:1px !important;padding-right:1px !important;
 }
 /* END_RAK_17067_EQUAL_MO_TO_GRID */
+
+/* RAK_17132_FIRST_FRAME_NAV: render-blocking local final navigation geometry. */
+/* RAK_17132_FIRST_FRAME_NAV: same geometry before and after JS hydration. */
+  :root{--rak-local-nav-icon:clamp(32px,8.8vw,36px);--rak-local-more-icon:32px;}
+  html body nav.bottomNav>#bottomNavScroll.bottomNavScroll{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(3px,.9vw,6px)!important;width:100%!important;overflow:visible!important;}
+  html body nav.bottomNav>#bottomNavScroll.bottomNavScroll>button.bottomNavBtn{width:100%!important;min-width:0!important;max-width:none!important;min-height:clamp(46px,6.1dvh,58px)!important;margin:0!important;padding:4px 1px 3px!important;box-sizing:border-box!important;justify-self:stretch!important;}
+  html body nav.bottomNav>#bottomNavScroll.bottomNavScroll>button.bottomNavBtn:not(.bottomNavMenuBtn) .bottomNavIcon{width:var(--rak-local-nav-icon)!important;height:var(--rak-local-nav-icon)!important;min-width:var(--rak-local-nav-icon)!important;max-width:var(--rak-local-nav-icon)!important;max-height:var(--rak-local-nav-icon)!important;flex:0 0 var(--rak-local-nav-icon)!important;}
+  html body nav.bottomNav>#bottomNavScroll.bottomNavScroll>button.bottomNavMenuBtn{grid-column:4!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:1px!important;}
+  html body nav.bottomNav>#bottomNavScroll.bottomNavScroll>button.bottomNavMenuBtn .moreIcon{width:var(--rak-local-more-icon)!important;height:var(--rak-local-more-icon)!important;max-width:var(--rak-local-more-icon)!important;max-height:var(--rak-local-more-icon)!important;flex:0 0 var(--rak-local-more-icon)!important;margin:0 auto!important;transform:none!important;}
+  html body nav.bottomNav>#bottomNavScroll.bottomNavScroll>button.bottomNavMenuBtn .bottomNavLabel{font-size:8.6px!important;line-height:1!important;white-space:nowrap!important;transform:none!important;}
+  @media(max-width:390px){:root{--rak-local-more-icon:30px;}}
+  body.lightweightMode,body.lowEndDevice{--rak-local-more-icon:28px;}

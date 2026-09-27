@@ -83,11 +83,14 @@ test('local Rotation storage is network-free and remains available while sync is
 
 test('first-frame bottom navigation and safe More root are static, not post-sync geometry',()=>{
   const html=read('index.html');
+  const criticalCss=read('styles-inline-legacy.css');
   const nav=read('app-bottom-nav.js');
   const late=read('styles-overrides-legacy-late.css');
-  assert(html.includes('id="rak-local-first-nav-geometry"'));
-  assert(html.includes('data-rak-static-local-menu-root="1"'));
-  assert(html.indexOf('data-rak-static-local-menu-root="1"')<html.indexOf('<nav class="bottomNav"'));
+  assert(criticalCss.includes('RAK_17132_FIRST_FRAME_NAV'));
+  assert(criticalCss.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
+  assert(html.includes('<div id="menu" class="page appMenuPage">'));
+  assert(html.includes('data-rak-preboot-menu-view="settings"'));
+  assert(html.indexOf('<div id="menu" class="page appMenuPage">')<html.indexOf('<nav class="bottomNav"'));
   assert(late.includes('width:32px !important;'));
   const hard=nav.slice(nav.indexOf('function applyBottomNavMoreHardFix()'),nav.indexOf("window.__rakApplyBottomNavMoreHardFix = apply;"));
   assert(hard.includes('RAK_17132_STATIC_NAV_GEOMETRY'));
