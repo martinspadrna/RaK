@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const appJs = read('app.js');
 const qrJs = read('qr.js');
+const qrDataJs = read('rak-qr-data.js');
 const statsJs = read('stats.js');
 const dashboardJs = read('dashboard.js');
 const adminRotationJsV1578 = read('admin-rotation.js');
@@ -489,6 +490,11 @@ if (String(process.env.VERCEL || '').trim()) {
 assert(qrJs.includes('function getFoodMachineSettings'), 'qr.js už neobsahuje food settings očekávané dashboardem');
 assert(qrJs.includes('function getFoodSpecialDateSet'), 'qr.js už neobsahuje food kalendář očekávaný dashboardem');
 assert(qrJs.includes('const BRUS_CONFIG'), 'qr.js ztratil konfiguraci brusů');
+assert(qrJs.includes('RAK_17127_QR_PAYLOAD_LAZY'), 'qr.js nemá lazy person QR payload loader');
+assert(!qrJs.includes('const PERSON_QR_CODES = {'), 'Velká QR data se vrátila do blokujícího qr.js');
+assert(qrJs.includes("script.src = 'rak-qr-data.js'"), 'qr.js nenačítá person QR data z nového source assetu');
+assert(qrDataJs.includes('window.PERSON_QR_CODES = {'), 'rak-qr-data.js neobsahuje person QR payload');
+assert(swJs.includes("'./rak-qr-data.js'"), 'Person QR payload není warm-cacheovaný pro offline první použití');
 
 assert(appJs.includes('const RAK_MODULE_CACHE_VERSION = releaseMetadata.moduleCacheVersion;'),
   'app.js nečte technickou cache verzi z release metadat');

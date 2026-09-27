@@ -158,6 +158,7 @@ const WARM_START = [
   './lifecycle.js?v=1.7.127',
   './app-runtime-guards.js?v=1.7.127',
   './qr.js?v=1.7.127',
+  './rak-qr-data.js',
   './payroll.js?v=1.7.127',
   './dashboard.js?v=1.7.127',
   './appearance-theme.js?v=1.7.127',

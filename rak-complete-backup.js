@@ -121,6 +121,7 @@
     "package.json",
     "payroll.js",
     "qr.js",
+    "rak-qr-data.js",
     "rak-account-access.js",
     "rak-appsec-privacy-audit.js",
     "rak-audit-baseline.js",

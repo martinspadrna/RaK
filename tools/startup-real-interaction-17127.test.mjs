@@ -47,6 +47,19 @@ test('Admin click gets immediate menu-owned feedback and root does not await mac
   assert(!adminRoot.includes('await loadAdminMachineSettingsFromSupabase()'));
 });
 
+test('person QR payload no longer contributes to startup parse tail but remains offline-safe',()=>{
+  const qr=read('qr.js');
+  const data=read('rak-qr-data.js');
+  const sw=read('sw.js');
+  assert(qr.includes('RAK_17127_QR_PAYLOAD_LAZY'));
+  assert(!qr.includes('const PERSON_QR_CODES = {'));
+  assert(data.includes('window.PERSON_QR_CODES = {'));
+  assert(data.length > qr.length,'QR payload should be the large lazy half');
+  assert(sw.includes("'./rak-qr-data.js'"));
+  assert(read('export.js').includes('"rak-qr-data.js"'));
+  assert(read('rak-complete-backup.js').includes('"rak-qr-data.js"'));
+});
+
 test('capture router preloads bottom-nav features without swallowing the user click',()=>{
   const routing=read('rak-feature-routing.js');
   const bottom=read('app-bottom-nav.js');
