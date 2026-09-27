@@ -701,10 +701,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (storedProfile && typeof window.rakUserProfileApplyToRuntime === 'function') window.rakUserProfileApplyToRuntime(storedProfile);
     if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu();
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
-  // RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine is only a hint. From 1.7.132
-  // it no longer decides whether local hydration happens: every startup restores
-  // the newest verified local snapshot and prepares all ordinary local surfaces
-  // before online refresh is even eligible to start.
+  // RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine is only a hint. It no longer
+  // decides whether local hydration happens: every startup restores the newest
+  // verified local snapshot and prepares all ordinary local surfaces before
+  // online refresh is even eligible to start.
+  const rakOfflineAtBoot = !!(
+    typeof navigator !== 'undefined' &&
+    navigator.onLine === false
+  );
   const rakReturningServiceWorkerStart = !!(
     typeof navigator !== 'undefined' &&
     navigator.serviceWorker &&
