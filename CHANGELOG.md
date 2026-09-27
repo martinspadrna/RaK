@@ -1,3 +1,10 @@
+## RaK 1.7.136 (development)
+
+- **P2.4 diagnostika skutečného konfliktu:** po ručním klepnutí na synchronizační badge se ještě před flush/syncem pořídí čistě čtecí sanitizovaný snapshot stavu aplikace, fronty a lokálního úložiště. Diagnostika tak zachová původní příčinu i tehdy, když následný sync stav fronty změní.
+- Snapshot používá jen pevně povolené kategorie. Rozlišuje offline/nenačtený klient/neověřený či selhaný online stav, počet čekajících a zadržených položek, typ položky a konkrétní bezpečnou příčinu konfliktu (např. novější online stav, starší admin změna, neověřitelná lokální verze, serverem odmítnutý zápis nebo poškozená/neověřitelná fronta).
+- Do diagnostiky se nikdy nevracejí ID položek, jména, payloady, tokeny, raw chybové texty ani libovolné hodnoty ze serveru. Funkce nepoužívá síť ani zápis do storage; stávající soukromý export a explicitní conflict-recovery workflow zůstávají oddělené.
+- Runtime je 1.7.136 / cache v1.7.136 / build v1.7.136-conflict-diagnostic1. Produkční main, produkční Vercel a produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.135 (development)
 
 - **P2.4 role/JWT diagnostika:** živá kontrola podepsané TEST relace je přesunuta z těžkého Admin rendereru do lehkého role shellu ve Více. Na izolované TEST Supabase ji mohou spustit owner, admin i deputy bez načtení celé Administrace; produkční konfigurace tlačítko nezobrazuje.
