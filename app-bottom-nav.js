@@ -1,4 +1,60 @@
 // RaK 1.2 (1.155) – spodní navigace a její bezpečné metriky.
+function rakEarlyMenuLocalRootHtml() {
+  return [
+    '<div class="appMenuGrid" data-rak-early-menu-local-root="1">',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="settings">Nastavení</button>',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="about">O aplikaci</button>',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="contact">Kontakt</button>',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="bug-report">Pošli mi chybu</button>',
+    '</div>'
+  ].join('');
+}
+
+function rakPopulateEarlyMenuLocalRoot(page) {
+  if (!page) return null;
+  let body = page.querySelector('#appMenuBody, .appMenuBody');
+  if (!body) {
+    const card = document.createElement('div');
+    card.className = 'card appMenuPageCard';
+    body = document.createElement('div');
+    body.className = 'appMenuBody';
+    body.id = 'appMenuBody';
+    card.appendChild(body);
+    page.appendChild(card);
+  } else if (!body.id) {
+    body.id = 'appMenuBody';
+  }
+  body.dataset.adminView = '';
+  body.innerHTML = rakEarlyMenuLocalRootHtml();
+  if (body.dataset.rakEarlyMenuLocalBound !== '1') {
+    body.dataset.rakEarlyMenuLocalBound = '1';
+    body.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest
+        ? event.target.closest('[data-rak-early-menu-view]')
+        : null;
+      if (!button || !body.contains(button)) return;
+      event.preventDefault();
+      const requestedView = String(button.getAttribute('data-rak-early-menu-view') || 'menu').trim() || 'menu';
+      page.dataset.rakEarlyMenuRequestedView = requestedView;
+      const openRequested = () => {
+        if (typeof openAppMenu !== 'function') return false;
+        delete page.dataset.rakEarlyMenuShell;
+        const view = String(page.dataset.rakEarlyMenuRequestedView || requestedView || 'menu');
+        delete page.dataset.rakEarlyMenuRequestedView;
+        openAppMenu(view);
+        return true;
+      };
+      if (openRequested()) return;
+      if (typeof window.rakEnsureFeature === 'function') {
+        window.rakEnsureFeature('menu').then(openRequested).catch((err) => {
+          if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, 'menu');
+        });
+      }
+    });
+  }
+  return body;
+}
+
 function openRakEarlyMenuShell() {
   if (typeof toggleAppMenu === 'function') {
     toggleAppMenu();
@@ -9,29 +65,30 @@ function openRakEarlyMenuShell() {
     page = document.createElement('div');
     page.id = 'menu';
     page.className = 'page appMenuPage';
-    page.dataset.rakEarlyMenuShell = '1';
     page.innerHTML = [
       '<div class="topBar appMenuTopBar"><div class="appMenuTitle">Více</div></div>',
-      '<div class="card appMenuPageCard"><div class="appMenuBody">',
-      '<div class="appMenuCard"><div class="appMenuCardTitle">Více</div><div class="appMenuText">Načítám nabídku…</div></div>',
-      '</div></div>'
+      '<div class="card appMenuPageCard"><div class="appMenuBody" id="appMenuBody"></div></div>'
     ].join('');
     const anchor = document.querySelector('.bottomNav');
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(page, anchor);
     else document.body.appendChild(page);
   }
+  page.dataset.rakEarlyMenuShell = '1';
+  rakPopulateEarlyMenuLocalRoot(page);
   document.querySelectorAll('.page').forEach((node) => node.classList.remove('active'));
   page.classList.add('active');
   if (typeof setBottomNavActive === 'function') setBottomNavActive('menu');
   if (typeof window.rakEnsureFeature === 'function') {
     window.rakEnsureFeature('menu').then(() => {
-      if (typeof openAppMenu === 'function') {
+      if (typeof openAppMenu === 'function' && page.classList.contains('active') && page.dataset.rakEarlyMenuShell === '1') {
+        const requestedView = String(page.dataset.rakEarlyMenuRequestedView || 'menu');
+        delete page.dataset.rakEarlyMenuRequestedView;
         delete page.dataset.rakEarlyMenuShell;
-        openAppMenu('menu');
+        openAppMenu(requestedView);
       }
     }).catch((err) => {
-      const body = page.querySelector('.appMenuBody');
-      if (body) body.innerHTML = '<div class="appMenuCard"><div class="appMenuCardTitle">Více</div><div class="appMenuText">Nabídku se nepodařilo načíst.</div></div>';
+      const body = page.querySelector('#appMenuBody, .appMenuBody');
+      if (body && !body.querySelector('[data-rak-early-menu-local-root]')) body.innerHTML = rakEarlyMenuLocalRootHtml();
       if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, 'menu');
     });
   }

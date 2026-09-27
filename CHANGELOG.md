@@ -1,3 +1,12 @@
+## RaK 1.7.129 (development)
+
+- Fyzický FAIL 1.7.127 ve „Více“ je opraven u kořene: early shell už nezávisí na tom, zda stránka `#menu` právě vznikla. I když už existuje s prázdným body, okamžitě se naplní lokální nabídkou.
+- Běžné položky **Nastavení / O aplikaci / Kontakt / Pošli mi chybu** jsou viditelné hned po klepnutí na Více, ještě před synchronizací, `startupReady` i secure role restore.
+- Early shell neobsahuje Administraci ani reporty. Privilegované odkazy se dál přidají až přes plný `app-menu.js` po ověření secure role, takže role gate z 1.7.126 zůstává zachovaný.
+- Klepnutí na běžnou early položku lazy načte pouze lokální menu feature a otevře požadovanou stránku; nečeká na sync feature ani Supabase.
+- Přidán regresní gate 1.7.129 pro existující prázdný `#menu`, okamžitou lokální nabídku a nepřítomnost privilegovaných položek v early shellu.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.128 (development)
 
 - Generátor rozpisu a Report dovolených/absencí už nepoužívají samostatný Supabase secret pro kalendář. Načítají stejné veřejné Google Calendar zdroje, které jsou nastavené v Administraci → Kalendáře.
