@@ -47,6 +47,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - **Release gate 1.7.134:** Actions run `36336539544` je kompletně SUCCESS (verify + release-preview). Performance parity bez změny limitů PASS: current FCP P50/P95 **300/376 ms** vs immutable 1.7.69 **296/328 ms**, povolený P95 **403 ms**. Stable TEST alias ukazuje na READY `dpl_4ueCtMryKssCeEkcVxEjv4fh6XZH`, runtime SHA `ac4f00f32694db1b8449f75deeb0570d9823754f`; rollback je `dpl_5VTgKDJkcsU3KKP5rNSMsSEpcAVV`. `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, produkční Vercel i produkční Supabase zůstaly beze změny.
 - **Fyzický PASS 1.7.134:** vlastník po retestu na iPhonu odpověděl **„ok“**. Tím je potvrzeno, že **Více → Administrace** se po čerstvém spuštění otevírá bez znatelného čekání na zelenou Synchronizaci a běžné local-first UI zůstává funkční. Úkol pomalého prvního otevření Administrace je uzavřen.
 - **Fyzický PASS P0.4 – správa rolí a odvolání admin zařízení (27. 9. 2026):** vlastník na TEST verzi iPhone/PWA provedl změnu role správce a následné odvolání přihlášeného admin zařízení a potvrdil výsledek slovy **„je to ok“**. Nová role se správně propsala do privilegovaných položek a po odvolání zařízení nezůstal starý privilegovaný přístup použitelný bez nového ověření. P0.4 je tím uzavřeno na **100 % (5/5)**; runtime se tímto potvrzením nemění.
+- **Fyzický PASS P0.3 – soukromé stažení a otevření owner backup ZIPu (27. 9. 2026):** vlastník na TEST verzi iPhonu stáhl úplnou owner zálohu do soukromých Souborech/Stažených, ZIP skutečně rozbalil, ověřil neprázdný obsah a otevřel soubor uvnitř; výsledek potvrdil **„ok“**. P0.3 je tím uzavřeno na **100 % (5/5)**. Runtime se tímto potvrzením nemění.
 - **Fyzický PASS 1.7.132 – local-first startup (27. 9. 2026):** vlastník potvrdil „ok“. Home, Rotace/Rozpisy, Kalkulačky i Více jsou dostupné bez čekání na zelenou Synchronizaci, Více má od začátku finální geometrii a dokončení background syncu už nepřepíná uživatelem otevřenou stránku zpět na Home. Ověřený runtime SHA je `21e93b20535cd4bf29f78ddc402bb9e8b13b8a5a`; Actions run `36317772613` je SUCCESS a stable TEST alias ukazuje na READY `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Produkční main/Vercel/Supabase tím nebyly změněny.
 - **Nový fyzický FAIL po PASS 1.7.132 – pouze Rotace → Více:** při přímém přechodu z Rotace na Více zůstává nad menu viditelný panel se jmény; ostatní kombinace přechodů jsou podle vlastníka v pořádku. Kořen je v local-first `openRakEarlyMenuShell()`: tato rychlá cesta úmyslně obchází `showPage()`, ale tím obcházela i `setRotaceNamesDockPortalActive(false,...)`, takže `#namesGrid` zůstával portovaný jako body-fixed.
 - **Fyzický PASS 1.7.133 – Rotace → Více (27. 9. 2026):** vlastník po testu odpověděl „ok“.  rychlá cesta Více před změnou aktivní stránky explicitně zruší Rotace names-dock portal a odstraní přechodové Rotace třídy. Reálný Chromium gate `RAK_17133_ROTACE_TO_MORE_PORTAL_GATE` reprodukuje skutečný body-fixed dock a po kliknutí Rotace → Více ověřuje, že `namesGrid` je zpět v `rotaceNamesPanel`, portal atribut i dock třídy zmizely a Rotace už není aktivní; v finálním runu PASS. Runtime SHA `f04c7d23a6d84d8b786f762108eb6bc7333a411c`, Actions run `36321513263` je kompletně SUCCESS (verify + release-preview). Stable TEST alias ukazuje na READY `dpl_5VTgKDJkcsU3KKP5rNSMsSEpcAVV`, rollback je `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Current isolated-build evidence ID `10931903767`, CI proof ID `10931738979`, release evidence ID `10932498755`. Hard PWA budget PASS a 20kolová FCP parity PASS bez změny limitů: current FCP P50/P95 `292/360 ms` vs immutable 1.7.69 `300/312 ms`, povolený P95 `387 ms`. Experiment s double-rAF byl po fail-closed pádu opakovaného PWA benchmarku zavržen a runtime zůstal na předchozím single-rAF chování. Produkční `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, produkční Vercel i produkční Supabase zůstaly beze změny.
@@ -787,7 +788,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 |---|---|---:|---|
 | P0.1 | Účty a data pracovníků | **100 % (5/5)** | Uzavřeno; dlouhodobé privacy/export regrese doložené na vydaném runtime |
 | P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno **pouze rozhodnutím o přijatém riziku** |
-| P0.3 | API, exporty a historické klienty | **80 % (4/5)** | Otevřeno |
+| P0.3 | API, exporty a historické klienty | **100 % (5/5)** | Uzavřeno; fyzické soukromé stažení, rozbalení a otevření owner backup ZIPu na iPhonu potvrzeno |
 | P0.4 | Role vlastníka a administrátorů | **100 % (5/5)** | Uzavřeno; fyzický iPhone/PWA průchod role + revoke zařízení potvrzen |
 | P1.1 | Databázová oprávnění, RLS a RPC | **100 % (5/5)** | Uzavřeno; fáze B nasazena atomicky po TEST, CI, fyzické přejímce a dvojím souhlasu |
 | P1.2 | Administrátorské heslo, relace a zařízení | **80 % (4/5)** | Otevřeno |
@@ -799,7 +800,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **67 % (4/6)** | Otevřeno |
 
-**Bilance: 6/13 uzavřeno (P0.1, P0.4, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 7/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 7/13 uzavřeno (P0.1, P0.3, P0.4, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 6/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
@@ -831,12 +832,12 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** rozhodnutí uzavřeno, **ne** tvrzení, že jména a absence jsou soukromé. Nový nález širšího úniku patří zpět do P0.1/P0.3/P1.1 a může vyžadovat nové rozhodnutí.
 
-### P0.3 – API, exporty a staré klienty · **80 % (4/5)**
+### P0.3 – API, exporty a staré klienty · **100 % (5/5)**
 
 - [x] Omezené login/legacy admin API, allowlist reportů a testovací HTTP sondy anonymního a neplatného JWT (dosavadní sada 18 kontrol).
 - [x] Kontroly formátu ZIP, manifestu, kontrolních součtů/CRC a povolených typů souborů existují.
 - [x] Reálně vyzkoušet owner/admin/deputy JWT, odmítnutí cizího účtu a přístup k privilegovaným exportům/API.
-- [ ] Ověřit soukromé stažení a otevření zálohy na skutečném iPhonu, bez úniku do veřejných umístění.
+- [x] Ověřit soukromé stažení a otevření zálohy na skutečném iPhonu, bez úniku do veřejných umístění; fyzicky potvrzeno vlastníkem 27. 9. 2026 v iOS Souborech/Stažených včetně rozbalení ZIPu a otevření souboru uvnitř.
 - [x] Prověřit staré PWA/cache, chování chráněné Vercel preview URL a API/exporty ze starších buildů; regresní testy nesmějí obejít autorizaci.
 
 
@@ -1103,7 +1104,7 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 ## Pořadí práce – žádné další vrstvení záplat
 
 1. **P1.4 dokončeno:** automatický důkazní řetězec releasu je povinnou fail-closed bránou každého dalšího funkčního releasu.
-2. **P0.1/P0.3/P1.1/P1.2:** společný bezpečnostní balík v TEST: inventář privilegovaných RPC, `SECURITY DEFINER`, `GRANT`, RLS a veřejných zápisových cest; negativní anonymní/neplatné JWT, rozsah osobních údajů, staré klienty/exporty/cache a skutečná role matrix owner/admin/deputy/běžný uživatel/cizí účet/odvolaná relace. Podepsané JWT nikdy nelogovat.
+2. **P0.1/P1.1/P1.2:** společný bezpečnostní balík v TEST: inventář privilegovaných RPC, `SECURITY DEFINER`, `GRANT`, RLS a veřejných zápisových cest; negativní anonymní/neplatné JWT, rozsah osobních údajů, staré klienty/exporty/cache a skutečná role matrix owner/admin/deputy/běžný uživatel/cizí účet/odvolaná relace. Podepsané JWT nikdy nelogovat.
 3. **P1.5:** pokračovat přípravou obnovy a kontrolami záloh; placený nebo nový oddělený projekt až po předchozím souhlasu vlastníka.
 4. **P2.3 znovu aktivováno pokynem vlastníka 23. 9. 2026:** opravit persistence/arbitráž jako jednu klientskou vrstvu, nemazat frontu ani uživatelská data a nevydávat stav za opravený bez fyzického iPhone testu.
 5. **P2.1/P2.2/P2.4:** měřené Safari, vizuální a provozní regrese a bezpečná diagnostika po prioritním bezpečnostním balíku.
