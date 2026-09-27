@@ -6,6 +6,7 @@
 - Běžné **Více** se warmuje na pozadí hned po lehkých auth helperch. Ověřená role zároveň začíná na pozadí warmovat Admin.
 - Globální feature router už **nesmí spolknout první klik spodní navigace**. `pointerdown` dál přednačítá lazy feature, ale vlastní klik okamžitě naviguje; Rotace se po dokončení lazy loadu sama dorenderuje.
 - **Více** má bezpečný lokální early shell „Načítám nabídku…“, takže první klepnutí reaguje okamžitě i tehdy, když `app-menu.js` ještě není načtený.
+- Critical auth/security balík se spouští paralelně s interaction foundation místo až po něm; před `startupReady` se už zároveň nespouští konkurenční warmup menu.
 - Klik na **Administrace** už nezadržuje globální feature router. Menu okamžitě ukáže stav „Načítám administraci…“, bezpečně dokončí potřebný admin feature a kořen Administrace vykreslí bez čekání na `loadMachineSettings`; online nastavení se obnoví na pozadí.
 - Produkční větev, produkční Vercel ani produkční Supabase se nemění.
 

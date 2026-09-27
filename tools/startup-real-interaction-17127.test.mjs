@@ -20,11 +20,13 @@ test('real interaction foundation binds before auth/dashboard startup',()=>{
   assert(nav>=0&&appTag>nav,'bottom nav must exist before app bootstrap executes');
   assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'),'Supabase SDK must not parser-block startup');
   const foundation=app.indexOf('RAK_17127_INTERACTION_FOUNDATION');
+  const criticalStart=app.indexOf('const criticalLoadPromise = (async () => {');
   const foundationLoad=app.indexOf('for (const file of interactionCoreFiles) await loadScript(file);');
   const bind=app.indexOf("markRakFirstInteractive('startup-shell-bound')",foundationLoad);
-  const critical=app.indexOf('for (const file of criticalFiles) await loadScript(file);');
-  const startup=app.indexOf('await loadFiles(startupFiles);',critical);
-  assert(foundation>=0&&foundationLoad>foundation&&bind>foundationLoad&&critical>bind&&startup>critical);
+  const criticalAwait=app.indexOf('await criticalLoadPromise;',bind);
+  const startup=app.indexOf('await loadFiles(startupFiles);',criticalAwait);
+  assert(foundation>=0&&criticalStart>foundation&&foundationLoad>criticalStart&&bind>foundationLoad&&criticalAwait>bind&&startup>criticalAwait);
+  assert(!app.includes("void ensureFeature('menu').catch((err) => console.warn('Early menu warmup failed', err))"));
 });
 
 test('Supabase SDK remains local and integrity-pinned but loads only on demand',()=>{

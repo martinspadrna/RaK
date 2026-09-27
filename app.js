@@ -643,6 +643,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }
   } catch (err) {}
 
+  // RAK_17127_PARALLEL_FOUNDATION: critical auth/security loading begins
+  // immediately and runs in parallel with the local interaction foundation.
+  // This keeps the shell clickable early without pushing startupReady backwards.
+  const criticalLoadPromise = (async () => {
+    for (const file of criticalFiles) await loadScript(file);
+  })();
+
   // Core/UI are ordered because ui.js reads core constants. The rest of the
   // interaction shell can load in parallel and is fully local/cacheable.
   for (const file of interactionCoreFiles) await loadScript(file);
@@ -651,7 +658,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Earliest delegated action binding failed', err); }
   try { markRakFirstInteractive('startup-shell-bound'); } catch (err) {}
 
-  for (const file of criticalFiles) await loadScript(file);
+  await criticalLoadPromise;
 
   try { if (typeof window.rakUserProfileBootstrap === 'function') window.rakUserProfileBootstrap(); } catch (err) { console.warn('RaK user profile bootstrap failed', err); }
 
@@ -667,10 +674,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
   }
 
-  // Menu is local UI. Warm it as soon as auth helpers exist, while the heavier
-  // dashboard/startup modules continue independently. Never await this warmup.
-  void ensureFeature('menu').catch((err) => console.warn('Early menu warmup failed', err));
-
+  // Do not compete with startupReady by warming menu here. The bottom-nav early
+  // shell already responds immediately; normal background warmup starts post-ready.
   await loadFiles(startupFiles);
 
   // RAK_17125_EARLY_INTERACTION remains idempotently enforced here as well.
