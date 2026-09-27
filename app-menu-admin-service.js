@@ -1242,23 +1242,6 @@ function downloadAdminHandoverPackageText() {
   if (status) status.textContent = 'Balíček předání stažen jako textový soubor.';
 }
 
-function buildAdminMenuSectionHtml(title, detail, actions, options = {}) {
-  const safeActions = (Array.isArray(actions) ? actions : []).filter((item) => item && item.action && item.label);
-  if (!safeActions.length) return '';
-  const openAttr = options.open === false ? '' : ' open';
-  return [
-    '<details class="adminMenuSection"' + openAttr + '>',
-    '  <summary>',
-    '    <span>' + escapeHtml(title || '') + '</span>',
-    detail ? '    <small>' + escapeHtml(detail) + '</small>' : '',
-    '  </summary>',
-    '  <div class="adminMenuActionGrid">',
-    safeActions.map((item) => '<button type="button" class="appMenuAction" data-admin-action="' + escapeHtml(item.action) + '">' + escapeHtml(item.label) + '</button>').join(''),
-    '  </div>',
-    '</details>'
-  ].join('');
-}
-
 function buildAdminHandoverChecklistHtml(monthKey) {
   const rows = Array.isArray(app && app.machineSettingsRows) ? app.machineSettingsRows : [];
   const month = app && app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null;

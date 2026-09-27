@@ -125,19 +125,64 @@ function appMenuShouldOfferRoleRefresh() {
 }
 
 let appMenuRoleRestorePromise = null;
+let appMenuAdminShellWarmPromise = null;
 let appMenuAdminWarmPromise = null;
+let appMenuAdminToolsWarmScheduled = false;
+
+function appMenuCanOpenAdminNow() {
+  return !!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin());
+}
+
+function appMenuWarmAdminShellFeature() {
+  if (!appMenuCanOpenAdminNow() || typeof window === 'undefined' || typeof window.rakEnsureFeature !== 'function') return null;
+  if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin-shell')) return Promise.resolve('admin-shell');
+  if (appMenuAdminShellWarmPromise) return appMenuAdminShellWarmPromise;
+  const pending = window.rakEnsureFeature('admin-shell').catch((err) => {
+    console.warn('Admin shell background warmup failed', err);
+    return false;
+  });
+  appMenuAdminShellWarmPromise = pending;
+  pending.finally(() => { if (appMenuAdminShellWarmPromise === pending) appMenuAdminShellWarmPromise = null; });
+  return pending;
+}
 
 function appMenuWarmAdminFeature() {
-  if (!appMenuShouldShowAdminEntry() || typeof window === 'undefined' || typeof window.rakEnsureFeature !== 'function') return null;
+  if (!appMenuCanOpenAdminNow() || typeof window === 'undefined' || typeof window.rakEnsureFeature !== 'function') return null;
   if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin')) return Promise.resolve('admin');
   if (appMenuAdminWarmPromise) return appMenuAdminWarmPromise;
   const pending = window.rakEnsureFeature('admin').catch((err) => {
-    console.warn('Admin background warmup failed', err);
+    console.warn('Admin tools background warmup failed', err);
     return false;
   });
   appMenuAdminWarmPromise = pending;
   pending.finally(() => { if (appMenuAdminWarmPromise === pending) appMenuAdminWarmPromise = null; });
   return pending;
+}
+
+function appMenuScheduleAdminToolsWarmup() {
+  if (!appMenuCanOpenAdminNow() || appMenuAdminToolsWarmScheduled) return;
+  appMenuAdminToolsWarmScheduled = true;
+  const run = () => {
+    appMenuAdminToolsWarmScheduled = false;
+    const pending = appMenuWarmAdminFeature();
+    if (!pending || typeof pending.then !== 'function') return;
+    pending.then(() => {
+      if (typeof loadAdminMachineSettingsFromSupabase === 'function') {
+        void loadAdminMachineSettingsFromSupabase().catch((err) => console.warn('Admin background settings refresh failed', err));
+      }
+    }).catch(() => {});
+  };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1600 });
+  else setTimeout(run, 500);
+}
+
+async function appMenuEnsureAdminTools(body) {
+  if (!appMenuCanOpenAdminNow()) return false;
+  if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin')) return true;
+  const status = body && typeof body.querySelector === 'function' ? body.querySelector('#adminOnlineSaveStatus') : null;
+  if (status) status.textContent = 'Načítám vybranou administrační sekci…';
+  const loaded = await appMenuWarmAdminFeature();
+  return !!(loaded && appMenuCanOpenAdminNow());
 }
 
 function appMenuRenderRoot(body) {
@@ -167,7 +212,10 @@ function appMenuRenderRoot(body) {
     '</div>',
     roleSection
   ].join('');
-  if (verifiedRole) void appMenuWarmAdminFeature();
+  if (verifiedRole && !deputy) {
+    void appMenuWarmAdminShellFeature();
+    appMenuScheduleAdminToolsWarmup();
+  }
 }
 
 function appMenuRerenderVisibleRoot() {
@@ -210,7 +258,7 @@ async function appMenuRefreshRoleAccess(reason) {
 }
 
 async function appMenuEnsureAdminAccessFromMenu() {
-  const canOpen = () => !!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport());
+  const canOpen = () => appMenuCanOpenAdminNow();
   if (canOpen()) return true;
   const activeId = typeof rakAdminGetActiveAccountId === 'function' ? String(rakAdminGetActiveAccountId() || '').trim() : '';
   if (!activeId) return false;
@@ -380,6 +428,14 @@ function bindAppMenuHandlers(body) {
         return;
       }
 
+      const openingAdminTools = (adminAction && /^open-/.test(String(adminAction)))
+        || menuAction === 'admin-machines'
+        || menuAction === 'admin-rotation';
+      if (openingAdminTools && !(await appMenuEnsureAdminTools(body))) {
+        openAppMenu('menu');
+        return;
+      }
+
       if (target.hasAttribute('data-admin-selected-remove')) {
         event.preventDefault();
         adminRemoveSelectedRotationName();
@@ -504,15 +560,15 @@ function bindAppMenuHandlers(body) {
           openAppMenu('menu');
           return;
         }
-        if (!(typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin'))) {
+        if (!(typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin-shell'))) {
           body.innerHTML = [
             '<div class="appMenuCard appMenuAdminCard">',
             '  <div class="appMenuCardTitle">Administrace</div>',
             '  <div class="appMenuText">Načítám administraci…</div>',
             '</div>'
           ].join('');
-          const loaded = await appMenuWarmAdminFeature();
-          if (!loaded || !(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
+          const loaded = await appMenuWarmAdminShellFeature();
+          if (!loaded || !appMenuCanOpenAdminNow()) {
             openAppMenu('menu');
             return;
           }
@@ -2045,7 +2101,9 @@ function openAppMenu(view) {
       // Machine settings refresh in background; individual data editors keep their
       // own explicit online load before editing/saving.
       renderAdminMenuBody(body, 'home');
-      void loadAdminMachineSettingsFromSupabase().catch((err) => console.warn('Admin background settings refresh failed', err));
+      // RAK_17134_ADMIN_ROOT_FIRST: the secure local root is already complete.
+      // Heavy tools + settings refresh are idle work and may not block first open.
+      appMenuScheduleAdminToolsWarmup();
     } else if (v === 'admin-machines') {
       void (async () => {
         try {

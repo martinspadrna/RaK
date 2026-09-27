@@ -40,13 +40,17 @@ test('Supabase SDK remains local and integrity-pinned but loads only on demand',
   assert(read('sw.js').includes("'./supabase-vendor-2.110.7.js'"));
 });
 
-test('Admin click gets immediate menu-owned feedback and root does not await machine settings',()=>{
+test('Admin click gets immediate menu-owned feedback and secure root is split from heavy tools',()=>{
   assert(!routing.includes("source.closest('#appMenuBody [data-menu-action=\"admin\"]')"));
   assert(menu.includes('Načítám administraci…'));
-  assert(menu.includes('if (verifiedRole) void appMenuWarmAdminFeature();'));
+  assert(menu.includes('void appMenuWarmAdminShellFeature();'));
+  const click=menu.slice(menu.indexOf("if (menuAction === 'admin')"),menu.indexOf("if (menuAction === 'admin-machines')"));
+  assert(click.includes("window.rakIsFeatureReady('admin-shell')"));
+  assert(click.includes('await appMenuWarmAdminShellFeature()'));
+  assert(!click.includes('await appMenuWarmAdminFeature()'));
   const adminRoot=menu.slice(menu.indexOf("} else if (v === 'admin') {"),menu.indexOf("} else if (v === 'admin-machines')"));
   assert(adminRoot.indexOf("renderAdminMenuBody(body, 'home');")>=0);
-  assert(adminRoot.indexOf("renderAdminMenuBody(body, 'home');") < adminRoot.indexOf('loadAdminMachineSettingsFromSupabase()'));
+  assert(adminRoot.includes('appMenuScheduleAdminToolsWarmup();'));
   assert(!adminRoot.includes('await loadAdminMachineSettingsFromSupabase()'));
 });
 

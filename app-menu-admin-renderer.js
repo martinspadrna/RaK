@@ -1,6 +1,38 @@
 // RaK – renderer administračních stránek.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-menu-admin-renderer.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
+function buildAdminMenuSectionHtml(title, detail, actions, options = {}) {
+  const safeActions = (Array.isArray(actions) ? actions : []).filter((item) => item && item.action && item.label);
+  if (!safeActions.length) return '';
+  const openAttr = options.open === false ? '' : ' open';
+  return [
+    '<details class="adminMenuSection"' + openAttr + '>',
+    '  <summary>',
+    '    <span>' + escapeHtml(title || '') + '</span>',
+    detail ? '    <small>' + escapeHtml(detail) + '</small>' : '',
+    '  </summary>',
+    '  <div class="adminMenuActionGrid">',
+    safeActions.map((item) => '<button type="button" class="appMenuAction" data-admin-action="' + escapeHtml(item.action) + '">' + escapeHtml(item.label) + '</button>').join(''),
+    '  </div>',
+    '</details>'
+  ].join('');
+}
+
+function bindAdminHomeSections(body) {
+  const groups = Array.from(body && typeof body.querySelectorAll === 'function' ? body.querySelectorAll('.adminMenuSection') : []);
+  const openGroup = typeof app !== 'undefined' && app ? String(app.adminCompactOpenGroup || '') : '';
+  groups.forEach((group, index) => {
+    group.open = openGroup === String(index);
+    const summary = group.querySelector('summary');
+    if (!summary) return;
+    summary.addEventListener('click', () => {
+      const next = group.open ? '' : String(index);
+      if (typeof app !== 'undefined' && app) app.adminCompactOpenGroup = next;
+      if (next) groups.forEach(other => { if (other !== group) other.open = false; });
+    });
+  });
+}
+
 function renderAdminMenuBody(body, section) {
   // RAK_REPORT_ONLY_DEPUTY_17019
   if (!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
@@ -8,10 +40,8 @@ function renderAdminMenuBody(body, section) {
     return;
   }
   const mode = String(section || 'home').trim() || 'home';
-  const months = getAdminRotationMonthKeys();
-  const monthKey = getAdminSelectedMonthKey();
   body.dataset.adminView = mode;
-  try { adminSetRotationViewportLock(mode === 'rotation'); } catch (err) {}
+  try { if (typeof adminSetRotationViewportLock === 'function') adminSetRotationViewportLock(mode === 'rotation'); } catch (err) {}
   const page = document.getElementById('menu');
   if (page) page.dataset.adminView = mode;
 
@@ -75,6 +105,18 @@ function renderAdminMenuBody(body, section) {
     '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
     '</div>'
   ].join('');
+
+  // RAK_17134_ADMIN_HOME_SHORT_CIRCUIT: the first Admin paint needs only this
+  // local navigation shell. Do not build rotation tables, exports or settings
+  // subpages until the user actually asks for one.
+  if (mode === 'home') {
+    body.innerHTML = homeHtml;
+    bindAdminHomeSections(body);
+    return;
+  }
+
+  const months = getAdminRotationMonthKeys();
+  const monthKey = getAdminSelectedMonthKey();
 
   const calendarNotePrefs = typeof getRakCalendarNotesSettings === 'function' ? getRakCalendarNotesSettings() : {};
   const calendarNoteButtons = (typeof RAK_CALENDAR_NOTE_DEFS !== 'undefined' ? RAK_CALENDAR_NOTE_DEFS : [])
@@ -578,21 +620,6 @@ function renderAdminMenuBody(body, section) {
     body.innerHTML = serviceHtml;
   } else {
     body.innerHTML = homeHtml;
-  }
-
-  if (mode === 'home') {
-    // Keep the last category open when returning from a subpage, but show one at a time.
-    const groups = Array.from(body.querySelectorAll('.adminMenuSection'));
-    groups.forEach((group, index) => {
-      group.open = adminCompactOpenGroup === String(index);
-      const summary = group.querySelector('summary');
-      if (!summary) return;
-      summary.addEventListener('click', () => {
-        const next = group.open ? '' : String(index);
-        if (typeof app !== 'undefined' && app) app.adminCompactOpenGroup = next;
-        if (next) groups.forEach(other => { if (other !== group) other.open = false; });
-      });
-    });
   }
 
   if (mode === 'rotation') {

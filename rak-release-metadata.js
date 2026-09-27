@@ -1,10 +1,10 @@
 (function installRakReleaseMetadata(root) {
   const metadata = Object.freeze({
-    displayVersion: '1.7.133',
-    technicalVersion: '1.7.133',
-    moduleCacheVersion: '1.7.133',
-    cacheVersion: 'v1.7.133',
-    buildId: 'v1.7.133-rotace-menu-cleanup1'
+    displayVersion: '1.7.134',
+    technicalVersion: '1.7.134',
+    moduleCacheVersion: '1.7.134',
+    cacheVersion: 'v1.7.134',
+    buildId: 'v1.7.134-admin-first-open1'
   });
   if (root) root.RAK_RELEASE_METADATA = metadata;
   if (typeof module !== 'undefined' && module.exports) module.exports = metadata;

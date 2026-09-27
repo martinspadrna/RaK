@@ -192,6 +192,23 @@ try{
  const localCore=await check("(()=>({localReady:!!window.__rakBootV2LocalReady,rotation:window.rakIsFeatureReady?.('rotation')===true,calculators:window.rakIsFeatureReady?.('calculators')===true,menu:window.rakIsFeatureReady?.('menu')===true}))()");
  assert.deepEqual(localCore,{localReady:true,rotation:true,calculators:true,menu:true},'[17132-local-first] ordinary local surfaces were not complete before remote sync');
 
+ // RAK_17134_ADMIN_FIRST_OPEN_GATE: simulate an already verified admin role while
+ // startup sync is still deliberately held. The root must paint from admin-shell
+ // without waiting for sync or the heavy admin tools.
+ await check("(()=>{app.adminAuthVersion=2;app.adminUnlocked=true;app.adminAccountId='0000';app.adminRole='admin';app.adminIsOwner=false;app.activeAccountId='0000';window.dispatchEvent(new Event('rak-admin-access-changed'));if(typeof openAppMenu==='function')openAppMenu('menu');return true;})()");
+ await until("!!document.querySelector('#appMenuBody [data-menu-action=\\\"admin\\\"]')",1800);
+ assert.equal(await check("window.rakIsFeatureReady?.('sync')===true"),false,'[17134-admin-first-open] sync unexpectedly finished before probe');
+ const adminStarted=Date.now();
+ const adminIssued=await check("(()=>{const b=document.querySelector('#appMenuBody [data-menu-action=\\\"admin\\\"]');if(!b)return false;b.click();return true;})()");
+ assert.equal(adminIssued,true,'[17134-admin-first-open] verified Admin entry missing');
+ await until("(()=>{const b=document.getElementById('appMenuBody');return b?.dataset.adminView==='home'&&(b.textContent||'').includes('Rychlý přístup');})()",900);
+ const adminRootMs=Date.now()-adminStarted;
+ const adminRootState=await check("(()=>({shell:window.rakIsFeatureReady?.('admin-shell')===true,full:window.rakIsFeatureReady?.('admin')===true,sync:window.rakIsFeatureReady?.('sync')===true,view:document.getElementById('appMenuBody')?.dataset.adminView||''}))()");
+ assert.deepEqual(adminRootState,{shell:true,full:false,sync:false,view:'home'},'[17134-admin-first-open] Admin root still waited for full tools/sync');
+ assert(adminRootMs<=900,'[17134-admin-first-open] secure local Admin root took '+adminRootMs+'ms');
+ console.log('[17134-admin-first-open] PASS secure Admin root opened in '+adminRootMs+'ms while sync/full admin stayed pending');
+ await check("(()=>{if(typeof openAppMenu==='function')openAppMenu('menu');return true;})()");
+
  // RAK_17133_ROTACE_TO_MORE_PORTAL_GATE: reproduce the physical iPhone bug.
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"rotace\"]')?.click();return true;})()");
  await until("document.querySelector('#rotace')?.classList.contains('active')===true && document.querySelector('#namesGrid')?.getAttribute('data-rak-dock-portal')==='body-fixed'",2500);

@@ -387,15 +387,31 @@
 
   let warmupQueued = false;
   let warmupStarted = false;
+
+  function canWarmVerifiedAdminCode() {
+    return typeof window.rakEnsureFeature === 'function'
+      && typeof rakAdminCanOpenAdmin === 'function'
+      && rakAdminCanOpenAdmin();
+  }
+
   function startBackgroundWarmup() {
-    if (warmupStarted || typeof window.rakEnsureFeature !== 'function') return;
+    if (warmupStarted || !canWarmVerifiedAdminCode()) return;
     warmupStarted = true;
-    // RAK_17132_SINGLE_STARTUP_OWNER: rotation/calculators/menu are now local
-    // startup core and remote sync is owned by app.js. This router may only warm
-    // privileged admin code after startup; loading it still does not grant access.
-    scheduleIdle(() => {
-      ensureFeatureWithAuthOrder('admin').catch((err) => console.warn('Boot v2 admin warmup failed', err));
-    }, 3600, 2400);
+    // RAK_17134_ROLE_DRIVEN_ADMIN_WARMUP: only an already verified owner/admin
+    // may spend startup idle time on privileged Admin code. The tiny shell is
+    // local; full tools preserve their sync dependency without blocking the root.
+    window.rakEnsureFeature('admin-shell')
+      .then(() => {
+        scheduleIdle(() => {
+          ensureFeatureWithAuthOrder('admin').catch((err) => console.warn('Boot v2 admin tools warmup failed', err));
+        }, 2200, 900);
+      })
+      .catch((err) => console.warn('Boot v2 admin shell warmup failed', err));
+  }
+
+  function scheduleVerifiedAdminWarmup() {
+    if (!canWarmVerifiedAdminCode() || warmupStarted) return;
+    scheduleIdle(startBackgroundWarmup, 700, 180);
   }
 
   function queueBackgroundWarmup() {
@@ -405,9 +421,10 @@
       return;
     }
     warmupQueued = true;
-    scheduleIdle(startBackgroundWarmup, 900, 350);
+    scheduleVerifiedAdminWarmup();
   }
   setTimeout(queueBackgroundWarmup, 0);
+  window.addEventListener('rak-admin-access-changed', scheduleVerifiedAdminWarmup);
 
   window.addEventListener('rak:feature-ready', (event) => {
     const feature = String(event && event.detail && event.detail.feature || '');

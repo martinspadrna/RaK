@@ -152,6 +152,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-shift-report-share.js"
   ];
 
+  // RAK_17134_ADMIN_SHELL_SPLIT: the first secure Admin view is a tiny local
+  // renderer. Heavy editors/exporters remain in the full admin feature.
+  const adminShellFeatureFiles = [
+    "app-menu-admin-renderer.js"
+  ];
+
   const adminFeatureFiles = [
     "admin-rotation-editor.js",
     "admin-rotation-overtime.js",
@@ -170,7 +176,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-menu-admin-export.js",
     "app-menu-admin-storage.js",
     "app-menu-admin-service.js",
-    "app-menu-admin-renderer.js",
     "export.js",
     "app-excel-import.js",
     "rak-lazy-external-libs.js",
@@ -273,7 +278,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     // before those consumers exist, especially on a cold offline iOS start.
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, dependencies: Object.freeze([]) }),
-    admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["menu", "sync"]) })
+    "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
+    admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
   });
 
   const modulePromises = new Map();
