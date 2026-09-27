@@ -148,6 +148,8 @@ try{
  delayStartupBottomNav=false;
  console.log('[17131-preboot-nav] PASS visible nav accepted More in '+prebootMoreMs+'ms and Calculators in '+prebootCalcMs+'ms before full JS binding');
 
+ // RAK_17127_REAL_TAP_GATE: historical delayed-start gate remains active,
+ // now after the stricter visible-but-unbound 1.7.131 probe.
  // Full interaction shell must still take over and preserve the existing root-cause gates.
  await until("document.querySelector('.bottomNav')?.__rotaceBound===true",10000);
  assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] startup finished before delayed interaction probe');
