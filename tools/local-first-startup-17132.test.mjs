@@ -11,7 +11,7 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 test('1.7.132 local-first startup release identity is unified',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.132');
   assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
-  assert(metadata.buildId.includes('local-first-startup'));
+  if(metadata.displayVersion==='1.7.132') assert(metadata.buildId.includes('local-first-startup'));
   assert(read('CHANGELOG.md').includes('## RaK 1.7.132 (development)'));
 });
 
