@@ -46,7 +46,11 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - **Bezpečnost 1.7.131:** preboot Více smí vykreslit pouze **Nastavení / O aplikaci / Kontakt / Pošli mi chybu**. Administrace a reporty v něm nejsou; privilegované položky zůstávají secure role-gated. Preboot handler je lokální a neprovádí síťový fetch ani sync.
 - **Reálný Chromium důkaz 1.7.131:** test záměrně drží `app-bottom-nav.js` nenačtený a kliká na již viditelnou lištu ve stavu `__rotaceBound=false`. Gate PASS: **Více i Kalkulačky reagují synchronně ještě před plným JS bindingem**. Navazující 1.7.130 gate PASS: Více **38 ms** před sync/startupReady bez legacy toggle; 1.7.127 delayed-tap gate PASS: Kalkulačky **64 ms** před startupReady. PWA benchmark PASS a performance parity PASS bez oslabení limitů: startupReady P50/P95 **323/367 ms** vs. immutable 1.7.69 **439/521 ms**; FCP **320/388 ms** vs. **332/356 ms**.
 - **CI dluh z 1.7.130 je uzavřen:** current isolated-build upload nyní obsahuje `include-hidden-files: true` a `if-no-files-found: error`; v Actions #447 je skutečný current artefakt `rak-170131-isolated-build-8120…` ID `10923980114`, velikost 19 461 B.
-- **Fyzická přejímka 1.7.131 čeká.** Na iPhonu: úplně čerstvě otevřít RaK a **ihned, ještě před zelenou Synchronizací**, zkusit Více a aspoň jednu další spodní položku (ideálně Kalkulačky). Obě musí reagovat hned. Ve Více mají být okamžitě běžné lokální položky. Pokud vlastník odpoví pouze **„ok“**, jde o fyzický PASS 1.7.131; zapsat jej a tento startup-click problém uzavřít.
+- **Fyzická přejímka 1.7.131 = FAIL / nový širší požadavek 27. 9. 2026.** Vlastník na fyzickém iPhonu ukázal, že před dokončením Synchronizace sice už lze v některých okamžicích navigaci použít, ale UI stále není ve finálním stavu: položka **Více je v dolní navigaci viditelně menší** než po dokončení startu. Navíc když se podaří otevřít Více ještě během synchronizace, po dokončení synchronizace RaK **sám přepne zpět na Home**. To je nepřijatelné a 1.7.131 se proto nepovažuje za fyzicky uzavřenou opravu startupu.
+- **Nový cílový princip startupu – local-first, online pouze refresh:** vracející se RaK/PWA musí po otevření **okamžitě naběhnout v kompletním lokálním stavu bez ohledu na připojení**. Z lokálního/cache snapshotu mají být hned připravené a normálně ovladatelné **Home, Rozpisy/Rotace, Kalkulačky i Více**, včetně finální geometrie a velikosti spodní navigace. Připojení k internetu/Supabase nesmí odemykat základní UI; má pouze na pozadí stáhnout novější data a plynule je propsat do už otevřeného UI.
+- **Navigační invarianta:** background sync, secure restore, hydration ani pozdější startup fáze **nesmí změnit aktivní stránku zvolenou uživatelem**. Pokud uživatel během startu otevře Více, po zezelenání Synchronizace musí zůstat ve Více. Totéž platí pro Rotace, Kalkulačky a další lokální stránky. Na Home je dovoleno přejít pouze po explicitním klepnutí uživatele nebo při skutečně nutném auth/logout přechodu.
+- **Další chat nemá přidávat další preboot záplatu.** Má zmapovat startup/hydration/sync pipeline a sjednotit ji do skutečného local-first bootu: 1) stabilní shell + finální bottom-nav vzhled okamžitě; 2) lokální persistentní data a poslední známý rozpis/rotace dostupné okamžitě; 3) zachování aktuální route; 4) síťový refresh až sekundárně a bez blokování interakce; 5) secure role prvky mohou zůstat role-gated, ale nesmí blokovat běžné lokální Více.
+- **Povinný fyzický/browser gate další opravy:** testovat návratovou PWA se sítí pomalou, offline i online. Ještě před syncem musí být finální velikost všech čtyř položek spodní navigace, musí jít otevřít Více/Rotace/Kalkulačky, lokální obsah musí být dostupný z cache a po pozdějším dokončení synchronizace se aktivní stránka nesmí změnit.
 - Předchozí ověřený development runtime byl **1.7.130** na SHA `260dfc15b1ae6d504e017558e6cd4bb622b671a8`, build `v1.7.130-menu-toggle-race1`. [Actions #437](https://github.com/martinspadrna/RaK/actions/runs/36289709623) je po opakování stejného verify jobu **SUCCESS** (verify + release-preview). Stable TEST alias ukazuje na READY `dpl_5jFoFKZSmXXuxNYBeJF2wpJgZ8Tg`; rollback je `dpl_E6t1LcirF3pVpDjMXrFdWbCMfP8P`. Release evidence ID `10921667887`, CI proof ID `10921288243`. Produkční `main`, produkční Vercel i produkční Supabase zůstaly beze změny.
 - **Fyzický PASS 27. 9. 2026 – směnové kalendáře absencí:** vlastník potvrdil bod 2 jako „ok“. Generátor rozpisu i Report dovolených/absencí tedy správně používají kalendář podle směny účtu; původní konkrétní případ **5.10. Novotný §** je fyzicky uzavřen. Funkce z 1.7.128/1.7.129 se považuje za PASS.
 - **Fyzický FAIL 1.7.129 – Více:** vlastník potvrdil, že po čerstvém otevření zůstává Více prázdné nejen do zelené Synchronizace, ale ani po jejím dokončení se samo nedorenderuje; položky se objeví až po přepnutí jinam a zpět. Tím byl předchozí test 1.7.129 vyvrácen.
@@ -77,6 +81,34 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - `main`, produkční alias a produkční Supabase se po dokončeném předání dále nemění bez nového souhlasu.
 
 ## Předání novému chatu – 25. 9. 2026
+
+### PŘEDÁNÍ PRO DALŠÍ CHAT – 27. 9. 2026, po fyzickém FAILu 1.7.131: local-first startup
+
+Aktuální jediný úkol: **přestavět startup RaK na skutečný local-first režim, ne dál záplatovat jednotlivá tlačítka.**
+
+Fyzický nález vlastníka na iPhonu:
+- před dokončením Synchronizace není UI ještě ve finálním stavu; **Více je v dolní navigaci menší** než po dokončení startu,
+- vlastník chce, aby byly **Rozpisy/Rotace, Kalkulačky, Více i zbytek lokální aplikace plně naběhlé hned**, bez ohledu na internet,
+- internet/Supabase mají po otevření pouze **aktualizovat data na pozadí**,
+- pokud uživatel stihne během synchronizace otevřít **Více**, po dokončení synchronizace ho RaK nyní **sám vrátí na Home** – to je fyzický FAIL a musí zmizet.
+
+Cílová architektura:
+1. Returning PWA okamžitě vykreslí stabilní finální shell a poslední lokální snapshot dat.
+2. Bottom nav má od prvního viditelného frame finální velikosti/geometrii a je klikací.
+3. Home / Rotace / Kalkulačky / běžné Více fungují offline a nečekají na sync.
+4. Sync běží sekundárně na pozadí a pouze aktualizuje data.
+5. Sync/hydration/secure restore nesmí přepisovat aktuální route ani vracet uživatele na Home.
+6. Privilegované Admin/Report položky dál zůstávají bezpečně role-gated; to ale nesmí blokovat běžné lokální menu.
+7. Neřešit to další jednorázovou preboot záplatou. Nejdřív zmapovat všechny startup/hydration/route reset cesty a odstranit duplicitní ownership navigace/startupu u kořene.
+8. Přidat browser gate pro returning PWA v online / pomalé síti / offline: před syncem musí být finální nav, lokální obsah dostupný a route zachovaná i po pozdějším dokončení syncu.
+
+Výchozí technický bod:
+- runtime 1.7.131, build `v1.7.131-preboot-nav1`,
+- runtime SHA `8120d7ab7801efba000ea55c365aeaad8c547cd3`,
+- Actions #447 SUCCESS,
+- stable TEST deployment `dpl_CDFLawA7y9fVnQDwC7o2UW42zqDf`,
+- směnové kalendáře/absence mají fyzický PASS a nejsou součástí tohoto úkolu,
+- produkční `main`, produkční Vercel a produkční Supabase bez nového výslovného souhlasu neměnit.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 27. 9. 2026, po zeleném releasu 1.7.131
 
