@@ -20,8 +20,13 @@ test('1.7.111 safe diagnostics remain wired in successors', () => {
   const diagnostics = read('rak-runtime-diagnostics.js');
   const helper = read('tools/auth-role-diagnostic-17056.js');
   assert(diagnostics.includes('function diagnoseRejectedOperation(operation, value)'));
-  assert(helper.includes("diagnoseRejectedOperation('rotation-save'"));
+  assert(helper.includes("diagnoseRejectedOperation(operation, { status: httpStatus })"));
+  assert(helper.includes("diagnose('rotation-save'"));
+  assert(helper.includes("diagnose('admin-audit-read'"));
+  assert(helper.includes("diagnose('owner-profile-read'"));
   assert(!helper.includes('await rejectedWriteResponse.json()'));
+  assert(!helper.includes('await adminResponse.json()'));
+  assert(!helper.includes('await ownerResponse.json()'));
 });
 
 test('1.7.111 historical gate remains wired after successor releases', () => {
