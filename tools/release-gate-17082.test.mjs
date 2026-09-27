@@ -19,7 +19,7 @@ test('Rotation name index is a shared offline dependency instead of a hidden Bru
   assert(app.includes('"stats.js",\n    "rotation-name-index.js",\n    "rotace.js"'));
   assert(app.includes('"rotation-name-index.js",\n    "brusy.js"'));
   assert(sw.includes("'./rotation-name-index.js?v="+assertCurrentReleaseIdentity(read,'1.7.82').moduleCacheVersion+"'"));
-  assert.match(sw,/warm(?:67|68)/,'warm-start policy must remain at least the offline-Rotation successor budget');
+  assert.match(sw,/warm(?:67|68|69)/,'warm-start policy must remain at least the offline-Rotation successor budget');
 });
 
 test('sync cannot run before Rotation consumers are loaded',()=>{
