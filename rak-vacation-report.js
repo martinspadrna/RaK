@@ -4,7 +4,7 @@
   'use strict';
 
   const MONTHS = ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'];
-  const ABSENCE_CALENDAR_URL = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '').replace(/\/$/, '') + '/functions/v1/rak-absence-calendar';
+  const PUBLIC_CALENDAR_API = '/api/public-calendar?src=';
   const calendarRowsByMonth = new Map();
   const calendarLoadByMonth = new Map();
 
@@ -110,6 +110,21 @@
     return [];
   }
 
+  function activeCalendarContext() {
+    const context = typeof window.getRakActiveShiftCalendarPublicSources === 'function'
+      ? window.getRakActiveShiftCalendarPublicSources()
+      : { team: 'D', sources: [] };
+    const team = ['A','B','C','D'].includes(String(context && context.team || '').toUpperCase())
+      ? String(context.team).toUpperCase()
+      : 'D';
+    return { team, sources: Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [] };
+  }
+
+  function calendarCacheKey(monthKey, context) {
+    const current = context || activeCalendarContext();
+    return String(current.team || 'D') + '|' + String(monthKey || '');
+  }
+
   // RAK_VACATION_COMPLETE_ABSENCES_17016
   // The calendar is an absence calendar, not a vacation-only D feed. Keep all
   // documented reasons and distinguish the vacation count from other absences.
@@ -200,19 +215,25 @@
   }
 
   function rowsForMonth(monthKey) {
-    const rosterRows = vacationRows(monthKey);
-    if (!calendarRowsByMonth.has(monthKey)) return rosterRows;
-    // A saved shift-specific absence takes priority on the same person/day.
+    const context = activeCalendarContext();
+    const rosterRows = context.team === 'D' ? vacationRows(monthKey) : [];
+    const key = calendarCacheKey(monthKey, context);
+    if (!calendarRowsByMonth.has(key)) return rosterRows;
+    // A saved D shift-specific absence takes priority on the same person/day.
     // Calendar-only days are appended; no person/day is counted twice.
     const rosterDays = new Set(rosterRows.map(row => normalizeLookup(row.name) + '|' + row.iso));
-    const calendarOnly = (calendarRowsByMonth.get(monthKey) || []).filter(row =>
+    const calendarOnly = (calendarRowsByMonth.get(key) || []).filter(row =>
       !rosterDays.has(normalizeLookup(row.name) + '|' + row.iso));
     return rosterRows.concat(calendarOnly).sort((a,b) => a.name.localeCompare(b.name,'cs') || a.day - b.day || a.order - b.order || a.noteIndex - b.noteIndex);
   }
 
   function reportSource(monthKey) {
-    if (!calendarRowsByMonth.has(monthKey)) return 'Absence v rozpisu';
-    return vacationRows(monthKey).length ? 'Google kalendář + Absence v rozpisu' : 'Google kalendář';
+    const context = activeCalendarContext();
+    const key = calendarCacheKey(monthKey, context);
+    if (!calendarRowsByMonth.has(key)) return context.team === 'D' ? 'Absence v rozpisu' : ('Kalendář směny ' + context.team);
+    return context.team === 'D' && vacationRows(monthKey).length
+      ? 'Kalendář směny D + Absence v rozpisu'
+      : ('Kalendář směny ' + context.team);
   }
 
   function reportText(monthKey) {
@@ -285,30 +306,44 @@
     const select = root && root.querySelector('.rakVacationReportMonth');
     const monthKey = String(select && select.value || '');
     if (!monthKey) return;
-    if (!force && calendarRowsByMonth.has(monthKey)) { renderPreview(root); return; }
-    if (calendarLoadByMonth.get(monthKey)) return calendarLoadByMonth.get(monthKey);
+    const context = activeCalendarContext();
+    const key = calendarCacheKey(monthKey, context);
+    if (!force && calendarRowsByMonth.has(key)) { renderPreview(root); return; }
+    if (calendarLoadByMonth.get(key)) return calendarLoadByMonth.get(key);
     const promise = (async () => {
-      setStatus(root, 'Načítám dovolené z Google kalendáře…');
+      setStatus(root, 'Načítám absence z kalendáře směny ' + context.team + '…');
       try {
-        const bridge = window.RotationSupabaseBridge;
-        const accessToken = bridge && typeof bridge.getAdminAccessToken === 'function' ? await bridge.getAdminAccessToken() : '';
-        if (!accessToken || !ABSENCE_CALENDAR_URL) throw new Error('admin-auth-required');
-        const response = await fetch(ABSENCE_CALENDAR_URL, {
-          cache: 'no-store',
-          headers: { Authorization: 'Bearer ' + accessToken, apikey: String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.publishableKey || '') }
-        });
-        if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
-        calendarRowsByMonth.set(monthKey, calendarVacationRows(await response.text(), monthKey));
+        if (!context.sources.length) throw new Error('calendar-not-configured-for-shift-' + context.team);
+        const settled = await Promise.allSettled(context.sources.map(async (source) => {
+          const response = await fetch(PUBLIC_CALENDAR_API + encodeURIComponent(source), {
+            cache: 'no-store',
+            credentials: 'same-origin'
+          });
+          if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
+          return response.text();
+        }));
+        const texts = settled.filter((item) => item.status === 'fulfilled').map((item) => item.value);
+        if (!texts.length) throw new Error('calendar-unavailable-for-shift-' + context.team);
+        const seen = new Set();
+        const rows = texts.flatMap((text) => calendarVacationRows(text, monthKey)).filter((row) => {
+          const rowKey = normalizeLookup(row && row.name) + '|' + String(row && row.iso || '');
+          if (!rowKey || seen.has(rowKey)) return false;
+          seen.add(rowKey);
+          return true;
+        }).sort((a,b) => a.name.localeCompare(b.name,'cs') || a.day - b.day || a.noteIndex - b.noteIndex);
+        calendarRowsByMonth.set(key, rows);
         renderPreview(root);
-        setStatus(root, 'Načteno z kalendáře a doplněno z rozpisu: ' + String(rowsForMonth(monthKey).length) + ' záznamů bez duplicit.');
+        const partial = settled.some((item) => item.status === 'rejected') ? ' Část kalendářů se nepodařilo načíst.' : '';
+        setStatus(root, 'Načteno z kalendáře směny ' + context.team + ': ' + String(rowsForMonth(monthKey).length) + ' záznamů bez duplicit.' + partial);
       } catch (err) {
         renderPreview(root);
-        setStatus(root, calendarRowsByMonth.has(monthKey) ? 'Kalendář není dostupný – zůstává poslední načtení a Absence z rozpisu.' : 'Kalendář teď není dostupný – zobrazuji Absence z rozpisu.');
+        const fallback = context.team === 'D' ? ' Zobrazuji Absence z rozpisu.' : '';
+        setStatus(root, 'Kalendář směny ' + context.team + ' teď není dostupný nebo není nastavený.' + fallback);
       } finally {
-        calendarLoadByMonth.delete(monthKey);
+        calendarLoadByMonth.delete(key);
       }
     })();
-    calendarLoadByMonth.set(monthKey, promise);
+    calendarLoadByMonth.set(key, promise);
     return promise;
   }
 

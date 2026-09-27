@@ -889,6 +889,42 @@ function getRakActiveShiftCalendarContext() {
   return { team, outside: !!(info && info.outside), calendars: getRakShiftCalendarsForTeam(team) };
 }
 
+function rakShiftCalendarPublicSourceIdsFromUrl(value) {
+  const normalized = normalizeRakGoogleCalendarUrl(value);
+  if (!normalized) return [];
+  try {
+    const url = new URL(normalized);
+    if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return [];
+    return Array.from(new Set(url.searchParams.getAll('src')
+      .map((source) => String(source || '').trim())
+      .filter(Boolean))).slice(0, 8);
+  } catch (err) {
+    return [];
+  }
+}
+
+function getRakShiftCalendarPublicSourceIdsForTeam(team) {
+  const sources = [];
+  const seen = new Set();
+  getRakShiftCalendarsForTeam(team).forEach((entry) => {
+    rakShiftCalendarPublicSourceIdsFromUrl(entry && entry.url).forEach((source) => {
+      if (!source || seen.has(source)) return;
+      seen.add(source);
+      sources.push(source);
+    });
+  });
+  return sources.slice(0, 64);
+}
+
+function getRakActiveShiftCalendarPublicSources() {
+  const context = getRakActiveShiftCalendarContext();
+  return {
+    team: context.team,
+    outside: context.outside,
+    sources: getRakShiftCalendarPublicSourceIdsForTeam(context.team)
+  };
+}
+
 function makeRakShiftCalendarSettingsRow(settings) {
   const safe = normalizeRakShiftCalendarSettings(settings);
   return {
@@ -970,6 +1006,9 @@ window.isRakAllowedGoogleCalendarUrl = isRakAllowedGoogleCalendarUrl;
 window.getRakShiftCalendarSettings = getRakShiftCalendarSettings;
 window.getRakShiftCalendarsForTeam = getRakShiftCalendarsForTeam;
 window.getRakActiveShiftCalendarContext = getRakActiveShiftCalendarContext;
+window.rakShiftCalendarPublicSourceIdsFromUrl = rakShiftCalendarPublicSourceIdsFromUrl;
+window.getRakShiftCalendarPublicSourceIdsForTeam = getRakShiftCalendarPublicSourceIdsForTeam;
+window.getRakActiveShiftCalendarPublicSources = getRakActiveShiftCalendarPublicSources;
 window.mergeRakShiftCalendarSettingsRows = mergeRakShiftCalendarSettingsRows;
 window.buildAdminShiftCalendarRowHtml = buildAdminShiftCalendarRowHtml;
 window.buildAdminShiftCalendarsSettingsHtml = buildAdminShiftCalendarsSettingsHtml;

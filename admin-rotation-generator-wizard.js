@@ -1,7 +1,7 @@
 // RaK – průvodce generátoru, návrh, kalendář absencí a export oddělené od engine.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-rotation-generator-wizard.js', 'loading', { source: 'dynamic-loader' }); } catch (err) {}
 
-const ADMIN_ROTATION_GENERATOR_ABSENCE_ICS_URL = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '').replace(/\/$/, '') + '/functions/v1/rak-absence-calendar';
+const ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API = '/api/public-calendar?src=';
 
 function adminRotationGeneratorCanReadEditorDraftFromDom() {
   const body = document.getElementById('appMenuBody');
@@ -352,34 +352,49 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
   state.days = adminRotationGeneratorResolveWizardDays(state);
   state.absencesByDay = adminRotationGeneratorCollectAbsencesFromDom();
   const status = document.getElementById('adminOnlineSaveStatus');
-  if (status) status.textContent = 'Načítám dovolené z Google kalendáře...';
+  if (status) status.textContent = 'Načítám absence z kalendáře přiřazené směny...';
   try {
-    const bridge = window.RotationSupabaseBridge;
-    const accessToken = bridge && typeof bridge.getAdminAccessToken === 'function'
-      ? await bridge.getAdminAccessToken()
-      : '';
-    if (!accessToken) throw new Error('admin-auth-required');
-    const response = await fetch(ADMIN_ROTATION_GENERATOR_ABSENCE_ICS_URL, {
-      cache: 'no-store',
-      headers: {
-        Authorization: 'Bearer ' + accessToken,
-        apikey: String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.publishableKey || '')
-      }
+    const context = typeof getRakActiveShiftCalendarPublicSources === 'function'
+      ? getRakActiveShiftCalendarPublicSources()
+      : { team: 'D', sources: [] };
+    const team = String(context && context.team || 'D').trim().toUpperCase() || 'D';
+    const sources = Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
+    if (!sources.length) throw new Error('calendar-not-configured-for-shift-' + team);
+
+    const settled = await Promise.allSettled(sources.map(async (source) => {
+      const response = await fetch(ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API + encodeURIComponent(source), {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+      if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
+      return response.text();
+    }));
+    const texts = settled.filter((item) => item.status === 'fulfilled').map((item) => item.value);
+    if (!texts.length) throw new Error('calendar-unavailable-for-shift-' + team);
+
+    let imported = state.days.map((date) => ({ date, rows: [] }));
+    texts.forEach((text) => {
+      imported = adminRotationGeneratorMergeAbsences(
+        imported,
+        adminRotationGeneratorParseIcsAbsences(text, state.monthKey, state.days)
+      );
     });
-    if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
-    const text = await response.text();
-    const imported = adminRotationGeneratorParseIcsAbsences(text, state.monthKey, state.days);
-    const importedCount = imported.reduce((sum, day) => sum + (Array.isArray(day.rows) ? day.rows.length : 0), 0);
+    const importedCount = imported.reduce((sum, day) => sum + (Array.isArray(day.rows) ? day.rows.filter((row) => row.person || row.code).length : 0), 0);
     state.absencesByDay = adminRotationGeneratorMergeAbsences(state.absencesByDay, imported);
     adminRotationGeneratorRenderWizard('absences');
     const nextStatus = document.getElementById('adminOnlineSaveStatus');
-    if (nextStatus) nextStatus.textContent = importedCount
-      ? ('Načteno z kalendáře: ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.')
-      : 'V kalendáři jsem pro vybraný měsíc nenašel žádné známé absence.';
-    return { ok: true, importedCount };
+    if (nextStatus) {
+      const partial = settled.some((item) => item.status === 'rejected')
+        ? ' Část kalendářů směny se nepodařilo načíst.'
+        : '';
+      nextStatus.textContent = importedCount
+        ? ('Načteno z kalendáře směny ' + team + ': ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.' + partial)
+        : ('V kalendáři směny ' + team + ' jsem pro vybraný měsíc nenašel žádné známé absence.' + partial);
+    }
+    return { ok: true, importedCount, team, sourceCount: texts.length };
   } catch (err) {
     const failStatus = document.getElementById('adminOnlineSaveStatus');
-    if (failStatus) failStatus.textContent = 'Kalendář se nepodařilo načíst. Zkontroluj přihlášení nebo dostupnost Google kalendáře.';
+    if (failStatus) failStatus.textContent = 'Kalendář přiřazené směny se nepodařilo načíst. Zkontroluj nastavení Administrace → Kalendáře.';
     return { ok: false, error: err && err.message ? err.message : String(err || 'neznámá chyba') };
   }
 }
