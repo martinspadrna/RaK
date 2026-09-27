@@ -1,3 +1,11 @@
+## RaK 1.7.135 (development)
+
+- **P2.4 role/JWT diagnostika:** živá kontrola podepsané TEST relace je přesunuta z těžkého Admin rendereru do lehkého role shellu ve Více. Na izolované TEST Supabase ji mohou spustit owner, admin i deputy bez načtení celé Administrace; produkční konfigurace tlačítko nezobrazuje.
+- Kontrola ověřuje aktuální Supabase Auth token přes `/auth/v1/user`, serverový `rak_admin_context`, vazbu na aktivní účet/session a hranice rolí. Owner/admin mají pozitivní administrátorskou read cestu; deputy na stejné cestě musí dostat skutečné odmítnutí. Owner-only reader musí projít jen ownerovi.
+- Odmítnuté odpovědi se neparsují ani nelogují. Do diagnostiky vstupuje pouze HTTP status a centrální `RAK_DIAGNOSTICS.diagnoseRejectedOperation()` jej převádí na pevnou kategorii bez JWT, payloadu, jména, OS čísla nebo serverové zprávy.
+- Owner/admin navíc používají bezpečně neplatný `rak_admin_save_rotation_v2` payload, který server odmítne validací před zámkem či změnou dat; deputy žádný write endpoint v diagnostice nevolá.
+- Nový regresní test spouští owner/admin/deputy scénáře s canary JWT a vyžaduje PASS bez úniku tokenu do viditelného výstupu. Produkční `main`, produkční Vercel ani produkční Supabase se tímto releasem nemění.
+
 ## RaK 1.7.134 (development)
 
 - Opraven kořen občas pomalého **prvního otevření Administrace**. Secure kořenová navigace je v malém samostatném `app-menu-admin-shell.js`, který se načítá jen po ověřené admin roli / explicitním vstupu; těžký renderer, editory rozpisů, generátor, export/import, zálohy, servis a další nástroje zůstávají v plném `admin` feature.

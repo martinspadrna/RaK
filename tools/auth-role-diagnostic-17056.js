@@ -1,35 +1,50 @@
-// RaK 1.7.56. Injected into the built admin renderer by the development stage.
-// A real, user-initiated role probe. Never print, persist or transmit a JWT except
-// as an Authorization header to the configured isolated TEST Supabase origin.
+// RAK_17135_ROLE_DIAGNOSTIC: signed TEST role probe shared by More and Admin service.
+// Never print, persist or transmit a JWT except as the Authorization header to the
+// explicitly allowlisted isolated TEST Supabase origin.
 async function rakRunLiveAuthDiagnostic() {
   const status = document.getElementById('rakLiveAuthDiagnosticStatus');
-  if (!status) return;
-  if (status.dataset.running === '1') return;
+  if (!status || status.dataset.running === '1') return;
   const setStatus = (message, ok) => {
     status.textContent = message;
     status.dataset.result = ok === true ? 'pass' : ok === false ? 'fail' : 'pending';
   };
+  const diagnose = (operation, httpStatus) => {
+    try {
+      if (window.RAK_DIAGNOSTICS && typeof window.RAK_DIAGNOSTICS.diagnoseRejectedOperation === 'function') {
+        return window.RAK_DIAGNOSTICS.diagnoseRejectedOperation(operation, { status: httpStatus });
+      }
+    } catch (_) {}
+    return null;
+  };
   status.dataset.running = '1';
-  setStatus('Ověřuji přihlášení a práva pouze pro tento účet…', null);
+  setStatus('Ověřuji podepsanou relaci a práva pouze pro tento účet…', null);
   try {
-    if (!navigator.onLine || typeof rakAdminCanOpenAdmin !== 'function' || !rakAdminCanOpenAdmin()
-        || !app || app.adminAuthVersion !== 2) {
-      setStatus('Nelze ověřit: vyžaduje online přihlášení správce přes Supabase Auth.', false);
+    if (!navigator.onLine
+        || typeof rakAdminCanOpenShiftReport !== 'function'
+        || !rakAdminCanOpenShiftReport()
+        || !app
+        || app.adminAuthVersion !== 2) {
+      setStatus('Nelze ověřit: vyžaduje online ověřenou roli přes Supabase Auth.', false);
       return;
     }
+
     const config = window.SUPABASE_CONFIG || {};
     const origin = String(config.url || '').replace(/\/$/, '');
-    if (origin !== 'https://cgshssdjgzzuprlwnabl.supabase.co' || !String(config.publishableKey || '').startsWith('sb_publishable_')) {
-      setStatus('Kontrola zastavena: nepovolená databáze nebo chybějící veřejný klíč.', false);
+    if (origin !== 'https://cgshssdjgzzuprlwnabl.supabase.co'
+        || !String(config.publishableKey || '').startsWith('sb_publishable_')) {
+      setStatus('Kontrola zastavena: diagnostika je povolena pouze proti TEST databázi.', false);
       return;
     }
+
     const bridge = window.RotationSupabaseBridge;
     const token = bridge && typeof bridge.getAdminAccessToken === 'function'
-      ? await bridge.getAdminAccessToken() : '';
+      ? await bridge.getAdminAccessToken()
+      : '';
     if (!token || token.length < 100) {
-      setStatus('Platná administrátorská relace není dostupná. Přihlas se znovu.', false);
+      setStatus('Platná podepsaná relace není dostupná. Přihlas se znovu.', false);
       return;
     }
+
     async function probe(endpoint, method = 'POST', payload) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
@@ -49,69 +64,81 @@ async function rakRunLiveAuthDiagnostic() {
         clearTimeout(timeout);
       }
     }
-    // GoTrue verifies the cryptographic signature and current Auth identity.
+
     const authResponse = await probe('/auth/v1/user', 'GET');
     if (!authResponse.ok) {
       setStatus('NEPROŠLO: Supabase Auth zamítl přihlašovací token.', false);
       return;
     }
     const authenticatedUser = await authResponse.json();
+
     const contextResponse = await probe('/rest/v1/rpc/rak_admin_context');
     if (!contextResponse.ok) {
-      setStatus('NEPROŠLO: databáze odmítla administrátorskou relaci.', false);
+      setStatus('NEPROŠLO: databáze odmítla ověřenou relaci.', false);
       return;
     }
     const context = await contextResponse.json();
     const role = String(context && context.role || '');
-    if (!['owner', 'admin'].includes(role)
+    if (!['owner', 'admin', 'deputy'].includes(role)
         || String(context.user_id || '') !== String(authenticatedUser.id || '')
         || String(context.account_id || '') !== String(app.adminAccountId || '')
+        || String(app.adminRole || '') !== role
         || !String(context.session_id || '')) {
-      setStatus('NEPROŠLO: ověřená identita, aktuální účet a role spolu nesouhlasí.', false);
+      setStatus('NEPROŠLO: ověřená identita, účet, relace a role spolu nesouhlasí.', false);
       return;
     }
-    // This read-only RPC must work for both owner and administrator.
+
     const adminResponse = await probe('/rest/v1/rpc/rak_admin_list_audit_v2', 'POST', { p_limit: 1 });
-    if (!adminResponse.ok) {
-      setStatus('NEPROŠLO: oprávněná administrátorská čtecí akce byla odmítnuta.', false);
-      return;
+    let adminBoundaryPass = adminResponse.ok;
+    if (role === 'deputy') {
+      const rejected = diagnose('admin-audit-read', adminResponse.status);
+      adminBoundaryPass = [401, 403].includes(adminResponse.status)
+        && !!rejected
+        && rejected.reason === 'permission-denied';
     }
     await adminResponse.body?.cancel();
+    if (!adminBoundaryPass) {
+      setStatus('NEPROŠLO: hranice administrátorského čtení neodpovídá ověřené roli.', false);
+      return;
+    }
 
-    // Exercise one real signed-JWT rejection before any write can happen. An array
-    // payload is rejected by rak_admin_save_rotation_v2 as invalid input (22023)
-    // before it locks or modifies rotation data.
-    const rejectedWriteResponse = await probe('/rest/v1/rpc/rak_admin_save_rotation_v2', 'POST', {
-      p_key: 'main',
-      p_payload: [],
-      p_meta: { source: 'live-auth-diagnostic-reject' },
-      p_expected_revision: null
-    });
-    if (rejectedWriteResponse.ok) {
+    if (role !== 'deputy') {
+      const rejectedWriteResponse = await probe('/rest/v1/rpc/rak_admin_save_rotation_v2', 'POST', {
+        p_key: 'main',
+        p_payload: [],
+        p_meta: { source: 'live-auth-diagnostic-reject' },
+        p_expected_revision: null
+      });
+      if (rejectedWriteResponse.ok) {
+        await rejectedWriteResponse.body?.cancel();
+        setStatus('NEPROŠLO: diagnostický neplatný zápis nebyl serverem odmítnut.', false);
+        return;
+      }
+      const rejection = diagnose('rotation-save', rejectedWriteResponse.status);
       await rejectedWriteResponse.body?.cancel();
-      setStatus('NEPROŠLO: diagnostický neplatný zápis nebyl serverem odmítnut.', false);
-      return;
+      if (!rejection || rejection.reason !== 'invalid-request') {
+        setStatus('NEPROŠLO: zamítnutou operaci se nepodařilo bezpečně zařadit.', false);
+        return;
+      }
     }
-    const rejection = window.RAK_DIAGNOSTICS && typeof window.RAK_DIAGNOSTICS.diagnoseRejectedOperation === 'function'
-      ? window.RAK_DIAGNOSTICS.diagnoseRejectedOperation('rotation-save', { status: rejectedWriteResponse.status })
-      : null;
-    await rejectedWriteResponse.body?.cancel();
-    if (!rejection || rejection.reason !== 'invalid-request') {
-      setStatus('NEPROŠLO: zamítnutou operaci se nepodařilo bezpečně zařadit.', false);
+
+    const ownerResponse = await probe('/rest/v1/rpc/rak_owner_list_admin_profiles');
+    let ownerBoundaryPass = ownerResponse.ok;
+    if (role !== 'owner') {
+      const rejected = diagnose('owner-profile-read', ownerResponse.status);
+      ownerBoundaryPass = [401, 403].includes(ownerResponse.status)
+        && !!rejected
+        && rejected.reason === 'permission-denied';
+    }
+    await ownerResponse.body?.cancel();
+    if (!ownerBoundaryPass) {
+      setStatus('NEPROŠLO: hranice práv vlastníka neodpovídá ověřené roli.', false);
       return;
     }
 
-    // Owner-only read-only RPC is our positive/negative privilege boundary.
-    const ownerResponse = await probe('/rest/v1/rpc/rak_owner_list_admin_profiles');
-    const privilegePass = role === 'owner' ? ownerResponse.ok : [401, 403].includes(ownerResponse.status);
-    await ownerResponse.body?.cancel();
-    if (!privilegePass) {
-      setStatus('NEPROŠLO: práva vlastníka neodpovídají ověřené roli.', false);
-      return;
-    }
-    setStatus('PROŠLO: skutečný Auth token, vazba na účet, administrátorské čtení, bezpečně diagnostikované odmítnutí neplatné operace a oddělení práv vlastníka (' + (role === 'owner' ? 'vlastník' : 'administrátor') + '). Ostatní role je nutné otestovat jejich vlastním přihlášením.', true);
+    const roleLabel = role === 'owner' ? 'vlastník' : role === 'admin' ? 'administrátor' : 'zástupce';
+    setStatus('PROŠLO: skutečný podepsaný Auth token, účet, relace a role (' + roleLabel + ') odpovídají serveru; povolené i odmítnuté operace mají bezpečnou diagnostiku bez obsahu odpovědí.', true);
   } catch (_error) {
-    // Never expose fetch headers, JWT, private RPC payloads or error objects.
     setStatus('Kontrola nedokončena: chyba spojení nebo odpovědi. Žádná data nebyla změněna.', false);
   } finally {
     status.dataset.running = '0';

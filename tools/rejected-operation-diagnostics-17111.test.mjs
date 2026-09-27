@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const diagnostics = read('rak-runtime-diagnostics.js');
 const liveProbe = read('tools/auth-role-diagnostic-17056.js');
+const menu = read('app-menu.js');
 const renderer = read('app-menu-admin-renderer.js');
 const bridge = read('supabase-bridge.js');
 
@@ -46,23 +47,29 @@ test('rejected-operation diagnostics expose only fixed categories and never raw 
   }
 });
 
-test('live role probe uses a real signed TEST JWT and exercises a deliberately rejected non-mutating write', () => {
+test('live role probe uses real signed TEST JWT paths with sanitized owner/admin/deputy boundaries', () => {
   for (const marker of [
     'getAdminAccessToken',
     "/auth/v1/user",
     "/rest/v1/rpc/rak_admin_context",
+    "['owner', 'admin', 'deputy'].includes(role)",
+    "/rest/v1/rpc/rak_admin_list_audit_v2",
+    "diagnose('admin-audit-read'",
     "/rest/v1/rpc/rak_admin_save_rotation_v2",
     "p_payload: []",
-    "diagnoseRejectedOperation('rotation-save'",
-    "rejection.reason !== 'invalid-request'",
-    'await rejectedWriteResponse.body?.cancel()'
+    "diagnose('rotation-save'",
+    "/rest/v1/rpc/rak_owner_list_admin_profiles",
+    "diagnose('owner-profile-read'",
+    "rejected.reason === 'permission-denied'"
   ]) assert(liveProbe.includes(marker), 'live probe missing ' + marker);
-  assert(!liveProbe.includes('await rejectedWriteResponse.json()'), 'rejected body must not be parsed/logged');
+  for (const rejectedName of ['adminResponse','rejectedWriteResponse','ownerResponse']) {
+    assert(!liveProbe.includes('await ' + rejectedName + '.json()'), 'rejected body must not be parsed/logged: ' + rejectedName);
+  }
   assert(!liveProbe.includes('console.log(token)'));
-  assert(renderer.includes("p_payload: []"), 'embedded live probe drifted from source helper');
-  assert(renderer.includes("diagnoseRejectedOperation('rotation-save'"), 'embedded live probe lacks sanitized rejection');
+  assert(menu.includes('RAK_17135_ROLE_DIAGNOSTIC'), 'lightweight More shell lacks role diagnostic');
+  assert(menu.includes('data-menu-action="live-auth-check"'), 'More role section lacks TEST diagnostic action');
+  assert(!renderer.includes('async function rakRunLiveAuthDiagnostic()'), 'heavy Admin renderer must not own duplicate role diagnostic');
 });
-
 test('operational bridge records only sanitized rejection metadata', () => {
   assert(bridge.includes("diagnoseSupabaseRejection('unplanned-absence', err)"));
   assert(bridge.includes("window.RAK_DIAGNOSTICS.safeLog('warn', 'rotation unplanned change rejected', diagnostic)"));
