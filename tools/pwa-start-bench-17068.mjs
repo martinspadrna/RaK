@@ -54,7 +54,15 @@ function benchmark(){
   });
   if(run.error||run.status!==0){
    // Never dump arbitrary browser output, page content, tokens or rotation data to CI logs.
-   throw Error(`Chromium round ${round} failed (exit=${run.status}, signal=${run.signal}, error=${run.error?.code||'none'}). Run the original browser gate for diagnostics.`);
+   // Only surface the first controlled gate failure prefix, stripping any diagnostic
+   // payload that could contain rendered text or browser exception details.
+   const controlled=String(run.stderr||'').split(/\r?\n/).find(line=>line.startsWith('[17052-browser] FAIL '))||'';
+   const safeFailure=controlled
+    .split('; diag=')[0]
+    .split('; exceptions=')[0]
+    .replace(/https?:\/\/\S+/g,'[url]')
+    .slice(0,500);
+   throw Error(`Chromium round ${round} failed (exit=${run.status}, signal=${run.signal}, error=${run.error?.code||'none'})${safeFailure?'; '+safeFailure:''}. Run the original browser gate for diagnostics.`);
   }
   samples.push(parseBootTimes(run.stdout));
  }
