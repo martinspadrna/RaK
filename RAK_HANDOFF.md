@@ -40,7 +40,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Aktuální ověřený provozní stav k 27. 9. 2026
 
-- **Rozpracovaný fyzický test P2.1 – iPhone cold/warm start (27. 9. 2026):** po uzavření P1.2 vlastník přešel na poslední otevřený checkbox P2.1. Cíl je změřit reálný iPhone/PWA start 5× cold a 5× warm a vyhodnotit čas do skutečně použitelného local-first UI. Vlastník už v původním chatu nahrál záznam obrazovky, ale při přechodu do nového chatu je bezpečné počítat s tím, že bude potřeba video znovu přiložit. P2.1 zatím **nezvyšovat nad 80 % (4/5)**, dokud nejsou časy skutečně vyhodnocené. Runtime se kvůli měření nemění.
+- **Fyzický PASS P2.1 – iPhone cold/warm start (27. 9. 2026):** souvislý záznam obrazovky skutečného iPhonu/PWA obsahuje podle dohodnutého postupu nejprve 5× cold a potom 5× warm start. Měřicí bod je od prvního viditelného spuštění ikony do stabilního Home se skutečnými lokálními daty a finální spodní navigací; na zelenou online Synchronizaci se nečeká. Frame-by-frame odečet s přesností záznamu přibližně ±0,1 s: **cold 1,4 / 0,1 / 1,1 / 0,1 / 1,2 s** (medián **1,1 s**, nejhorší **1,4 s**); **warm 0,1 / 1,2 / 0,1 / 1,1 / 0,1 s** (medián **0,1 s**, nejhorší **1,2 s**). Celkem 10 startů má medián **0,6 s** a nejhorší hodnotu **1,4 s**. V žádném běhu se nevrátil dřívější několikasettinový až několikasekundový stav, kdy je UI vidět, ale základní local-first použití čeká na online sync; současné CI budgety/parita 1.7.134 jsou již zelené. Poslední fyzický checkbox P2.1 je tím doložen a **P2.1 se uzavírá na 100 % (5/5)**. Jde pouze o měření a dokumentaci; runtime zůstává 1.7.134.
 
 - **Fyzický + automatický PASS 1.7.134 – první otevření Administrace (27. 9. 2026):** kořen pomalého prvního otevření byl v architektuře feature graphu. Historický `admin` feature nesl závislost na `sync` a zároveň načítal celý těžký Admin balík, takže první kliknutí mohlo čekat na Supabase a desítky administračních modulů. Finální oprava odděluje malý secure `admin-shell` do `app-menu-admin-shell.js`; běžné Home/Rotace/Kalkulačky/Více tento Admin-only markup při startupu neparsují a full `admin` se načte až po skutečném vstupu do konkrétní admin podsekce.
 - **Secure role gate 1.7.134 zůstává fail-closed:** položka Administrace se ukazuje pouze po ověřeném secure role kontextu a samotný lokální root znovu volá `rakAdminCanOpenAdmin()`. Legacy persistent unlock se nevrací. Pokud secure kontext chybí, povinná síťová obnova role se smí provést; běžné local-first UI na ni nečeká.
@@ -798,12 +798,12 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **57 % (4/7)** | Otevřeno; fyzické stažení/rozbalení owner ZIPu potvrzeno, plná oddělená obnova zůstává neprovedená |
-| P2.1 | Výkon startu PWA | **80 % (4/5)** | Otevřeno |
+| P2.1 | Výkon startu PWA | **100 % (5/5)** | Uzavřeno; 5× cold + 5× warm fyzické iPhone/PWA měření PASS |
 | P2.2 | Rozložení, DOM, CSS a interakce | **60 % (3/5)** | Otevřeno |
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **67 % (4/6)** | Otevřeno |
 
-**Bilance: 8/13 uzavřeno (P0.1, P0.3, P0.4, P1.1, P1.2, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 5/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 9/13 uzavřeno (P0.1, P0.3, P0.4, P1.1, P1.2, P1.3, P1.4 a P2.1; P0.2 rozhodnutím o riziku), 4/13 otevřené.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
@@ -938,17 +938,19 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 ## P2 · Mobil, offline a provozní kvalita
 
-### P2.1 – Výkon a start PWA · **80 % (4/5)**
+### P2.1 – Výkon a start PWA · **100 % (5/5)**
 
 - [x] Automatizovaný Chromium start a tři nezávislá měření v CI.
-- [ ] Opakovaně změřit skutečný iPhone Safari/PWA na studeném a teplém startu.
+- [x] Opakovaně změřit skutečný iPhone Safari/PWA na studeném a teplém startu.
 - [x] Stanovit a vynucovat smysluplné časové/velikostní rozpočty se záznamem baseline a odchylek.
 - [x] Změřit offline start, návrat online, aktualizaci SW a chování při pomalé síti.
 - [x] Po stabilizaci architektury potvrdit, že výkon a první vykreslení po migraci nemají regresi vůči 1.7.69.
 
 **Důkaz P2.1 po 1.7.104:** start z 1.7.84 dál umí před Supabase obnovit ověřenou lokální Rotaci a měřit první použitelný render. #347 zavedl fail-closed časové/velikostní budgety s baseline; #349 doložil skutečný Chromium offline start, reconnect, pomalou síť a celý service-worker waiting → potvrzení → aktivace lifecycle. Následný parity balík `3bf0ef463a9a85c024d514cbcf3f6209937387d2` → `5921ef3bcd2af7640a91db12ba26208f3d4d4fca` → `e2ec700467bf01edadb290ace918af6d5f10c67a` → `f27ceab3ab8dd3badfeb3a5e504336f92268d0b2` → `d6d07162847ccae6e5c63eddfc15917310aeb73d` → `698a6f2ac9b6e2236b3b0714aaeaf3c9d3c99488` reprodukuje immutable 1.7.69 z detached Git worktree, provede její historický dvouprůchodový build a porovnává ji na stejném runneru a 390×844 viewportu s dnešním kanonickým buildem. Finální [Actions #356](https://github.com/martinspadrna/RaK/actions/runs/36163194538) provedl pět střídavých kol každé verze. `startupReady`: baseline medián/P95 408/443 ms, current 402/411 ms (medián −1,5 %, P95 −32 ms). FCP: baseline 300/328 ms, current 312/360 ms (medián +4 %, pod 10% limitem; P95 +32 ms, pod 75ms guardem). Diagnostický full-load wall-time je horší: baseline medián/P95 790/810 ms, current 1330/1396 ms; tento údaj se neskrývá, ale není first-usable gate, protože `startupReady` i FCP jsou měřené dříve a přímo odpovídají akceptačnímu bodu prvního použitelného renderu/startu. Tím je čtvrtý checkbox doložen a P2.1 se zvyšuje na **80 % (4/5)**. Jediný otevřený bod je opakované 5× cold/warm měření skutečného iPhonu Safari/PWA.
 
-**Dokončení:** opakovatelné měření a nepřekročené prahy na reálném telefonu i CI.
+**Fyzický iPhone/PWA důkaz 27. 9. 2026 – runtime 1.7.134:** záznam byl vyhodnocen po jednotlivých 0,1s framech. Cold běhy: **1,4 / 0,1 / 1,1 / 0,1 / 1,2 s**, medián **1,1 s**, maximum **1,4 s**. Warm běhy: **0,1 / 1,2 / 0,1 / 1,1 / 0,1 s**, medián **0,1 s**, maximum **1,2 s**. Společný medián všech deseti startů je **0,6 s**, maximum **1,4 s**. Konec měření je stabilní local-first Home s lokálními daty a finální navigací, nikoli zelený stav online synchronizace. Samostatný mobilní číselný limit nebyl v plánu definován; poslední otevřený checkbox požadoval opakované fyzické měření a automatické časové/paritní budgety už na stejném runtime prošly. Záznam neukazuje návrat dřívějšího několikasekundového blokování základního UI, proto je fyzická část PASS a P2.1 je **100 % (5/5)**. Přesnost ručního odečtu ze 30fps záznamu a 0,1s vzorkování je přibližně ±0,1 s.
+
+**Dokončení:** splněno – opakovatelné fyzické měření i CI časové/paritní prahy jsou doložené.
 
 ### P2.2 – Rozložení, CSS, DOM a interakce · **60 % (3/5)**
 
@@ -1121,6 +1123,8 @@ Následující požadavky jsou otevřený realizační backlog uvnitř stávají
 **Pravidlo dodávky:** tematické balíky a minimum commitů/deploymentů. Před releasem syntax + relevantní unit/integrace + dvě čisté sestavy + legacy/security/offline/browser testy + ZIP/CRC + TEST HTTP; po releasu přesný SHA, Actions SUCCESS, Vercel READY se stejným SHA, HTTP a zaměřený iPhone checklist. Nikdy nezaměňovat „test prošel v Chromiu“ s „ověřeno na iPhonu“. Produkční `main` ani produkční Supabase neupravovat bez výslovného souhlasu. Žádná destruktivní akce bez předchozí zálohy, ověřeného cíle a vědomého potvrzení.
 
 ## Záznam aktualizací
+
+- **27. 9. 2026 – P2.1 fyzický iPhone/PWA start uzavřen:** vyhodnocen souvislý screen recording 5× cold + 5× warm. Cold **1,4 / 0,1 / 1,1 / 0,1 / 1,2 s** (medián **1,1 s**, max **1,4 s**), warm **0,1 / 1,2 / 0,1 / 1,1 / 0,1 s** (medián **0,1 s**, max **1,2 s**), celkový medián **0,6 s**, celkové maximum **1,4 s**, přesnost přibližně ±0,1 s. Měřeno do stabilního local-first Home, nikoli do zeleného online syncu. P2.1 se uzavírá na **100 % (5/5)**; bilance je **9/13 uzavřeno, 4/13 otevřené**. Runtime, TEST aplikace, main, produkční Vercel ani produkční Supabase se tímto dokumentačním commitem nemění.
 
 - **25. 9. 2026 – explicitní předání do nového chatu:** na žádost vlastníka je do kanonického handoffu zapsán přesný stav 1.7.102, poslední fyzický iPhone PASS/FAIL seznam, skutečnost, že sedm FAILů už má zelené opravy v 1.7.100, ale čeká jejich fyzický retest, a že 1.7.101/1.7.102 přidaly konfliktní workflow/CAS bez dosavadního fyzického acceptance. Nový chat má nejdřív retestovat, nikoli znovu slepě implementovat starý seznam. Přidána také poznámka o přesunu neprodukčních migrací pod `supabase/history/non-production-migrations/` a požadavek průběžně informovat vlastníka během delších kroků. Jde pouze o dokumentační předání; runtime, TEST DB a produkce se tímto commitem nemění.
 
