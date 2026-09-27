@@ -3,9 +3,9 @@
 - Opraven kořen občas pomalého **prvního otevření Administrace**. Administrace už není jeden monolitický lazy-load: lehký `admin-shell` obsahuje pouze secure kořenovou navigaci, zatímco editory rozpisů, generátor, export/import, zálohy, servis a další těžké nástroje zůstávají v plném `admin` feature.
 - Secure role gate zůstává beze změny a je ještě utažený na konkrétní `rakAdminCanOpenAdmin()`: shell ani jeho background warmup se nespouští pro běžného uživatele ani zástupce. Samotný renderer znovu kontroluje oprávnění před vykreslením.
 - Hlavní Admin renderer při `home` nově končí hned po sestavení navigačního shellu. Už předem nevytváří HTML všech administračních podstránek ani nespouští jejich buildery.
-- Plný Admin dál zachovává závislost na `sync`, ale tato závislost už neblokuje první kořenovou obrazovku. Těžké moduly se warmují jen na idle a pouze pro ověřeného owner/admina; při okamžitém vstupu do konkrétní podsekce se bezpečně dočtou před jejím otevřením.
+- Plný Admin dál zachovává závislost na `sync`, ale tato závislost už neblokuje první kořenovou obrazovku. Těžké moduly se už automaticky newarmují po startu ani po otevření Více/kořene Administrace; načtou se až při skutečném vstupu do konkrétní podsekce. Tím nekonkurují local-first startupu.
 - `app-menu-admin-renderer.js` je součástí warm/offline cache, takže lehký secure shell je lokálně dostupný stejně deterministicky jako menu, aniž by se privilegované položky přidávaly do běžného preboot UI.
-- Reálný Chromium gate drží startup `sync` záměrně nedokončený, vloží již ověřený admin kontext a vyžaduje, aby se kořen Administrace otevřel do 900 ms se stavem `admin-shell=true`, `admin=false`, `sync=false`.
+- Reálný Chromium gate drží startup `sync` záměrně nedokončený, vloží již ověřený admin kontext a vyžaduje, aby se kořen Administrace otevřel do 900 ms se stavem `admin-shell=true`, `admin=false`, `sync=false`; po pozdějším dokončení syncu navíc ověřuje, že se plný Admin bez uživatelského požadavku sám nenačetl.
 - Home, Rotace/Rozpisy, Kalkulačky a běžné Více zůstávají local-first; produkční `main`, produkční Vercel ani produkční Supabase se nemění.
 
 ## RaK 1.7.133 (development)

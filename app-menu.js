@@ -127,7 +127,6 @@ function appMenuShouldOfferRoleRefresh() {
 let appMenuRoleRestorePromise = null;
 let appMenuAdminShellWarmPromise = null;
 let appMenuAdminWarmPromise = null;
-let appMenuAdminToolsWarmScheduled = false;
 
 function appMenuCanOpenAdminNow() {
   return !!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin());
@@ -157,23 +156,6 @@ function appMenuWarmAdminFeature() {
   appMenuAdminWarmPromise = pending;
   pending.finally(() => { if (appMenuAdminWarmPromise === pending) appMenuAdminWarmPromise = null; });
   return pending;
-}
-
-function appMenuScheduleAdminToolsWarmup() {
-  if (!appMenuCanOpenAdminNow() || appMenuAdminToolsWarmScheduled) return;
-  appMenuAdminToolsWarmScheduled = true;
-  const run = () => {
-    appMenuAdminToolsWarmScheduled = false;
-    const pending = appMenuWarmAdminFeature();
-    if (!pending || typeof pending.then !== 'function') return;
-    pending.then(() => {
-      if (typeof loadAdminMachineSettingsFromSupabase === 'function') {
-        void loadAdminMachineSettingsFromSupabase().catch((err) => console.warn('Admin background settings refresh failed', err));
-      }
-    }).catch(() => {});
-  };
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1600 });
-  else setTimeout(run, 500);
 }
 
 async function appMenuEnsureAdminTools(body) {
@@ -214,7 +196,6 @@ function appMenuRenderRoot(body) {
   ].join('');
   if (verifiedRole && !deputy) {
     void appMenuWarmAdminShellFeature();
-    appMenuScheduleAdminToolsWarmup();
   }
 }
 
@@ -2107,7 +2088,6 @@ function openAppMenu(view) {
       renderAdminMenuBody(body, 'home');
       // RAK_17134_ADMIN_ROOT_FIRST: the secure local root is already complete.
       // Heavy tools + settings refresh are idle work and may not block first open.
-      appMenuScheduleAdminToolsWarmup();
     } else if (v === 'admin-machines') {
       void (async () => {
         try {

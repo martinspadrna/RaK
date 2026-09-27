@@ -397,15 +397,10 @@
   function startBackgroundWarmup() {
     if (warmupStarted || !canWarmVerifiedAdminCode()) return;
     warmupStarted = true;
-    // RAK_17134_ROLE_DRIVEN_ADMIN_WARMUP: only an already verified owner/admin
-    // may spend startup idle time on privileged Admin code. The tiny shell is
-    // local; full tools preserve their sync dependency without blocking the root.
+    // RAK_17134_ROLE_DRIVEN_ADMIN_WARMUP: only the tiny secure shell is
+    // prewarmed for an already verified owner/admin. Heavy Admin tools are
+    // intentionally user-driven so they cannot compete with ordinary startup.
     window.rakEnsureFeature('admin-shell')
-      .then(() => {
-        scheduleIdle(() => {
-          ensureFeatureWithAuthOrder('admin').catch((err) => console.warn('Boot v2 admin tools warmup failed', err));
-        }, 2200, 900);
-      })
       .catch((err) => console.warn('Boot v2 admin shell warmup failed', err));
   }
 

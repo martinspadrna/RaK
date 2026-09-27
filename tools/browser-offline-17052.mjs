@@ -236,6 +236,7 @@ try{
  heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
  await until("window.rakIsFeatureReady?.('sync')===true",10000);
  await delay(400);
+ assert.equal(await check("window.rakIsFeatureReady?.('admin')===true"),false,'[17134-admin-first-open] full Admin auto-warmed after sync without a tool request');
  assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] later sync completion returned user from More to Home');
  console.log('[17132-local-first] PASS final nav + local core + route preserved across background sync');
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");

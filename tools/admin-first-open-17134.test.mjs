@@ -89,7 +89,11 @@ test('Admin warmup is role-driven and ordinary local-first surfaces stay indepen
   assert(routing.includes('if (warmupStarted || !canWarmVerifiedAdminCode()) return;'));
   assert(routing.includes("window.rakEnsureFeature('admin-shell')"));
   assert(routing.includes("window.addEventListener('rak-admin-access-changed', scheduleVerifiedAdminWarmup)"));
+  const warmupBlock=routing.slice(routing.indexOf('function startBackgroundWarmup()'),routing.indexOf('function scheduleVerifiedAdminWarmup()'));
+  assert(!warmupBlock.includes("ensureFeatureWithAuthOrder('admin')"),'verified-role warmup must not pull the heavy Admin feature');
   assert(routing.includes("if (key === 'admin') return window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('admin'));"));
+  const menu=read('app-menu.js');
+  assert(!menu.includes('appMenuScheduleAdminToolsWarmup'),'Admin root/menu must not schedule heavy tools without a user subsection request');
   const sw=read('sw.js');
   const warm=sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED'));
   const offline=sw.slice(sw.indexOf('const OFFLINE_REQUIRED'),sw.indexOf('const STATIC_EXT'));
@@ -108,6 +112,7 @@ test('real Chromium gate proves Admin root opens while sync and full Admin are p
   assert(browser.includes('RAK_17134_ADMIN_FIRST_OPEN_GATE'));
   assert(browser.includes("shell:true,full:false,sync:false,view:'home'"));
   assert(browser.includes('Admin root still waited for full tools/sync'));
+  assert(browser.includes('full Admin auto-warmed after sync without a tool request'));
   assert(browser.includes('adminRootMs<=900'));
 });
 
