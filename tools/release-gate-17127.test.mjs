@@ -24,7 +24,8 @@ test('1.7.127 keeps privilege checks while removing network work from visible sh
   assert(menu.includes('rakAdminCanOpenAdmin'));
   assert(unlock.includes("['owner', 'admin', 'deputy'].includes(String(app.adminRole || ''))"));
   assert(!read('index.html').includes('<script src="supabase-vendor-2.110.7.js"'));
-  assert(read('app.js').includes("void ensureFeature('menu').catch"));
+  assert(!read('app.js').includes("void ensureFeature('menu').catch((err) => console.warn('Early menu warmup failed', err))"));
+  assert(read('app-bottom-nav.js').includes('function openRakEarlyMenuShell()'));
 });
 
 test('1.7.127 interaction regression and evidence gates are wired into CI',()=>{
