@@ -50,7 +50,7 @@ test('Admin click gets immediate menu-owned feedback and secure root is split fr
   assert(!click.includes('await appMenuWarmAdminFeature()'));
   const adminRoot=menu.slice(menu.indexOf("} else if (v === 'admin') {"),menu.indexOf("} else if (v === 'admin-machines')"));
   assert(adminRoot.indexOf("renderAdminMenuBody(body, 'home');")>=0);
-  assert(adminRoot.includes('appMenuScheduleAdminToolsWarmup();'));
+  assert(!adminRoot.includes('appMenuScheduleAdminToolsWarmup();'),'Admin root must not auto-warm heavy tools');
   assert(!adminRoot.includes('await loadAdminMachineSettingsFromSupabase()'));
 });
 
