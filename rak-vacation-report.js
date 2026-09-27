@@ -5,7 +5,35 @@
 
   const MONTHS = ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'];
   const PUBLIC_CALENDAR_API = '/api/public-calendar?src=';
-  const calendarRowsByMonth = new Map();
+
+  function vacationReportActiveShiftCalendarSources() {
+    const context = typeof getRakActiveShiftCalendarContext === 'function'
+      ? getRakActiveShiftCalendarContext()
+      : { team: 'D', calendars: [] };
+    const team = ['A', 'B', 'C', 'D'].includes(String(context && context.team || '').toUpperCase())
+      ? String(context.team).toUpperCase()
+      : 'D';
+    const seen = new Set();
+    const sources = [];
+    (Array.isArray(context && context.calendars) ? context.calendars : []).forEach((entry) => {
+      const normalized = typeof normalizeRakGoogleCalendarUrl === 'function'
+        ? normalizeRakGoogleCalendarUrl(entry && entry.url)
+        : '';
+      if (!normalized) return;
+      try {
+        const url = new URL(normalized);
+        if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return;
+        url.searchParams.getAll('src').forEach((source) => {
+          const value = String(source || '').trim();
+          if (!value || seen.has(value)) return;
+          seen.add(value);
+          sources.push(value);
+        });
+      } catch (err) {}
+    });
+    return { team, outside: !!(context && context.outside), sources: sources.slice(0, 64) };
+  }
+    const calendarRowsByMonth = new Map();
   const calendarLoadByMonth = new Map();
 
   function escapeHtml(value) {
@@ -111,9 +139,7 @@
   }
 
   function activeCalendarContext() {
-    const context = typeof window.getRakActiveShiftCalendarPublicSources === 'function'
-      ? window.getRakActiveShiftCalendarPublicSources()
-      : { team: 'D', sources: [] };
+    const context = vacationReportActiveShiftCalendarSources();
     const team = ['A','B','C','D'].includes(String(context && context.team || '').toUpperCase())
       ? String(context.team).toUpperCase()
       : 'D';

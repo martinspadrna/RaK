@@ -3,6 +3,34 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 const ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API = '/api/public-calendar?src=';
 
+function adminRotationGeneratorActiveShiftCalendarSources() {
+  const context = typeof getRakActiveShiftCalendarContext === 'function'
+    ? getRakActiveShiftCalendarContext()
+    : { team: 'D', calendars: [] };
+  const team = ['A', 'B', 'C', 'D'].includes(String(context && context.team || '').toUpperCase())
+    ? String(context.team).toUpperCase()
+    : 'D';
+  const seen = new Set();
+  const sources = [];
+  (Array.isArray(context && context.calendars) ? context.calendars : []).forEach((entry) => {
+    const normalized = typeof normalizeRakGoogleCalendarUrl === 'function'
+      ? normalizeRakGoogleCalendarUrl(entry && entry.url)
+      : '';
+    if (!normalized) return;
+    try {
+      const url = new URL(normalized);
+      if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return;
+      url.searchParams.getAll('src').forEach((source) => {
+        const value = String(source || '').trim();
+        if (!value || seen.has(value)) return;
+        seen.add(value);
+        sources.push(value);
+      });
+    } catch (err) {}
+  });
+  return { team, outside: !!(context && context.outside), sources: sources.slice(0, 64) };
+}
+
 function adminRotationGeneratorCanReadEditorDraftFromDom() {
   const body = document.getElementById('appMenuBody');
   return !!(body && body.querySelector('#adminRotationEditor tr[data-rotation-section]'));
@@ -354,9 +382,7 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
   const status = document.getElementById('adminOnlineSaveStatus');
   if (status) status.textContent = 'Načítám absence z kalendáře přiřazené směny...';
   try {
-    const context = typeof getRakActiveShiftCalendarPublicSources === 'function'
-      ? getRakActiveShiftCalendarPublicSources()
-      : { team: 'D', sources: [] };
+    const context = adminRotationGeneratorActiveShiftCalendarSources();
     const team = String(context && context.team || 'D').trim().toUpperCase() || 'D';
     const sources = Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
     if (!sources.length) throw new Error('calendar-not-configured-for-shift-' + team);
