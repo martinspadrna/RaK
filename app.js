@@ -534,9 +534,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
     } else if (name === 'sync') {
-      // RAK_17082_BOOT_SYNC_ORDER: when startup is loading sync only to hydrate
-      // persisted Rotation, do not race that hydration with remote activation.
-      if (!rakBootLocalHydrationInProgress) void activateRemoteSync();
+      // RAK_17132_SYNC_LOAD_IS_LOCAL: loading the sync/data module is not a
+      // permission to touch the network. Remote refresh has one explicit owner
+      // after local-first readiness (or an explicit reconnect/manual action).
     } else if (name === 'menu') {
       reapplyMoreSinglePassAfterLazyMenu();
       try { if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu(); } catch (err) {}
@@ -583,8 +583,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     let appearanceSyncLastAt = 0;
     const syncActiveAppearance = (source) => {
       const now = Date.now();
+      if (!window.__rakBootV2LocalReady) {
+        window.__rakPendingAppearanceSyncSource = String(source || 'deferred');
+        return Promise.resolve(false);
+      }
       if (appearanceSyncPromise) return appearanceSyncPromise;
-      if (source !== 'startup' && source !== 'profile-ready' && now - appearanceSyncLastAt < 1500) return Promise.resolve(false);
+      if (source !== 'startup-ready' && source !== 'profile-ready' && now - appearanceSyncLastAt < 1500) return Promise.resolve(false);
       appearanceSyncLastAt = now;
       appearanceSyncPromise = ensureFeature('sync').then(() => {
         try {
@@ -625,6 +629,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       firstInteractiveSource: String(window.__rakFirstInteractiveSource || ''),
       firstInteractiveAuthState: String(window.__rakFirstInteractiveAuthState || ''),
       localFirstRotation: window.__rakBootLocalFirstRotation || null,
+      localReady: !!window.__rakBootV2LocalReady,
       elapsedMs: Math.max(0, Math.round(now - bootStartedAt)),
       loadedModuleCount: modulePromises.size,
       features: Object.keys(featureSpecs).reduce((out, key) => {
@@ -696,32 +701,39 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (storedProfile && typeof window.rakUserProfileApplyToRuntime === 'function') window.rakUserProfileApplyToRuntime(storedProfile);
     if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu();
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
-  try { if (typeof window.__rakSyncActiveAppearance === 'function') void window.__rakSyncActiveAppearance('startup'); } catch (err) {}
-
-  // RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine is only a hint. Returning
-  // installations first restore the newest verified local Rotation and load only
-  // Rotation UI helpers; Supabase activation remains an idle/post-ready concern.
+  // RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine is only a hint. From 1.7.132
+  // it no longer decides whether local hydration happens: every startup restores
+  // the newest verified local snapshot and prepares all ordinary local surfaces
+  // before online refresh is even eligible to start.
   const rakReturningServiceWorkerStart = !!(
     typeof navigator !== 'undefined' &&
     navigator.serviceWorker &&
     navigator.serviceWorker.controller
   );
-  const rakMustHydrateRotationBeforeReady = !!(
-    (typeof navigator !== 'undefined' && navigator.onLine === false) ||
-    rakReturningServiceWorkerStart
-  );
+  const rakMustHydrateRotationBeforeReady = true;
   if (rakMustHydrateRotationBeforeReady) {
     rakBootLocalHydrationInProgress = true;
     try {
       await hydrateRakRotationLocalFirst();
       await ensureFeature('rotation');
+      await Promise.all([
+        ensureFeature('calculators'),
+        ensureFeature('menu')
+      ]);
+      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+      try {
+        const menuPage = document.getElementById('menu');
+        if (menuPage && menuPage.classList.contains('active') && typeof openAppMenu === 'function') openAppMenu('menu');
+      } catch (err) {}
     } catch (err) {
-      console.warn('Local-first Rotation restore during boot failed', err);
+      console.warn('Local-first UI restore during boot failed', err);
     } finally {
       rakBootLocalHydrationInProgress = false;
     }
   }
+  window.__rakBootV2LocalReady = true;
+  window.__rakBootV2LocalReadySource = rakReturningServiceWorkerStart ? 'returning-pwa' : 'local-runtime';
 
   const startupReadyAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   window.__rakBootV2StartupReady = true;
@@ -750,7 +762,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     else if (typeof bootHomeRefresh === 'function') bootHomeRefresh();
   } catch (err) { console.warn('Post-load Home boot failed', err); }
 
-  const startSync = () => ensureFeature('sync').catch((err) => console.warn('Boot v2 sync preload failed', err));
+  // RAK_17132_BACKGROUND_REMOTE_REFRESH: local UI is complete at this point.
+  // Network work is intentionally fire-and-forget and cannot own the route.
+  const startSync = () => ensureFeature('sync')
+    .then(() => activateRemoteSync())
+    .then(() => {
+      if (typeof window.__rakSyncActiveAppearance === 'function') return window.__rakSyncActiveAppearance('startup-ready');
+      return true;
+    })
+    .catch((err) => console.warn('Boot v2 background sync failed', err));
   if (typeof requestIdleCallback === 'function') requestIdleCallback(startSync, { timeout: 1200 });
   else setTimeout(startSync, 450);
 

@@ -390,17 +390,9 @@
   function startBackgroundWarmup() {
     if (warmupStarted || typeof window.rakEnsureFeature !== 'function') return;
     warmupStarted = true;
-    Promise.allSettled(['rotation', 'calculators'].map((feature) => window.rakEnsureFeature(feature))).catch(() => {});
-    scheduleIdle(() => {
-      window.rakEnsureFeature('menu').catch((err) => {
-        console.warn('Boot v2 menu warmup failed', err);
-      });
-    }, 900, 350);
-    scheduleIdle(() => {
-      window.rakEnsureFeature('sync').catch((err) => {
-        console.warn('Boot v2 sync warmup failed', err);
-      });
-    }, 1500, 650);
+    // RAK_17132_SINGLE_STARTUP_OWNER: rotation/calculators/menu are now local
+    // startup core and remote sync is owned by app.js. This router may only warm
+    // privileged admin code after startup; loading it still does not grant access.
     scheduleIdle(() => {
       ensureFeatureWithAuthOrder('admin').catch((err) => console.warn('Boot v2 admin warmup failed', err));
     }, 3600, 2400);

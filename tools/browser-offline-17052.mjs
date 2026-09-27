@@ -136,6 +136,11 @@ try{
  assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] full nav bound before physical preboot probe');
  assert.equal(await check("document.documentElement.dataset.rakAuthState"),'unlocked','[17131-preboot-nav] returning profile did not unlock early shell');
  assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17131-preboot-nav] startup finished before physical preboot probe');
+ // RAK_17132_LOCAL_FIRST_ROUTE_GATE: first visible nav already has final geometry.
+ const initialNavGeometry=await check("(()=>{const buttons=Array.from(document.querySelectorAll('nav.bottomNav .bottomNavBtn'));const widths=buttons.map(b=>Math.round(b.getBoundingClientRect().width*10)/10);const more=document.querySelector('.bottomNavMenuBtn .moreIcon');return {count:buttons.length,widths,moreIcon:Math.round((more?.getBoundingClientRect().width||0)*10)/10};})()");
+ assert.equal(initialNavGeometry.count,4,'[17132-local-first] bottom nav does not have four items');
+ assert(Math.max(...initialNavGeometry.widths)-Math.min(...initialNavGeometry.widths)<=1.5,'[17132-local-first] bottom nav geometry changes before hydration: '+JSON.stringify(initialNavGeometry));
+ assert(initialNavGeometry.moreIcon>=28,'[17132-local-first] More icon is still in the undersized pre-final state: '+initialNavGeometry.moreIcon);
  const prebootMore=await check("(()=>{const n=document.querySelector('.bottomNav'),btn=document.querySelector('.bottomNavBtn[data-action=\"menu\"]');btn.click();const body=document.querySelector('#appMenuBody,.appMenuBody'),t=body&&body.textContent||'';return {items:['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(x=>t.includes(x)),active:document.querySelector('#menu')?.classList.contains('active')===true,bound:n?.__rotaceBound===true};})()");
  assert.deepEqual(prebootMore,{items:true,active:true,bound:false},'[17131-preboot-nav] More must render synchronously before full nav binding');
  await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
@@ -168,9 +173,6 @@ try{
  assert(moreMs<=600,'[17130-more-toggle-race] local More took '+moreMs+'ms');
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
  console.log('[17130-more-toggle-race] PASS local More opened in '+moreMs+'ms before sync/startupReady without legacy toggle');
- delayStartupSync=false;
- heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
-
  await check("document.documentElement.dataset.rakAuthState='unlocked'");
  const tapStarted=Date.now();
  const tapIssued=await check("(()=>{const b=document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]');if(!b)return false;b.click();return true;})()");
@@ -179,9 +181,27 @@ try{
  const earlyTapMs=Date.now()-tapStarted;
  assert(earlyTapMs<=1200,'[17127-real-tap] real calculators navigation took '+earlyTapMs+'ms');
  assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] navigation completed only after startupReady');
- await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
- delayStartupDashboard=false;
  console.log('[17127-real-tap] PASS calculators opened in '+earlyTapMs+'ms before delayed startupReady');
+
+ // Leave More as the user's chosen route while the rest of startup and sync finish.
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"menu\"]')?.click();return true;})()");
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] More did not open before startup completion');
+ delayStartupDashboard=false;
+ await until('!!window.__rakBootV2StartupReady',10000);
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] startup completion replaced user route with Home');
+ const localCore=await check("(()=>({localReady:!!window.__rakBootV2LocalReady,rotation:window.rakIsFeatureReady?.('rotation')===true,calculators:window.rakIsFeatureReady?.('calculators')===true,menu:window.rakIsFeatureReady?.('menu')===true}))()");
+ assert.deepEqual(localCore,{localReady:true,rotation:true,calculators:true,menu:true},'[17132-local-first] ordinary local surfaces were not complete before remote sync');
+
+ const heldDeadline=Date.now()+5000;
+ while(heldStartupSync.length===0&&Date.now()<heldDeadline)await delay(50);
+ assert(heldStartupSync.length>0,'[17132-local-first] background sync module was not requested after local-ready');
+ delayStartupSync=false;
+ heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
+ await until("window.rakIsFeatureReady?.('sync')===true",10000);
+ await delay(400);
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] later sync completion returned user from More to Home');
+ console.log('[17132-local-first] PASS final nav + local core + route preserved across background sync');
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
  const cold=await boot('cold mobile',expected);
  await until('!!navigator.serviceWorker?.controller',30000);
  await until('!!window.__rotacePwaBootstrapped');

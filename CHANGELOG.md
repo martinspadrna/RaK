@@ -1,3 +1,15 @@
+## RaK 1.7.132 (development)
+
+- Startup je přestavěný na skutečný **local-first** model: po lokálním bootstrapu se vždy obnoví poslední ověřený snapshot Rotace a ještě před `startupReady` se načtou lokální feature **Rotace, Kalkulačky a Více**. Připojení k internetu už není podmínkou jejich připravenosti.
+- Načtení `sync` feature už samo o sobě nespouští Supabase. Síťová synchronizace má jediného vlastníka a spouští se až sekundárně po dokončení lokálního startupu; načtení modulu a provedení remote refresh jsou oddělené operace.
+- Startup synchronizace vzhledu už nemůže předběhnout lokální hydration. Lokální profil/vzhled se použije okamžitě, vzdálené preference se obnoví až po local-ready.
+- **Home refresh je route-neutral.** `app-home-boot.js` ani `forceHomeRefresh()` už nesmějí volat `showPage('home')`. Background sync, hydration ani watchdog proto nemohou vrátit uživatele z Více/Rotace/Kalkulaček na Home.
+- Běžné **Více** má statický bezpečný lokální root přímo v HTML. Privilegované Administrace/Reporty se do něj nepřidávají a dál zůstávají secure role-gated.
+- Spodní navigace má finální čtyřsloupcovou geometrii už ve statickém shellu. Pozdní `applyBottomNavMoreHardFix()` už nepřepisuje rozměry tlačítka Více ani jeho ikony, takže po dokončení startupu nic „nenaroste“.
+- Kalkulačky a běžné menu feature jsou doplněné do `WARM_START` a `OFFLINE_REQUIRED`, aby vracející se PWA mohla celý základní shell a lokální funkce otevřít bez sítě.
+- Chromium gate 1.7.132 navazuje na pomalý startup/offline test: kontroluje finální geometrii navigace ještě před plným bindingem, local-ready Rotace/Kalkulačky/Více a zachování otevřeného Více po pozdějším dokončení sync feature.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.131 (development)
 
 - Fyzický iPhone retest 1.7.130 upřesnil problém: **nejde jen o Více — viditelná spodní navigace nereaguje na dotyk, dokud se Synchronizace nerozsvítí zeleně**.

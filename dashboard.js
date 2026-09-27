@@ -1035,10 +1035,9 @@ function scheduleDashboardInitialPaint() {
 }
 
 function forceHomeRefresh() {
-  const activePage = document.querySelector('.page.active')?.id || "";
   if (isAnyModalOpen()) return;
-  if ((typeof app !== 'undefined' && app.homeBootSuppressed && activePage !== "home") || (window.__rotaceUserNavigated && activePage !== 'home')) return;
-  if (activePage !== 'home' && typeof showPage === 'function') showPage('home');
+  // RAK_17132_ROUTE_NEUTRAL_HOME_REFRESH: callers include background sync,
+  // hydration and recovery. Updating Home must never navigate to Home.
   if (typeof refreshHomeScreen === 'function') refreshHomeScreen();
   else if (typeof updateDashboard === 'function') updateDashboard();
   if (typeof updateFoodTile === 'function') updateFoodTile();

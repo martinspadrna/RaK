@@ -204,82 +204,17 @@ function applyRakFixedBottomNavMetrics() {
 
 
 function applyBottomNavMoreHardFix() {
+  // RAK_17132_STATIC_NAV_GEOMETRY: geometry is CSS-owned from the first frame.
+  // Keep the public compatibility hook for old callers, but never resize "Více"
+  // after startup/sync.
   const apply = () => {
-    const btn = document.querySelector('nav.bottomNav > .bottomNavMenuBtn') || document.querySelector('nav.bottomNav .bottomNavMenuBtn');
-    if (!btn || !btn.style) return false;
-
-    const compact = window.matchMedia && window.matchMedia('(max-width: 390px)').matches;
-    const lightweight = document.body && (document.body.classList.contains('lightweightMode') || document.body.classList.contains('lowEndDevice'));
-    const peer = document.querySelector('nav.bottomNav > .bottomNavScroll > .bottomNavBtn:not(.bottomNavMenuBtn):not(.active)')
-      || document.querySelector('nav.bottomNav > .bottomNavScroll > .bottomNavBtn:not(.bottomNavMenuBtn)');
-    const peerRect = peer && peer.getBoundingClientRect ? peer.getBoundingClientRect() : null;
-    const peerWidth = peerRect && peerRect.width ? Math.round(peerRect.width) : (compact ? 58 : 64);
-    // „Více“ je plnohodnotná položka spodní lišty: stejná šířka jako ostatní.
-    const width = '100%';
-    const peerHeight = peerRect && peerRect.height ? Math.round(peerRect.height) : 44;
-    const height = Math.max(lightweight ? 40 : 42, Math.min(peerHeight || 44, lightweight ? 46 : 48)) + 'px';
-    const setStyle = typeof setStylePropertyIfChanged === 'function'
-      ? setStylePropertyIfChanged
-      : ((el, prop, value, priority) => { if (el && el.style) el.style.setProperty(prop, value, priority || ''); return true; });
-
-    setStyle(btn, 'flex', '1 1 0', 'important', 'bottomNavMore-flex');
-    setStyle(btn, 'width', width, 'important', 'bottomNavMore-width');
-    setStyle(btn, 'min-width', '0', 'important', 'bottomNavMore-minWidth');
-    setStyle(btn, 'max-width', 'none', 'important', 'bottomNavMore-maxWidth');
-    setStyle(btn, 'height', height, 'important', 'bottomNavMore-height');
-    setStyle(btn, 'min-height', height, 'important', 'bottomNavMore-minHeight');
-    setStyle(btn, 'max-height', height, 'important', 'bottomNavMore-maxHeight');
-    setStyle(btn, 'align-self', 'center', 'important', 'bottomNavMore-alignSelf');
-    setStyle(btn, 'justify-self', 'stretch', 'important', 'bottomNavMore-justifySelf');
-    setStyle(btn, 'padding', lightweight ? '3px 1px' : '4px 1px 3px', 'important', 'bottomNavMore-padding');
-    setStyle(btn, 'margin', '0', 'important', 'bottomNavMore-margin');
-    setStyle(btn, 'box-sizing', 'border-box', 'important', 'bottomNavMore-boxSizing');
-    setStyle(btn, 'justify-content', 'center', 'important', 'bottomNavMore-justify');
-    setStyle(btn, 'gap', '1px', 'important', 'bottomNavMore-gap');
-    setStyle(btn, 'transform', 'none', 'important', 'bottomNavMore-transform');
-
-    const icon = btn.querySelector('.moreIcon');
-    if (icon && icon.style) {
-      const iconWidth = lightweight ? '28px' : (compact ? '30px' : '32px');
-      const iconHeight = iconWidth;
-      setStyle(icon, 'flex', '0 0 ' + iconHeight, 'important', 'bottomNavMoreIcon-flex');
-      setStyle(icon, 'width', iconWidth, 'important', 'bottomNavMoreIcon-width');
-      setStyle(icon, 'height', iconHeight, 'important', 'bottomNavMoreIcon-height');
-      setStyle(icon, 'max-width', iconWidth, 'important', 'bottomNavMoreIcon-maxWidth');
-      setStyle(icon, 'max-height', iconHeight, 'important', 'bottomNavMoreIcon-maxHeight');
-      setStyle(icon, 'padding', '0', 'important', 'bottomNavMoreIcon-padding');
-      setStyle(icon, 'margin', '0 auto', 'important', 'bottomNavMoreIcon-margin');
-      setStyle(icon, 'transform', 'none', 'important', 'bottomNavMoreIcon-transform');
-      setStyle(icon, 'box-sizing', 'border-box', 'important', 'bottomNavMoreIcon-boxSizing');
-    }
-
-    const label = btn.querySelector('.bottomNavLabel');
-    if (label && label.style) {
-      setStyle(label, 'font-size', lightweight ? '8px' : '8.6px', 'important', 'bottomNavMoreLabel-fontSize');
-      setStyle(label, 'line-height', '1', 'important', 'bottomNavMoreLabel-lineHeight');
-      setStyle(label, 'margin', '0', 'important', 'bottomNavMoreLabel-margin');
-      setStyle(label, 'padding', '0', 'important', 'bottomNavMoreLabel-padding');
-      setStyle(label, 'white-space', 'nowrap', 'important', 'bottomNavMoreLabel-whiteSpace');
-      setStyle(label, 'letter-spacing', '-.02em', 'important', 'bottomNavMoreLabel-letterSpacing');
-      setStyle(label, 'transform', 'none', 'important', 'bottomNavMoreLabel-transform');
-    }
+    const btn = document.querySelector('nav.bottomNav .bottomNavMenuBtn');
+    if (!btn) return false;
+    btn.dataset.rakStaticGeometry = '1';
     return true;
   };
-
-  const run = () => {
-    apply();
-    requestAnimationFrame(apply);
-    setTimeout(apply, 80);
-    setTimeout(apply, 350);
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
-  } else {
-    run();
-  }
-  window.addEventListener('resize', () => requestAnimationFrame(apply), { passive: true });
-  window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
+  else apply();
   window.__rakApplyBottomNavMoreHardFix = apply;
 }
 

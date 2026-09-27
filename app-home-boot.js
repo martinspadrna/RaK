@@ -2,12 +2,9 @@
 
 function rakHomeBootIsAllowed() {
   const activePage = document.querySelector('.page.active')?.id || '';
-  return !(
-    (typeof app !== 'undefined' && app.homeBootSuppressed && activePage !== 'home')
-    || window.__rotaceManualNavLocked
-    || (window.__rotaceHomeBootLocked && activePage !== 'home')
-    || (window.__rotaceUserNavigated && activePage !== 'home')
-  );
+  // RAK_17132_ROUTE_OWNERSHIP: Home boot owns rendering only, never routing.
+  // A later startup phase must not replace a page the user already chose.
+  return !activePage || activePage === 'home';
 }
 
 function rakBumpHomeOptimizationCounter(key, amount = 1) {
@@ -129,10 +126,11 @@ function runRakHomeBootRefresh(reason = 'boot') {
 
   try {
     const activePage = document.querySelector('.page.active')?.id || '';
-    if (activePage !== 'home' && typeof showPage === 'function') {
-      // showPage('home') samo zavolá optimalizovaný scheduleHomeRefresh.
-      showPage('home');
-    } else if (typeof scheduleHomeRefresh === 'function') {
+    if (activePage !== 'home') {
+      scheduleRakHomeBootRecoveryWatchdog(reason);
+      return false;
+    }
+    if (typeof scheduleHomeRefresh === 'function') {
       scheduleHomeRefresh('home-boot:' + String(reason || 'boot'));
     } else if (typeof refreshHomeScreen === 'function') {
       refreshHomeScreen();
