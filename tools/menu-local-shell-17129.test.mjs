@@ -5,9 +5,12 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const nav = read('app-bottom-nav.js');
 const menu = read('app-menu.js');
 const metadata = read('rak-release-metadata.js');
+const version = JSON.parse(read('package.json')).version;
+const patch = Number(String(version).split('.').at(-1) || 0);
 
-assert.match(metadata, /displayVersion: '1\.7\.129'/);
-assert.match(metadata, /buildId: 'v1\.7\.129-menu-local-root1'/);
+assert(patch >= 129, '1.7.129 local-menu milestone must remain active in successors');
+assert(metadata.includes("displayVersion: '" + version + "'"));
+assert(read('CHANGELOG.md').includes('## RaK 1.7.129 (development)'));
 
 assert.match(nav, /function rakEarlyMenuLocalRootHtml\(\)/, 'early menu needs a local root renderer');
 for (const label of ['Nastavení','O aplikaci','Kontakt','Pošli mi chybu']) {

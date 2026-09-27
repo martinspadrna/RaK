@@ -478,12 +478,15 @@ html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummar
     if (window.__rakRuntimeMoreNavigationInstalled) return;
     const previousToggle = typeof window.toggleAppMenu === 'function' ? window.toggleAppMenu : null;
     window.toggleAppMenu = function toggleAppMenuRuntimeSinglePass() {
-      if (typeof showPage === 'function') {
-        showPage('menu');
+      // RAK_17130_NO_EMPTY_MORE_RACE: before app-menu.js exists, the early
+      // renderer must populate #appMenuBody; showPage('menu') alone is unsafe.
+      if (typeof openRakEarlyMenuShell === 'function') {
+        openRakEarlyMenuShell();
         settleBottomNavAfterMore();
         return;
       }
       if (typeof openAppMenu === 'function') {
+        if (typeof showPage === 'function') showPage('menu');
         openAppMenu('menu');
         if (typeof setBottomNavActive === 'function') setBottomNavActive('menu');
         settleBottomNavAfterMore();

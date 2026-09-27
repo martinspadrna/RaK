@@ -127,20 +127,23 @@ try{
  await until("document.querySelector('.bottomNav')?.__rotaceBound===true",10000);
  assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] startup finished before delayed interaction probe');
 
- // RAK_17129_MORE_BEFORE_SYNC_GATE: More must expose ordinary local actions
- // before startupReady and before the sync feature can become ready.
+ // RAK_17130_MORE_TOGGLE_RACE_GATE: reproduce the physical iPhone race.
+ // A legacy startup wrapper exists and can only show #menu. The bottom-nav path
+ // must ignore it and populate the local root itself before sync/startupReady.
+ await check("(()=>{window.__rak17130LegacyToggleCalls=0;window.toggleAppMenu=function(){window.__rak17130LegacyToggleCalls+=1;if(typeof showPage==='function')showPage('menu');};const p=document.getElementById('menu');const b=p&&p.querySelector('#appMenuBody,.appMenuBody');if(b)b.innerHTML='';return true;})()");
  const moreStarted=Date.now();
  const moreIssued=await check("(()=>{const b=document.querySelector('.bottomNavBtn[data-action=\"menu\"]');if(!b)return false;b.click();return true;})()");
- assert.equal(moreIssued,true,'[17129-more-before-sync] More button missing');
+ assert.equal(moreIssued,true,'[17130-more-toggle-race] More button missing');
  await until("(()=>{const body=document.querySelector('#appMenuBody,.appMenuBody');if(!body)return false;const t=body.textContent||'';return ['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(label=>t.includes(label));})()",600);
  const moreMs=Date.now()-moreStarted;
  const moreState=await check("(()=>({startup:!!window.__rakBootV2StartupReady,sync:typeof window.rakIsFeatureReady==='function'?window.rakIsFeatureReady('sync'):false,admin:!!document.querySelector('#appMenuBody [data-menu-action=\"admin\"]'),vacation:!!document.querySelector('#appMenuBody [data-admin-action=\"vacation-report\"]'),shiftReport:!!document.querySelector('#appMenuBody [data-rak-shift-report-entry=\"1\"]')}))()");
- assert.equal(moreState.startup,false,'[17129-more-before-sync] local More appeared only after startupReady');
- assert.equal(moreState.sync,false,'[17129-more-before-sync] local More waited for sync feature');
- assert.deepEqual({admin:moreState.admin,vacation:moreState.vacation,shiftReport:moreState.shiftReport},{admin:false,vacation:false,shiftReport:false},'[17129-more-before-sync] unverified early shell leaked privileged entries');
- assert(moreMs<=600,'[17129-more-before-sync] local More took '+moreMs+'ms');
+ assert.equal(moreState.startup,false,'[17130-more-toggle-race] local More appeared only after startupReady');
+ assert.equal(moreState.sync,false,'[17130-more-toggle-race] local More waited for sync feature');
+ assert.equal(await check("window.__rak17130LegacyToggleCalls||0"),0,'[17130-more-toggle-race] early More delegated to legacy show-only toggle');
+ assert.deepEqual({admin:moreState.admin,vacation:moreState.vacation,shiftReport:moreState.shiftReport},{admin:false,vacation:false,shiftReport:false},'[17130-more-toggle-race] unverified early shell leaked privileged entries');
+ assert(moreMs<=600,'[17130-more-toggle-race] local More took '+moreMs+'ms');
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
- console.log('[17129-more-before-sync] PASS local More opened in '+moreMs+'ms before sync/startupReady');
+ console.log('[17130-more-toggle-race] PASS local More opened in '+moreMs+'ms before sync/startupReady without legacy toggle');
 
  await check("document.documentElement.dataset.rakAuthState='unlocked'");
  const tapStarted=Date.now();

@@ -56,10 +56,10 @@ function rakPopulateEarlyMenuLocalRoot(page) {
 }
 
 function openRakEarlyMenuShell() {
-  if (typeof toggleAppMenu === 'function') {
-    toggleAppMenu();
-    return;
-  }
+  // RAK_17130_EARLY_MENU_OWNS_FIRST_RENDER:
+  // Never delegate the first visible render to legacy toggleAppMenu wrappers.
+  // Some startup stability layers intentionally existed before app-menu.js and
+  // could only switch to #menu, leaving an already-created body empty.
   let page = document.getElementById('menu');
   if (!page) {
     page = document.createElement('div');

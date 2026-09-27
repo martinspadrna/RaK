@@ -1,3 +1,13 @@
+## RaK 1.7.130 (development)
+
+- Fyzický iPhone retest potvrdil **PASS automatického načtení absencí podle směny** z 1.7.128/1.7.129: Generátor i Report dovolených načetly očekávaná data ze směnového kalendáře; původní případ 5.10. Novotný § je potvrzený.
+- Fyzický retest současně potvrdil, že 1.7.129 stále uměl otevřít prázdné **Více** až do dokončení Synchronizace. Kořen nebyl v samotném rendereru, ale v závodu se staršími `toggleAppMenu` compatibility wrappery, které před načtením plného menu uměly pouze `showPage('menu')`.
+- `openRakEarlyMenuShell()` už nikdy nedeleguje první render na `toggleAppMenu`; vždy nejdřív vytvoří/naplní lokální root **Nastavení / O aplikaci / Kontakt / Pošli mi chybu** a teprve potom lazy načítá plné menu.
+- Startup compatibility wrapper v `rak-runtime-stability.js` nyní používá stejný early renderer. Post-lazy wrapper v `app.js` po `showPage('menu')` vždy volá i `openAppMenu('menu')`, takže prázdné nebo staré body nemůže přežít do dalšího přepnutí záložky.
+- Privilegované Administrace/Reporty zůstávají mimo early shell a dál se řídí secure role gate.
+- Chromium gate nově deterministicky vloží starý show-only `toggleAppMenu`, vyprázdní existující menu body a klikne na Více ještě před sync/startupReady. Release projde jen tehdy, když se lokální položky zobrazí bez použití starého wrapperu.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.129 (development)
 
 - Fyzický FAIL 1.7.127 ve „Více“ je opraven u kořene: early shell už nezávisí na tom, zda stránka `#menu` právě vznikla. I když už existuje s prázdným body, okamžitě se naplní lokální nabídkou.

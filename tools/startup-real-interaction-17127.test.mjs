@@ -92,7 +92,7 @@ test('real Chromium gate proves a physical navigation completes before delayed s
   assert(browser.includes("document.querySelector('#kalkulacky')?.classList.contains('active')===true"));
   assert(browser.includes("assert(earlyTapMs<=1200"));
   assert(browser.includes("navigation completed only after startupReady"));
-  assert(browser.includes('RAK_17129_MORE_BEFORE_SYNC_GATE'));
-  assert(browser.includes("[17129-more-before-sync] local More waited for sync feature"));
+  assert(browser.includes('RAK_17130_MORE_TOGGLE_RACE_GATE'));
+  assert(browser.includes("[17130-more-toggle-race] local More waited for sync feature"));
   assert(browser.includes("['Nastavení','O aplikaci','Kontakt','Pošli mi chybu']"));
 });

@@ -468,6 +468,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const previous = window.toggleAppMenu;
       const singlePass = function toggleAppMenuBootV2SinglePass() {
         showPage('menu');
+        // RAK_17130_FULL_MENU_RENDER_AFTER_LAZY: showPage only changes visibility.
+        // Re-render the local root synchronously so an empty/stale #appMenuBody
+        // can never survive until sync or until the next tab switch.
+        if (typeof openAppMenu === 'function') openAppMenu('menu');
         try { if (typeof window.__rakApplyBottomNavMoreHardFix === 'function') window.__rakApplyBottomNavMoreHardFix(); } catch (err) {}
         try { if (typeof window.__rakApplyFixedBottomNavMetricsNow === 'function') window.__rakApplyFixedBottomNavMetricsNow(); } catch (err) {}
       };
