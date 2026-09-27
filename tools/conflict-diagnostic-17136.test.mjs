@@ -1,126 +1,111 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {extractNamedDeclaration,runNamedDeclarations} from './runtime-vm-fixture.mjs';
+import vm from 'node:vm';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
-function fixture(raw, options={}) {
-  let writes=0, network=0;
-  const state={
-    queueGuard:{storageError:String(options.storageError||'')},
-    cacheGuard:{
-      rotationOfflineError:String(options.rotationOfflineError||''),
-      rotationStorageError:String(options.rotationStorageError||''),
-      durableRotationError:String(options.durableRotationError||'')
-    }
-  };
-  const localStorage={
-    getItem:()=>{ if(options.throwRead) throw Error('PRIVATE-STORAGE-ERROR'); return raw; },
-    setItem:()=>{writes++;throw Error('must not write');}
-  };
-  const ctx={
-    state,LOCAL_QUEUE_KEY:'queue',localStorage,JSON,Object,Array,String,Set,
-    getClient:()=>{network++;return {};}
-  };
-  const {api}=runNamedDeclarations({
-    modules:[{source:read('supabase-bridge.js'),names:['getRakConflictDiagnosticHint']}],
-    globals:ctx,exports:{hint:'getRakConflictDiagnosticHint'}
+function runDiagnostic({status={},review={},conflicts={ok:true,items:[],total:0}}={}) {
+  const context=vm.createContext({
+    window:null,globalThis:null,Object,Array,String,Number,Boolean,Math,Set,JSON,
+    getSupabaseSyncStatus:()=>status,
+    getRakPendingSyncReview:()=>review,
+    getRakQueueConflictItems:()=>conflicts
   });
-  return {hint:()=>api.hint(),writes:()=>writes,network:()=>network};
+  context.window=context;
+  context.globalThis=context;
+  vm.runInContext(read('rak-conflict-diagnostics.js'),context,{filename:'rak-conflict-diagnostics.js'});
+  return context.RAKConflictDiagnostics;
 }
 
-test('1.7.136 release identity and fail-closed gate wiring',()=>{
+test('1.7.136 release identity and lazy diagnostic gate wiring',()=>{
   assertCurrentReleaseIdentity(read,'1.7.136');
   assert.equal(JSON.parse(read('package.json')).version,'1.7.136');
-  assert(read('CHANGELOG.md').includes('## RaK 1.7.136 (development)'));
   const pkg=JSON.parse(read('package.json'));
   const workflow=read('.github/workflows/rak-development-validation.yml');
+  assert(pkg.scripts.check.includes('node --check rak-conflict-diagnostics.js'));
   assert(pkg.scripts.check.includes('tools/conflict-diagnostic-17136.test.mjs'));
   assert(workflow.includes('tools/conflict-diagnostic-17136.test.mjs'));
   assert(workflow.includes('rak-170136-isolated-build-'+'$'+'{{ github.sha }}'));
 });
 
-test('sanitized hint preserves concrete conflict cause without private values, network or writes',()=>{
-  const raw=JSON.stringify([
-    {id:'PRIVATE-ID-991',type:'rotation_state',conflict:'newer-online-state',payload:{name:'PRIVATE-NAME',token:'PRIVATE-JWT'}},
-    {id:'PRIVATE-ID-992',type:'bug_report',entry:{message:'PRIVATE-REPORT'}}
-  ]);
-  const f=fixture(raw),out=f.hint(),serialized=JSON.stringify(out);
-  assert.deepEqual({...out},{storage:'ok',conflict:'newer-online-state',type:'rotation_state',offline:'ok'});
-  assert.equal(f.writes(),0);
-  assert.equal(f.network(),0);
-  for(const secret of ['PRIVATE-ID-991','PRIVATE-ID-992','PRIVATE-NAME','PRIVATE-JWT','PRIVATE-REPORT']) assert(!serialized.includes(secret));
-});
-
-test('corrupt or unavailable queue is distinguished without exposing raw storage content',()=>{
-  const cases=[
-    ['{PRIVATE-BROKEN',{},'corrupt'],
-    ['[]',{storageError:'ambiguous'},'ambiguous'],
-    ['[]',{storageError:'write-failed'},'write-failed'],
-    ['[]',{throwRead:true},'unavailable']
-  ];
-  for(const [raw,options,expected] of cases){
-    const f=fixture(raw,options),out=f.hint(),serialized=JSON.stringify(out);
-    assert.equal(out.storage,expected);
-    assert.equal(f.writes(),0);
-    assert.equal(f.network(),0);
-    assert(!serialized.includes('PRIVATE-BROKEN'));
-    assert(!serialized.includes('PRIVATE-STORAGE-ERROR'));
+test('known queue conflict is reduced to fixed safe cause without leaking private fields',()=>{
+  const api=runDiagnostic({
+    status:{kind:'online',verified:true,queued:1,conflictCount:1,storageIssue:false,queueIssue:null},
+    review:{total:1,held:1,retryable:0,remoteVerified:true,storageIssue:false},
+    conflicts:{ok:true,total:1,items:[{
+      index:9,type:'rotation_state',category:'rozpis',label:'starší rozpis',
+      reason:'newer-online-state',signature:'PRIVATE-SIGNATURE',secret:'PRIVATE-PAYLOAD'
+    }]}
+  });
+  const out=api.capture(),serialized=JSON.stringify(out),formatted=api.format(out);
+  assert.equal(out.conflict,'newer-online-state');
+  assert.equal(out.type,'starší rozpis');
+  assert.equal(out.cause,'held-newer-online-state');
+  assert.equal(out.serverContentCompared,false);
+  assert.match(formatted,/server má novější ověřený stav/);
+  for(const secret of ['PRIVATE-SIGNATURE','PRIVATE-PAYLOAD']) {
+    assert(!serialized.includes(secret));
+    assert(!formatted.includes(secret));
   }
 });
 
-test('fixed conflict enums cover every runtime-held reason and unknown values stay generic',()=>{
-  const reasons=[
-    'admin-review-required',
-    'newer-online-state',
-    'oversize-task',
-    'unknown-task',
-    'unsupported-task',
-    'unverified-local-version',
-    'write-rejected'
-  ];
-  for(const reason of reasons){
-    const out=fixture(JSON.stringify([{id:'PRIVATE',type:'machine_settings',conflict:reason}])).hint();
-    assert.equal(out.storage,'ok');
-    assert.equal(out.conflict,reason);
-    assert.equal(out.type,'machine_settings');
-  }
-  const unknown=fixture(JSON.stringify([{id:'PRIVATE',type:'machine_settings',conflict:'SECRET-SERVER-DETAIL'}])).hint();
-  assert.equal(unknown.conflict,'other');
-  assert.equal(unknown.type,'machine_settings');
-  assert(!JSON.stringify(unknown).includes('SECRET-SERVER-DETAIL'));
+test('unknown conflict and queue storage failure fail closed to generic fixed text',()=>{
+  let api=runDiagnostic({
+    status:{kind:'error',verified:false,queued:1,conflictCount:1,storageIssue:false},
+    review:{total:1,held:1,retryable:0,remoteVerified:false,storageIssue:false},
+    conflicts:{ok:true,total:1,items:[{label:'nastavení strojů',reason:'PRIVATE-RAW-SERVER-ERROR'}]}
+  });
+  let out=api.capture();
+  assert.equal(out.conflict,'other');
+  assert(!JSON.stringify(out).includes('PRIVATE-RAW-SERVER-ERROR'));
+  assert.match(api.format(out),/bez bezpečně rozpoznané příčiny/);
+
+  api=runDiagnostic({
+    status:{kind:'error',verified:false,queued:0,conflictCount:0,storageIssue:true},
+    review:{total:0,held:0,retryable:0,remoteVerified:false,storageIssue:true},
+    conflicts:{ok:false,reason:'PRIVATE-STORAGE-DETAIL',items:[]}
+  });
+  out=api.capture();
+  assert.equal(out.storageIssue,true);
+  assert.equal(out.cause,'queue-storage');
+  assert(!JSON.stringify(out).includes('PRIVATE-STORAGE-DETAIL'));
+  assert.match(api.format(out),/chyba nebo neověřitelný stav lokální fronty/);
 });
 
-test('offline copy status is reduced to fixed safe enums',()=>{
-  assert.equal(fixture('[]',{rotationOfflineError:'rotation-offline-single-copy'}).hint().offline,'limited');
-  assert.equal(fixture('[]',{rotationOfflineError:'rotation-offline-write-failed'}).hint().offline,'write-failed');
-  assert.equal(fixture('[]',{rotationStorageError:'PRIVATE-ERROR'}).hint().offline,'write-failed');
-  assert.equal(fixture('[]',{}).hint().offline,'ok');
+test('retry, offline and offline-copy states use only allowlisted labels',()=>{
+  const api=runDiagnostic({
+    status:{kind:'offline',verified:false,queued:1,conflictCount:0,storageIssue:false,
+      offlineError:'rotation-offline-single-copy',
+      queueIssue:{label:'hlášení chyby',failure:'připojení',retries:2}},
+    review:{total:1,held:0,retryable:1,remoteVerified:false,storageIssue:false},
+    conflicts:{ok:true,total:0,items:[]}
+  });
+  const out=api.capture();
+  assert.equal(out.appState,'offline');
+  assert.equal(out.failure,'připojení');
+  assert.equal(out.offline,'limited');
+  assert.equal(out.cause,'retry-připojení');
+  assert.match(api.format(out),/čekající změna dříve selhala: připojení/);
 });
 
-test('dashboard captures sanitized state before flush and renders only fixed fields',()=>{
-  const src=read('dashboard.js');
-  const capture=src.indexOf('RAK_17136_CONFLICT_CAPTURE_BEFORE_SYNC');
-  const flush=src.indexOf("await step('flush-fronty'");
-  assert(capture>=0&&flush>capture,'diagnostic must be captured before queue flush');
-  for(const marker of [
-    'RAK_17136_SANITIZED_CONFLICT_DIALOG',
-    'Stav aplikace: ',
-    'Úložiště fronty: ',
-    'Offline kopie: ',
-    'Příčina: ',
-    'Obsah serveru a telefonu nebyl porovnán.',
-    'Diagnostika nic nemaže ani nezapisuje.'
-  ]) assert(src.includes(marker),marker);
-  const block=src.slice(src.indexOf('RAK_17136_SANITIZED_CONFLICT_DIALOG'),src.indexOf('RAK_17063_MANUAL_REVISION_DIALOG_GUARD'));
-  for(const forbidden of ['payload','token','lastErrorMessage','.id','JSON.stringify']) {
-    assert(!block.includes(forbidden),'dialog exposes unsafe field '+forbidden);
-  }
+test('diagnostic module is not on startup parse path and capture happens before manual flush',()=>{
+  const dashboard=read('dashboard.js');
+  const index=read('index.html');
   const bridge=read('supabase-bridge.js');
-  const fn=extractNamedDeclaration(bridge,'getRakConflictDiagnosticHint');
-  assert(fn.length<2600,'startup bridge conflict hint grew too large: '+fn.length);
-  assert(!/\.rpc\s*\(|fetch\s*\(|setItem\s*\(|removeItem\s*\(|getClient\s*\(/.test(fn),'hint must stay read-only and network-free');
-  assert(bridge.includes('window.getRakConflictDiagnosticHint = getRakConflictDiagnosticHint;'));
+  const captureAt=dashboard.indexOf("await import('./rak-conflict-diagnostics.js?v=1.7.136')");
+  const flushAt=dashboard.indexOf("await step('flush-fronty'");
+  assert(captureAt>=0&&flushAt>captureAt,'lazy diagnostic must load/capture before flush');
+  assert(!index.includes('rak-conflict-diagnostics.js'),'diagnostic must not be a startup script');
+  assert(!bridge.includes('RAK_17136_CONFLICT_DIAGNOSTIC'),'bridge must stay unchanged by P2.4 diagnostic');
+  assert(!bridge.includes('getRakConflictDiagnosticHint'),'bridge must not carry diagnostic-only parsing work');
+  const module=read('rak-conflict-diagnostics.js');
+  for(const forbidden of ['localStorage','sessionStorage','.rpc(','fetch(','setItem(','removeItem(','console.']) {
+    assert(!module.includes(forbidden),'lazy diagnostic must stay read-only: '+forbidden);
+  }
+  for(const marker of ['Stav aplikace: ','Úložiště fronty: ','Offline kopie: ','Příčina: ',
+    'Obsah serveru a telefonu nebyl porovnán.','Diagnostika nic nemaže ani nezapisuje.']) {
+    assert(module.includes(marker),marker);
+  }
 });

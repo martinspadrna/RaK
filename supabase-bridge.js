@@ -6015,38 +6015,6 @@
       unrecognized,remoteVerified,serverContentCompared:false,labels,storageIssue:unrecognized>0};
   }
 
-  // RAK_17136_CONFLICT_DIAGNOSTIC_HINT: read-only fixed enums only.
-  // The Dashboard combines this hint with existing sanitized sync/review APIs.
-  function getRakConflictDiagnosticHint() {
-    const safeTypes = new Set(['rotation_state','machine_settings','rotation_month_entries','gomoku_win','game_stat','game_ui_settings','game_session','bug_report']);
-    const safeConflicts = new Set(['admin-review-required','newer-online-state','oversize-task','unknown-task','unsupported-task','unverified-local-version','write-rejected']);
-    const safeStorage = new Set(['unavailable','corrupt','ambiguous','write-failed']);
-    let storage = 'ok', conflict = 'none', type = 'unknown', raw = null;
-    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); } catch (_) { storage = 'unavailable'; }
-    if (storage === 'ok' && raw !== null) {
-      try {
-        const tasks = JSON.parse(raw);
-        if (!Array.isArray(tasks)) storage = 'corrupt';
-        else {
-          const held = tasks.find(task => task && typeof task === 'object' && !Array.isArray(task) && task.conflict);
-          if (held) {
-            const rawType = String(held.type || '');
-            const rawConflict = String(held.conflict || '');
-            type = safeTypes.has(rawType) ? rawType : 'unknown';
-            conflict = safeConflicts.has(rawConflict) ? rawConflict : 'other';
-          }
-        }
-      } catch (_) { storage = 'corrupt'; }
-    }
-    const guard = String(state.queueGuard && state.queueGuard.storageError || '');
-    if (storage === 'ok' && safeStorage.has(guard)) storage = guard;
-    let offline = 'ok';
-    if (state.cacheGuard && (state.cacheGuard.rotationOfflineError === 'rotation-offline-write-failed'
-      || state.cacheGuard.rotationStorageError || state.cacheGuard.durableRotationError)) offline = 'write-failed';
-    else if (state.cacheGuard && state.cacheGuard.rotationOfflineError === 'rotation-offline-single-copy') offline = 'limited';
-    return Object.freeze({ storage, conflict, type, offline });
-  }
-
   // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD: user-initiated, entirely local and read-only.
   function downloadPendingSyncBackup() {
     try {
@@ -6383,7 +6351,6 @@
   window.getRakRotationOfflineDiagnostics = getRotationOfflineDiagnostics;
   window.downloadRakPendingSyncBackup = downloadPendingSyncBackup;
   window.getRakPendingSyncReview = getRakPendingSyncReview;
-  window.getRakConflictDiagnosticHint = getRakConflictDiagnosticHint;
   window.reviewRakRotationRevisionOnDemand = reviewRakRotationRevisionOnDemand;
   window.getGameStatsRpcSmokeStatus = getGameStatsRpcSmokeStatus;
   window.getGameUiRpcSmokeStatus = getGameUiRpcSmokeStatus;
