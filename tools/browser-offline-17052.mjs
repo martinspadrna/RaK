@@ -24,6 +24,7 @@ assert.equal(NETWORK_BUDGET.schema,'rak-network-resilience-budget-v1');
 let ciSwGeneration=0;
 let delayStartupDashboard=true;
 let delayStartupBottomNav=true;
+let delayStartupSync=true;
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);}catch{res.writeHead(400);res.end();return;}
@@ -41,6 +42,10 @@ const server=http.createServer((req,res)=>{
   const sendFile=()=>fs.createReadStream(filename).pipe(res);
   if(pathname==='/dashboard.js'&&delayStartupDashboard){setTimeout(sendFile,1800);return;}
   if(pathname==='/app-bottom-nav.js'&&delayStartupBottomNav){setTimeout(sendFile,1800);return;}
+  if(pathname==='/supabase-bridge.js'&&delayStartupSync){
+   const releaseSync=()=>{if(delayStartupSync)setTimeout(releaseSync,40);else sendFile();};
+   releaseSync();return;
+  }
   sendFile();
  });
 });
@@ -171,6 +176,7 @@ try{
  assert(moreMs<=600,'[17130-more-toggle-race] local More took '+moreMs+'ms');
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
  console.log('[17130-more-toggle-race] PASS local More opened in '+moreMs+'ms before sync/startupReady without legacy toggle');
+ delayStartupSync=false;
 
  await check("document.documentElement.dataset.rakAuthState='unlocked'");
  const tapStarted=Date.now();
