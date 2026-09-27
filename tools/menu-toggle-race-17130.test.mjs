@@ -34,7 +34,9 @@ test('legacy startup and post-lazy wrappers both render menu content',()=>{
   const runtimeBody=runtime.slice(runtimeStart,runtimeEnd);
   assert(runtimeBody.includes('RAK_17130_NO_EMPTY_MORE_RACE'));
   assert(runtimeBody.includes("if (typeof openRakEarlyMenuShell === 'function')"));
-  assert(runtimeBody.indexOf('openRakEarlyMenuShell();')<runtimeBody.indexOf("showPage('menu')"));
+  const earlyCall=runtimeBody.indexOf('openRakEarlyMenuShell();');
+  const fullMenuBranch=runtimeBody.indexOf("if (typeof openAppMenu === 'function')");
+  assert(earlyCall>=0&&fullMenuBranch>earlyCall,'early renderer branch must precede full-menu fallback');
 
   const reapplyStart=app.indexOf('function reapplyMoreSinglePassAfterLazyMenu()');
   const reapplyEnd=app.indexOf('\n\n  function activateRemoteSync()',reapplyStart);
