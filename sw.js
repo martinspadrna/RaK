@@ -18,7 +18,7 @@ const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-i
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
 const DEVELOPMENT_CACHE_TUNING_POLICY = 'normalize-update-navigation-cache;waituntil-runtime-write;cleanup-transient-nav';
 // Previous canonical warm-start budget before offline Rotace: const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
-const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm68;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
+const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm69;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
 const DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict';
 const DEVELOPMENT_STARTUP_EXECUTION_POLICY = 'mobile-layout-guard-idle;warm-cache-preserved;startup-files-15';
 const DEVELOPMENT_MUTATION_OBSERVER_POLICY = 'scoped-8;raf-coalesced-7;runtime-stability-targeted';
@@ -51,6 +51,7 @@ const DEVELOPMENT_ADMIN_HOTFIX_ASSETS = [
   './app-rotation-sync.js?v=1.7.134',
   './app-admin-unlock.js?v=1.7.134',
   './app-menu.js?v=1.7.134',
+  './app-menu-admin-shell.js?v=1.7.134',
   './app-menu-shift-report.js?v=1.7.134',
   './app-home-boot.js?v=1.7.134',
   './kalirna-daymod-override.js?v=20260912-1',
@@ -188,6 +189,7 @@ const WARM_START = [
   './brusy-fhb-v158.js?v=1.7.134',
   './changelog.js?v=1.7.134',
   './app-menu.js?v=1.7.134',
+  './app-menu-admin-shell.js?v=1.7.134',
   './app-menu-admin-renderer.js?v=1.7.134',
   './app-menu-pages.js?v=1.7.134',
   './app-menu-bug-report.js?v=1.7.134',
@@ -215,7 +217,7 @@ const OFFLINE_REQUIRED = Object.freeze([
   './styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-calc-panels.css','./styles-calculators-mid.css',
   './brusy.js?v=1.7.134','./soustruhy.js?v=1.7.134','./admin-fhb-calibration.js?v=1.7.134',
   './brusy-fhb-correction.js?v=1.7.134','./brusy-fhb-v157.js?v=1.7.134','./brusy-fhb-v158.js?v=1.7.134',
-  './changelog.js?v=1.7.134','./app-menu.js?v=1.7.134','./app-menu-admin-renderer.js?v=1.7.134','./app-menu-pages.js?v=1.7.134',
+  './changelog.js?v=1.7.134','./app-menu.js?v=1.7.134','./app-menu-admin-shell.js?v=1.7.134','./app-menu-admin-renderer.js?v=1.7.134','./app-menu-pages.js?v=1.7.134',
   './app-menu-bug-report.js?v=1.7.134','./app-menu-profile.js?v=1.7.134','./app-menu-shift-report.js?v=1.7.134',
   './app-admin-unlock.js?v=1.7.134','./rak-vacation-report.js?v=1.7.134','./rak-shift-report.js?v=1.7.134','./rak-shift-report-share.js?v=1.7.134',
   './assets/nav-icons/home-gray.png','./assets/nav-icons/home-green.png',

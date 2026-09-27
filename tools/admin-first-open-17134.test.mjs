@@ -20,7 +20,8 @@ test('secure Admin root is a local shell while full tools preserve sync dependen
   const app=read('app.js');
   const shell=app.slice(app.indexOf('const adminShellFeatureFiles'),app.indexOf('const adminFeatureFiles'));
   const full=app.slice(app.indexOf('const adminFeatureFiles'),app.indexOf('const deferredFiles'));
-  assert(!shell.includes('"app-menu-admin-renderer.js"'),'admin-shell must have no network-loaded renderer');
+  assert(shell.includes('"app-menu-admin-shell.js"'),'admin-shell must load only the tiny secure root module');
+  assert(!shell.includes('"app-menu-admin-renderer.js"'),'admin-shell must have no heavy renderer');
   assert(full.includes('"app-menu-admin-renderer.js"'),'heavy renderer belongs to full Admin only');
   assert.match(app,/"admin-shell":\s*Object\.freeze\(\{\s*files:\s*adminShellFeatureFiles,\s*dependencies:\s*Object\.freeze\(\["menu"\]\)/s);
   assert.match(app,/admin:\s*Object\.freeze\(\{\s*files:\s*adminFeatureFiles,\s*dependencies:\s*Object\.freeze\(\["admin-shell",\s*"sync"\]\)/s);
@@ -36,11 +37,10 @@ test('secure Admin root is a local shell while full tools preserve sync dependen
 
 
 test('Admin home is rendered by the already-local menu module before heavy builders',()=>{
-  const menu=read('app-menu.js');
-  const rootStart=menu.indexOf('function renderAdminRootMenuBody(body)');
-  const rootEnd=menu.indexOf('function appMenuWarmAdminShellFeature()',rootStart);
-  assert(rootStart>=0&&rootEnd>rootStart);
-  const rootBlock=menu.slice(rootStart,rootEnd);
+  const shellFile=read('app-menu-admin-shell.js');
+  const rootStart=shellFile.indexOf('function renderAdminRootMenuBody(body)');
+  assert(rootStart>=0);
+  const rootBlock=shellFile.slice(rootStart);
   assert(rootBlock.includes("rakAdminCanOpenAdmin"));
   assert(rootBlock.includes('Rychlý přístup'));
   assert(!rootBlock.includes('getAdminRotationMonthKeys'));
@@ -53,10 +53,9 @@ test('Admin home is rendered by the already-local menu module before heavy build
 });
 
 test('local Admin root keeps an independent fail-closed role gate',()=>{
-  const menu=read('app-menu.js');
-  const rootStart=menu.indexOf('function renderAdminRootMenuBody(body)');
-  const rootEnd=menu.indexOf('function appMenuWarmAdminShellFeature()',rootStart);
-  const source=menu.slice(rootStart,rootEnd);
+  const shellFile=read('app-menu-admin-shell.js');
+  const rootStart=shellFile.indexOf('function renderAdminRootMenuBody(body)');
+  const source=shellFile.slice(rootStart);
   const body={dataset:{},innerHTML:'',querySelectorAll(){return [];}};
   const context={
     document:{getElementById(){return null;}},
@@ -86,9 +85,13 @@ test('Admin warmup is role-driven and ordinary local-first surfaces stay indepen
   const sw=read('sw.js');
   const warm=sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED'));
   const offline=sw.slice(sw.indexOf('const OFFLINE_REQUIRED'),sw.indexOf('const STATIC_EXT'));
+  assert(warm.includes('app-menu-admin-shell.js?v=1.7.134'));
   assert(warm.includes('app-menu-admin-renderer.js?v=1.7.134'));
+  assert(offline.includes('app-menu-admin-shell.js?v=1.7.134'));
   assert(offline.includes('app-menu-admin-renderer.js?v=1.7.134'));
-  assert(read('app-menu.js').includes('RAK_17134_LOCAL_ADMIN_ROOT'));
+  assert(read('app-menu-admin-shell.js').includes('RAK_17134_LOCAL_ADMIN_ROOT'));
+  assert(!read('app-menu.js').includes('function renderAdminRootMenuBody(body)'),'ordinary menu must not parse Admin root markup during startup');
+  assert(read('app-menu-admin-shell.js').length < 12000,'Admin shell must stay small');
   const app=read('app.js');
   const localStart=app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine');
   const localEnd=app.indexOf('const startupReadyAt',localStart);

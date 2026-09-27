@@ -155,7 +155,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // RAK_17134_ADMIN_SHELL_SPLIT: the secure Admin root renderer lives in
   // the already-local menu module, so first open has no extra script/network race.
   // This zero-file feature remains as an explicit readiness/security boundary.
-  const adminShellFeatureFiles = [];
+  const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
     "app-menu-admin-renderer.js",
@@ -219,6 +219,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-menu-admin-storage.js",
     "app-menu-admin-service.js",
     "app-menu-admin-renderer.js",
+    "app-menu-admin-shell.js",
     "app-menu.js",
     "app-menu-pages.js",
     "app-menu-bug-report.js",
