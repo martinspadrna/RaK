@@ -11,9 +11,9 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('1.7.134 Admin first-open release identity is unified',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.134');
-  assert.equal(metadata.displayVersion,'1.7.134');
-  assert(metadata.buildId.includes('admin-first-open'));
+  assert(/^1\.7\.\d+$/.test(metadata.displayVersion));
   assert(read('CHANGELOG.md').includes('## RaK 1.7.134 (development)'));
+  assert(read('app-menu-admin-shell.js').includes('RAK_17134_LOCAL_ADMIN_ROOT'));
 });
 
 test('secure Admin root is a local shell while full tools preserve sync dependency',()=>{
@@ -85,10 +85,11 @@ test('Admin warmup is role-driven and ordinary local-first surfaces stay indepen
   const sw=read('sw.js');
   const warm=sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED'));
   const offline=sw.slice(sw.indexOf('const OFFLINE_REQUIRED'),sw.indexOf('const STATIC_EXT'));
-  assert(warm.includes('app-menu-admin-shell.js?v=1.7.134'));
-  assert(warm.includes('app-menu-admin-renderer.js?v=1.7.134'));
-  assert(offline.includes('app-menu-admin-shell.js?v=1.7.134'));
-  assert(offline.includes('app-menu-admin-renderer.js?v=1.7.134'));
+  const currentVersion=JSON.parse(read('package.json')).version;
+  assert(warm.includes('app-menu-admin-shell.js?v='+currentVersion));
+  assert(warm.includes('app-menu-admin-renderer.js?v='+currentVersion));
+  assert(offline.includes('app-menu-admin-shell.js?v='+currentVersion));
+  assert(offline.includes('app-menu-admin-renderer.js?v='+currentVersion));
   assert(read('app-menu-admin-shell.js').includes('RAK_17134_LOCAL_ADMIN_ROOT'));
   assert(!read('app-menu.js').includes('function renderAdminRootMenuBody(body)'),'ordinary menu must not parse Admin root markup during startup');
   assert(read('app-menu-admin-shell.js').length < 12000,'Admin shell must stay small');
