@@ -6015,147 +6015,36 @@
       unrecognized,remoteVerified,serverContentCompared:false,labels,storageIssue:unrecognized>0};
   }
 
-  // RAK_17136_CONFLICT_DIAGNOSTIC_SNAPSHOT: read-only, fixed categories only.
-  // Captures the reason BEFORE a manual sync can mutate queue state. Never returns IDs,
-  // payloads, names, tokens, raw errors or arbitrary server/storage strings.
-  function getRakConflictDiagnosticSnapshot() {
-    const typeLabels = {
-      rotation_state:'starší rozpis',
-      machine_settings:'nastavení strojů',
-      rotation_month_entries:'měsíční rozpis',
-      gomoku_win:'výsledek hry',
-      game_stat:'herní statistika',
-      game_ui_settings:'vzhled profilu',
-      game_session:'rozehraná hra',
-      bug_report:'hlášení chyby'
-    };
-    const conflictLabels = {
-      'admin-review-required':'starší administrátorská změna vyžaduje nové ověření',
-      'newer-online-state':'server má novější ověřený stav',
-      'oversize-task':'položka překročila bezpečný limit',
-      'unknown-task':'fronta obsahuje neznámý typ položky',
-      'unsupported-task':'stará položka už není podporovaná',
-      'unverified-local-version':'lokální verzi nelze bezpečně ověřit',
-      'write-rejected':'server zápis odmítl'
-    };
-    const storageLabels = {
-      ok:'v pořádku',
-      unavailable:'úložiště není dostupné',
-      corrupt:'fronta má poškozený formát',
-      ambiguous:'frontu nelze beze ztráty jednoznačně načíst',
-      'write-failed':'zápis fronty nebyl ověřen'
-    };
-    let raw = null;
-    let queueStorage = 'ok';
-    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); }
-    catch (_) { queueStorage = 'unavailable'; }
-    let tasks = [];
-    if (queueStorage === 'ok' && raw !== null) {
+  // RAK_17136_CONFLICT_DIAGNOSTIC_HINT: read-only fixed enums only.
+  // The Dashboard combines this hint with existing sanitized sync/review APIs.
+  function getRakConflictDiagnosticHint() {
+    const safeTypes = new Set(['rotation_state','machine_settings','rotation_month_entries','gomoku_win','game_stat','game_ui_settings','game_session','bug_report']);
+    const safeConflicts = new Set(['admin-review-required','newer-online-state','oversize-task','unknown-task','unsupported-task','unverified-local-version','write-rejected']);
+    const safeStorage = new Set(['unavailable','corrupt','ambiguous','write-failed']);
+    let storage = 'ok', conflict = 'none', type = 'unknown', raw = null;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); } catch (_) { storage = 'unavailable'; }
+    if (storage === 'ok' && raw !== null) {
       try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) tasks = parsed;
-        else queueStorage = 'corrupt';
-      } catch (_) { queueStorage = 'corrupt'; }
-    }
-    const guardStorage = String(state.queueGuard && state.queueGuard.storageError || '');
-    if (queueStorage === 'ok' && ['unavailable','corrupt','ambiguous','write-failed'].includes(guardStorage)) queueStorage = guardStorage;
-
-    let held = 0;
-    let unrecognized = 0;
-    let firstConflict = null;
-    let firstRetry = null;
-    for (const task of tasks) {
-      const validObject = !!task && typeof task === 'object' && !Array.isArray(task);
-      const rawType = validObject ? String(task.type || '') : '';
-      const type = Object.prototype.hasOwnProperty.call(typeLabels, rawType) ? rawType : 'unknown';
-      if (type === 'unknown') unrecognized += 1;
-      const isConflict = !!(validObject && task.conflict);
-      if (isConflict) {
-        held += 1;
-        if (!firstConflict) {
-          const rawConflict = String(task.conflict || '');
-          firstConflict = {
-            type,
-            label: typeLabels[type] || 'neznámá položka',
-            conflict: Object.prototype.hasOwnProperty.call(conflictLabels, rawConflict) ? rawConflict : 'other',
-            cause: conflictLabels[rawConflict] || 'zadržený konflikt bez bezpečně rozpoznané příčiny'
-          };
+        const tasks = JSON.parse(raw);
+        if (!Array.isArray(tasks)) storage = 'corrupt';
+        else {
+          const held = tasks.find(task => task && typeof task === 'object' && !Array.isArray(task) && task.conflict);
+          if (held) {
+            const rawType = String(held.type || '');
+            const rawConflict = String(held.conflict || '');
+            type = safeTypes.has(rawType) ? rawType : 'unknown';
+            conflict = safeConflicts.has(rawConflict) ? rawConflict : 'other';
+          }
         }
-      } else if (!firstRetry && validObject && Math.max(0, Number(task.retryCount || 0)) > 0) {
-        firstRetry = {
-          type,
-          label: typeLabels[type] || 'neznámá položka',
-          failure: summarizeQueuedSyncTask(task).failure
-        };
-      }
+      } catch (_) { storage = 'corrupt'; }
     }
-
-    const readAt = Date.parse(String(state.rotationSync && state.rotationSync.lastReadAt || ''));
-    const fresh = Number.isFinite(readAt) && Date.now() >= readAt && Date.now() - readAt < 10 * 60 * 1000;
-    const source = String(state.rotationSync && state.rotationSync.lastSource || '');
-    const remoteVerified = !(state.rotationSync && state.rotationSync.lastError) && ['remote','tables'].includes(source) && fresh;
-    const online = typeof navigator !== 'undefined' ? navigator.onLine !== false : true;
-    const hasClient = !!getClient();
-    const offlineIssue = state.cacheGuard && (
-      state.cacheGuard.rotationOfflineError === 'rotation-offline-write-failed'
-      || !!state.cacheGuard.rotationStorageError
-      || !!state.cacheGuard.durableRotationError
-    ) ? 'offline-copy-write-failed'
-      : state.cacheGuard && state.cacheGuard.rotationOfflineError === 'rotation-offline-single-copy'
-        ? 'offline-copy-limited' : 'ok';
-
-    let appState = 'remote-unverified';
-    if (!online) appState = 'offline';
-    else if (!hasClient) appState = 'client-missing';
-    else if (state.rotationSync && state.rotationSync.lastError) appState = 'remote-read-failed';
-    else if (remoteVerified) appState = 'remote-verified';
-
-    let cause = 'none';
-    let causeLabel = 'není zachycen konflikt';
-    let itemLabel = '';
-    if (queueStorage !== 'ok') {
-      cause = 'queue-storage-' + queueStorage;
-      causeLabel = storageLabels[queueStorage] || 'stav lokální fronty nelze bezpečně určit';
-    } else if (firstConflict) {
-      cause = 'held-' + firstConflict.conflict;
-      causeLabel = firstConflict.cause;
-      itemLabel = firstConflict.label;
-    } else if (firstRetry) {
-      cause = 'retry-' + firstRetry.failure;
-      causeLabel = 'čekající změna dříve selhala: ' + firstRetry.failure;
-      itemLabel = firstRetry.label;
-    } else if (state.rotationSync && state.rotationSync.lastError) {
-      cause = 'remote-read-failed';
-      causeLabel = 'poslední online načtení selhalo';
-    } else if (!online) {
-      cause = 'offline';
-      causeLabel = 'zařízení je offline';
-    } else if (!remoteVerified) {
-      cause = 'remote-unverified';
-      causeLabel = 'online stav zatím nebyl čerstvě ověřen';
-    }
-
-    return Object.freeze({
-      schema:'rak-conflict-diagnostic-v1',
-      hasIssue:cause !== 'none' || held > 0 || queueStorage !== 'ok',
-      appState,
-      remoteVerified,
-      queue:Object.freeze({
-        total:queueStorage === 'ok' ? tasks.length : 0,
-        held,
-        retryable:queueStorage === 'ok' ? Math.max(0, tasks.length - held) : 0,
-        unrecognized:queueStorage === 'ok' ? unrecognized : 0,
-        itemLabel
-      }),
-      storage:Object.freeze({
-        queue:queueStorage,
-        queueLabel:storageLabels[queueStorage] || 'stav úložiště není rozpoznán',
-        offline:offlineIssue
-      }),
-      cause,
-      causeLabel,
-      serverContentCompared:false
-    });
+    const guard = String(state.queueGuard && state.queueGuard.storageError || '');
+    if (storage === 'ok' && safeStorage.has(guard)) storage = guard;
+    let offline = 'ok';
+    if (state.cacheGuard && (state.cacheGuard.rotationOfflineError === 'rotation-offline-write-failed'
+      || state.cacheGuard.rotationStorageError || state.cacheGuard.durableRotationError)) offline = 'write-failed';
+    else if (state.cacheGuard && state.cacheGuard.rotationOfflineError === 'rotation-offline-single-copy') offline = 'limited';
+    return Object.freeze({ storage, conflict, type, offline });
   }
 
   // RAK_17060_QUEUE_RESCUE_EXPORT_GUARD: user-initiated, entirely local and read-only.
@@ -6494,7 +6383,7 @@
   window.getRakRotationOfflineDiagnostics = getRotationOfflineDiagnostics;
   window.downloadRakPendingSyncBackup = downloadPendingSyncBackup;
   window.getRakPendingSyncReview = getRakPendingSyncReview;
-  window.getRakConflictDiagnosticSnapshot = getRakConflictDiagnosticSnapshot;
+  window.getRakConflictDiagnosticHint = getRakConflictDiagnosticHint;
   window.reviewRakRotationRevisionOnDemand = reviewRakRotationRevisionOnDemand;
   window.getGameStatsRpcSmokeStatus = getGameStatsRpcSmokeStatus;
   window.getGameUiRpcSmokeStatus = getGameUiRpcSmokeStatus;

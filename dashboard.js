@@ -1346,10 +1346,13 @@ async function runDashboardManualSync(source) {
   RAK_DASHBOARD_MANUAL_SYNC_STATE.running = true;
   const started = Date.now();
   const userDiagnosticSource = source === 'dashboard-click' || source === 'dashboard-keyboard';
-  // RAK_17136_CONFLICT_CAPTURE_BEFORE_SYNC: preserve the original sanitized reason
+  // RAK_17136_CONFLICT_CAPTURE_BEFORE_SYNC: snapshot only existing sanitized APIs
   // before flush/read operations can alter the queue or storage state.
-  const conflictDiagnosticBefore = userDiagnosticSource && typeof window.getRakConflictDiagnosticSnapshot === 'function'
-    ? window.getRakConflictDiagnosticSnapshot() : null;
+  const conflictDiagnosticBefore = userDiagnosticSource ? {
+    status: typeof getSupabaseSyncStatus === 'function' ? getSupabaseSyncStatus() : null,
+    review: typeof window.getRakPendingSyncReview === 'function' ? window.getRakPendingSyncReview() : null,
+    hint: typeof window.getRakConflictDiagnosticHint === 'function' ? window.getRakConflictDiagnosticHint() : null
+  } : null;
   setDashboardManualSyncBadge('⟳ Synchronizuji…', 'pending');
   const result = { ok: true, source: source || 'dashboard-sync-badge', steps: [] };
   const step = async (name, fn) => {
@@ -1391,40 +1394,36 @@ async function runDashboardManualSync(source) {
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastAt = Date.now();
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastText = result.ok ? 'Synchronizace hotová.' : 'Synchronizace doběhla s chybou.';
     setDashboardManualSyncBadge(result.ok ? '🟢 Synchronizováno teď' : '🔴 Sync s chybou', result.ok ? 'online' : 'error');
-    // RAK_17136_SANITIZED_CONFLICT_DIALOG: fixed-category snapshot only.
-    // Prefer the pre-sync capture so the act of diagnosing cannot erase the original cause.
-    const conflictDiagnosticAfter = userDiagnosticSource && typeof window.getRakConflictDiagnosticSnapshot === 'function'
-      ? window.getRakConflictDiagnosticSnapshot() : null;
-    const conflictDiagnostic = conflictDiagnosticBefore && conflictDiagnosticBefore.hasIssue
-      ? conflictDiagnosticBefore : conflictDiagnosticAfter;
+    // RAK_17136_SANITIZED_CONFLICT_DIALOG: fixed-category fields only.
+    const afterDiagnostic = userDiagnosticSource ? {
+      status: typeof getSupabaseSyncStatus === 'function' ? getSupabaseSyncStatus() : null,
+      review: typeof window.getRakPendingSyncReview === 'function' ? window.getRakPendingSyncReview() : null,
+      hint: typeof window.getRakConflictDiagnosticHint === 'function' ? window.getRakConflictDiagnosticHint() : null
+    } : null;
+    const hasDiagnosticIssue = d => !!(d && ((d.status && (d.status.conflictCount > 0 || d.status.storageIssue || d.status.kind === 'error'))
+      || (d.review && (d.review.held > 0 || d.review.storageIssue)) || (d.hint && (d.hint.conflict !== 'none' || d.hint.storage !== 'ok'))));
+    const diagnostic = hasDiagnosticIssue(conflictDiagnosticBefore) ? conflictDiagnosticBefore : afterDiagnostic;
     let conflictDiagnosticShown = false;
-    if (userDiagnosticSource && conflictDiagnostic && conflictDiagnostic.hasIssue && typeof window.alert === 'function') {
-      const appLabels = {
-        offline:'offline',
-        'client-missing':'Supabase klient není připravený',
-        'remote-read-failed':'online načtení selhalo',
-        'remote-verified':'online stav ověřen',
-        'remote-unverified':'online stav zatím neověřen'
-      };
-      const offlineLabels = {
-        ok:'v pořádku',
-        'offline-copy-write-failed':'zápis offline kopie selhal',
-        'offline-copy-limited':'ověřena jen jedna offline kopie'
-      };
-      const q = conflictDiagnostic.queue || {};
-      const s = conflictDiagnostic.storage || {};
-      window.alert([
-        'RaK 1.7.136 – bezpečná diagnostika konfliktu',
-        'Stav aplikace: ' + (appLabels[conflictDiagnostic.appState] || 'neznámý'),
-        'Fronta: celkem ' + Math.max(0, Number(q.total || 0)) + ' · zadržené ' + Math.max(0, Number(q.held || 0)) + ' · ostatní ' + Math.max(0, Number(q.retryable || 0)),
-        'Úložiště fronty: ' + String(s.queueLabel || 'stav není rozpoznán'),
-        'Offline kopie: ' + (offlineLabels[s.offline] || 'stav není rozpoznán'),
-        q.itemLabel ? 'Typ položky: ' + q.itemLabel : 'Typ položky: žádný bezpečně rozpoznaný',
-        'Příčina: ' + String(conflictDiagnostic.causeLabel || 'nelze bezpečně určit'),
-        'Online načtení: ' + (conflictDiagnostic.remoteVerified ? 'ověřeno' : 'neověřeno'),
+    if (userDiagnosticSource && hasDiagnosticIssue(diagnostic) && typeof window.alert === 'function') {
+      const st = diagnostic.status || {}, rv = diagnostic.review || {}, h = diagnostic.hint || {};
+      const typeLabels={rotation_state:'starší rozpis',machine_settings:'nastavení strojů',rotation_month_entries:'měsíční rozpis',gomoku_win:'výsledek hry',game_stat:'herní statistika',game_ui_settings:'vzhled profilu',game_session:'rozehraná hra',bug_report:'hlášení chyby',unknown:'neznámá položka'};
+      const conflictLabels={'admin-review-required':'starší administrátorská změna vyžaduje nové ověření','newer-online-state':'server má novější ověřený stav','oversize-task':'položka překročila bezpečný limit','unknown-task':'fronta obsahuje neznámý typ položky','unsupported-task':'stará položka už není podporovaná','unverified-local-version':'lokální verzi nelze bezpečně ověřit','write-rejected':'server zápis odmítl',other:'zadržený konflikt bez bezpečně rozpoznané příčiny'};
+      const storageLabels={ok:'v pořádku',unavailable:'úložiště není dostupné',corrupt:'fronta má poškozený formát',ambiguous:'frontu nelze beze ztráty jednoznačně načíst','write-failed':'zápis fronty nebyl ověřen'};
+      const appLabel = st.kind === 'offline' ? 'offline' : st.verified ? 'online stav ověřen' : st.kind === 'error' ? 'online/sync chyba' : 'online stav zatím neověřen';
+      const cause = h.storage && h.storage !== 'ok' ? storageLabels[h.storage]
+        : h.conflict && h.conflict !== 'none' ? conflictLabels[h.conflict]
+        : st.queueIssue && st.queueIssue.retries > 0 ? 'čekající změna dříve selhala: ' + String(st.queueIssue.failure || 'nepotvrzené uložení')
+        : 'příčinu nelze bezpečně určit';
+      window.alert(['RaK 1.7.136 – bezpečná diagnostika konfliktu',
+        'Stav aplikace: '+appLabel,
+        'Fronta: celkem '+Math.max(0,Number(rv.total||st.queued||0))+' · zadržené '+Math.max(0,Number(rv.held||st.conflictCount||0))+' · ostatní '+Math.max(0,Number(rv.retryable||0)),
+        'Úložiště fronty: '+(storageLabels[h.storage]||'stav není rozpoznán'),
+        'Offline kopie: '+(h.offline==='write-failed'?'zápis offline kopie selhal':h.offline==='limited'?'ověřena jen jedna offline kopie':'v pořádku'),
+        'Typ položky: '+(typeLabels[h.type]||'neznámá položka'),
+        'Příčina: '+cause,
+        'Online načtení: '+(st.verified?'ověřeno':'neověřeno'),
         'Obsah serveru a telefonu nebyl porovnán.',
-        'Diagnostika nic nemaže ani nezapisuje.'
-      ].join('\n'));
+        'Diagnostika nic nemaže ani nezapisuje.'].join('\n'));
       conflictDiagnosticShown = true;
     }
     // RAK_17063_MANUAL_REVISION_DIALOG_GUARD: explicit badge tap and separate

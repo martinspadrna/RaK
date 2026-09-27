@@ -10,11 +10,6 @@ function fixture(raw, options={}) {
   let writes=0, network=0;
   const state={
     queueGuard:{storageError:String(options.storageError||'')},
-    rotationSync:{
-      lastReadAt:options.lastReadAt===undefined?new Date().toISOString():options.lastReadAt,
-      lastSource:options.lastSource===undefined?'remote':options.lastSource,
-      lastError:options.lastError||null
-    },
     cacheGuard:{
       rotationOfflineError:String(options.rotationOfflineError||''),
       rotationStorageError:String(options.rotationStorageError||''),
@@ -26,16 +21,14 @@ function fixture(raw, options={}) {
     setItem:()=>{writes++;throw Error('must not write');}
   };
   const ctx={
-    state,LOCAL_QUEUE_KEY:'queue',localStorage,JSON,Date,Math,Object,Array,String,Number,Boolean,
-    navigator:{onLine:options.online!==false},
-    getClient:()=>{network+=0;return options.client===false?null:{};},
-    summarizeQueuedSyncTask:task=>({failure:String(task&&task.failureForTest||'nepotvrzené uložení')})
+    state,LOCAL_QUEUE_KEY:'queue',localStorage,JSON,Object,Array,String,Set,
+    getClient:()=>{network++;return {};}
   };
   const {api}=runNamedDeclarations({
-    modules:[{source:read('supabase-bridge.js'),names:['getRakConflictDiagnosticSnapshot']}],
-    globals:ctx,exports:{snapshot:'getRakConflictDiagnosticSnapshot'}
+    modules:[{source:read('supabase-bridge.js'),names:['getRakConflictDiagnosticHint']}],
+    globals:ctx,exports:{hint:'getRakConflictDiagnosticHint'}
   });
-  return {snapshot:()=>api.snapshot(),writes:()=>writes,network:()=>network};
+  return {hint:()=>api.hint(),writes:()=>writes,network:()=>network};
 }
 
 test('1.7.136 release identity and fail-closed gate wiring',()=>{
@@ -49,65 +42,65 @@ test('1.7.136 release identity and fail-closed gate wiring',()=>{
   assert(workflow.includes('rak-170136-isolated-build-'+'$'+'{{ github.sha }}'));
 });
 
-test('sanitized snapshot preserves concrete conflict cause without private values or writes',()=>{
+test('sanitized hint preserves concrete conflict cause without private values, network or writes',()=>{
   const raw=JSON.stringify([
     {id:'PRIVATE-ID-991',type:'rotation_state',conflict:'newer-online-state',payload:{name:'PRIVATE-NAME',token:'PRIVATE-JWT'}},
     {id:'PRIVATE-ID-992',type:'bug_report',entry:{message:'PRIVATE-REPORT'}}
   ]);
-  const f=fixture(raw),out=f.snapshot(),serialized=JSON.stringify(out);
-  assert.equal(out.schema,'rak-conflict-diagnostic-v1');
-  assert.equal(out.hasIssue,true);
-  assert.equal(out.appState,'remote-verified');
-  assert.equal(out.queue.total,2);
-  assert.equal(out.queue.held,1);
-  assert.equal(out.queue.retryable,1);
-  assert.equal(out.queue.itemLabel,'starší rozpis');
-  assert.equal(out.storage.queue,'ok');
-  assert.equal(out.cause,'held-newer-online-state');
-  assert.equal(out.causeLabel,'server má novější ověřený stav');
-  assert.equal(out.serverContentCompared,false);
+  const f=fixture(raw),out=f.hint(),serialized=JSON.stringify(out);
+  assert.deepEqual({...out},{storage:'ok',conflict:'newer-online-state',type:'rotation_state',offline:'ok'});
   assert.equal(f.writes(),0);
   assert.equal(f.network(),0);
   for(const secret of ['PRIVATE-ID-991','PRIVATE-ID-992','PRIVATE-NAME','PRIVATE-JWT','PRIVATE-REPORT']) assert(!serialized.includes(secret));
 });
 
-test('corrupt or unavailable queue is distinguished from app/network state without exposing storage errors',()=>{
-  for(const [raw,options,expected] of [
-    ['{PRIVATE-BROKEN',{},'queue-storage-corrupt'],
-    ['[]',{storageError:'ambiguous'},'queue-storage-ambiguous'],
-    ['[]',{storageError:'write-failed'},'queue-storage-write-failed'],
-    ['[]',{throwRead:true},'queue-storage-unavailable']
-  ]){
-    const out=fixture(raw,options).snapshot(),serialized=JSON.stringify(out);
-    assert.equal(out.cause,expected);
-    assert.equal(out.hasIssue,true);
+test('corrupt or unavailable queue is distinguished without exposing raw storage content',()=>{
+  const cases=[
+    ['{PRIVATE-BROKEN',{},'corrupt'],
+    ['[]',{storageError:'ambiguous'},'ambiguous'],
+    ['[]',{storageError:'write-failed'},'write-failed'],
+    ['[]',{throwRead:true},'unavailable']
+  ];
+  for(const [raw,options,expected] of cases){
+    const f=fixture(raw,options),out=f.hint(),serialized=JSON.stringify(out);
+    assert.equal(out.storage,expected);
+    assert.equal(f.writes(),0);
+    assert.equal(f.network(),0);
     assert(!serialized.includes('PRIVATE-BROKEN'));
     assert(!serialized.includes('PRIVATE-STORAGE-ERROR'));
   }
 });
 
-test('fixed conflict categories cover every runtime-held reason and unknown values stay generic',()=>{
-  const cases={
-    'admin-review-required':'starší administrátorská změna vyžaduje nové ověření',
-    'newer-online-state':'server má novější ověřený stav',
-    'oversize-task':'položka překročila bezpečný limit',
-    'unknown-task':'fronta obsahuje neznámý typ položky',
-    'unsupported-task':'stará položka už není podporovaná',
-    'unverified-local-version':'lokální verzi nelze bezpečně ověřit',
-    'write-rejected':'server zápis odmítl'
-  };
-  for(const [reason,label] of Object.entries(cases)){
-    const out=fixture(JSON.stringify([{id:'PRIVATE',type:'machine_settings',conflict:reason}])).snapshot();
-    assert.equal(out.cause,'held-'+reason);
-    assert.equal(out.causeLabel,label);
+test('fixed conflict enums cover every runtime-held reason and unknown values stay generic',()=>{
+  const reasons=[
+    'admin-review-required',
+    'newer-online-state',
+    'oversize-task',
+    'unknown-task',
+    'unsupported-task',
+    'unverified-local-version',
+    'write-rejected'
+  ];
+  for(const reason of reasons){
+    const out=fixture(JSON.stringify([{id:'PRIVATE',type:'machine_settings',conflict:reason}])).hint();
+    assert.equal(out.storage,'ok');
+    assert.equal(out.conflict,reason);
+    assert.equal(out.type,'machine_settings');
   }
-  const unknown=fixture(JSON.stringify([{id:'PRIVATE',type:'machine_settings',conflict:'SECRET-SERVER-DETAIL'}])).snapshot();
-  assert.equal(unknown.cause,'held-other');
-  assert.equal(unknown.causeLabel,'zadržený konflikt bez bezpečně rozpoznané příčiny');
+  const unknown=fixture(JSON.stringify([{id:'PRIVATE',type:'machine_settings',conflict:'SECRET-SERVER-DETAIL'}])).hint();
+  assert.equal(unknown.conflict,'other');
+  assert.equal(unknown.type,'machine_settings');
   assert(!JSON.stringify(unknown).includes('SECRET-SERVER-DETAIL'));
 });
 
-test('dashboard captures diagnosis before flush and renders only fixed sanitized fields',()=>{
+test('offline copy status is reduced to fixed safe enums',()=>{
+  assert.equal(fixture('[]',{rotationOfflineError:'rotation-offline-single-copy'}).hint().offline,'limited');
+  assert.equal(fixture('[]',{rotationOfflineError:'rotation-offline-write-failed'}).hint().offline,'write-failed');
+  assert.equal(fixture('[]',{rotationStorageError:'PRIVATE-ERROR'}).hint().offline,'write-failed');
+  assert.equal(fixture('[]',{}).hint().offline,'ok');
+});
+
+test('dashboard captures sanitized state before flush and renders only fixed fields',()=>{
   const src=read('dashboard.js');
   const capture=src.indexOf('RAK_17136_CONFLICT_CAPTURE_BEFORE_SYNC');
   const flush=src.indexOf("await step('flush-fronty'");
@@ -122,9 +115,12 @@ test('dashboard captures diagnosis before flush and renders only fixed sanitized
     'Diagnostika nic nemaže ani nezapisuje.'
   ]) assert(src.includes(marker),marker);
   const block=src.slice(src.indexOf('RAK_17136_SANITIZED_CONFLICT_DIALOG'),src.indexOf('RAK_17063_MANUAL_REVISION_DIALOG_GUARD'));
-  for(const forbidden of ['payload','token','lastErrorMessage','.id','JSON.stringify']) assert(!block.includes(forbidden),'dialog exposes unsafe field '+forbidden);
+  for(const forbidden of ['payload','token','lastErrorMessage','.id','JSON.stringify']) {
+    assert(!block.includes(forbidden),'dialog exposes unsafe field '+forbidden);
+  }
   const bridge=read('supabase-bridge.js');
-  const fn=extractNamedDeclaration(bridge,'getRakConflictDiagnosticSnapshot');
-  assert(!/\.rpc\s*\(|fetch\s*\(|setItem\s*\(|removeItem\s*\(/.test(fn),'snapshot must stay read-only and network-free');
-  assert(bridge.includes('window.getRakConflictDiagnosticSnapshot = getRakConflictDiagnosticSnapshot;'));
+  const fn=extractNamedDeclaration(bridge,'getRakConflictDiagnosticHint');
+  assert(fn.length<2600,'startup bridge conflict hint grew too large: '+fn.length);
+  assert(!/\.rpc\s*\(|fetch\s*\(|setItem\s*\(|removeItem\s*\(|getClient\s*\(/.test(fn),'hint must stay read-only and network-free');
+  assert(bridge.includes('window.getRakConflictDiagnosticHint = getRakConflictDiagnosticHint;'));
 });
