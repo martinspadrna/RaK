@@ -46,8 +46,9 @@ test('calendar settings have their own admin page and preserve the legacy D cale
   const core=read('core.js');
   const nav=read('app-navigation.js');
   const renderer=read('app-menu-admin-renderer.js');
+  const adminShell=read('app-menu-admin-shell.js');
   const menu=read('app-menu.js');
-  assert(menu.includes("{ action: 'open-calendars', label: 'Kalendáře' }"));
+  assert(adminShell.includes("{ action: 'open-calendars', label: 'Kalendáře' }"));
   assert(renderer.includes('buildAdminShiftCalendarsSettingsHtml'));
   assert(renderer.includes("mode === 'calendars'"));
   assert.equal((renderer.match(/adminCalendarNotesCard/g)||[]).length,1);

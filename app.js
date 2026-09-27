@@ -152,9 +152,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-shift-report-share.js"
   ];
 
-  // RAK_17134_ADMIN_SHELL_SPLIT: the secure Admin root renderer lives in
-  // the already-local menu module, so first open has no extra script/network race.
-  // This zero-file feature remains as an explicit readiness/security boundary.
+  // RAK_17134_ADMIN_SHELL_SPLIT: keep Admin-only markup outside the ordinary
+  // menu/startup parse path. The tiny shell is cached locally and loaded only
+  // after a verified admin role or an explicit Admin entry.
   const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
