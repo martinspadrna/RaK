@@ -136,22 +136,14 @@ try{
  assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] full nav bound before physical preboot probe');
  assert.equal(await check("document.documentElement.dataset.rakAuthState"),'unlocked','[17131-preboot-nav] returning profile did not unlock early shell');
  assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17131-preboot-nav] startup finished before physical preboot probe');
- const prebootMoreStarted=Date.now();
- await check("document.querySelector('.bottomNavBtn[data-action=\"menu\"]').click();true");
- await until("(()=>{const b=document.querySelector('#appMenuBody,.appMenuBody');const t=b&&b.textContent||'';return ['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(x=>t.includes(x));})()",350);
- const prebootMoreMs=Date.now()-prebootMoreStarted;
- assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] More only worked after full nav binding');
- assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17131-preboot-nav] More page not activated');
- assert(prebootMoreMs<=350,'[17131-preboot-nav] More took '+prebootMoreMs+'ms before full binding');
+ const prebootMore=await check("(()=>{const n=document.querySelector('.bottomNav'),btn=document.querySelector('.bottomNavBtn[data-action=\"menu\"]');btn.click();const body=document.querySelector('#appMenuBody,.appMenuBody'),t=body&&body.textContent||'';return {items:['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(x=>t.includes(x)),active:document.querySelector('#menu')?.classList.contains('active')===true,bound:n?.__rotaceBound===true};})()");
+ assert.deepEqual(prebootMore,{items:true,active:true,bound:false},'[17131-preboot-nav] More must render synchronously before full nav binding');
  await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
- const prebootCalcStarted=Date.now();
- await check("document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]').click();true");
- await until("document.querySelector('#kalkulacky')?.classList.contains('active')===true",350);
- const prebootCalcMs=Date.now()-prebootCalcStarted;
- assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] Calculators only worked after full nav binding');
+ const prebootCalc=await check("(()=>{const n=document.querySelector('.bottomNav'),btn=document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]');btn.click();return {active:document.querySelector('#kalkulacky')?.classList.contains('active')===true,bound:n?.__rotaceBound===true};})()");
+ assert.deepEqual(prebootCalc,{active:true,bound:false},'[17131-preboot-nav] Calculators must activate synchronously before full nav binding');
  await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
  delayStartupBottomNav=false;
- console.log('[17131-preboot-nav] PASS visible nav accepted More in '+prebootMoreMs+'ms and Calculators in '+prebootCalcMs+'ms before full JS binding');
+ console.log('[17131-preboot-nav] PASS visible nav accepted More and Calculators synchronously before full JS binding');
 
  // RAK_17127_REAL_TAP_GATE: historical delayed-start gate remains active,
  // now after the stricter visible-but-unbound 1.7.131 probe.
