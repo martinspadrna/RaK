@@ -8,10 +8,9 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const root=fileURLToPath(new URL('..',import.meta.url));
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('1.7.133 Rotation to More cleanup release identity is unified',()=>{
+test('1.7.133 Rotation to More cleanup milestone remains active in successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.133');
-  assert.equal(metadata.displayVersion,'1.7.133');
-  assert(metadata.buildId.includes('rotace-menu-cleanup'));
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
   assert(read('CHANGELOG.md').includes('## RaK 1.7.133 (development)'));
 });
 
