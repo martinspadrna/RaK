@@ -16,8 +16,9 @@ const browser=read('tools/browser-offline-17052.mjs');
 
 test('real interaction foundation binds before auth/dashboard startup',()=>{
   const nav=index.indexOf('<nav class="bottomNav"');
-  const appTag=index.indexOf('<script src="app.js?v=1.7.127"></script>');
+  const appTag=index.indexOf('<script defer src="app.js?v=1.7.127"></script>');
   assert(nav>=0&&appTag>nav,'bottom nav must exist before app bootstrap executes');
+  assert(index.includes('<script defer src="app.js?v=1.7.127"></script>'),'app bootstrap must not block parser/CSS discovery');
   assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'),'Supabase SDK must not parser-block startup');
   const foundation=app.indexOf('RAK_17127_INTERACTION_FOUNDATION');
   const criticalStart=app.indexOf('const criticalLoadPromise = (async () => {');
