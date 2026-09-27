@@ -447,7 +447,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const started = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady(key, 'loading', { source: 'boot-v2-loader' });
       script.src = key + "?v=" + encodeURIComponent(RAK_MODULE_CACHE_VERSION);
-      script.async = false;
+      // RAK_17134_ADMIN_SHELL_NO_HOL: most legacy dynamic modules preserve
+      // ordered execution. The tiny Admin shell is different: its "menu"
+      // dependency is already resolved by the feature graph, so keeping it in
+      // the ordered dynamic-script queue would let a pending sync script ahead
+      // of it block the first Admin open.
+      script.async = key === "app-menu-admin-shell.js";
       script.dataset.rakBootV2Module = key;
       script.onload = () => {
         const ended = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();

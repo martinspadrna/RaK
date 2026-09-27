@@ -93,6 +93,7 @@ test('Admin warmup is role-driven and ordinary local-first surfaces stay indepen
   assert(!read('app-menu.js').includes('function renderAdminRootMenuBody(body)'),'ordinary menu must not parse Admin root markup during startup');
   assert(read('app-menu-admin-shell.js').length < 12000,'Admin shell must stay small');
   const app=read('app.js');
+  assert(app.includes('script.async = key === "app-menu-admin-shell.js"'),'Admin shell must not queue behind a pending ordered sync script');
   const localStart=app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine');
   const localEnd=app.indexOf('const startupReadyAt',localStart);
   const local=app.slice(localStart,localEnd);
