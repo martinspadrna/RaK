@@ -724,6 +724,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         ensureFeature('calculators'),
         ensureFeature('menu')
       ]);
+      // RAK_17132_LOCAL_STORAGE_BRIDGE: these cached modules own durable/local
+      // Rotation storage as well as remote helpers. Loading them is offline-safe
+      // and side-effect free; explicit post-ready activation is the only owner of
+      // remote synchronization. Offline consumers get the bridge immediately.
+      if (!isFeatureReady('sync')) {
+        await loadFiles(syncFeatureFiles);
+        featureState.sync = 'ready';
+        try { window.dispatchEvent(new CustomEvent('rak:feature-ready', { detail: { feature: 'sync', at: Date.now(), localOnly: true } })); } catch (err) {}
+      }
       try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
       try {
