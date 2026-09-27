@@ -48,6 +48,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - **Fyzický PASS 1.7.134:** vlastník po retestu na iPhonu odpověděl **„ok“**. Tím je potvrzeno, že **Více → Administrace** se po čerstvém spuštění otevírá bez znatelného čekání na zelenou Synchronizaci a běžné local-first UI zůstává funkční. Úkol pomalého prvního otevření Administrace je uzavřen.
 - **Fyzický PASS P0.4 – správa rolí a odvolání admin zařízení (27. 9. 2026):** vlastník na TEST verzi iPhone/PWA provedl změnu role správce a následné odvolání přihlášeného admin zařízení a potvrdil výsledek slovy **„je to ok“**. Nová role se správně propsala do privilegovaných položek a po odvolání zařízení nezůstal starý privilegovaný přístup použitelný bez nového ověření. P0.4 je tím uzavřeno na **100 % (5/5)**; runtime se tímto potvrzením nemění.
 - **Fyzický PASS P0.3 – soukromé stažení a otevření owner backup ZIPu (27. 9. 2026):** vlastník na TEST verzi iPhonu stáhl úplnou owner zálohu do soukromých Souborech/Stažených, ZIP skutečně rozbalil, ověřil neprázdný obsah a otevřel soubor uvnitř; výsledek potvrdil **„ok“**. P0.3 je tím uzavřeno na **100 % (5/5)**. Runtime se tímto potvrzením nemění.
+- **Fyzický PASS P1.2 – Safari/PWA admin relace (27. 9. 2026):** vlastník na TEST verzi iPhonu ověřil online znovuotevření PWA, offline start, návrat offline→online bez mazání dat a následné odvolání zařízení. Po revoke se stará admin relace sama neobnovila a privilegovaný přístup vyžadoval nové ověření; výsledek potvrdil **„ok“**. P1.2 je tím uzavřeno na **100 % (5/5)**. Runtime se tímto potvrzením nemění.
 - **Fyzický PASS 1.7.132 – local-first startup (27. 9. 2026):** vlastník potvrdil „ok“. Home, Rotace/Rozpisy, Kalkulačky i Více jsou dostupné bez čekání na zelenou Synchronizaci, Více má od začátku finální geometrii a dokončení background syncu už nepřepíná uživatelem otevřenou stránku zpět na Home. Ověřený runtime SHA je `21e93b20535cd4bf29f78ddc402bb9e8b13b8a5a`; Actions run `36317772613` je SUCCESS a stable TEST alias ukazuje na READY `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Produkční main/Vercel/Supabase tím nebyly změněny.
 - **Nový fyzický FAIL po PASS 1.7.132 – pouze Rotace → Více:** při přímém přechodu z Rotace na Více zůstává nad menu viditelný panel se jmény; ostatní kombinace přechodů jsou podle vlastníka v pořádku. Kořen je v local-first `openRakEarlyMenuShell()`: tato rychlá cesta úmyslně obchází `showPage()`, ale tím obcházela i `setRotaceNamesDockPortalActive(false,...)`, takže `#namesGrid` zůstával portovaný jako body-fixed.
 - **Fyzický PASS 1.7.133 – Rotace → Více (27. 9. 2026):** vlastník po testu odpověděl „ok“.  rychlá cesta Více před změnou aktivní stránky explicitně zruší Rotace names-dock portal a odstraní přechodové Rotace třídy. Reálný Chromium gate `RAK_17133_ROTACE_TO_MORE_PORTAL_GATE` reprodukuje skutečný body-fixed dock a po kliknutí Rotace → Více ověřuje, že `namesGrid` je zpět v `rotaceNamesPanel`, portal atribut i dock třídy zmizely a Rotace už není aktivní; v finálním runu PASS. Runtime SHA `f04c7d23a6d84d8b786f762108eb6bc7333a411c`, Actions run `36321513263` je kompletně SUCCESS (verify + release-preview). Stable TEST alias ukazuje na READY `dpl_5VTgKDJkcsU3KKP5rNSMsSEpcAVV`, rollback je `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Current isolated-build evidence ID `10931903767`, CI proof ID `10931738979`, release evidence ID `10932498755`. Hard PWA budget PASS a 20kolová FCP parity PASS bez změny limitů: current FCP P50/P95 `292/360 ms` vs immutable 1.7.69 `300/312 ms`, povolený P95 `387 ms`. Experiment s double-rAF byl po fail-closed pádu opakovaného PWA benchmarku zavržen a runtime zůstal na předchozím single-rAF chování. Produkční `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, produkční Vercel i produkční Supabase zůstaly beze změny.
@@ -791,7 +792,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P0.3 | API, exporty a historické klienty | **100 % (5/5)** | Uzavřeno; fyzické soukromé stažení, rozbalení a otevření owner backup ZIPu na iPhonu potvrzeno |
 | P0.4 | Role vlastníka a administrátorů | **100 % (5/5)** | Uzavřeno; fyzický iPhone/PWA průchod role + revoke zařízení potvrzen |
 | P1.1 | Databázová oprávnění, RLS a RPC | **100 % (5/5)** | Uzavřeno; fáze B nasazena atomicky po TEST, CI, fyzické přejímce a dvojím souhlasu |
-| P1.2 | Administrátorské heslo, relace a zařízení | **80 % (4/5)** | Otevřeno |
+| P1.2 | Administrátorské heslo, relace a zařízení | **100 % (5/5)** | Uzavřeno; fyzický Safari/PWA restart, offline→online a revoke scénář potvrzen |
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
 | P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
@@ -800,7 +801,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **67 % (4/6)** | Otevřeno |
 
-**Bilance: 7/13 uzavřeno (P0.1, P0.3, P0.4, P1.1, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 6/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
+**Bilance: 8/13 uzavřeno (P0.1, P0.3, P0.4, P1.1, P1.2, P1.3 a P1.4 technicky; P0.2 rozhodnutím o riziku), 5/13 otevřených.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
 
 ---
 
@@ -866,13 +867,13 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** bezpečnost stojí na serverových pravidlech, nikoli jen na skrytých tlačítkách; přijatá výjimka veřejného čtení rozpisu je jasně oddělená. Produkční DB bez výslovného schválení neměnit.
 
-### P1.2 – Administrátorské heslo, relace a zařízení · **80 % (4/5)**
+### P1.2 – Administrátorské heslo, relace a zařízení · **100 % (5/5)**
 
 - [x] Oddělené administrátorské Auth relace navázané na uživatele, session a zařízení; omezený bootstrap.
 - [x] Obnovení již odvolané relace je blokováno.
 - [x] Ověřit podpisy a expiraci na skutečných owner/admin/deputy relacích v TEST.
 - [x] Ověřit odvolání na druhém zařízení a přesně rozlišit „odvolaná relace“ versus „nové přihlášení se stále platným heslem“.
-- [ ] Reálný Safari/PWA test relací, znovuotevření, offline→online a UX odmítnutí.
+- [x] Reálný Safari/PWA test relací, znovuotevření, offline→online a UX odmítnutí; fyzicky potvrzeno vlastníkem na TEST iPhonu 27. 9. 2026 včetně revoke a zákazu automatického obnovení staré admin relace.
 
 **Dokončení:** konzistentní serverová ochrana i po restartu a odvolání, nikoli pouze klientský příznak `adminUnlocked`.
 
