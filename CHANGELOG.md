@@ -2,7 +2,6 @@
 
 - Oprava přechodu **Rotace → Více**: local-first cesta `openRakEarlyMenuShell()` teď před přepnutím stránky explicitně zruší body-fixed portal `#namesGrid`, vrátí panel jmen do `#rotaceNamesPanel` a odstraní dock třídy. Panel jmen tak už nemůže zůstat nad stránkou Více.
 - Reálný Chromium gate reprodukuje přesně tento přechod: nejdřív ověří skutečně portovaný names dock v Rotaci, potom klikne na Více a vyžaduje aktivní pouze menu, navrácený `namesGrid` a nulové dock/portal příznaky.
-- Stabilita prvního paintu: local-first shell před těžší hydration používá double-`requestAnimationFrame`, aby statický lokální frame dostal skutečnou možnost vykreslení a parsing modulů nemohl při vytížení ukrást FCP. Performance limity zůstávají beze změny.
 - Předchozí local-first startup 1.7.132 je po fyzické kontrole vlastníka **PASS**: běžné lokální stránky jsou ihned ovladatelné, Více má finální vzhled a background sync už otevřenou stránku nepřepisuje.
 
 ## RaK 1.7.132 (development)
