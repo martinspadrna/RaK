@@ -417,7 +417,11 @@ function bindAppMenuHandlers(body) {
     const menuBack = target.getAttribute('data-menu-back');
     const currentView = String(body.dataset.adminView || '');
     const select = body.querySelector('#adminMonthSelect');
-    const monthKey = select ? select.value : getAdminSelectedMonthKey();
+    // RAK_17134_ADMIN_SHELL_CLICK_DECOUPLE: ordinary/root menu clicks must not
+    // require a helper owned by the heavy Admin feature.
+    const monthKey = select
+      ? select.value
+      : (typeof getAdminSelectedMonthKey === 'function' ? getAdminSelectedMonthKey() : '');
     const adminMonthKey = target.getAttribute('data-admin-month-key');
     const adminYearKey = target.getAttribute('data-admin-year-key');
 
