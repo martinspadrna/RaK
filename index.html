@@ -15,7 +15,7 @@
 <title>Rotace a Kalkulačky</title>
 <!-- RAK_DEV_17001_UPDATE_PROMPT_RESET -->
 <script src="rak-release-metadata.js"></script>
-<script src="rak-runtime-diagnostics.js?v=1.7.130"></script>
+<script src="rak-runtime-diagnostics.js?v=1.7.131"></script>
 <script id="rak-dev-17001-update-unblock">
 (function(){
   try {
@@ -886,7 +886,130 @@ window.rakNoteExternalDependency = function(name, status, src) {
     <button class="bottomNavBtn bottomNavMenuBtn" data-page="menu" data-action="menu" type="button" aria-label="Více"><svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="2.15"></circle><circle cx="12" cy="12" r="2.15"></circle><circle cx="12" cy="16" r="2.15"></circle></svg><div class="bottomNavLabel">Více</div></button>
   </div>
 </nav>
-<script defer src="app.js?v=1.7.130"></script>
+<script>
+(function installRakPrebootNavigation(){
+  'use strict';
+  var nav=document.querySelector('nav.bottomNav');
+  if(!nav||nav.dataset.rakPrebootBound==='1')return;
+  nav.dataset.rakPrebootBound='1';
+  window.__rakPrebootNavBound=true;
+
+  function authUnlocked(){
+    return document.documentElement.dataset.rakAuthState==='unlocked';
+  }
+  function setActive(pageId){
+    document.querySelectorAll('.bottomNavBtn').forEach(function(btn){
+      btn.classList.toggle('active',String(btn.dataset.page||'')===pageId);
+    });
+  }
+  function activatePage(pageId){
+    var page=document.getElementById(pageId);
+    if(!page)return false;
+    document.querySelectorAll('.page').forEach(function(node){node.classList.remove('active');});
+    page.classList.add('active');
+    setActive(pageId);
+    window.__rakUserNavigated=true;
+    return true;
+  }
+  function earlyMenuHtml(){
+    return [
+      '<div class="appMenuGrid" data-rak-preboot-menu-root="1">',
+      '<button type="button" class="appMenuAction" data-rak-preboot-menu-view="settings">Nastavení</button>',
+      '<button type="button" class="appMenuAction" data-rak-preboot-menu-view="about">O aplikaci</button>',
+      '<button type="button" class="appMenuAction" data-rak-preboot-menu-view="contact">Kontakt</button>',
+      '<button type="button" class="appMenuAction" data-rak-preboot-menu-view="bug-report">Pošli mi chybu</button>',
+      '</div>'
+    ].join('');
+  }
+  function ensureEarlyMenu(){
+    var page=document.getElementById('menu');
+    if(!page){
+      page=document.createElement('div');
+      page.id='menu';
+      page.className='page appMenuPage';
+      page.innerHTML='<div class="headerBar appMenuPageTitleBar"><div></div><h3>Více</h3><div class="appMenuTitleSpacer"></div></div><div class="card appMenuPageCard"><div class="appMenuBody" id="appMenuBody"></div></div>';
+      document.body.insertBefore(page,nav);
+    }
+    var body=page.querySelector('#appMenuBody,.appMenuBody');
+    if(body){
+      if(!body.id)body.id='appMenuBody';
+      body.dataset.adminView='';
+      body.innerHTML=earlyMenuHtml();
+    }
+    page.dataset.rakEarlyMenuShell='1';
+    activatePage('menu');
+    return page;
+  }
+  function remember(action,view){
+    window.__rakPrebootPendingNav={action:String(action||''),view:String(view||''),at:Date.now()};
+  }
+  window.__rakConsumePrebootNav=function(){
+    var pending=window.__rakPrebootPendingNav;
+    if(!pending||!authUnlocked()||typeof window.rakEnsureFeature!=='function')return false;
+    window.__rakPrebootPendingNav=null;
+    var action=String(pending.action||'');
+    if(action==='menu'){
+      window.rakEnsureFeature('menu').then(function(){
+        if(typeof window.openAppMenu==='function')window.openAppMenu(pending.view||'menu');
+      }).catch(function(err){
+        if(typeof window.rakHandleFeatureLoadError==='function')window.rakHandleFeatureLoadError(err,'menu');
+      });
+      return true;
+    }
+    var feature=action==='kalkulacky'?'calculators':action==='rotace'?'rotation':'';
+    if(feature){
+      window.rakEnsureFeature(feature).then(function(){
+        if(action==='kalkulacky'&&typeof window.openKalkulacky==='function')window.openKalkulacky();
+        else if(action==='rotace'&&typeof window.openRotaceNames==='function')window.openRotaceNames();
+      }).catch(function(err){
+        if(typeof window.rakHandleFeatureLoadError==='function')window.rakHandleFeatureLoadError(err,feature);
+      });
+      return true;
+    }
+    return false;
+  };
+
+  nav.addEventListener('click',function(event){
+    if(nav.__rotaceBound===true)return;
+    var btn=event.target&&event.target.closest?event.target.closest('button[data-action]'):null;
+    if(!btn||!nav.contains(btn)||!authUnlocked())return;
+    event.preventDefault();
+    var action=String(btn.dataset.action||'');
+    if(action==='menu'){
+      ensureEarlyMenu();
+      remember('menu','menu');
+      return;
+    }
+    if(action==='home'){
+      window.__rakPrebootPendingNav=null;
+      activatePage('home');
+      return;
+    }
+    if(action==='kalkulacky'){
+      if(activatePage('kalkulacky'))remember('kalkulacky','');
+      return;
+    }
+    if(action==='rotace'){
+      if(activatePage('rotace'))remember('rotace','');
+    }
+  },false);
+
+  document.addEventListener('click',function(event){
+    var btn=event.target&&event.target.closest?event.target.closest('[data-rak-preboot-menu-view]'):null;
+    if(!btn||!authUnlocked())return;
+    event.preventDefault();
+    var view=String(btn.getAttribute('data-rak-preboot-menu-view')||'menu');
+    remember('menu',view);
+    if(typeof window.openAppMenu==='function'){
+      window.__rakPrebootPendingNav=null;
+      window.openAppMenu(view);
+    }else if(typeof window.__rakConsumePrebootNav==='function'){
+      window.__rakConsumePrebootNav();
+    }
+  },false);
+})();
+</script>
+<script defer src="app.js?v=1.7.131"></script>
 
 <link rel="stylesheet" href="styles-calc-panels.css">
 

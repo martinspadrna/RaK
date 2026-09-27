@@ -23,6 +23,7 @@ const NETWORK_BUDGET=JSON.parse(fs.readFileSync(path.join(ROOT,'tools/network-re
 assert.equal(NETWORK_BUDGET.schema,'rak-network-resilience-budget-v1');
 let ciSwGeneration=0;
 let delayStartupDashboard=true;
+let delayStartupBottomNav=true;
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);}catch{res.writeHead(400);res.end();return;}
@@ -39,6 +40,7 @@ const server=http.createServer((req,res)=>{
   }
   const sendFile=()=>fs.createReadStream(filename).pipe(res);
   if(pathname==='/dashboard.js'&&delayStartupDashboard){setTimeout(sendFile,1800);return;}
+  if(pathname==='/app-bottom-nav.js'&&delayStartupBottomNav){setTimeout(sendFile,1800);return;}
   sendFile();
  });
 });
@@ -116,14 +118,37 @@ try{
  });
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true});});
  await Promise.all([send('Page.enable'),send('Runtime.enable'),send('Network.enable')]);
+ await send('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('rotace_kalkulacky:user_profile_v1',JSON.stringify({accountNumber:'0000',fullName:'CI Returning User',shiftTeam:'D',updatedAt:Date.now()}));}catch(e){}"});
  // All remote HTTPS is blocked before navigation; synthetic anonymous tests only.
  await send('Fetch.enable',{patterns:[{urlPattern:'https://*',requestStage:'Request'}]});
  await send('Emulation.setDeviceMetricsOverride',{width:NETWORK_BUDGET.profile.viewport.width,height:NETWORK_BUDGET.profile.viewport.height,deviceScaleFactor:NETWORK_BUDGET.profile.viewport.deviceScaleFactor,mobile:true});
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
  const navigation=await send('Page.navigate',{url:base});assert(!navigation.errorText,'[17052-browser] '+navigation.errorText);
- // RAK_17127_REAL_TAP_GATE: dashboard is intentionally held for 1.8s. Real
- // navigation must still bind and complete before startupReady, otherwise iOS can
- // show a visible but dead shell even when the old listener-only metric passes.
+ // RAK_17131_VISIBLE_NAV_PREBOOT_GATE: reproduce the physical iPhone path.
+ // The HTML nav is already visible, but app-bottom-nav.js is intentionally held.
+ // A real tap must work BEFORE __rotaceBound, startupReady and sync.
+ await until("window.__rakPrebootNavBound===true && !!document.querySelector('.bottomNavBtn[data-action=\"menu\"]')",3000);
+ assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] full nav bound before physical preboot probe');
+ assert.equal(await check("document.documentElement.dataset.rakAuthState"),'unlocked','[17131-preboot-nav] returning profile did not unlock early shell');
+ assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17131-preboot-nav] startup finished before physical preboot probe');
+ const prebootMoreStarted=Date.now();
+ await check("document.querySelector('.bottomNavBtn[data-action=\"menu\"]').click();true");
+ await until("(()=>{const b=document.querySelector('#appMenuBody,.appMenuBody');const t=b&&b.textContent||'';return ['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(x=>t.includes(x));})()",350);
+ const prebootMoreMs=Date.now()-prebootMoreStarted;
+ assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] More only worked after full nav binding');
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17131-preboot-nav] More page not activated');
+ assert(prebootMoreMs<=350,'[17131-preboot-nav] More took '+prebootMoreMs+'ms before full binding');
+ await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
+ const prebootCalcStarted=Date.now();
+ await check("document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]').click();true");
+ await until("document.querySelector('#kalkulacky')?.classList.contains('active')===true",350);
+ const prebootCalcMs=Date.now()-prebootCalcStarted;
+ assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] Calculators only worked after full nav binding');
+ await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
+ delayStartupBottomNav=false;
+ console.log('[17131-preboot-nav] PASS visible nav accepted More in '+prebootMoreMs+'ms and Calculators in '+prebootCalcMs+'ms before full JS binding');
+
+ // Full interaction shell must still take over and preserve the existing root-cause gates.
  await until("document.querySelector('.bottomNav')?.__rotaceBound===true",10000);
  assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] startup finished before delayed interaction probe');
 

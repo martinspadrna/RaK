@@ -1,3 +1,14 @@
+## RaK 1.7.131 (development)
+
+- Fyzický iPhone retest 1.7.130 upřesnil problém: **nejde jen o Více — viditelná spodní navigace nereaguje na dotyk, dokud se Synchronizace nerozsvítí zeleně**.
+- Kořen je dřív než v menu rendereru: spodní lišta je staticky vidět už z HTML, ale její skutečný click listener se dosud navazoval až po dynamickém načtení interaction shellu. Předchozí Chromium gate tuto mezeru neviděl, protože výslovně čekal na `bottomNav.__rotaceBound === true` a teprve potom klikl.
+- Do HTML je přidán malý lokální **preboot navigation owner**, který se naváže okamžitě po vykreslení lišty a funguje bez `app.js`, Supabase i syncu. Home, Kalkulačky, Rotace a bezpečný lokální kořen Více proto přijmou klepnutí už ve chvíli, kdy jsou vidět.
+- Preboot Více obsahuje pouze **Nastavení / O aplikaci / Kontakt / Pošli mi chybu**. Administrace a reporty v něm nejsou a secure role gate se neoslabuje.
+- Jakmile se plný interaction shell načte, převezme navigaci a případné dřívější klepnutí bezpečně dorenderuje přes normální lazy feature. Žádná síťová práce se nepřidává do samotného okamžitého tap handleru.
+- Chromium gate 1.7.131 záměrně zdrží `app-bottom-nav.js`, nastaví syntetický uložený profil vracejícího se uživatele a klikne na Více i Kalkulačky **ještě před `__rotaceBound`, startupReady a syncem**.
+- Současně je opraven current isolated-build upload: skryté JSONy z `.rak-canonical-build` se musí skutečně nahrát; chybějící artefakt je nově fail-closed.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.7.130 (development)
 
 - Fyzický iPhone retest potvrdil **PASS automatického načtení absencí podle směny** z 1.7.128/1.7.129: Generátor i Report dovolených načetly očekávaná data ze směnového kalendáře; původní případ 5.10. Novotný § je potvrzený.

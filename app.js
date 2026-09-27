@@ -659,6 +659,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   for (const file of interactionCoreFiles) await loadScript(file);
   await loadFiles(interactionShellFiles);
   try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Earliest bottom nav binding failed', err); }
+  // RAK_17131_PREBOOT_NAV_HANDOFF: if the user tapped the already-visible
+  // navigation before the dynamic interaction shell arrived, continue that same
+  // action now. The first paint never has to wait for sync just to accept a tap.
+  try { if (typeof window.__rakConsumePrebootNav === 'function') window.__rakConsumePrebootNav(); } catch (err) { console.warn('Preboot nav handoff failed', err); }
   try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Earliest delegated action binding failed', err); }
   try { markRakFirstInteractive('startup-shell-bound'); } catch (err) {}
 
