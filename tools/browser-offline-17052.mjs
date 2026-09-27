@@ -25,6 +25,7 @@ let ciSwGeneration=0;
 let delayStartupDashboard=true;
 let delayStartupBottomNav=true;
 let delayStartupSync=true;
+let heldStartupSync=[];
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);}catch{res.writeHead(400);res.end();return;}
@@ -43,8 +44,7 @@ const server=http.createServer((req,res)=>{
   if(pathname==='/dashboard.js'&&delayStartupDashboard){setTimeout(sendFile,1800);return;}
   if(pathname==='/app-bottom-nav.js'&&delayStartupBottomNav){setTimeout(sendFile,1800);return;}
   if(pathname==='/supabase-bridge.js'&&delayStartupSync){
-   const releaseSync=()=>{if(delayStartupSync)setTimeout(releaseSync,40);else sendFile();};
-   releaseSync();return;
+   heldStartupSync.push(sendFile);return;
   }
   sendFile();
  });
@@ -177,6 +177,7 @@ try{
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
  console.log('[17130-more-toggle-race] PASS local More opened in '+moreMs+'ms before sync/startupReady without legacy toggle');
  delayStartupSync=false;
+ heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
 
  await check("document.documentElement.dataset.rakAuthState='unlocked'");
  const tapStarted=Date.now();
@@ -339,6 +340,8 @@ try{
  console.log('[17052-browser] PASS mobile cold-start, canonical cached Rotation offline, semantic conflict-free recovery, slow network, confirmed SW update, cache version and viewport');
 }catch(error){console.error('[17052-browser] FAIL '+error.stack);process.exitCode=1;
 }finally{
+ delayStartupSync=false;
+ heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
  for(const p of pending.values()){clearTimeout(p.timeout);p.reject(Error('Chrome closing'));}pending.clear();
  try{ws?.close();}catch{}try{chrome?.kill('SIGTERM');}catch{}
  await new Promise(resolve=>server.close(resolve));try{fs.rmSync(temp,{recursive:true,force:true});}catch{}
