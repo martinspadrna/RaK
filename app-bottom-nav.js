@@ -75,6 +75,13 @@ function openRakEarlyMenuShell() {
   }
   page.dataset.rakEarlyMenuShell = '1';
   rakPopulateEarlyMenuLocalRoot(page);
+  // RAK_17133_ROTACE_MENU_PORTAL_CLEANUP: the local-first More route bypasses
+  // showPage(), so it must explicitly tear down Rotation's body-fixed names dock
+  // before #rotace loses .active. Otherwise namesGrid survives above More.
+  if (typeof setRotaceNamesDockPortalActive === 'function') {
+    setRotaceNamesDockPortalActive(false, 'openRakEarlyMenuShell');
+  }
+  try { document.documentElement.classList.remove('rakRotaceDockSettling', 'rakRotaceEntering'); } catch (err) {}
   document.querySelectorAll('.page').forEach((node) => node.classList.remove('active'));
   page.classList.add('active');
   if (typeof setBottomNavActive === 'function') setBottomNavActive('menu');

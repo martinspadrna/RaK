@@ -30,7 +30,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální opravu.
 - Neobcházet ani neoslabovat testy; opravovat skutečnou příčinu.
 - Od releasu 1.7.85 jsou aktuální čísla verze sjednocená: viditelná, technická, modulová cache a `package.json` používají stejné číslo; SW cache používá stejné číslo s prefixem `v`. Každý nový funkční release zvýší všechny tyto hodnoty právě jednou.
-- Současný ověřený development runtime je `1.7.131`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
+- Současný fyzicky ověřený development runtime je `1.7.132`. Dokumentační nebo čistě testovací následník bez změny runtime číslo verze nezvyšuje.
 - Dokumentační nebo čistě testovací změna bez změny aplikace verzi nezvyšuje a nevytváří Vercel deployment.
 - Dělat velké tematické balíky, minimum commitů a jediný deployment až po úplně zeleném CI přesného SHA.
 - Po každém větším balíku reportovat všech 13 oblastí a jejich procenta.
@@ -39,6 +39,10 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 - Pokud podle odhadu kapacita na další úkol **nestačí**, nepouštět se do něj v tomto chatu. Rovnou doporučit nový chat a dodat **krátký copy/paste prompt** ve stylu: „Pokračuj v projektu RaK podle aktuálního `RAK_HANDOFF.md` na HEAD větve `development`. Všechno důležité je zapsané v tomto souboru. Teď udělej úkol: <konkrétní úkol>.“
 
 ## Aktuální ověřený provozní stav k 27. 9. 2026
+
+- **Fyzický PASS 1.7.132 – local-first startup (27. 9. 2026):** vlastník potvrdil „ok“. Home, Rotace/Rozpisy, Kalkulačky i Více jsou dostupné bez čekání na zelenou Synchronizaci, Více má od začátku finální geometrii a dokončení background syncu už nepřepíná uživatelem otevřenou stránku zpět na Home. Ověřený runtime SHA je `21e93b20535cd4bf29f78ddc402bb9e8b13b8a5a`; Actions run `36317772613` je SUCCESS a stable TEST alias ukazuje na READY `dpl_7ug9uWebwKVKFAHkRqDWADFgsbtf`. Produkční main/Vercel/Supabase tím nebyly změněny.
+- **Nový fyzický FAIL po PASS 1.7.132 – pouze Rotace → Více:** při přímém přechodu z Rotace na Více zůstává nad menu viditelný panel se jmény; ostatní kombinace přechodů jsou podle vlastníka v pořádku. Kořen je v local-first `openRakEarlyMenuShell()`: tato rychlá cesta úmyslně obchází `showPage()`, ale tím obcházela i `setRotaceNamesDockPortalActive(false,...)`, takže `#namesGrid` zůstával portovaný jako body-fixed.
+- **Oprava 1.7.133:** rychlá cesta Více před změnou aktivní stránky explicitně zruší Rotace names-dock portal a odstraní přechodové Rotace třídy. Nový Chromium gate `RAK_17133_ROTACE_TO_MORE_PORTAL_GATE` musí reprodukovat skutečný body-fixed dock a po kliknutí Rotace → Více ověřit, že `namesGrid` je zpět v `rotaceNamesPanel`, portal atribut i dock třídy zmizely a Rotace už není aktivní. Čeká se na zelené CI/deployment a fyzickou přejímku.
 
 - Poslední ověřený **funkční** development runtime je **1.7.131** na SHA `8120d7ab7801efba000ea55c365aeaad8c547cd3`, build `v1.7.131-preboot-nav1`. [Actions #447](https://github.com/martinspadrna/RaK/actions/runs/36295247067) je kompletně **SUCCESS** (verify + release-preview). Stable TEST alias ukazuje na READY `dpl_CDFLawA7y9fVnQDwC7o2UW42zqDf`; rollback je `dpl_5jFoFKZSmXXuxNYBeJF2wpJgZ8Tg`. Release evidence ID `10923568236`, CI proof ID `10923019308`, current isolated-build artefakt ID `10923980114`. Produkční `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`, produkční Vercel a produkční Supabase zůstaly beze změny.
 - **Fyzické upřesnění FAILu po 1.7.130:** vlastník zjistil, že problém není jen prázdný obsah Více. Po čerstvém otevření RaK jsou spodní tlačítka viditelná, ale **Více ani ostatní navigace nejdou fyzicky stisknout až do zelené Synchronizace**. Zelená synchronizace je časový orientační bod; skutečný kořen je dřívější.

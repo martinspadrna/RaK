@@ -192,6 +192,17 @@ try{
  const localCore=await check("(()=>({localReady:!!window.__rakBootV2LocalReady,rotation:window.rakIsFeatureReady?.('rotation')===true,calculators:window.rakIsFeatureReady?.('calculators')===true,menu:window.rakIsFeatureReady?.('menu')===true}))()");
  assert.deepEqual(localCore,{localReady:true,rotation:true,calculators:true,menu:true},'[17132-local-first] ordinary local surfaces were not complete before remote sync');
 
+ // RAK_17133_ROTACE_TO_MORE_PORTAL_GATE: reproduce the physical iPhone bug.
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"rotace\"]')?.click();return true;})()");
+ await until("document.querySelector('#rotace')?.classList.contains('active')===true && document.querySelector('#namesGrid')?.getAttribute('data-rak-dock-portal')==='body-fixed'",2500);
+ const dockBeforeMore=await check("(()=>{const g=document.getElementById('namesGrid');return {parent:g?.parentElement?.tagName||'',portal:g?.getAttribute('data-rak-dock-portal')||'',root:document.documentElement.classList.contains('rakRotaceNamesDockActive'),body:document.body.classList.contains('rakRotaceNamesDockActive')};})()");
+ assert.deepEqual(dockBeforeMore,{parent:'BODY',portal:'body-fixed',root:true,body:true},'[17133-rotace-more] Rotation names dock was not actually portaled before transition');
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"menu\"]')?.click();return true;})()");
+ await until("document.querySelector('#menu')?.classList.contains('active')===true",1200);
+ const rotaceToMore=await check("(()=>{const g=document.getElementById('namesGrid');return {menu:document.getElementById('menu')?.classList.contains('active')===true,rotace:document.getElementById('rotace')?.classList.contains('active')===true,parent:g?.parentElement?.id||'',portal:g?.getAttribute('data-rak-dock-portal')||'',root:document.documentElement.classList.contains('rakRotaceNamesDockActive'),body:document.body.classList.contains('rakRotaceNamesDockActive')};})()");
+ assert.deepEqual(rotaceToMore,{menu:true,rotace:false,parent:'rotaceNamesPanel',portal:'',root:false,body:false},'[17133-rotace-more] direct Rotation -> More left the names dock visible/portaled');
+ console.log('[17133-rotace-more] PASS direct Rotation -> More cleans body-fixed names dock');
+
  const heldDeadline=Date.now()+5000;
  while(heldStartupSync.length===0&&Date.now()<heldDeadline)await delay(50);
  assert(heldStartupSync.length>0,'[17132-local-first] background sync module was not requested after local-ready');
