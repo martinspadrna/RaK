@@ -201,7 +201,16 @@ try{
  const adminStarted=Date.now();
  const adminIssued=await check("(()=>{const b=document.querySelector('#appMenuBody [data-menu-action=\\\"admin\\\"]');if(!b)return false;b.click();return true;})()");
  assert.equal(adminIssued,true,'[17134-admin-first-open] verified Admin entry missing');
- await until("(()=>{const b=document.getElementById('appMenuBody');return b?.dataset.adminView==='home'&&(b.textContent||'').includes('Rychlý přístup');})()",900);
+ let adminRootWaitError=null;
+ try {
+  await until("(()=>{const b=document.getElementById('appMenuBody');return b?.dataset.adminView==='home'&&(b.textContent||'').includes('Rychlý přístup');})()",900);
+ } catch(error) {
+  adminRootWaitError=error;
+ }
+ if(adminRootWaitError){
+  const adminDiag=await check("(()=>{const b=document.getElementById('appMenuBody');return {view:b?.dataset.adminView||'',text:(b?.textContent||'').slice(0,180),shell:window.rakIsFeatureReady?.('admin-shell')===true,full:window.rakIsFeatureReady?.('admin')===true,sync:window.rakIsFeatureReady?.('sync')===true,canOpen:typeof rakAdminCanOpenAdmin==='function'?rakAdminCanOpenAdmin():null,active:typeof rakAdminGetActiveAccountId==='function'?rakAdminGetActiveAccountId():'',account:String(app?.adminAccountId||''),role:String(app?.adminRole||''),unlocked:app?.adminUnlocked===true,renderer:typeof renderAdminMenuBody==='function',boot:window.getRakBootV2Status?.().features||{}};})()");
+  throw Error(adminRootWaitError.message+'; diag='+JSON.stringify(adminDiag)+'; exceptions='+exceptions.slice(-3).join(' | '));
+ }
  const adminRootMs=Date.now()-adminStarted;
  const adminRootState=await check("(()=>({shell:window.rakIsFeatureReady?.('admin-shell')===true,full:window.rakIsFeatureReady?.('admin')===true,sync:window.rakIsFeatureReady?.('sync')===true,view:document.getElementById('appMenuBody')?.dataset.adminView||''}))()");
  assert.deepEqual(adminRootState,{shell:true,full:false,sync:false,view:'home'},'[17134-admin-first-open] Admin root still waited for full tools/sync');
