@@ -795,7 +795,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P1.2 | Administrátorské heslo, relace a zařízení | **100 % (5/5)** | Uzavřeno; fyzický Safari/PWA restart, offline→online a revoke scénář potvrzen |
 | P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** | Uzavřeno; kanonický build, stabilní testy, jednotná metadata a regresní parita |
 | P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** | Uzavřeno; automatický auditní řetězec konkrétního releasu je doložen |
-| P1.5 | Úplné zálohy a prokazatelná obnova | **43 % (3/7)** | Otevřeno; shadow restore není úplná obnova |
+| P1.5 | Úplné zálohy a prokazatelná obnova | **57 % (4/7)** | Otevřeno; fyzické stažení/rozbalení owner ZIPu potvrzeno, plná oddělená obnova zůstává neprovedená |
 | P2.1 | Výkon startu PWA | **80 % (4/5)** | Otevřeno |
 | P2.2 | Rozložení, DOM, CSS a interakce | **60 % (3/5)** | Otevřeno |
 | P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
@@ -913,14 +913,14 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Produkční důkaz 1.7.83 – 24. 9. 2026:** main SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d` prošel [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587) včetně dvou čistých kanonických buildů, `npm run check`, ZIP/CRC, Chromium offline/online, tří měřených startů a 18 živých TEST HTTP sond. Ruční [produkční release #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867) vytvořil až poté jediný kandidát `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, ověřil READY, přesné SHA, produkční metadata a konfiguraci bez TEST ID a následně přesunul pouze produkční alias. Artefakt `rak-production-release-evidence-de443b771bb7e7dd5fefa498883fdd220a78f07d` (ID `10791158417`, SHA-256 `15311dc153d8c3d01ae7b68cec76269ca0971e4ff345f79f8d349aac0dfbc6f6`) je uložen 90 dní. Nedestruktivní rollback cíl je READY `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`; fáze A záměrně zachovává jeho legacy čtení. Stabilní development alias zůstal na `dpl_5h3ivfYu3U8C9iHEYxLPyavacL5i` / SHA `7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`.
 
-### P1.5 – Úplné zálohy a ověřitelná obnova · **43 % (3/7)**
+### P1.5 – Úplné zálohy a ověřitelná obnova · **57 % (4/7)**
 
 - [x] Záloha zdrojů a owner ZIP mají inventář, manifest a CRC; zahrnuta kontrola zdrojových Git blobů.
 - [x] Zpracován inventář databázového schématu, Auth, Storage a rozdělení TEST/produkce.
 - [x] Ověřen nedestruktivní shadow/rollback-only pokus a kontrakt; **není to nezávislá plná obnova**.
 - [ ] Bezpečně obnovit všechna potřebná TEST data a schéma do odděleného projektu po výslovném schválení případných nákladů; žádné mazání originálu.
 - [ ] Ověřit obnovu Auth, Storage, rolí/RLS, pořadí migrací a relevantních revizí dat; zdokumentovat omezení zálohování přihlašovacích údajů.
-- [ ] Fyzicky stáhnout a soukromě otevřít ZIP na iPhonu a ověřit integritu.
+- [x] Fyzicky stáhnout a soukromě otevřít ZIP na iPhonu a ověřit integritu; potvrzeno vlastníkem 27. 9. 2026 při fyzickém P0.3 testu včetně rozbalení ZIPu a otevření souboru uvnitř.
 - [ ] Provedený restore porovnat kontrolními počty, hashi a funkčními testy; mít zkušební návrat a postup při selhání.
 
 
@@ -930,7 +930,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Rozhodnutí o nákladech 23. 9. 2026:** vlastník povolil pouze bezplatnou variantu. Dva vlastní aktivní Free projekty už obsazují oba bezplatné sloty; další dva viditelné projekty patří jinému účtu a nejsou recovery cílem RaK. Žádný nový projekt, placená větev, PITR ani add-on proto nevznikl a žádný existující projekt nebude kvůli testu pozastaven. P1.5 zůstává 43 %.
 
-**Aktuální provozní stav úplné zálohy:** timeout DB části byl kořenově opraven v 1.7.98 a 1.7.103 odstranila 145bajtový Vercel placeholder tím, že publikuje a před/po deployi fail-closed ověřuje skutečný buildový Git ZIP. Fyzický iPhone retest 1.7.103 potvrdil, že úplná owner záloha už dojde k nabídce stažení souboru o velikosti **23,3 MB**; původní chyba „Zdrojový Git archiv se nestáhl celý“ se nevrátila. Vlastník ale výslovně nepotvrdil, že stažený ZIP následně otevřel a ověřil jeho integritu, proto checkbox „Fyzicky stáhnout a soukromě otevřít ZIP na iPhonu“ zůstává otevřený a P1.5 zůstává **43 % (3/7)**.
+**Aktuální provozní stav úplné zálohy:** timeout DB části byl kořenově opraven v 1.7.98 a 1.7.103 odstranila 145bajtový Vercel placeholder tím, že publikuje a před/po deployi fail-closed ověřuje skutečný buildový Git ZIP. Fyzický iPhone retest 1.7.103 potvrdil, že úplná owner záloha už dojde k nabídce stažení souboru o velikosti **23,3 MB**; původní chyba „Zdrojový Git archiv se nestáhl celý“ se nevrátila. Vlastník 27. 9. 2026 výslovně potvrdil, že stažený ZIP na iPhonu skutečně rozbalil, ověřil neprázdný obsah a otevřel soubor uvnitř. Checkbox fyzického ZIPu je tím splněn a P1.5 se posouvá na **57 % (4/7)**; plná oddělená obnova zůstává otevřená.
 
 **Dokončení:** lze doložit, že jsme obnovili použitelnou oddělenou instanci, ne pouze vygenerovali ZIP nebo spustili transakci ROLLBACK.
 
