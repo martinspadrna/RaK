@@ -40,7 +40,7 @@ assert(absenceApi.includes('calendar_endpoint_moved') && absenceApi.includes('st
 assert(bridge.includes('window.SUPABASE_CONFIG'), 'Supabase bridge must derive its client from the active public config');
 assert(userProfile.includes('window.SUPABASE_CONFIG'), 'user profile lookup must derive its client from the active public config');
 assert(generatorWizard.includes("'/api/public-calendar?src='"), 'generator absences must use the configured public shift-calendar proxy');
-assert(generatorWizard.includes('getRakActiveShiftCalendarPublicSources'), 'generator absences must resolve the source from the active account shift');
+assert(generatorWizard.includes('getRakActiveShiftCalendarContext'), 'generator absences must resolve the source from the active account shift');
 assert(!generatorWizard.includes('/functions/v1/rak-absence-calendar'), 'generator must not depend on the legacy Supabase absence-calendar secret');
 
 for (const [name, source] of [
