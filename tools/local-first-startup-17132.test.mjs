@@ -31,6 +31,7 @@ test('render and sync paths cannot own the user route',()=>{
 
 test('rotation calculators and ordinary More are unconditional local startup core',()=>{
   const app=read('app.js');
+  assert(app.includes('"rak-rotation-local-store.js"'),'local Rotation storage must load before hydration');
   const start=app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine');
   const end=app.indexOf('const startupReadyAt',start);
   const block=app.slice(start,end);
@@ -41,6 +42,8 @@ test('rotation calculators and ordinary More are unconditional local startup cor
   assert(block.includes("ensureFeature('calculators')"));
   assert(block.includes("ensureFeature('menu')"));
   assert(block.includes('window.__rakBootV2LocalReady = true'));
+  assert(block.includes('RAK_17132_LOCAL_STORAGE_SPLIT'));
+  assert(!block.includes('loadFiles(syncFeatureFiles)'),'remote sync files must not block startupReady');
   assert(!block.includes('activateRemoteSync()'));
 });
 
@@ -60,10 +63,22 @@ test('PWA cache guarantees local calculators and ordinary More modules',()=>{
   const sw=read('sw.js');
   const warm=sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED'));
   const offline=sw.slice(sw.indexOf('const OFFLINE_REQUIRED'),sw.indexOf('const STATIC_EXT'));
-  for(const asset of ['brusy.js','soustruhy.js','app-menu.js','app-menu-pages.js','app-menu-profile.js','styles-calc-panels.css','styles-calculators-mid.css','styles-menu-polish.css']){
+  for(const asset of ['rak-rotation-local-store.js','brusy.js','soustruhy.js','app-menu.js','app-menu-pages.js','app-menu-profile.js','styles-calc-panels.css','styles-calculators-mid.css','styles-menu-polish.css']){
     assert(warm.includes(asset),asset+' missing from warm cache');
     assert(offline.includes(asset),asset+' missing from offline-required cache');
   }
+});
+
+test('local Rotation storage is network-free and remains available while sync is deferred',()=>{
+  const local=read('rak-rotation-local-store.js');
+  const bridge=read('supabase-bridge.js');
+  assert(local.includes('root.RakRotationLocalStore = api'));
+  assert(local.includes('__rakLocalOnly: true'));
+  assert(local.includes('loadBestOfflineRotationState'));
+  assert(local.includes('persistRotationOfflineSnapshot'));
+  assert(!/fetch\s*\(|\.from\s*\(|\.rpc\s*\(|createClient/.test(local),'local store must contain no remote transport');
+  assert(bridge.includes('window.RakRotationLocalStore.persistRotationOfflineSnapshot'));
+  assert(bridge.includes('window.RakRotationLocalStore.loadBestOfflineRotationState'));
 });
 
 test('first-frame bottom navigation and safe More root are static, not post-sync geometry',()=>{

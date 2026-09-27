@@ -104,6 +104,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   ];
 
   const startupFiles = [
+    "rak-rotation-local-store.js",
     "app-runtime-guards.js",
     "qr.js",
     "payroll.js",
@@ -357,6 +358,21 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   async function hydrateRakRotationLocalFirst() {
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.loadBestOfflineRotationState === 'function') {
+      const selected = await window.RakRotationLocalStore.loadBestOfflineRotationState({ repair: true });
+      if (!selected || !selected.payload) return null;
+      try {
+        if (typeof app === 'object' && app) app.rotation = selected.payload;
+        window.__rakBootLocalFirstRotation = {
+          source: String(selected.meta && selected.meta.source || 'local-store'),
+          revision: Math.max(0, Number(selected.revision || 0) || 0),
+          savedAt: Math.max(0, Number(selected.meta && selected.meta.savedAt || selected.updatedAt || 0) || 0),
+          verified: true,
+          at: Date.now()
+        };
+      } catch (_) {}
+      return selected;
+    }
     const local = rakReadBootLocalRotationCandidate();
     const durable = await rakReadBootDurableRotationCandidate();
     let selected = local || durable;
@@ -724,15 +740,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         ensureFeature('calculators'),
         ensureFeature('menu')
       ]);
-      // RAK_17132_LOCAL_STORAGE_BRIDGE: these cached modules own durable/local
-      // Rotation storage as well as remote helpers. Loading them is offline-safe
-      // and side-effect free; explicit post-ready activation is the only owner of
-      // remote synchronization. Offline consumers get the bridge immediately.
-      if (!isFeatureReady('sync')) {
-        await loadFiles(syncFeatureFiles);
-        featureState.sync = 'ready';
-        try { window.dispatchEvent(new CustomEvent('rak:feature-ready', { detail: { feature: 'sync', at: Date.now(), localOnly: true } })); } catch (err) {}
-      }
+      // RAK_17132_LOCAL_STORAGE_SPLIT: local snapshot/cache is already provided
+      // by rak-rotation-local-store.js. Do not load syncFeatureFiles here.
+      // Supabase bridge and app-rotation-sync remain strictly post-startup.
       try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
       try {

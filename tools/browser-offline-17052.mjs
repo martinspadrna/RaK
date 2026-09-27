@@ -251,9 +251,9 @@ try{
    const snapshot=JSON.parse(localStorage.getItem('rotace_supabase_local_state_v1')||'null');
    const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
    const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
-   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
+   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),localStoreReady:!!window.RakRotationLocalStore,localBridge:window.RotationSupabaseBridge?.__rakLocalOnly===true,marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:false},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI before ready or loaded Supabase SDK unnecessarily');
+ assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:false,localStoreReady:true,localBridge:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:false},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI from local store before ready or loaded remote sync unnecessarily');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');

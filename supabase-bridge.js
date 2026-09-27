@@ -2069,6 +2069,18 @@
 
   async function loadBestOfflineRotationState(options) {
     const opts = options && typeof options === 'object' ? options : {};
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.loadBestOfflineRotationState === 'function') {
+      const selected = await window.RakRotationLocalStore.loadBestOfflineRotationState(opts);
+      const diag = typeof window.RakRotationLocalStore.getRotationOfflineDiagnostics === 'function'
+        ? await window.RakRotationLocalStore.getRotationOfflineDiagnostics()
+        : null;
+      state.cacheGuard.rotationOfflineReady = !!(diag && diag.offlineReady);
+      state.cacheGuard.rotationOfflineCopies = Math.max(0, Number(diag && diag.copies || 0) || 0);
+      state.cacheGuard.rotationOfflineSelection = String(diag && diag.selectedSource || '');
+      state.cacheGuard.rotationOfflineSelectionAt = Date.now();
+      state.cacheGuard.rotationOfflineError = state.cacheGuard.rotationOfflineCopies >= 2 ? '' : (selected ? 'rotation-offline-single-copy' : 'rotation-offline-missing');
+      return selected;
+    }
     let local = loadCachedRotationState(), durable = await loadDurableRotationState();
     const candidates = [local, durable].filter(item => item && item.payload);
     if (!candidates.length) {
@@ -2111,6 +2123,16 @@
   }
 
   async function persistRotationOfflineSnapshot(rotation, metadata) {
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.persistRotationOfflineSnapshot === 'function') {
+      const result = await window.RakRotationLocalStore.persistRotationOfflineSnapshot(rotation, metadata);
+      state.cacheGuard.rotationOfflineReady = !!(result && result.ok);
+      state.cacheGuard.rotationOfflineCopies = Math.max(0, Number(result && result.copies || 0) || 0);
+      state.cacheGuard.rotationOfflineVerifiedAt = Date.now();
+      state.cacheGuard.rotationOfflineSelection = result && result.durable ? 'durable-cache' : (result && result.local ? 'local-cache' : '');
+      state.cacheGuard.rotationOfflineSelectionAt = Date.now();
+      state.cacheGuard.rotationOfflineError = result && result.ok ? (result.copies >= 2 ? '' : 'rotation-offline-single-copy') : 'rotation-offline-write-failed';
+      return result;
+    }
     if (!rotation || typeof rotation !== 'object' || !rotation.months) {
       state.cacheGuard.rotationOfflineReady = false;
       state.cacheGuard.rotationOfflineCopies = 0;
@@ -2138,6 +2160,17 @@
   }
 
   async function getRotationOfflineDiagnostics() {
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.getRotationOfflineDiagnostics === 'function') {
+      const diag = await window.RakRotationLocalStore.getRotationOfflineDiagnostics();
+      const review = typeof getRakPendingSyncReview === 'function' ? getRakPendingSyncReview() : null;
+      return Object.assign({}, diag || {}, {
+        queue: review ? {
+          total: Number(review.total || 0), held: Number(review.held || 0), retryable: Number(review.retryable || 0),
+          unrecognized: Number(review.unrecognized || 0), storageIssue: !!review.storageIssue,
+          labels: Array.isArray(review.labels) ? review.labels.slice(0, 8) : []
+        } : null
+      });
+    }
     const local = loadCachedRotationState(), durable = await loadDurableRotationState();
     const candidates = [local, durable].filter(item => item && item.payload);
     let selected = candidates[0] || null;

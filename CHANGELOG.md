@@ -1,6 +1,7 @@
 ## RaK 1.7.132 (development)
 
 - Startup je přestavěný na skutečný **local-first** model: po lokálním bootstrapu se vždy obnoví poslední ověřený snapshot Rotace a ještě před `startupReady` se načtou lokální feature **Rotace, Kalkulačky a Více**. Připojení k internetu už není podmínkou jejich připravenosti.
+- Lokální persistence Rotace je vytažená do samostatného `rak-rotation-local-store.js`. Modul neobsahuje Supabase klienta, RPC, realtime ani síťový transport; offline startup proto nenačítá `supabase-bridge.js`/`app-rotation-sync.js`. Online bridge po local-ready používá stejnou local-store vrstvu.
 - Načtení `sync` feature už samo o sobě nespouští Supabase. Síťová synchronizace má jediného vlastníka a spouští se až sekundárně po dokončení lokálního startupu; načtení modulu a provedení remote refresh jsou oddělené operace.
 - Startup synchronizace vzhledu už nemůže předběhnout lokální hydration. Lokální profil/vzhled se použije okamžitě, vzdálené preference se obnoví až po local-ready.
 - **Home refresh je route-neutral.** `app-home-boot.js` ani `forceHomeRefresh()` už nesmějí volat `showPage('home')`. Background sync, hydration ani watchdog proto nemohou vrátit uživatele z Více/Rotace/Kalkulaček na Home.

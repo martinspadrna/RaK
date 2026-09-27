@@ -105,6 +105,7 @@ const WARM_START = [
   './supabase-vendor-2.110.7.js',
   './rak-runtime-diagnostics.js?v=1.7.132',
   './app.js?v=1.7.132',
+  './rak-rotation-local-store.js?v=1.7.132',
   './data.js',
   './module-readiness.js',
   './rak-namespace.js',
@@ -201,7 +202,7 @@ const WARM_START = [
 
 const OFFLINE_REQUIRED = Object.freeze([
   './supabase-vendor-2.110.7.js',
-  './rak-runtime-diagnostics.js?v=1.7.132','./app.js?v=1.7.132','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
+  './rak-runtime-diagnostics.js?v=1.7.132','./app.js?v=1.7.132','./rak-rotation-local-store.js?v=1.7.132','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
   './core.js?v=1.7.132','./lifecycle.js?v=1.7.132','./app-runtime-guards.js?v=1.7.132','./ui.js?v=1.7.132',
   './app-navigation.js?v=1.7.132','./app-bottom-nav.js?v=1.7.132','./app-actions.js?v=1.7.132',
   './app-pwa-connectivity.js?v=1.7.132','./app-home-boot.js?v=1.7.132','./rak-runtime-stability.js?v=1.7.132',
