@@ -40,7 +40,7 @@ Nový chat musí z tohoto jediného souboru získat vše potřebné. Odkazované
 
 ## Aktuální ověřený provozní stav k 27. 9. 2026
 
-- Poslední ověřený **funkční** development release je `1.7.127` na runtime SHA `3ce96fc4c6bec3940ca74f9bbb7fea377f6c841b`, build `v1.7.127-real-interaction1`. [Actions #425](https://github.com/martinspadrna/RaK/actions/runs/36286125656) je kompletně **SUCCESS** (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_6dSZsdLgojRMqHVsZHJD9pHQkfLS`. Fyzický iPhone nález z 27. 9. 2026 („po otevření RaK cca 5 s nejde klikat“ a „Administrace po kliknutí ještě čeká“) vedl k opravě skutečného click pathu: parser už neblokuje eager Supabase SDK, interaction foundation se váže před zbytkem startu, capture router nesmí spolknout první klik spodní navigace, `Více` má lokální early shell a Administrace vykreslí lokální kořen bez čekání na `loadMachineSettings`. Reálný Chromium gate otevřel Kalkulačky **42 ms** po kliku ještě před uměle zpožděným `startupReady`. Produkce, `main` a produkční Supabase zůstaly beze změny. Fyzická iPhone/PWA přejímka 1.7.127 ještě čeká.
+- Poslední ověřený **funkční** development release je `1.7.127` na runtime SHA `3ce96fc4c6bec3940ca74f9bbb7fea377f6c841b`, build `v1.7.127-real-interaction1`. [Actions #425](https://github.com/martinspadrna/RaK/actions/runs/36286125656) je kompletně **SUCCESS** (verify + release-preview) a stable TEST alias ukazuje na READY `dpl_6dSZsdLgojRMqHVsZHJD9pHQkfLS`. Reálný Chromium gate otevřel Kalkulačky **42 ms** po kliku ještě před uměle zpožděným `startupReady`. Fyzická iPhone přejímka však 27. 9. 2026 odhalila další regresi: po otevření **Více** je nabídka prázdná a běžné položky se objeví až po zelené **Synchronizaci**. 1.7.127 tedy není fyzicky uzavřená; další oprava musí oddělit běžný lokální obsah Více od sync/secure-ready stavu. Produkce, `main` a produkční Supabase zůstaly beze změny.
 - GitHub `main` se souběžnou změnou mimo tento balík posunul na `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c` (`fix: align Supabase migration history with production`). Produkční Vercel však zůstává na dříve schváleném runtime SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; tuto odlišnost neskrývat a před případným budoucím produkčním releasem znovu vyhodnotit.
 - Produkční validace: [Actions #261](https://github.com/martinspadrna/RaK/actions/runs/35957793587), SUCCESS.
 - Produkční release: [Actions #1](https://github.com/martinspadrna/RaK/actions/runs/35958452867), SUCCESS.
@@ -84,16 +84,17 @@ Aktuální jediný úkol: **skutečná odezva RaK po startu a po klepnutí na Ad
 - Neaktivní PNG ikony Rotace/Kalkulačky mají nízkou fetch prioritu, aby při prvním paintu nekonkurovaly CSS; Home zůstává eager.
 - Produkce beze změny: GitHub `main=056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel zůstává `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`; produkční Supabase `bkqamcbkiwumsvelahxr`.
 
-#### Fyzická iPhone/PWA přejímka 1.7.127 – ČEKÁ
+#### Fyzická iPhone/PWA přejímka 1.7.127 – FAIL 27. 9. 2026
 
-Na fyzickém iPhonu ověřit jen tento úkol:
-1. RaK úplně zavřít a znovu otevřít. **Hned po zobrazení** opakovaně zkusit Home / Kalkulačky / Více. Nemá existovat několikasekundové období, kdy aplikace vypadá hotově, ale kliky nereagují.
-2. Co nejdřív po startu otevřít **Více**. Nabídka musí reagovat ihned; krátký lokální stav „Načítám nabídku…“ je v pořádku, několikasekundový mrtvý klik ne.
-3. Na owner/admin účtu otevřít **Administrace**. Klepnutí musí mít okamžitou vizuální odezvu a kořen Administrace se má otevřít bez čekání na vzdálené načtení strojových nastavení.
-4. Ověřit, že role-gated odkazy zůstaly bezpečné: žádná cizí Administrace/Report dovolené nesmí probliknout deputy/neověřenému účtu.
-5. Pokud vlastník odpoví pouze **„ok“**, znamená to fyzický PASS 1.7.127. Pak zapsat PASS sem a tento startup/Admin úkol uzavřít.
+- Vlastník na fyzickém iPhonu zjistil nový konkrétní problém ve **Více**: po otevření je obsah nabídky **prázdný** a skutečné položky se zobrazí až ve chvíli, kdy se indikátor **Synchronizace rozsvítí zeleně**.
+- Tím je potvrzeno, že `Více` stále není skutečně nezávislé na sync/secure-ready stavu. Early shell z 1.7.127 sice řeší klik, ale výsledný obsah menu se před dokončením synchronizace nevykreslí.
+- Tento stav **není PASS**. 1.7.127 zůstává technicky zelený v CI, ale fyzická iPhone přejímka je neúspěšná.
+- Další chat má řešit jediný úkol: **kořenové Více musí zobrazit běžné lokální položky okamžitě po kliknutí, i když synchronizace ještě není zelená**. Privilegované položky Administrace/Reporty se mohou doplnit až po bezpečném ověření role, ale běžné položky nesmí čekat na sync ani zůstat prázdné.
+- Při opravě zachovat bezpečnostní pravidla 1.7.126/1.7.127: žádné probliknutí cizích oprávnění, žádné oslabení role gate, žádné čekání na Supabase pro běžný lokální obsah Více.
+- Po opravě přidat reálný browser gate, který otevře **Více před zelenou synchronizací** a vyžaduje viditelné běžné lokální položky ještě před dokončením sync/startup readiness.
+- Produkce, `main` a produkční Supabase se bez nového výslovného souhlasu nemění.
 
-Procenta 13 oblastí se do fyzického PASS nemění: **5/13 uzavřených, 8/13 otevřených**.
+Procenta 13 oblastí se tímto fyzickým FAIL nemění: **5/13 uzavřených, 8/13 otevřených**.
 
 ### PŘEDÁNÍ PRO DALŠÍ CHAT – 26. 9. 2026, po zeleném releasu 1.7.126
 
