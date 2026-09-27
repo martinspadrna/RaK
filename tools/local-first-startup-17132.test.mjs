@@ -95,6 +95,12 @@ test('first-frame bottom navigation and safe More root are static, not post-sync
   const hard=nav.slice(nav.indexOf('function applyBottomNavMoreHardFix()'),nav.indexOf("window.__rakApplyBottomNavMoreHardFix = apply;"));
   assert(hard.includes('RAK_17132_STATIC_NAV_GEOMETRY'));
   assert(!hard.includes('setStyle('),'late More compatibility hook must not resize geometry');
+  const criticalStart=criticalCss.indexOf('RAK_17132_FIRST_FRAME_NAV');
+  const criticalEnd=criticalCss.indexOf('@media(max-width:390px)',criticalStart);
+  const firstFrameNav=criticalCss.slice(criticalStart,criticalEnd);
+  assert(firstFrameNav.includes('RAK_17135_FIRST_FRAME_NAV_TRANSFORM_RESET'),'first-frame nav must reset inherited active transforms');
+  assert(firstFrameNav.includes('button.bottomNavBtn.active'),'first-frame active button reset missing');
+  assert(firstFrameNav.includes('button.bottomNavBtn.active .bottomNavIcon{transform:none!important;}'),'first-frame active icon reset missing');
 });
 
 test('dynamic hydration yields one local frame after static cache restore before heavy module loading',()=>{

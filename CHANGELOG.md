@@ -5,6 +5,7 @@
 - Odmítnuté odpovědi se neparsují ani nelogují. Do diagnostiky vstupuje pouze HTTP status a centrální `RAK_DIAGNOSTICS.diagnoseRejectedOperation()` jej převádí na pevnou kategorii bez JWT, payloadu, jména, OS čísla nebo serverové zprávy.
 - Owner/admin navíc používají bezpečně neplatný `rak_admin_save_rotation_v2` payload, který server odmítne validací před zámkem či změnou dat; deputy žádný write endpoint v diagnostice nevolá.
 - Nový regresní test spouští owner/admin/deputy scénáře s canary JWT a vyžaduje PASS bez úniku tokenu do viditelného výstupu. Produkční `main`, produkční Vercel ani produkční Supabase se tímto releasem nemění.
+- **Stabilizace first-frame navigace:** render-blocking local-first CSS nyní už v prvním frame ruší zděděné `scale()` aktivní položky i její ikony. Tím je geometrie spodní lišty stejná před i po načtení pozdních legacy override stylů; CI už nemusí spoléhat na timing kaskády.
 
 ## RaK 1.7.134 (development)
 
