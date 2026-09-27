@@ -97,6 +97,19 @@ test('first-frame bottom navigation and safe More root are static, not post-sync
   assert(!hard.includes('setStyle('),'late More compatibility hook must not resize geometry');
 });
 
+test('historical performance parity keeps user-visible paint hard-gated while complete local-ready stays bounded separately',()=>{
+  const parity=JSON.parse(read('tools/performance-parity-17069.json'));
+  const budget=JSON.parse(read('tools/performance-budget-17104.json'));
+  assert.deepEqual(Object.keys(parity.metrics),['firstContentfulPaintMs']);
+  assert.deepEqual(parity.diagnostics,['startupReadyMs','wallReadyMs']);
+  assert(budget.timeModes['cold mobile'].hardBudgetMs<=5000);
+  assert(budget.timeModes['offline reload'].hardBudgetMs<=4000);
+  assert(budget.timeModes['online recovery'].hardBudgetMs<=3500);
+  const browser=read('tools/browser-offline-17052.mjs');
+  assert(browser.includes('firstInteractiveMs<=data.startupReadyMs'));
+  assert(browser.includes('[17127-real-tap]'));
+});
+
 test('real Chromium gate covers slow startup, local-ready surfaces and route preservation across sync',()=>{
   const browser=read('tools/browser-offline-17052.mjs');
   assert(browser.includes('RAK_17132_LOCAL_FIRST_ROUTE_GATE'));

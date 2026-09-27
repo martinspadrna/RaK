@@ -10,15 +10,16 @@ test('P2.1 parity uses immutable 1.7.69, its historical two-pass build and commo
  assert.equal(config.baseline.sha,'1693c8631c13d6e381e44a96810a55140ad6aa62');
  assert.equal(config.baseline.buildPasses,2);assert.equal(config.rounds,20);
  assert.deepEqual(config.viewport,{width:390,height:844,deviceScaleFactor:3});
- for(const key of ['startupReadyMs','firstContentfulPaintMs'])assert(config.metrics[key],key);
- assert.deepEqual(config.diagnostics,['wallReadyMs']);
+ assert(config.metrics.firstContentfulPaintMs,'firstContentfulPaintMs');
+ assert(!config.metrics.startupReadyMs,'startupReady semantics changed to complete local-ready and must remain diagnostic');
+ assert.deepEqual(config.diagnostics,['startupReadyMs','wallReadyMs']);
  for(const marker of ["git',['-C',WORKSPACE,'worktree','add','--detach'","npm',['run','vercel-build']","window.__rakBootV2StartupReady","first-contentful-paint","dashboardVisible","baseline-1.7.69","const currentLabel='current-'+currentVersion","CONFIG.current&&CONFIG.current.version"])assert(script.includes(marker),'missing '+marker);
  assert(workflow.includes('node --test tools/performance-parity-17069.test.mjs'));
  assert(workflow.includes('node tools/performance-parity-17069.mjs'));
 });
 test('parity tolerance is bounded, median-based and P95 uses enough alternating samples',()=>{
- assert.deepEqual(Object.keys(config.metrics).sort(),['firstContentfulPaintMs','startupReadyMs']);
- assert.deepEqual(config.diagnostics,['wallReadyMs']);
+ assert.deepEqual(Object.keys(config.metrics),['firstContentfulPaintMs']);
+ assert.deepEqual(config.diagnostics,['startupReadyMs','wallReadyMs']);
  for(const spec of Object.values(config.metrics)){
    assert(spec.maxMedianRegressionPct<=10);
    assert(spec.minMedianToleranceMs>0&&spec.minMedianToleranceMs<=20);

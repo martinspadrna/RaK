@@ -15,13 +15,6 @@
     "deviceScaleFactor": 3
   },
   "metrics": {
-    "startupReadyMs": {
-      "maxMedianRegressionPct": 10,
-      "minMedianToleranceMs": 20,
-      "maxP95DeltaMs": 100,
-      "baselineMadMultiplier": 2,
-      "maxNoiseAllowanceMs": 50
-    },
     "firstContentfulPaintMs": {
       "maxMedianRegressionPct": 10,
       "minMedianToleranceMs": 20,
@@ -31,6 +24,7 @@
     }
   },
   "diagnostics": [
+    "startupReadyMs",
     "wallReadyMs"
   ]
 }
