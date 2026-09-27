@@ -668,6 +668,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }
   } catch (err) {}
 
+  // RAK_LOCAL_FIRST_FIRST_PAINT: index.html has already restored the cached Home
+  // snapshot and installed final static navigation/Menu geometry. Yield one visual
+  // frame before starting dynamic hydration so module parsing cannot steal the
+  // first usable paint. This is local-only scheduling; it does not wait on network.
+  await new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function' || (typeof document !== 'undefined' && document.hidden)) {
+      setTimeout(resolve, 0);
+      return;
+    }
+    requestAnimationFrame(() => resolve());
+  });
+  window.__rakBootV2FirstPaintYielded = true;
+
   // RAK_17127_PARALLEL_FOUNDATION: critical auth/security loading begins
   // immediately and runs in parallel with the local interaction foundation.
   // This keeps the shell clickable early without pushing startupReady backwards.

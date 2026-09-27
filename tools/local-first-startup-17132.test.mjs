@@ -97,6 +97,20 @@ test('first-frame bottom navigation and safe More root are static, not post-sync
   assert(!hard.includes('setStyle('),'late More compatibility hook must not resize geometry');
 });
 
+test('dynamic hydration yields one local frame after static cache restore before heavy module loading',()=>{
+  const app=read('app.js');
+  const html=read('index.html');
+  const yieldAt=app.indexOf('RAK_LOCAL_FIRST_FIRST_PAINT');
+  const criticalAt=app.indexOf('const criticalLoadPromise =',yieldAt);
+  assert(yieldAt>=0&&criticalAt>yieldAt);
+  const block=app.slice(yieldAt,criticalAt);
+  assert(block.includes('requestAnimationFrame'));
+  assert(block.includes('window.__rakBootV2FirstPaintYielded = true'));
+  assert(!/fetch\s*\(|ensureFeature\(|activateRemoteSync/.test(block),'first-paint yield must stay network/feature neutral');
+  assert(html.indexOf('id="rak-home-warm-snapshot"')<html.indexOf('src="app.js?v='),'warm Home snapshot must run before app hydration');
+  assert(html.indexOf('<div id="menu" class="page appMenuPage">')<html.indexOf('src="app.js?v='),'static More shell must exist before app hydration');
+});
+
 test('historical performance parity keeps user-visible paint hard-gated while complete local-ready stays bounded separately',()=>{
   const parity=JSON.parse(read('tools/performance-parity-17069.json'));
   const budget=JSON.parse(read('tools/performance-budget-17104.json'));
