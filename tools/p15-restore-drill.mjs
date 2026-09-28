@@ -25,17 +25,25 @@ const CLEAN_RESTORE_GUARDS=new Map([
   ['20260918220817',"RAISE EXCEPTION 'Unexpected employee payload baseline; review before migration';"],
   ['20260919054241',"RAISE EXCEPTION 'Unexpected recursive identity baseline; review first';"],
 ]);
-function normalizeMigrationForCleanRestore(version,sql){
-  const marker=CLEAN_RESTORE_GUARDS.get(version);
-  if(!marker)return sql;
+const CLEAN_RESTORE_VERIFICATIONS=new Map([
+  ['20260919054241',"RAISE EXCEPTION 'Admin login capability regression';"],
+]);
+function stripKnownMigrationBlock(version,sql,marker,openToken,endToken,label){
   const markerPos=sql.indexOf(marker);
-  assert(markerPos>=0,'known legacy-data guard marker missing from '+version);
-  const start=sql.lastIndexOf('DO $guard$',markerPos);
-  const endToken='END $guard$;';
+  assert(markerPos>=0,'known '+label+' marker missing from '+version);
+  const start=sql.lastIndexOf(openToken,markerPos);
   const end=sql.indexOf(endToken,markerPos);
-  assert(start>=0&&end>markerPos,'known legacy-data guard bounds missing from '+version);
-  const normalized=sql.slice(0,start)+'-- P1.5 clean restore: historical live-data presence guard intentionally omitted; final restored data/schema are verified below.\\n'+sql.slice(end+endToken.length).replace(/^\\s*/,'');
-  assert(!normalized.includes(marker),'legacy-data guard normalization was incomplete for '+version);
+  assert(start>=0&&end>markerPos,'known '+label+' bounds missing from '+version);
+  const normalized=sql.slice(0,start)+'-- P1.5 clean restore: historical '+label+' intentionally deferred until restored data are verified below.\\n'+sql.slice(end+endToken.length).replace(/^\\s*/,'');
+  assert(!normalized.includes(marker),label+' normalization was incomplete for '+version);
+  return normalized;
+}
+function normalizeMigrationForCleanRestore(version,sql){
+  let normalized=sql;
+  const guardMarker=CLEAN_RESTORE_GUARDS.get(version);
+  if(guardMarker) normalized=stripKnownMigrationBlock(version,normalized,guardMarker,'DO $guard$','END $guard$;','live-data presence guard');
+  const verifyMarker=CLEAN_RESTORE_VERIFICATIONS.get(version);
+  if(verifyMarker) normalized=stripKnownMigrationBlock(version,normalized,verifyMarker,'DO $verify$','END $verify$;','live-data verification block');
   return normalized;
 }
 function safeStoragePath(v){const parts=String(v||'').split('/');assert(parts.length&&parts.every(p=>p&&p!=='.'&&p!=='..'),'invalid storage path');return parts;}
@@ -215,7 +223,7 @@ async function restoreTarget(){
   for(const b of buckets)assert(bucketIds.has(String(b.id||b.name||'')),'restored Storage bucket missing');
   for(const o of objects){const bucket=String(o.bucket_id||'');const name=String(o.name||'');const {data,error}=await admin.storage.from(bucket).download(name);assert(!error&&data,'restored Storage object missing');const actual=Buffer.from(await data.arrayBuffer());const source=fs.readFileSync(path.join(PRIVATE,'storage-files',...safeStoragePath(bucket),...safeStoragePath(name)));assert(crypto.createHash('sha256').update(actual).digest('hex')===crypto.createHash('sha256').update(source).digest('hex'),'Storage byte hash mismatch');}
 
-  const proof={format:'rak-p15-restore-proof-v1',source:'TEST Supabase via GitHub OIDC',target:'ephemeral local Supabase on GitHub-hosted runner',production_touched:false,cost_model:'public-repo standard GitHub runner + local Supabase Docker',tables:{count:publicTables.length,all_counts_match:true,all_hashes_match:true,admin_devices_intentionally_reset:true},auth:{sanitized_users:users.length,sanitized_identities:identities.length,recreated_users:idMap.size,identity_providers_verified:true,credentials_restored:false,replacement_credentials_verified:true,roles_verified:[...new Set(roleProof)].sort()},storage:{bucket_count:buckets.length,object_count:objects.length,bytes_verified:true},schema:{migration_count:sourceMigrations.length,migration_order_match:true,rls_table_flags_match:true,rls_policy_count_match:true,clean_replay_normalizations:['20260918200612:legacy-rotation-data-presence-guard','20260918203159:legacy-admin-change-log-data-presence-guard','20260918214441:worker-roster-data-presence-guard','20260918220817:employee-payload-data-presence-guard','20260919054241:recursive-identity-data-presence-guard']},private_data:{rotation_import_metadata_match:true,other_private_runtime_state_intentionally_reset:true},result:'PASS'};
+  const proof={format:'rak-p15-restore-proof-v1',source:'TEST Supabase via GitHub OIDC',target:'ephemeral local Supabase on GitHub-hosted runner',production_touched:false,cost_model:'public-repo standard GitHub runner + local Supabase Docker',tables:{count:publicTables.length,all_counts_match:true,all_hashes_match:true,admin_devices_intentionally_reset:true},auth:{sanitized_users:users.length,sanitized_identities:identities.length,recreated_users:idMap.size,identity_providers_verified:true,credentials_restored:false,replacement_credentials_verified:true,roles_verified:[...new Set(roleProof)].sort()},storage:{bucket_count:buckets.length,object_count:objects.length,bytes_verified:true},schema:{migration_count:sourceMigrations.length,migration_order_match:true,rls_table_flags_match:true,rls_policy_count_match:true,clean_replay_normalizations:['20260918200612:legacy-rotation-data-presence-guard','20260918203159:legacy-admin-change-log-data-presence-guard','20260918214441:worker-roster-data-presence-guard','20260918220817:employee-payload-data-presence-guard','20260919054241:recursive-identity-data-presence-guard','20260919054241:admin-login-live-profile-verification']},private_data:{rotation_import_metadata_match:true,other_private_runtime_state_intentionally_reset:true},result:'PASS'};
   writeJson(EVIDENCE_PATH,proof);
   console.log('[P1.5] RESTORE_DRILL_PASS tables='+publicTables.length+' auth_users='+users.length+' storage_objects='+objects.length+' migrations='+sourceMigrations.length+' rls_policies='+expectedPolicies);
 }
