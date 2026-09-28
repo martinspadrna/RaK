@@ -2537,3 +2537,25 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
   min-width:0 !important;
   box-sizing:border-box !important;
 }
+
+
+/* RaK 1.7.140 point 1 refinement – one local-drafts card with breathing room around actions. */
+#appMenuBody .rakAdminLocalDraftsCard{
+  display:grid !important;
+  gap:6px !important;
+  margin:10px 0 !important;
+}
+#appMenuBody .rakAdminLocalDraftsCard .rakAdminLocalDraftDownload{
+  margin:6px 0 !important;
+}
+#appMenuBody .rakAdminLocalDraftCleanupSection{
+  display:grid !important;
+  gap:5px !important;
+  margin-top:4px !important;
+}
+#appMenuBody .rakAdminLocalDraftsCard .rakAdminLocalDraftDelete{
+  margin:8px 0 !important;
+}
+#appMenuBody .rakAdminLocalDraftsCard #rakAdminLocalDraftCleanupStatus:empty{
+  display:none !important;
+}

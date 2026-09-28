@@ -100,13 +100,26 @@ function rakListPreservedAdminMonthDrafts(monthKey) {
 
 function rakAdminMonthDraftRecoveryHtml(monthKey) {
   const entries=rakListPreservedAdminMonthDrafts(monthKey);
-  if(!entries.length)return '';
-  return '<div class="appMenuCard" id="rakAdminPreservedDrafts" role="status">'
+  const info=typeof window.rakLocalRotationDraftCleanupPreview==='function'
+    ?window.rakLocalRotationDraftCleanupPreview():null;
+  const valid=!!(info&&info.ok);
+  const drafts=valid?Number(info.drafts||0):entries.length;
+  const pending=valid?Number(info.rotationQueued||0):0;
+  const other=valid?Number(info.otherConflicts||0):0;
+  return '<div class="appMenuCard rakAdminLocalDraftsCard" id="rakAdminPreservedDrafts" role="status">'
     +'<b>Neuložené místní návrhy: '+String(entries.length)+'</b>'
     +'<div class="smallText">Mohou pocházet z dřívějšího neúspěšného uložení. Nepřepisuj je naslepo. Stáhni soukromou kopii a porovnej ručně.</div>'
-    +entries.map(item=>'<button type="button" class="appMenuAction" data-admin-action="download-unsynced-draft" data-draft-key="'
+    +entries.map(item=>'<button type="button" class="appMenuAction rakAdminLocalDraftDownload" data-admin-action="download-unsynced-draft" data-draft-key="'
       +escapeHtml(item.key)+'">Stáhnout návrh '+escapeHtml(item.monthKey)+' · '
       +escapeHtml(item.at?new Date(item.at).toLocaleString('cs-CZ'):'bez data')+'</button>').join('')
+    +'<div class="rakAdminLocalDraftCleanupSection" id="rakAdminLocalDraftCleanup">'
+    +'<div class="smallText">V tomto zařízení: '+(valid?(drafts+' záloh návrhů · '+pending+' čekajících zápisů rozpisů'):'stav místního úložiště nelze bezpečně ověřit')
+    +(other?' · '+other+' jiných konfliktů zůstane zachováno':'')+'.</div>'
+    +'<div class="smallText">Smazání je nevratné. Nezasáhne online rozpis, ostatní místní frontu ani jiná nastavení.</div>'
+    +'<button type="button" class="appMenuAction rakAdminLocalDraftDelete" data-admin-action="discard-local-rotation-drafts"'
+    +(valid?'':' disabled')+'>Smazat všechny místní návrhy</button>'
+    +'<div id="rakAdminLocalDraftCleanupStatus" class="smallText" role="status" aria-live="polite"></div>'
+    +'</div>'
     +'</div>';
 }
 
