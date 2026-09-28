@@ -1389,7 +1389,15 @@ async function runDashboardManualSync(source) {
     if (typeof updateDashboard === 'function') updateDashboard();
     // RAK_17057_MANUAL_TRUTH_GUARD: successful steps are not proof of an online rotation read.
     const actual = typeof getSupabaseSyncStatus === 'function' ? getSupabaseSyncStatus() : null;
-    if (!actual || actual.kind !== 'online' || actual.queued !== 0 || actual.verified !== true) result.ok = false;
+    // RAK_17138_MANUAL_RESCUE_FRESH_QUEUE_GUARD: the sync status may briefly lag the durable queue.
+    // Read exact held conflicts directly before deciding green state or whether rescue should be offered.
+    const rescueConflicts = typeof window.getRakQueueConflictItems === 'function'
+      ? window.getRakQueueConflictItems()
+      : null;
+    const rescueConflictCount = rescueConflicts && rescueConflicts.ok && Array.isArray(rescueConflicts.items)
+      ? rescueConflicts.items.length
+      : Math.max(0, Number(actual && actual.conflictCount || 0) || 0);
+    if (!actual || actual.kind !== 'online' || actual.queued !== 0 || actual.verified !== true || rescueConflictCount > 0) result.ok = false;
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastAt = Date.now();
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastText = result.ok ? 'Synchronizace hotová.' : 'Synchronizace doběhla s chybou.';
     setDashboardManualSyncBadge(result.ok ? '🟢 Synchronizováno teď' : '🔴 Sync s chybou', result.ok ? 'online' : 'error');
@@ -1404,7 +1412,7 @@ async function runDashboardManualSync(source) {
     }
     // RAK_17063_MANUAL_REVISION_DIALOG_GUARD: explicit badge tap and separate
     // approval; comparison is read-only, no payload, ID, token or automatic replay.
-    if (actual && actual.conflictCount > 0
+    if (rescueConflictCount > 0
       && (source === 'dashboard-click' || source === 'dashboard-keyboard')
       && typeof app !== 'undefined' && app && app.adminUnlocked === true
       && typeof window.confirm === 'function' && typeof window.reviewRakRotationRevisionOnDemand === 'function'
@@ -1433,7 +1441,7 @@ async function runDashboardManualSync(source) {
     }
     // RAK_17101_EXACT_CONFLICT_DISCARD_GUARD: one conflict only, original bytes exported first,
     // server check stays read-only, "ostatní" is never discardable.
-    if (actual && actual.conflictCount > 0
+    if (rescueConflictCount > 0
       && (source === 'dashboard-click' || source === 'dashboard-keyboard')
       && typeof app !== 'undefined' && app && app.adminUnlocked === true
       && typeof window.getRakQueueConflictItems === 'function'
@@ -1441,7 +1449,7 @@ async function runDashboardManualSync(source) {
       && typeof window.downloadRakQueueConflictItem === 'function'
       && typeof window.discardRakQueueConflictItem === 'function'
       && typeof window.confirm === 'function') {
-      const conflicts = window.getRakQueueConflictItems();
+      const conflicts = rescueConflicts && rescueConflicts.ok ? rescueConflicts : window.getRakQueueConflictItems();
       const first = conflicts && conflicts.ok && Array.isArray(conflicts.items) ? conflicts.items[0] : null;
       if (first && window.confirm('Bezpečně zkontrolovat první zadržený konflikt (' + first.label + ')? Kontrola nic nezapíše na server.')) {
         const checked = await window.reviewRakQueueConflictOnDemand(first.index, first.signature);

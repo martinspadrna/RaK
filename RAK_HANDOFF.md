@@ -802,7 +802,7 @@ Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST 
 | P1.5 | Úplné zálohy a prokazatelná obnova | **57 % (4/7)** | Otevřeno; fyzické stažení/rozbalení owner ZIPu potvrzeno, plná oddělená obnova zůstává neprovedená |
 | P2.1 | Výkon startu PWA | **100 % (5/5)** | Uzavřeno; 5× cold + 5× warm fyzické iPhone/PWA měření PASS |
 | P2.2 | Rozložení, DOM, CSS a interakce | **100 % (5/5)** | Uzavřeno; fyzický iPhone layout/klávesnice/export i role clickthrough PASS |
-| P2.3 | Offline, fronta, verze a konflikty | **63 % (5/8)** | **Otevřeno; fyzický iPhone acceptance na 1.7.82 prošel, zbývá konfliktní workflow a serverový CAS** |
+| P2.3 | Offline, fronta, verze a konflikty | **100 % (8/8)** | **Uzavřeno; fyzický offline/reconnect, dvouzařízení CAS i přesný conflict-rescue PASS** |
 | P2.4 | Bezpečná diagnostika a průběžná kvalita | **83 % (5/6)** | Otevřeno; role/JWT + sanitizovaná diagnostika PASS, zbývá konkrétní konflikt na problémovém iPhonu |
 
 **Bilance: 10/13 uzavřeno (P0.1, P0.3, P0.4, P1.1, P1.2, P1.3, P1.4, P2.1 a P2.2; P0.2 rozhodnutím o riziku), 3/13 otevřené.** Procenta nejsou obecnou známkou bezpečnosti ani příslibem bezchybnosti.
@@ -970,15 +970,15 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** splněno – žádné kritické překryvy, uříznutá tlačítka či nefunkční akce na fyzickém iPhonu; fyzický role clickthrough je potvrzen.
 
-### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **75 % (6/8)**
+### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **100 % (8/8)**
 
 **Fyzický iPhone acceptance 23. 9. 2026 – PASS:** RaK 1.7.82 na stabilním development aliasu úspěšně zvládl celý cílový scénář bez mazání dat: online přihlášení a Supabase fungují, aktuální Rotace je po úplném zavření dostupná v režimu Letadlo, Dashboard správně zobrazí „kam jdu“, Rotace se vykreslí bez ručního otevření seznamu offline rozpisů a po opětovném zapnutí internetu se stejný běh aplikace srovná bez restartu. Falešný konflikt se nevrátil. Skutečná příčina byla kombinace více vrstev: Vercel preview ochrana blokovala development assety, Supabase SDK nebylo původně spolehlivou offline součástí, nesouvisející cache zápisy mohly zkreslit čerstvost Rotace a cold start nečekal na skutečné propsání persisted snapshotu do runtime/UI. Release 1.7.82 uzavírá tuto mobilní offline/reconnect část; zbývající položky P2.3 se týkají explicitního konfliktního workflow a serverového CAS, ne této fyzicky reprodukované chyby.
 
 - [x] Pravdivé online/cache stavy, retry a ochrana historických/neznámých úloh v místní frontě před tichou ztrátou.
 - [x] Ochrana editovaných návrhů před opožděnou síťovou odpovědí a jednotkové testy selektivního lokálního mazání.
 - [x] **S5 – zjistit skutečnou příčinu iPhonu:** dokončeno přes sanitizovanou diagnostiku a fyzický test; potvrzena kombinace asset protection/offline dependency/freshness/runtime rehydrate, bez zveřejnění osobních údajů.
-- [ ] Před případným vyřazením **jediné konkrétní** konfliktní položky poskytnout privátní export původních bajtů, read-only kontrolu serveru, jasný důsledek a potvrzení; zachovat ostatní frontu a data.
-- [ ] Zpracovat konflikty podle typu (rozpis / stroj / ostatní), bez automatického přepisu novějších online dat a bez falešného zeleného stavu.
+- [x] Před případným vyřazením **jediné konkrétní** konfliktní položky poskytnout privátní export původních bajtů, read-only kontrolu serveru, jasný důsledek a potvrzení; zachovat ostatní frontu a data.
+- [x] Zpracovat konflikty podle typu (rozpis / stroj / ostatní), bez automatického přepisu novějších online dat a bez falešného zeleného stavu.
 - [x] Zavést a otestovat serverově atomický CAS / revizi pro relevantní zápisy, včetně konkurence dvou zařízení; samotná shoda čísla revize bez obsahu nedovoluje přepsání.
 - [x] Ověřit staré PWA/service worker, aktualizace a offline→online bez reprodukce starého konfliktu či ztráty dat; fyzický iPhone PASS na 1.7.82.
 - [x] Na fyzickém iPhonu potvrdit: offline Rotace i Dashboard jsou aktuální, návrat online funguje bez restartu a falešný konflikt se nevrací; PASS 23. 9. 2026 na 1.7.82.
@@ -990,6 +990,11 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Důkaz 1.7.84 bez změny procenta:** vzhled účtu už nepoužívá starý tunel přes `game_stats`; TEST má samostatné account-scoped úložiště s revizí a compare-and-swap RPC. Rollback-only SQL prokázal odmítnutí stale zápisu, následný zápis na správné revizi i readback; fronta vzhledu při novější serverové revizi nevytváří globální konflikt. Jde ale jen o vzhled účtu, nikoli o obecný CAS všech relevantních zápisů, a fyzický scénář dvou zařízení ještě čeká. Široká akceptační položka CAS proto zůstává nezaškrtnutá a P2.3 zůstává **63 % (5/8)**.
 
 **Fyzický dvouzařízení CAS PASS – 28. 9. 2026, TEST-only:** skutečný souběh iPhone Safari + Windows Edge odhalil kořenovou serverovou chybu v použití SQLSTATE `40001`: PostgREST/Supabase ji považuje za retryovatelnou serialization failure a jediný stale RPC proto opakoval tisícekrát až do klientského timeoutu. TEST migrace `20260928091455_rak_cas_nonretryable_conflicts_17138` změnila všech 7 živých RaK CAS konfliktů na nereplayovatelný aplikační SQLSTATE `P0001`; visící backend byl ukončen a kontrola potvrdila 0 zbývajících `40001` v těchto funkcích. Následný fyzický retest na stejném izolovaném preview 1.7.137 začal na `machine_settings` revizi 22: oba klienti načetli stejnou baseline, iPhone provedl právě jeden úspěšný zápis na revizi 23 a Windows dostal explicitní hlášku „Nastavení strojů mezitím změnilo jiné zařízení…“. Server zaznamenal právě jeden konflikt `expected 22 / actual 23`, SQLSTATE `P0001`, bez retry smyčky a bez přepsání novějších dat. Produkční `main`, produkční Vercel i produkční Supabase zůstaly beze změny. Tím je šestý checkbox P2.3 fyzicky doložen a P2.3 se zvyšuje na **75 % (6/8)**. Otevřené zůstávají přesný conflict-rescue jediné konkrétní položky a fyzické zpracování konfliktu podle typu.
+
+
+**Fyzický conflict-rescue PASS – 28. 9. 2026, TEST-only; P2.3 8/8:** izolovaný preview scénář vložil pouze do lokální fronty dvě testovací konfliktní položky („stroj“ + „ostatní“) a před testem server zůstal na `machine_settings` revizi 23 / 52 řádcích. První skutečný pokus odhalil kořenovou runtime chybu: capture handler v `rak-feature-routing.js` přebíral klik na Dashboard synchronizaci, bezpodmínečně přepisoval `window.runDashboardManualSync` starším safe-sync runnerem a přes `stopImmediatePropagation()` úplně obcházel conflict-rescue blok v `dashboard.js`. TEST oprava `8a7cb22459f52a0445ea0c1bbcbc7dbdc62cc544` směruje Dashboard badge do plného handleru; předchozí TEST oprava `a7f57217a3ddcdc213a58268600aaedc20bd859f` zároveň bere čerstvý počet konfliktů přímo z lokální fronty, takže zadržený konflikt nemůže krátce svítit zeleně jen kvůli opožděnému status snapshotu.
+
+Po opravě fyzický průchod zobrazil sanitizovanou diagnostiku se 2 zadrženými položkami a typem „nastavení strojů“, celkovou soukromou zálohu, read-only kontrolu serveru a povinný přesný export původních bajtů jediné položky. Po explicitním potvrzení RaK oznámil „Odstraněna byla přesně 1 lokální konfliktní položka…“; následná serverová kontrola potvrdila stále revizi 23 a 52 řádků, tedy nulový online zápis. Druhá položka zůstala ve frontě a při dalším průchodu byla správně klasifikována jako „ostatní“ s hláškou, že ji RaK automaticky neodstraní. Tím jsou fyzicky splněny přesný single-item rescue i type-correct chování bez falešného zeleného stavu. **P2.3 je uzavřen na 100 % (8/8).** Release 1.7.138 přenáší oba nalezené kořenové runtime fixy do `development` s regresními gates; produkce zůstává beze změny.
 
 ### P2.4 – Diagnostika, soukromí telemetrie a nepřetržitá kvalita · **83 % (5/6)**
 

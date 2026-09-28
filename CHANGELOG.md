@@ -1,3 +1,12 @@
+## RaK 1.7.138 (development)
+
+- **P2.3 conflict-rescue fyzicky uzavřen:** řízený TEST scénář se dvěma lokálními konflikty ověřil celý bezpečný tok. U typu „stroj“ RaK nejdřív zobrazil sanitizovanou diagnostiku, nabídl soukromou zálohu fronty, provedl read-only serverovou kontrolu, vyžádal přesný export původních bajtů jediné položky a teprve potom odstranil právě 1 lokální konflikt. Serverové nastavení strojů zůstalo beze změny na revizi 23 a 52 řádcích.
+- Následný konflikt typu „ostatní“ byl správně rozpoznán jako nepodporovaný pro automatické odstranění; RaK zobrazil, že položku automaticky neodstraní, a ponechal ji ve frontě. Tím jsou fyzicky doložené oba poslední akceptační body P2.3.
+- Fyzický test současně odhalil kořenovou runtime chybu: capture handler v `rak-feature-routing.js` přepisoval `window.runDashboardManualSync` zjednodušeným safe-sync runnerem a přes `stopImmediatePropagation()` obcházel novější conflict-rescue workflow v `dashboard.js`. Router nyní Dashboard badge předává plnému Dashboard sync/rescue handleru; safe-sync zůstává jen jako fallback a pro servisní synchronizaci Administrace.
+- Dashboard po ruční synchronizaci znovu čte zadržené konflikty přímo z trvalé lokální fronty. Konflikt proto nemůže být dočasně vykreslen jako zelený jen kvůli opožděnému status snapshotu.
+- Regresní gate 1.7.138 hlídá oba nalezené kořeny: router už nesmí bezpodmínečně přepisovat plný Dashboard handler a zelený ruční sync nesmí projít, pokud přesná lokální fronta stále obsahuje konflikt.
+- Runtime/cache jsou zvýšeny na 1.7.138. Produkční `main`, produkční Vercel ani produkční Supabase se tímto TEST releasem nemění.
+
 ## RaK 1.7.137 (development)
 
 - **P2.3 fyzický dvouzařízení CAS – oprava nalezeného závodu:** reálný souběžný test na iPhonu a Windows prokázal, že databázový CAS správně odmítl starou revizi (SQLSTATE `40001`, expected 17 / actual 18), ale HTTP vrstva vrátila 504 a obecný klientský retry stejný zápis později zopakoval už s mezitím obnovenou revizí. Uživatel proto konflikt neviděl a druhý zápis nakonec prošel.

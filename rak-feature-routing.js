@@ -224,7 +224,10 @@
   }
 
   window.runRakSafeManualSyncV1588 = runSafeManualSync;
-  window.runDashboardManualSync = runSafeManualSync;
+  // RAK_17138_DASHBOARD_RESCUE_ROUTING: never replace the full Dashboard manual-sync
+  // implementation. It owns conflict diagnostics/rescue; this safe runner remains
+  // the fallback and the Admin-service sync path only.
+  if (typeof window.runDashboardManualSync !== 'function') window.runDashboardManualSync = runSafeManualSync;
 
   function handleManualSyncClick(event) {
     const source = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
@@ -233,8 +236,12 @@
     if (!button) return false;
     event.preventDefault();
     event.stopImmediatePropagation();
-    void runSafeManualSync(button.id === 'dashboardSyncBadge' ? 'dashboard-click' : 'admin-service-sync').then((result) => {
-      if (button.id !== 'dashboardSyncBadge') {
+    const dashboardBadge = button.id === 'dashboardSyncBadge';
+    const runner = dashboardBadge && typeof window.runDashboardManualSync === 'function'
+      ? window.runDashboardManualSync
+      : runSafeManualSync;
+    void runner(dashboardBadge ? 'dashboard-click' : 'admin-service-sync').then((result) => {
+      if (!dashboardBadge) {
         const status = document.getElementById('adminOnlineSaveStatus');
         if (status) status.textContent = result && result.ok ? 'Synchronizace hotová.' : 'Synchronizace doběhla s chybou.';
       }
@@ -249,7 +256,10 @@
     if (!badge) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    void runSafeManualSync('dashboard-keyboard');
+    const runner = typeof window.runDashboardManualSync === 'function'
+      ? window.runDashboardManualSync
+      : runSafeManualSync;
+    void runner('dashboard-keyboard');
   }
 
   function makeCorrectionFold(group, label, detail, nodes) {
