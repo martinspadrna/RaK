@@ -1349,7 +1349,8 @@ async function runDashboardManualSync(source) {
   const diagnosticTap = source === 'dashboard-click' || source === 'dashboard-keyboard';
   let conflictDiag = null, conflictBefore = null;
   if (diagnosticTap) try {
-    await import('./rak-conflict-diagnostics.js?v=1.7.136');
+    const diagnosticVersion = encodeURIComponent(String(window.RAK_RELEASE_METADATA && window.RAK_RELEASE_METADATA.moduleCacheVersion || ''));
+    await import('./rak-conflict-diagnostics.js' + (diagnosticVersion ? '?v=' + diagnosticVersion : ''));
     conflictDiag = window.RAKConflictDiagnostics || null;
     conflictBefore = conflictDiag && conflictDiag.capture();
   } catch (_) {}
