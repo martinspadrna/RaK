@@ -1,3 +1,11 @@
+## RaK 1.7.142 (development)
+
+- Administrace → Rozpisy → Přehled jména × skupiny strojů: první zobrazení zůstává rozbalené i při prvním vytvoření dynamického přehledu.
+- Zobrazované hlavičky TNKS01/TPKW01/TPKW02 jsou zkrácené na TNK/W01/W02; skutečné machine keys a data se nemění.
+- Sloupec Jméno je 54 px místo 60 px (-10 %), strojové sloupce 35 px místo 50 px (-30 %); tabulka se tím zmenšuje z 452 px na 356 px.
+- Každý strojový sloupec má svislé oddělení pro lepší čitelnost na mobilu.
+- Bod 1 zůstává beze změny a body 3–5 nejsou součástí tohoto releasu.
+
 ## RaK 1.7.141 (development)
 
 - Administrace → Rozpisy: neuložené místní návrhy, jejich exporty a tlačítko „Smazat všechny místní návrhy“ jsou v jednom společném rámečku.
