@@ -970,7 +970,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 
 **Dokončení:** splněno – žádné kritické překryvy, uříznutá tlačítka či nefunkční akce na fyzickém iPhonu; fyzický role clickthrough je potvrzen.
 
-### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **63 % (5/8)**
+### P2.3 – Offline, lokální fronta, aktualizace a konflikty · **75 % (6/8)**
 
 **Fyzický iPhone acceptance 23. 9. 2026 – PASS:** RaK 1.7.82 na stabilním development aliasu úspěšně zvládl celý cílový scénář bez mazání dat: online přihlášení a Supabase fungují, aktuální Rotace je po úplném zavření dostupná v režimu Letadlo, Dashboard správně zobrazí „kam jdu“, Rotace se vykreslí bez ručního otevření seznamu offline rozpisů a po opětovném zapnutí internetu se stejný běh aplikace srovná bez restartu. Falešný konflikt se nevrátil. Skutečná příčina byla kombinace více vrstev: Vercel preview ochrana blokovala development assety, Supabase SDK nebylo původně spolehlivou offline součástí, nesouvisející cache zápisy mohly zkreslit čerstvost Rotace a cold start nečekal na skutečné propsání persisted snapshotu do runtime/UI. Release 1.7.82 uzavírá tuto mobilní offline/reconnect část; zbývající položky P2.3 se týkají explicitního konfliktního workflow a serverového CAS, ne této fyzicky reprodukované chyby.
 
@@ -979,7 +979,7 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 - [x] **S5 – zjistit skutečnou příčinu iPhonu:** dokončeno přes sanitizovanou diagnostiku a fyzický test; potvrzena kombinace asset protection/offline dependency/freshness/runtime rehydrate, bez zveřejnění osobních údajů.
 - [ ] Před případným vyřazením **jediné konkrétní** konfliktní položky poskytnout privátní export původních bajtů, read-only kontrolu serveru, jasný důsledek a potvrzení; zachovat ostatní frontu a data.
 - [ ] Zpracovat konflikty podle typu (rozpis / stroj / ostatní), bez automatického přepisu novějších online dat a bez falešného zeleného stavu.
-- [ ] Zavést a otestovat serverově atomický CAS / revizi pro relevantní zápisy, včetně konkurence dvou zařízení; samotná shoda čísla revize bez obsahu nedovoluje přepsání.
+- [x] Zavést a otestovat serverově atomický CAS / revizi pro relevantní zápisy, včetně konkurence dvou zařízení; samotná shoda čísla revize bez obsahu nedovoluje přepsání.
 - [x] Ověřit staré PWA/service worker, aktualizace a offline→online bez reprodukce starého konfliktu či ztráty dat; fyzický iPhone PASS na 1.7.82.
 - [x] Na fyzickém iPhonu potvrdit: offline Rotace i Dashboard jsou aktuální, návrat online funguje bez restartu a falešný konflikt se nevrací; PASS 23. 9. 2026 na 1.7.82.
 
@@ -988,6 +988,8 @@ Cíl: explicitně uzavřít konflikt mezi OS-only přístupem, společným/offli
 **Stav po 1.7.102:** mobilní offline/reconnect závada zůstává fyzicky uzavřená z 1.7.82. Konfliktní workflow z 1.7.101 i serverový CAS z 1.7.102 jsou implementované a automaticky ověřené: přesný privátní export jediné položky, read-only server check, raw-splice odstranění jedné položky, explicitní typy rozpis/stroj/ostatní a revizní CAS pro nastavení strojů i měsíční rozpis. Stale serverová revize vrací `40001` a nový klient bez ověřené baseline vůbec nezapisuje; legacy v2 mutation RPC po cutoveru pouze fail-closed odmítají starý klient. Široké checkboxy ale výslovně požadují fyzický skutečný konflikt a konkurenci dvou zařízení, proto **P2.3 zůstává 63 % (5/8)** do tohoto testu.
 
 **Důkaz 1.7.84 bez změny procenta:** vzhled účtu už nepoužívá starý tunel přes `game_stats`; TEST má samostatné account-scoped úložiště s revizí a compare-and-swap RPC. Rollback-only SQL prokázal odmítnutí stale zápisu, následný zápis na správné revizi i readback; fronta vzhledu při novější serverové revizi nevytváří globální konflikt. Jde ale jen o vzhled účtu, nikoli o obecný CAS všech relevantních zápisů, a fyzický scénář dvou zařízení ještě čeká. Široká akceptační položka CAS proto zůstává nezaškrtnutá a P2.3 zůstává **63 % (5/8)**.
+
+**Fyzický dvouzařízení CAS PASS – 28. 9. 2026, TEST-only:** skutečný souběh iPhone Safari + Windows Edge odhalil kořenovou serverovou chybu v použití SQLSTATE `40001`: PostgREST/Supabase ji považuje za retryovatelnou serialization failure a jediný stale RPC proto opakoval tisícekrát až do klientského timeoutu. TEST migrace `20260928091455_rak_cas_nonretryable_conflicts_17138` změnila všech 7 živých RaK CAS konfliktů na nereplayovatelný aplikační SQLSTATE `P0001`; visící backend byl ukončen a kontrola potvrdila 0 zbývajících `40001` v těchto funkcích. Následný fyzický retest na stejném izolovaném preview 1.7.137 začal na `machine_settings` revizi 22: oba klienti načetli stejnou baseline, iPhone provedl právě jeden úspěšný zápis na revizi 23 a Windows dostal explicitní hlášku „Nastavení strojů mezitím změnilo jiné zařízení…“. Server zaznamenal právě jeden konflikt `expected 22 / actual 23`, SQLSTATE `P0001`, bez retry smyčky a bez přepsání novějších dat. Produkční `main`, produkční Vercel i produkční Supabase zůstaly beze změny. Tím je šestý checkbox P2.3 fyzicky doložen a P2.3 se zvyšuje na **75 % (6/8)**. Otevřené zůstávají přesný conflict-rescue jediné konkrétní položky a fyzické zpracování konfliktu podle typu.
 
 ### P2.4 – Diagnostika, soukromí telemetrie a nepřetržitá kvalita · **83 % (5/6)**
 
