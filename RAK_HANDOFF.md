@@ -68,7 +68,7 @@ Read-only audit na HEAD `a31452ff0644899e4c46a7cce0d544b99da78755` ověřil vše
 | Bod | Oblast | Stav |
 |---|---|---:|
 | P0.1 | Účty a data pracovníků | **100 % (5/5)** |
-| P0.2 | Soukromí sdílené rotace | **100 % (5/5)** – rozhodnutí o přijatém riziku, ne tvrzení o absolutní ochraně |
+| P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno rozhodnutím o přijatém riziku; nejde o tvrzení o absolutní technické ochraně |
 | P0.3 | API, exporty a historické klienty | **100 % (5/5)** |
 | P0.4 | Role vlastníka a administrátorů | **100 % (5/5)** |
 | P1.1 | Databázová oprávnění, RLS a RPC | **100 % (5/5)** |
@@ -87,16 +87,34 @@ Read-only audit na HEAD `a31452ff0644899e4c46a7cce0d544b99da78755` ověřil vše
 
 ### P0.1 – Účty a data pracovníků · 100 %
 
+- [x] Zabránit anonymnímu čtení celého adresáře zaměstnanců.
+- [x] Zachovat schválené OS-only přihlášení běžných pracovníků bez nových hesel/e-mailů/OTP.
+- [x] Auditovat staré exporty, cache a klientské cesty na osobní údaje.
+- [x] Ověřit povolené a zakázané datové cesty pro anonymní i privilegované role bez logování tokenů.
+- [x] Držet regresní kontroly rozsahu osobních polí v odpovědích a exportech.
+
 - Veřejné/anonymní cesty nevydávají celý adresář ani citlivá osobní pole.
 - Přihlášení běžných pracovníků zůstává OS-only podle schváleného modelu; nepřidávat jim hesla/e-mail/OTP/Auth účet.
 - Privilegované identity a exporty mají regresní privacy kontroly.
 
 ### P0.2 – Sdílená rotace a soukromí · 100 % rozhodnutím
 
+- [x] Zdokumentovat rozsah veřejně čitelné společné rotace potřebný pro OS-only provoz.
+- [x] Vyhodnotit technické možnosti privatizace a jejich dopad na schválený model přihlášení.
+- [x] Výslovně oddělit technické zabezpečení od rozhodnutí vlastníka přijmout zbytkové riziko.
+- [x] Zachovat omezení ostatních osobních údajů mimo přijatý rozsah rotace.
+- [x] Udržovat rozhodnutí a jeho dopad jako trvalou součást handoffu.
+
 - Vlastník vědomě přijal rozsah veřejně čitelné společné rotace potřebný pro OS-only provoz.
 - 100 % zde znamená dokončené a zdokumentované rozhodnutí o riziku, nikoli absolutní technickou privatizaci.
 
 ### P0.3 – API, exporty a historické klienty · 100 %
+
+- [x] Auditovat aktuální i historické API/exportní cesty a staré klienty.
+- [x] Omezit veřejné odpovědi na schválený rozsah a zachovat private/no-store ochrany.
+- [x] Udržet owner disaster-recovery export owner-only a fail-closed.
+- [x] Fyzicky stáhnout, rozbalit a otevřít úplný owner ZIP na skutečném iPhonu.
+- [x] Zdokumentovat, že dříve stažené soukromé kopie nelze vzdáleně odvolat.
 
 - Staré API/exportní cesty byly auditovány a veřejné odpovědi omezeny.
 - Owner disaster-recovery ZIP je soukromý owner-only artefakt; dříve stažené kopie nelze vzdáleně odvolat.
@@ -104,11 +122,23 @@ Read-only audit na HEAD `a31452ff0644899e4c46a7cce0d544b99da78755` ověřil vše
 
 ### P0.4 – Role vlastníka a administrátorů · 100 %
 
+- [x] Používat fail-closed secure role gate pro owner/admin/deputy oprávnění.
+- [x] Ověřit skutečné podepsané TEST role owner/admin/deputy/cizí účet.
+- [x] Ověřit chování odvolané admin relace a zařízení.
+- [x] Fyzicky projít role-gated UI na iPhonu.
+- [x] Zabránit automatickému návratu starého privilegovaného přístupu po revoke.
+
 - Secure role gate je fail-closed.
 - Podepsaná TEST role matrix ověřila owner/admin/deputy/cizí/odvolanou relaci.
 - Fyzický iPhone PASS 27. 9. 2026: změna role + revoke zařízení; starý privilegovaný přístup se po revoke neobnovil.
 
 ### P1.1 – Databázová oprávnění, RLS a RPC · 100 %
+
+- [x] Auditovat RLS, GRANT a RPC surface na TEST.
+- [x] Ověřit anonymní a authenticated zápisové/čtecí hranice fail-closed.
+- [x] Prověřit SECURITY DEFINER a veřejné RPC jako explicitní allowlist.
+- [x] Aplikovat schválenou produkční fázi B atomicky až po TEST/CI/fyzické přejímce.
+- [x] Udržovat nové DB změny nejprve na TEST a produkci měnit jen po explicitním souhlasu.
 
 - RLS/GRANT/RPC surface byl auditován na TEST a schválená produkční fáze B byla aplikována atomicky.
 - Veřejné mutation cesty jsou omezené; privilegované operace vyžadují příslušný kontext.
@@ -116,10 +146,23 @@ Read-only audit na HEAD `a31452ff0644899e4c46a7cce0d544b99da78755` ověřil vše
 
 ### P1.2 – Heslo, relace a zařízení · 100 %
 
+- [x] Sjednotit minimum admin/správce hesla na 6 znaků v klientu i serverové validační cestě.
+- [x] Ověřit online znovuotevření admin relace v PWA.
+- [x] Ověřit offline start a návrat offline→online bez mazání dat.
+- [x] Ověřit revoke zařízení a zákaz automatického obnovení staré relace.
+- [x] Zachovat role/session chování fail-closed při chybě ověření.
+
 - Minimum admin/správce hesla je **6 znaků**, konzistentně klient + TEST serverová validační cesta.
 - Fyzicky ověřeno: znovuotevření PWA, offline start, offline→online, revoke a zákaz automatického návratu staré admin relace.
 
 ### P1.3 – Reprodukovatelný build a verze · 100 %
+
+- [x] Používat reprodukovatelný canonical build.
+- [x] Udržovat jeden zdroj release metadat a sjednocenou verzi runtime/cache/package.
+- [x] Provádět dvě čisté sestavy a porovnat jejich výstup.
+- [x] Uchovávat immutable 1.7.69 jako performance referenci.
+- [x] Fail-closed blokovat release při nesouladu buildů nebo metadat.
+- [x] Udržovat regresní testy build/version kontraktu v CI.
 
 - Canonical build je reprodukovatelný, release metadata jsou jediný zdroj verze.
 - Viditelná, technická, module cache, package verze a SW marker se u nových runtime release sjednocují.
@@ -127,12 +170,27 @@ Read-only audit na HEAD `a31452ff0644899e4c46a7cce0d544b99da78755` ověřil vše
 
 ### P1.4 – CI, deployment a rollback · 100 %
 
+- [x] Spouštět povinné syntax/unit/integration/security/offline/browser kontroly před releasem.
+- [x] Vyžadovat dvě čisté canonical sestavy a ZIP/CRC důkaz.
+- [x] Vyžadovat performance budget a paritu bez oslabování limitů.
+- [x] Ověřit TEST HTTP/Supabase izolaci na exact SHA.
+- [x] Nasazení považovat za release až po READY + exact SHA + postdeploy kontrole.
+- [x] Udržovat konkrétní ověřený rollback cíl; produkci měnit pouze po explicitním souhlasu.
+
 - Funkční release musí projít syntax/unit/integrace, security/offline/browser, dvě čisté sestavy, ZIP/CRC, performance/parity a TEST HTTP.
 - Deployment se smí považovat za release až po READY, exact SHA a ověření TEST/produkční izolace.
 - Produkční release vyžaduje samostatný explicitní souhlas.
 - Rollback musí používat ověřený READY cíl; nikdy nehádat deployment.
 
 ### P1.5 – Úplné zálohy a ověřitelná obnova · 100 %
+
+- [x] Záloha zdrojů a owner ZIP mají inventář, manifest/CRC a kontrolu zdrojových Git blobů.
+- [x] Je zpracovaný inventář DB schématu, Auth, Storage a rozdělení TEST/produkce.
+- [x] Je doložen nedestruktivní shadow/rollback kontrakt a jeho omezení.
+- [x] Všechna potřebná TEST data a schéma byla skutečně obnovena do odděleného ephemeral local Supabase.
+- [x] Byla ověřena obnova Auth, Storage, rolí/RLS, pořadí migrací a relevantních datových revizí.
+- [x] Úplný owner ZIP byl fyzicky stažen, rozbalen a otevřen na iPhonu.
+- [x] Restore byl porovnán počty, SHA-256 hashi a funkčními testy a má fail-closed teardown/rollback postup.
 
 Finální zero-cost isolated restore drill:
 - exact SHA `9dd8b3dfc0c38984a327ce2d0ab194c08de1e787`;
@@ -152,17 +210,38 @@ Historické clean-replay normalizace jsou pouze explicitně whitelistované data
 
 ### P2.1 – Výkon startu PWA · 100 %
 
+- [x] CI měří cold start, offline reload a online recovery.
+- [x] CI vynucuje časové/velikostní budgety a paritu proti immutable 1.7.69.
+- [x] Je měřen první použitelný local-first stav, ne zelený online sync.
+- [x] Byl proveden opakovaný fyzický iPhone/PWA cold/warm test.
+- [x] Výsledky fyzického měření jsou zdokumentované včetně mediánu a maxima.
+
 - CI měří cold/offline/recovery a paritu proti immutable 1.7.69.
 - Fyzický iPhone/PWA PASS 27. 9. 2026: 5× cold = 1,4 / 1,1 / 1,2 / 1,2 / 1,1 s, medián 1,2 s, max 1,4 s; 5× warm = 0,1 s, medián/max 0,1 s.
 - Měřicí konec je stabilní local-first Home, ne zelený online sync.
 
 ### P2.2 – Rozložení, DOM, CSS a interakce · 100 %
 
+- [x] Chromium hlídá kritické mobilní rooty, geometrii a horizontální overflow.
+- [x] Fyzicky projít podporované vzhledy a safe-area navigaci na iPhonu.
+- [x] Fyzicky ověřit administraci, tabulkovou editaci a iOS klávesnici.
+- [x] Fyzicky ověřit Report směny a exportní akce.
+- [x] Fyzicky ověřit role clickthrough owner/admin/deputy/běžný uživatel.
+
 - Chromium hlídá mobilní geometrii, overflow a kritické obrazovky.
 - Fyzický iPhone PASS: vzhledy, safe-area, navigace, administrace, klávesnice, Report/export.
 - Fyzický role clickthrough PASS: owner/admin/deputy/běžný uživatel; privilegované položky odpovídají role gate.
 
 ### P2.3 – Offline, fronta, verze a konflikty · 100 %
+
+- [x] Zachovat pravdivý online/cache stav a neztrácet lokální frontu.
+- [x] Zachovat local-first offline/reconnect bez mazání dat.
+- [x] Chránit editované návrhy před opožděnou síťovou odpovědí.
+- [x] Používat revizní CAS a odmítnout stale zápis bez tichého přepsání serveru.
+- [x] Používat nereplayovatelný aplikační SQLSTATE P0001 pro očekávané RaK CAS konflikty.
+- [x] Fyzicky ověřit dvouzařízení stale-write scénář.
+- [x] Fyzicky ověřit přesný single-item conflict rescue se soukromým exportem a read-only server checkem.
+- [x] Zpracovat konflikty podle typu; kategorie „ostatní“ se nesmí automaticky mazat.
 
 - Local-first offline/reconnect funguje bez mazání dat a bez falešného konfliktu.
 - CAS je fail-closed a používá nereplayovatelný aplikační SQLSTATE `P0001`; nepoužívat `40001` pro očekávaný RaK stale konflikt, protože PostgREST jej retryuje.
@@ -171,6 +250,13 @@ Historické clean-replay normalizace jsou pouze explicitně whitelistované data
 - Background sync nesmí měnit uživatelem zvolenou route.
 
 ### P2.4 – Diagnostika a soukromí telemetrie · 100 %
+
+- [x] Mít sanitizovanou čtecí diagnostiku Auth/fronty/stavu bez syrových payloadů.
+- [x] Udržovat Chromium/offline/performance provozní signály s jednoznačným PASS/FAIL.
+- [x] Auditovat logy/reporty/screenshoty/exporty proti úniku tokenů, OS čísel, jmen a obsahu rozpisů.
+- [x] Ověřit skutečné role/JWT a odmítnuté operace bez vypsání přihlašovacích údajů.
+- [x] Fyzicky zobrazit na problematickém iPhonu konkrétní sanitizovanou příčinu konfliktu po vrstvách.
+- [x] Používat měřitelné quality thresholds a fail-closed blokovat nebezpečný release.
 
 - Browser/runtime diagnostika je centralizovaně sanitizovaná; žádné tokeny, OS čísla, jména ani obsah rozpisů v běžných logách.
 - Role/JWT diagnostika ověřuje identitu/session/role bez vypsání tokenu.
