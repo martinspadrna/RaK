@@ -130,9 +130,9 @@ function renderAdminMenuBody(body, section) {
   const generatorSettingsHtml = [
     '<div class="appMenuCard appMenuAdminCard adminGeneratorSettingsCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Pravidla generátoru</div>',
-    '  <div class="appMenuText">',
-    '    <div>Tady nastavuješ pořadí lidí a strojů, podle kterých se skládá nový návrh rozpisu. Bez uložené změny zůstávají původní pravidla.</div>',
-    '    <div class="smallText" id="adminOnlineSaveStatus">Upravuj opatrně: změny se projeví až při dalším vygenerování návrhu.</div>',
+    '  <div class="appMenuText adminGeneratorIntro">',
+    '    <div>Nastav pořadí, cykly a vyrovnávací pravidla. Rozbal jen část, kterou chceš upravit.</div>',
+    '    <div class="smallText" id="adminOnlineSaveStatus">Změny se projeví až při dalším vygenerování návrhu.</div>',
     '  </div>',
     buildAdminRotationGeneratorSettingsHtml(),
     '  <div class="appMenuActionRow">',

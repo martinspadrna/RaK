@@ -2588,3 +2588,163 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
   gap:6px !important;
   margin-top:8px !important;
 }
+
+
+/* RaK 1.7.144 – Pravidla generátoru: kompaktní skládací editor pro mobil. */
+#appMenuBody .adminGeneratorSettingsCard{
+  gap:7px !important;
+}
+#appMenuBody .adminGeneratorSettingsCard .adminGeneratorIntro{
+  margin:0 0 2px !important;
+  gap:2px !important;
+  font-size:11.5px !important;
+  line-height:1.2 !important;
+}
+#appMenuBody .adminGeneratorCompactSections{
+  display:grid !important;
+  gap:6px !important;
+  margin:2px 0 !important;
+}
+#appMenuBody .adminGeneratorFold{
+  border:1px solid rgba(180,255,190,.18) !important;
+  border-radius:9px !important;
+  background:rgba(255,255,255,.025) !important;
+  overflow:hidden !important;
+  margin:0 !important;
+}
+#appMenuBody .adminGeneratorFold > summary{
+  list-style:none !important;
+  cursor:pointer !important;
+  position:relative !important;
+  padding:9px 32px 9px 10px !important;
+  font-size:12.5px !important;
+  font-weight:900 !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminGeneratorFold > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody .adminGeneratorFold > summary::after{
+  content:'›' !important;
+  position:absolute !important;
+  right:11px !important;
+  top:50% !important;
+  transform:translateY(-50%) rotate(90deg) !important;
+  opacity:.75 !important;
+  font-size:17px !important;
+}
+#appMenuBody .adminGeneratorFold[open] > summary::after{
+  transform:translateY(-50%) rotate(-90deg) !important;
+}
+#appMenuBody .adminGeneratorFoldBody{
+  display:grid !important;
+  gap:5px !important;
+  padding:0 8px 8px !important;
+  min-width:0 !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatus,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpact,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRulesSummary{
+  margin:0 !important;
+  gap:4px !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusGrid,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactGrid,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRulesGrid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:4px !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard{
+  min-height:0 !important;
+  padding:5px 6px !important;
+  gap:2px !important;
+  border-radius:7px !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem span,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem span,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard span{
+  font-size:9px !important;
+  line-height:1.05 !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem b,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem b,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard b{
+  font-size:11px !important;
+  line-height:1.08 !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem small,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem small,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard small{
+  font-size:8.5px !important;
+  line-height:1.12 !important;
+}
+#appMenuBody .adminGeneratorFoldBody.adminGeneratorSettingsList{
+  margin:0 !important;
+  gap:4px !important;
+}
+#appMenuBody .adminGeneratorFoldBody .appMenuFieldLabel{
+  margin:1px 0 0 !important;
+  gap:3px !important;
+  font-size:10.5px !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminGeneratorFoldBody .appMenuTextarea{
+  min-height:44px !important;
+  max-height:70px !important;
+  padding:5px 7px !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+}
+#appMenuBody .adminGeneratorFoldBody .appMenuInput{
+  min-height:31px !important;
+  padding:4px 6px !important;
+  font-size:11px !important;
+}
+#appMenuBody .adminGeneratorFoldBody .adminRotationOvertimeSwitch{
+  min-height:30px !important;
+  margin:1px 0 !important;
+  padding:4px 6px !important;
+  font-size:10.5px !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminGeneratorInlineRule{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 82px !important;
+  gap:6px !important;
+  align-items:end !important;
+}
+#appMenuBody .adminGeneratorNumberPair{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:6px !important;
+}
+#appMenuBody .adminGeneratorNumberField{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:2px !important;
+  margin:0 !important;
+}
+#appMenuBody .adminGeneratorBaseTableWrap{
+  margin-top:2px !important;
+}
+#appMenuBody .adminGeneratorBaseTable th,
+#appMenuBody .adminGeneratorBaseTable td{
+  padding:3px !important;
+}
+#appMenuBody .adminGeneratorBaseTable .appMenuInlineInput{
+  min-height:29px !important;
+  padding:3px 5px !important;
+  font-size:10.5px !important;
+}
+#appMenuBody .adminGeneratorSettingsCard > .appMenuActionRow{
+  margin-top:2px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:5px !important;
+}
+#appMenuBody .adminGeneratorSettingsCard > .appMenuActionRow .appMenuAction{
+  width:100% !important;
+  min-height:34px !important;
+  padding:5px 3px !important;
+  font-size:10.5px !important;
+}

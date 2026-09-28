@@ -1,3 +1,11 @@
+## RaK 1.7.144 (development)
+
+- Administrace → Pravidla generátoru: stránka je nově rozdělena do pěti kompaktních skládacích sekcí: Kontrola a souhrn pravidel, Lidé a pořadí, Cykly strojů, Vyrovnávací pravidla a Základní soustruhy měkoty.
+- Všechny sekce jsou po otevření stránky zabalené; uživatel rozbalí jen část, kterou chce upravit.
+- Stavové a pravidlové karty, textová pole, číselné vstupy a spodní tlačítka jsou zhutněné pro iPhone; číselné dvojice jsou seskupené vedle sebe tam, kde to dává smysl.
+- Veškerá ID polí, data atributy a ukládací logika generátoru zůstávají beze změny.
+- Body 4–5 nejsou součástí tohoto releasu.
+
 ## RaK 1.7.143 (development)
 
 - Administrace → Rozpisy → Přehled jména × skupiny strojů: TO a MO mají nově stejnou šířku 35 px jako strojové sloupce a stejné svislé oddělení.
