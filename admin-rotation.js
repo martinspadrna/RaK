@@ -127,29 +127,15 @@ function adminRotationRowTemplate(section, row, rowIndex, machineCount, allowBla
     cells.map((value, idx) => {
       const filled = String(value || '').trim();
       let mod = null;
-      let kalirnaEvidence = [];
       try { if (typeof rakDayModForAdminCell === 'function') mod = rakDayModForAdminCell(section, date, idx); } catch (e) { mod = null; }
-      try { if (typeof rakKalirnaEvidenceForAdminCell === 'function') kalirnaEvidence = rakKalirnaEvidenceForAdminCell(section, date, idx) || []; } catch (e) { kalirnaEvidence = []; }
       const tdClasses = [];
       if (!filled) tdClasses.push('adminRotationEditorEmptyCell');
-      if (mod || kalirnaEvidence.length) tdClasses.push('rakDayModCell');
-      if (kalirnaEvidence.length) tdClasses.push('rakKalirnaEvidenceCell');
+      if (mod) tdClasses.push('rakDayModCell');
+      if (mod && mod.type === 'kalirnaOut') tdClasses.push('rakKalirnaOutCell');
       const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '';
-      const tipParts = [];
-      if (mod && typeof rakDayModTooltip === 'function') tipParts.push(rakDayModTooltip(mod));
-      kalirnaEvidence.forEach((item) => {
-        const detail = typeof rakDayModTooltip === 'function' ? rakDayModTooltip(item) : '';
-        tipParts.push([String(item && item.person || '').trim(), detail].filter(Boolean).join(' · '));
-      });
-      const tip = tipParts.filter(Boolean).join(' | ');
+      const tip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : '';
       const mark = badge ? '<span class="rakDayModMark" aria-hidden="true">' + escapeHtml(badge) + '</span>' : '';
-      const evidence = kalirnaEvidence.length
-        ? '<span class="rakKalirnaEvidenceList">' + kalirnaEvidence.map((item) => {
-            const evidenceBadge = typeof rakDayModBadge === 'function' ? rakDayModBadge(item) : '→K';
-            return '<span class="rakKalirnaEvidenceName">' + escapeHtml(String(item && item.person || '').trim()) + ' <span class="rakDayModMark" aria-hidden="true">' + escapeHtml(evidenceBadge) + '</span></span>';
-          }).join('') + '</span>'
-        : '';
-      return '<td class="' + tdClasses.join(' ') + '"' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') + '>' + renderAdminInlineFieldHtml('data-rot-field', 'cell-' + String(idx), value, String(idx + 1), true) + mark + evidence + '</td>';
+      return '<td class="' + tdClasses.join(' ') + '"' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') + '>' + renderAdminInlineFieldHtml('data-rot-field', 'cell-' + String(idx), value, String(idx + 1), true) + mark + '</td>';
     }).join(''),
     '</tr>'
   ].join('');
@@ -692,15 +678,21 @@ function adminRotationNamesForAbsenceDate(notesRows, dateLabel, knownNames) {
   return blocked;
 }
 
-function adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) {
-  const blocked = adminRotationNamesForAbsenceDate(month && month.notes, dateLabel, knownNames);
+function adminRotationKalirnaOutNamesForDate(month, dateLabel, knownNames) {
+  const names = new Set();
   const wanted = adminRotationDateBaseKey(dateLabel);
   (Array.isArray(month && month.dayMods) ? month.dayMods : []).forEach((mod) => {
     if (!mod || String(mod.type || '').trim() !== 'kalirnaOut') return;
     if (adminRotationDateBaseKey(mod.date) !== wanted) return;
     const name = adminRotationCanonicalName(mod.person, knownNames);
-    if (name) blocked.add(name);
+    if (name) names.add(name);
   });
+  return names;
+}
+
+function adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) {
+  const blocked = adminRotationNamesForAbsenceDate(month && month.notes, dateLabel, knownNames);
+  adminRotationKalirnaOutNamesForDate(month, dateLabel, knownNames).forEach((name) => blocked.add(name));
   return blocked;
 }
 
@@ -760,10 +752,9 @@ function adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, a
     (Array.isArray(headers) ? headers : []).forEach((machine, idx) => {
       const shouldBeOccupied = required.includes(machine);
       const cell = row && Array.isArray(row.cells) ? row.cells[idx] : '';
-      const occupied = shouldBeOccupied
-        ? adminRotationIsRealName(cell, knownNames)
-        : !!String(cell || '').trim();
-      if (occupied !== shouldBeOccupied) issues.push({ machine, shouldBeOccupied });
+      const name = adminRotationCanonicalName(cell, knownNames);
+      const physicallyOccupied = !!(name && !absent.has(name));
+      if (physicallyOccupied !== shouldBeOccupied) issues.push({ machine, shouldBeOccupied });
     });
   };
   inspect(HARD_MACHINE_HEADERS, hardRow, ['TNKS01', 'TBKR07', 'TPKW01', 'TBKR01']);
@@ -808,6 +799,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
     const dateLabel = (hardRow && hardRow.date) || (softRow && softRow.date) || '';
     if (!dateLabel) continue;
     const assigned = new Map();
+    const kalirnaOutNames = adminRotationKalirnaOutNamesForDate(month, dateLabel, knownNames);
     const register = (sectionKey, machineName, rawName) => {
       const name = adminRotationCanonicalName(rawName, knownNames);
       if (!name) return;
@@ -818,6 +810,8 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
       }
       if (!assigned.has(name)) assigned.set(name, []);
       assigned.get(name).push({ sectionKey, machineName });
+      // Kalírna je v buňce jen evidenčně; není fyzická obsluha daného stroje.
+      if (kalirnaOutNames.has(name)) return;
       if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) {
         addIssue('error', 'skill', String(dateLabel) + ': ' + name + ' neumí ' + machineName + '.', '');
       }

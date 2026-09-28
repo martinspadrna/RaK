@@ -1,3 +1,12 @@
+## RaK 1.7.148 (development)
+
+- Neplánovaná Kalírna už není jen odvozený text pod prázdnou buňkou. Po lokálním přepočtu se stejný `kalirnaOut` zapíše přímo na chráněnou prázdnou MO pozici a člověk je v rozpisu jako „Jméno →K“.
+- Při 9 fyzicky dostupných lidech zůstává 5 TO + 4 MO; Kalírna se evidenčně zobrazí na volné MFKF06. Při 8 fyzicky dostupných lidech zůstává 5 TO + 3 MO (MSKC03, MSKC04, MFKF10) a Kalírna se evidenčně zobrazí na volné MSKC01.
+- Kalírna v buňce je jen evidence: nepočítá se do fyzického staffing počtu, statistik ani kvalifikace stroje. Veřejný rozpis i admin ji zobrazí růžově s `→K`.
+- Dovolená / Náhradní volno / Paragraf / Lékař zůstávají absencí: člověk se zapíše do tabulky Absence a ze strojů zmizí.
+- Neplánovaná změna dál smí přepočítat pouze vybraný den / vybraný rozsah. Ostatní dny musí zůstat byte-identické. Pokud je absence na MO a původní TO je stále platné, zachová se TO beze změny.
+- Regresní testy zamykají staffing: 1 absence = 5 TO + 4 MO (MSKC01, MSKC03, MSKC04, MFKF10); 2 absence = 5 TO + 3 MO (MSKC03, MSKC04, MFKF10).
+
 ## RaK 1.7.147 (development)
 
 - „Odešel na kalírnu“ dál používá stejný uložený `kalirnaOut` záznam jako ruční Výjimky dne; nevzniká druhá datová větev ani nové staffing pravidlo.

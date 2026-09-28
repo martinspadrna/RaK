@@ -993,6 +993,9 @@ function adminRotationUnplannedAssertSelectedDayStaffing(month, allowedDateLabel
   const labels = Array.isArray(allowedDateLabels) ? allowedDateLabels : [];
   labels.forEach((date) => {
     const blocked = adminRotationUnavailableNamesForDate(month, date, knownNames);
+    const kalirnaOut = typeof adminRotationKalirnaOutNamesForDate === 'function'
+      ? adminRotationKalirnaOutNamesForDate(month, date, knownNames)
+      : new Set();
     const available = knownNames.filter((name) => !blocked.has(name));
     const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
     const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
@@ -1000,29 +1003,32 @@ function adminRotationUnplannedAssertSelectedDayStaffing(month, allowedDateLabel
     const softRow = softRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
     const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells : [];
     const softCells = Array.isArray(softRow && softRow.cells) ? softRow.cells : [];
-    const hardAssigned = hardCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter(Boolean);
-    const softAssigned = softCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter(Boolean);
-    const assigned = hardAssigned.concat(softAssigned);
-    const duplicate = assigned.find((name, idx) => assigned.indexOf(name) !== idx);
+
+    const allAssigned = hardCells.concat(softCells).map((value) => adminRotationCanonicalName(value, knownNames)).filter(Boolean);
+    const duplicate = allAssigned.find((name, idx) => allAssigned.indexOf(name) !== idx);
     if (duplicate) throw new Error(String(date || '') + ': ' + duplicate + ' je po přepočtu přiřazen dvakrát.');
-    const blockedAssigned = assigned.find((name) => blocked.has(name));
+
+    const blockedAssigned = allAssigned.find((name) => blocked.has(name) && !kalirnaOut.has(name));
     if (blockedAssigned) throw new Error(String(date || '') + ': ' + blockedAssigned + ' je nedostupný, ale po přepočtu zůstal ve stroji.');
+
+    const hardAssigned = hardCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter((name) => name && !blocked.has(name));
+    const softAssigned = softCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter((name) => name && !blocked.has(name));
+    const activeAssigned = hardAssigned.concat(softAssigned);
 
     const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
     const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
-    if (hardAssigned.length !== hardTarget || softAssigned.length !== softTarget || assigned.length !== available.length) {
-      throw new Error(String(date || '') + ': přepočet nemá správný počet lidí na TO/MO.');
+    if (hardAssigned.length !== hardTarget || softAssigned.length !== softTarget || activeAssigned.length !== available.length) {
+      throw new Error(String(date || '') + ': přepočet nemá správný fyzický počet lidí na TO/MO.');
     }
 
-    if (softTarget === 4) {
-      const latheIndexes = ['MSKC01','MSKC03','MSKC04'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
-      const millIndexes = ['MFKF06','MFKF10'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
-      const latheCount = latheIndexes.filter((idx) => idx >= 0 && adminRotationCanonicalName(softCells[idx], knownNames)).length;
-      const millCount = millIndexes.filter((idx) => idx >= 0 && adminRotationCanonicalName(softCells[idx], knownNames)).length;
-      if (latheCount !== 3 || millCount !== 1) {
-        throw new Error(String(date || '') + ': při čtyřech lidech na MO musí být 3 soustruhy a 1 fréza.');
+    const plannedSoftSlots = new Set(adminRotationGeneratorSoftSlotPlan(softTarget));
+    softCells.forEach((value, idx) => {
+      const name = adminRotationCanonicalName(value, knownNames);
+      const physicallyOccupied = !!(name && !blocked.has(name));
+      if (physicallyOccupied !== plannedSoftSlots.has(idx)) {
+        throw new Error(String(date || '') + ': fyzické MO neodpovídá plánu pro ' + String(softTarget) + ' lidí.');
       }
-    }
+    });
   });
   return true;
 }
@@ -1200,6 +1206,43 @@ function adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, targetMo
   return true;
 }
 
+function adminRotationUnplannedPlaceKalirnaDisplayCell(month, dateLabel, person, knownNames) {
+  const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+  const row = softRows.find((item) => String(item && item.date || '').trim() === String(dateLabel || '').trim()) || null;
+  if (!row) throw new Error('Chybí řádek MO pro Kalírnu: ' + String(dateLabel || '') + '.');
+  const cells = Array.isArray(row.cells) ? row.cells.slice(0, SOFT_MACHINE_HEADERS.length) : [];
+  while (cells.length < SOFT_MACHINE_HEADERS.length) cells.push('');
+
+  const blocked = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
+  const available = knownNames.filter((name) => !blocked.has(name));
+  const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+  const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
+  const activeSlots = new Set(adminRotationGeneratorSoftSlotPlan(softTarget));
+  const preferredMachines = softTarget >= 4 ? ['MFKF06', 'MSKC01'] : ['MSKC01', 'MFKF06'];
+  const candidates = preferredMachines
+    .map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine))
+    .concat(SOFT_MACHINE_HEADERS.map((_, idx) => idx))
+    .filter((idx, pos, list) => idx >= 0 && list.indexOf(idx) === pos)
+    .filter((idx) => !activeSlots.has(idx))
+    .filter((idx) => !adminRotationCanonicalName(cells[idx], knownNames));
+  const cellIndex = candidates[0];
+  if (!Number.isFinite(cellIndex)) throw new Error('Pro evidenci Kalírny není volná chráněná MO buňka: ' + String(dateLabel || '') + '.');
+
+  cells[cellIndex] = person;
+  row.cells = cells;
+
+  const mod = (Array.isArray(month && month.dayMods) ? month.dayMods : []).find((item) =>
+    item
+    && item.type === 'kalirnaOut'
+    && String(item.date || '').trim() === String(dateLabel || '').trim()
+    && adminRotationCanonicalName(item.person || '', knownNames) === person
+  );
+  if (!mod) throw new Error('Chybí výjimka Kalírny pro ' + String(dateLabel || '') + '.');
+  mod.section = 'soft';
+  mod.cellIndex = Number(cellIndex);
+  return { section: 'soft', cellIndex, machine: SOFT_MACHINE_HEADERS[cellIndex] || '', softTarget };
+}
+
 function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input) {
   const data = input && typeof input === 'object' ? input : {};
   const labels = adminRotationUnplannedDateLabels(sourceMonth);
@@ -1265,17 +1308,28 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
     regenerated = adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels);
   }
+
+  // Fyzický staffing je hotový. Teď vlož pouze evidenční buňku Kalírny do
+  // chráněného prázdného MO slotu a přesměruj na ni tentýž kalirnaOut daymod.
+  allowedDateLabels.forEach((date) => {
+    adminRotationUnplannedPlaceKalirnaDisplayCell(regenerated, date, person, knownNames);
+  });
+
   adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels);
   adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels);
 
   for (const date of allowedDateLabels) {
-    for (const sectionKey of ['hard','soft']) {
-      const rows = Array.isArray(regenerated && regenerated[sectionKey] && regenerated[sectionKey].rows) ? regenerated[sectionKey].rows : [];
-      const row = rows.find((item) => String(item && item.date || '').trim() === String(date || '').trim());
-      const stillAssigned = Array.isArray(row && row.cells)
-        ? row.cells.some((value) => adminRotationCanonicalName(value, knownNames) === person)
-        : false;
-      if (stillAssigned) throw new Error('Pracovník označený jako Kalírna zůstal ve stroji: ' + date + '.');
+    const assignment = adminRotationUnplannedFindAssignment(regenerated, date, person, knownNames);
+    if (!assignment || assignment.section !== 'soft') {
+      throw new Error('Kalírna není evidenčně v MO rozpisu: ' + date + '.');
+    }
+    const mod = (Array.isArray(regenerated.dayMods) ? regenerated.dayMods : []).find((item) =>
+      item && item.type === 'kalirnaOut'
+      && String(item.date || '').trim() === String(date || '').trim()
+      && adminRotationCanonicalName(item.person || '', knownNames) === person
+    );
+    if (!mod || mod.section !== 'soft' || Number(mod.cellIndex) !== Number(assignment.cellIndex)) {
+      throw new Error('Kalírna nemá stejnou buňku jako její →K výjimka: ' + date + '.');
     }
   }
 

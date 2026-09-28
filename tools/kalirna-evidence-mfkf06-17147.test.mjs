@@ -3,35 +3,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('Kalírna evidence reuses the same kalirnaOut daymod and targets only MFKF06',()=>{
-  const day=read('admin-daymods.js');
-  assert(day.includes("mod.type !== 'kalirnaOut'"));
-  assert(day.includes("=== 'MFKF06'"));
-  assert(day.includes('window.rakKalirnaEvidenceForCell'));
-  assert(day.includes('window.rakKalirnaEvidenceForAdminCell'));
-  assert(day.includes('assigned.has(key)'));
-  assert(!day.includes('kalirnaEvidenceMachine'));
-  assert(!day.includes('kalirnaEvidencePerson'));
-});
-
-test('public/admin render Jméno with the same →K badge without writing a machine value',()=>{
+test('1.7.147 presentation-only evidence path is explicitly superseded by direct-cell 1.7.148',()=>{
   const day=read('admin-daymods.js');
   const admin=read('admin-rotation.js');
   const rotation=read('rotace.js');
-  assert(day.includes("if (mod.type === 'kalirnaOut') return '→K';"));
-  assert(admin.includes('rakKalirnaEvidenceForAdminCell'));
-  assert(admin.includes('rakKalirnaEvidenceName'));
-  assert(rotation.includes('rakKalirnaEvidenceForCell'));
-  assert(rotation.includes('evidenceNames.join(\' / \')'));
-  assert(rotation.includes("const metaMod = mod || (kalirnaEvidence.length ? kalirnaEvidence[0] : null);"));
-});
-
-test('Kalírna evidence stays presentation-only and existing minimal reflow/staffing logic remains authoritative',()=>{
   const wizard=read('admin-rotation-generator-wizard.js');
-  const stats=read('kalirna-stats-override.js');
-  assert(wizard.includes('adminRotationUnplannedTryMinimalKalirnaSoftReflow'));
-  assert(wizard.includes("type: 'kalirnaOut'"));
-  assert(wizard.includes('if (stillAssigned) throw new Error'));
-  assert(stats.includes("if (!mod || mod.type !== 'kalirnaOut') return;"));
-  assert(stats.includes('return \'\';'));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.147 (development)'));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.148 (development)'));
+  assert(!day.includes('rakKalirnaEvidenceForCell'));
+  assert(!admin.includes('rakKalirnaEvidenceForAdminCell'));
+  assert(!rotation.includes('rakKalirnaEvidenceList'));
+  assert(wizard.includes('adminRotationUnplannedPlaceKalirnaDisplayCell'));
+  assert(day.includes("if (mod.type === 'kalirnaOut') return '→K';"));
 });

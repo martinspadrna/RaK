@@ -84,49 +84,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return window.rakDayModForCell(getMonth(monthKey), section, dateRaw, cellIndex);
   };
 
-  // RaK 1.7.147: evidenční zobrazení Kalírny používá PŘESNĚ stejný kalirnaOut
-  // záznam jako ruční „Výjimky dne“. Nevytváří další obsazení stroje a nic nepřičítá
-  // do staffing logiky. Pokud už člověk po přepočtu není v žádné strojové buňce,
-  // zobrazí se tentýž záznam evidenčně na MFKF06 jako „Jméno →K“.
-  function kalirnaEvidenceModsForCell(month, section, dateRaw, cellIndex) {
-    if (!month || section !== 'soft') return [];
-    var machines = sectionMachines('soft');
-    var mfkf06Index = machines.findIndex(function (name) { return String(name || '').trim().toUpperCase() === 'MFKF06'; });
-    if (mfkf06Index < 0 || Number(cellIndex) !== mfkf06Index) return [];
-    var date = String(dateRaw || '').trim();
-    if (!date) return [];
-
-    var assigned = new Set();
-    ['hard', 'soft'].forEach(function (sectionKey) {
-      var sec = month && month[sectionKey];
-      var rows = sec && Array.isArray(sec.rows) ? sec.rows : [];
-      var row = rows.find(function (item) { return String(item && item.date || '').trim() === date; });
-      (row && Array.isArray(row.cells) ? row.cells : []).forEach(function (value) {
-        var name = String(value || '').trim();
-        if (name) assigned.add(name.toLocaleLowerCase('cs-CZ'));
-      });
-    });
-
-    var seen = new Set();
-    return listMods(month).filter(function (mod) {
-      if (!mod || mod.type !== 'kalirnaOut' || String(mod.date || '').trim() !== date) return false;
-      var person = String(mod.person || '').trim();
-      if (!person) return false;
-      var key = person.toLocaleLowerCase('cs-CZ');
-      if (assigned.has(key) || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
-
-  window.rakKalirnaEvidenceForCell = function rakKalirnaEvidenceForCell(month, section, dateRaw, cellIndex) {
-    return kalirnaEvidenceModsForCell(month, section === 'soft' ? 'soft' : 'hard', dateRaw, cellIndex);
-  };
-
-  window.rakKalirnaEvidenceForAdminCell = function rakKalirnaEvidenceForAdminCell(section, dateRaw, cellIndex) {
-    var monthKey = typeof getAdminSelectedMonthKey === 'function' ? getAdminSelectedMonthKey() : (window.app ? app.selectedMonth : '');
-    return window.rakKalirnaEvidenceForCell(getMonth(monthKey), section, dateRaw, cellIndex);
-  };
+  // RaK 1.7.148: Kalírna se znovu vykresluje jen z reálné buňky + stejného kalirnaOut záznamu.
+  // Neplánovaná změna ukládá člověka do chráněné prázdné MO buňky a daymod na ni přesměruje.
 
   // Krátká značka do buňky (vizuální upozornění i bez barvy).
   window.rakDayModBadge = function rakDayModBadge(mod) {
