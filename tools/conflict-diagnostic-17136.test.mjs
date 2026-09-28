@@ -96,8 +96,9 @@ test('diagnostic module is not on startup parse path and capture happens before 
   const dashboard=read('dashboard.js');
   const index=read('index.html');
   const bridge=read('supabase-bridge.js');
-  const captureAt=dashboard.indexOf("await import('./rak-conflict-diagnostics.js?v=1.7.136')");
+  const captureAt=dashboard.indexOf('await import(diagnosticUrl)');
   const flushAt=dashboard.indexOf("await step('flush-fronty'");
+  assert(dashboard.includes("const diagnosticUrl='./rak-conflict-diagnostics.js'+"),'lazy diagnostic URL must remain release-cache-busted');
   assert(captureAt>=0&&flushAt>captureAt,'lazy diagnostic must load/capture before flush');
   assert(!index.includes('rak-conflict-diagnostics.js'),'diagnostic must not be a startup script');
   assert(!bridge.includes('RAK_17136_CONFLICT_DIAGNOSTIC'),'bridge must stay unchanged by P2.4 diagnostic');
