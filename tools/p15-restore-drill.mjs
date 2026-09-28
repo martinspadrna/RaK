@@ -56,7 +56,7 @@ function digestRows(rows){return crypto.createHash('sha256').update(JSON.stringi
 function remapValue(v,map){if(typeof v==='string'&&map.has(v))return map.get(v);if(Array.isArray(v))return v.map(x=>remapValue(x,map));if(v&&typeof v==='object'){const o={};for(const [k,x] of Object.entries(v))o[k]=remapValue(x,map);return o;}return v;}
 function sqlLit(v){return "'"+String(v).replaceAll("'","''")+"'";}
 function qident(v){return '"'+String(v).replaceAll('"','""')+'"';}
-function psql(dbUrl,sql){return execFileSync('psql',[dbUrl,'-X','-v','ON_ERROR_STOP=1','-q','-t','-A','-c',sql],{encoding:'utf8',maxBuffer:128*1024*1024});}
+function psql(dbUrl,sql){return execFileSync('psql',[dbUrl,'-X','-v','ON_ERROR_STOP=1','-q','-t','-A','-f','-'],{input:sql,encoding:'utf8',maxBuffer:128*1024*1024});}
 function psqlJson(dbUrl,sql){const s=psql(dbUrl,sql).trim();return s?JSON.parse(s):null;}
 
 async function oidcToken(){
