@@ -1,9 +1,8 @@
 ## RaK 1.7.140 (development)
 
-- Administrace → Rozpisy: viditelné bezpečné tlačítko „Smazat všechny místní návrhy“ používá stávající read-only online preflight a maže jen místní návrhy / čekající zápisy rozpisu, ne server ani jinou frontu.
-- Přehled „jména × skupiny strojů“ je při prvním zobrazení otevřený; TNKS01/TPKW01/TPKW02 se zobrazují jako TNK/W01/W02. Jméno je o 10 % užší, strojové skupiny o 30 % užší a strojové sloupce oddělují svislé čáry.
-- Pravidla generátoru, Kantýna/jídelna a Správci jsou výrazně zhuštěné pro mobil bez změny jejich datové logiky.
-- Produkce ani produkční Supabase se tímto balíkem nemění.
+- Administrace → Rozpisy: znovu je viditelné tlačítko „Smazat všechny místní návrhy“.
+- Tlačítko používá existující bezpečný postup: nejdřív read-only ověří online rozpis, potom maže jen místní návrhy a čekající zápisy rozpisu v tomto zařízení; online data ani jiná fronta se nemažou.
+- Body 2–5 z uživatelského seznamu nejsou součástí tohoto kroku a budou řešené jednotlivě až po fyzickém ověření bodu 1.
 
 ## RaK 1.7.139 (development)
 

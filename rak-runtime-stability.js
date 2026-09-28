@@ -377,14 +377,7 @@ html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummar
     const preferredOrder = ['TNKS01', 'TPKW01', 'TPKW02', 'TBK', 'MSK', 'MFK'];
     const remaining = Array.from(machineMap.keys()).filter((key) => !preferredOrder.includes(key)).sort((a, b) => a.localeCompare(b, 'cs'));
     const columns = preferredOrder.filter((key) => machineMap.has(key)).concat(remaining);
-    const compactMachineHeading = (key) => {
-      const normalized = String(key || '').trim().toUpperCase();
-      if (normalized === 'TNKS01' || normalized === 'TNKSO1') return 'TNK';
-      if (normalized === 'TPKW01') return 'W01';
-      if (normalized === 'TPKW02') return 'W02';
-      return String(key || '');
-    };
-    const head = '<tr><th>Jméno</th><th>TO</th><th>MO</th>' + columns.map((key) => '<th title="' + esc(key) + '">' + esc(compactMachineHeading(key)) + '</th>').join('') + '</tr>';
+    const head = '<tr><th>Jméno</th><th>TO</th><th>MO</th>' + columns.map((key) => '<th>' + esc(key) + '</th>').join('') + '</tr>';
     const body = usedNames.map((name) => {
       const hardTotal = Number(sectionTotals.hard.get(name) || 0);
       const softTotal = Number(sectionTotals.soft.get(name) || 0);
@@ -448,7 +441,7 @@ html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummar
     const state = adminEditorMonth();
     if (!state.monthKey || !state.month) return;
     let container = document.getElementById('rakRuntimeAdminMachineSummary');
-    const wasOpen = container ? !!(container.querySelector('details') && container.querySelector('details').open) : true;
+    const wasOpen = !!(container && container.querySelector('details') && container.querySelector('details').open);
     const fingerprint = state.monthKey + '|' + JSON.stringify(state.month);
     if (container && container.dataset.rakFingerprint === fingerprint) return;
     if (!container) {
