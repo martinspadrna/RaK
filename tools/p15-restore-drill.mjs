@@ -15,6 +15,9 @@ const BRIDGE_URL='https://cgshssdjgzzuprlwnabl.supabase.co/functions/v1/rak-p15-
 const OIDC_AUDIENCE='rak-p15-restore-drill';
 const MAX_ROWS=1000;
 const SKIP_PUBLIC_DATA=new Set(['rak_admin_devices']);
+const STORAGE_CANARY_BUCKET='rak-p15-restore-canary';
+const STORAGE_CANARY_NAME='restore-proof/canary.txt';
+const STORAGE_CANARY_TEXT='RaK P1.5 isolated Storage restore canary v1\\n';
 
 function assert(ok,msg){if(!ok)throw new Error('[P1.5 restore drill] '+msg);}
 function safeName(v){return String(v||'').replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'migration';}
@@ -118,15 +121,26 @@ async function exportSource(){
   writeJson(path.join(PRIVATE,'migration-index.json'),migrations.migrations.map(m=>({version:String(m.version),name:String(m.name)})));
 
   const storage=snapshot.data?.storage||{};
-  const objects=Array.isArray(storage.objects)?storage.objects:[];
-  for(const obj of objects){
+  const sourceBuckets=Array.isArray(storage.buckets)?storage.buckets:[];
+  const sourceObjects=Array.isArray(storage.objects)?storage.objects:[];
+  for(const obj of sourceObjects){
     const bucket=String(obj?.bucket_id||'');const name=String(obj?.name||'');
     assert(bucket&&name,'Storage metadata misses bucket/name');
     const bytes=await bridgeBytes(token,bucket,name);
     const file=path.join(PRIVATE,'storage-files',...safeStoragePath(bucket),...safeStoragePath(name));
     fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});fs.writeFileSync(file,bytes,{mode:0o600});
   }
-  console.log('[P1.5] private TEST export complete: tables='+names.length+', migrations='+migrations.migrations.length+', storage_objects='+objects.length);
+
+  assert(!sourceBuckets.some(b=>String(b?.id||b?.name||'')===STORAGE_CANARY_BUCKET),'TEST Storage unexpectedly uses reserved P1.5 canary bucket');
+  const canaryBytes=Buffer.from(STORAGE_CANARY_TEXT,'utf8');
+  const canaryFile=path.join(PRIVATE,'storage-files',...safeStoragePath(STORAGE_CANARY_BUCKET),...safeStoragePath(STORAGE_CANARY_NAME));
+  fs.mkdirSync(path.dirname(canaryFile),{recursive:true,mode:0o700});fs.writeFileSync(canaryFile,canaryBytes,{mode:0o600});
+  storage.buckets=[...sourceBuckets,{id:STORAGE_CANARY_BUCKET,name:STORAGE_CANARY_BUCKET,public:false}];
+  storage.objects=[...sourceObjects,{bucket_id:STORAGE_CANARY_BUCKET,name:STORAGE_CANARY_NAME,metadata:{mimetype:'text/plain'}}];
+  snapshot.data.storage=storage;
+  snapshot.drill={...(snapshot.drill||{}),storage_canary:{bucket:STORAGE_CANARY_BUCKET,name:STORAGE_CANARY_NAME,sha256:crypto.createHash('sha256').update(canaryBytes).digest('hex'),source_bucket_count:sourceBuckets.length,source_object_count:sourceObjects.length}};
+  writeJson(SNAPSHOT_PATH,snapshot);
+  console.log('[P1.5] private TEST export complete: tables='+names.length+', migrations='+migrations.migrations.length+', storage_source_objects='+sourceObjects.length+', storage_canary=1');
 }
 
 async function fetchAll(client,table){
@@ -221,11 +235,18 @@ async function restoreTarget(){
   const {data:localBuckets,error:bucketError}=await admin.storage.listBuckets();assert(!bucketError,'local Storage list failed');
   const bucketIds=new Set((localBuckets||[]).map(b=>String(b.id)));
   for(const b of buckets)assert(bucketIds.has(String(b.id||b.name||'')),'restored Storage bucket missing');
+  assert((localBuckets||[]).length===buckets.length,'restored Storage bucket count mismatch');
   for(const o of objects){const bucket=String(o.bucket_id||'');const name=String(o.name||'');const {data,error}=await admin.storage.from(bucket).download(name);assert(!error&&data,'restored Storage object missing');const actual=Buffer.from(await data.arrayBuffer());const source=fs.readFileSync(path.join(PRIVATE,'storage-files',...safeStoragePath(bucket),...safeStoragePath(name)));assert(crypto.createHash('sha256').update(actual).digest('hex')===crypto.createHash('sha256').update(source).digest('hex'),'Storage byte hash mismatch');}
+  const localStorageObjectCount=Number(psql(db,"select count(*) from storage.objects").trim()||0);
+  assert(localStorageObjectCount===objects.length,'restored Storage object count mismatch');
+  const canary=snapshot.drill?.storage_canary;assert(canary&&canary.bucket===STORAGE_CANARY_BUCKET&&canary.name===STORAGE_CANARY_NAME,'Storage canary metadata missing');
+  const {data:canaryData,error:canaryError}=await admin.storage.from(canary.bucket).download(canary.name);assert(!canaryError&&canaryData,'Storage canary restore missing');
+  const canaryActual=Buffer.from(await canaryData.arrayBuffer());
+  assert(crypto.createHash('sha256').update(canaryActual).digest('hex')===String(canary.sha256),'Storage canary SHA-256 mismatch');
 
-  const proof={format:'rak-p15-restore-proof-v1',source:'TEST Supabase via GitHub OIDC',target:'ephemeral local Supabase on GitHub-hosted runner',production_touched:false,cost_model:'public-repo standard GitHub runner + local Supabase Docker',tables:{count:publicTables.length,all_counts_match:true,all_hashes_match:true,admin_devices_intentionally_reset:true},auth:{sanitized_users:users.length,sanitized_identities:identities.length,recreated_users:idMap.size,identity_providers_verified:true,credentials_restored:false,replacement_credentials_verified:true,roles_verified:[...new Set(roleProof)].sort()},storage:{bucket_count:buckets.length,object_count:objects.length,bytes_verified:true},schema:{migration_count:sourceMigrations.length,migration_order_match:true,rls_table_flags_match:true,rls_policy_count_match:true,clean_replay_normalizations:['20260918200612:legacy-rotation-data-presence-guard','20260918203159:legacy-admin-change-log-data-presence-guard','20260918214441:worker-roster-data-presence-guard','20260918220817:employee-payload-data-presence-guard','20260919054241:recursive-identity-data-presence-guard','20260919054241:admin-login-live-profile-verification']},private_data:{rotation_import_metadata_match:true,other_private_runtime_state_intentionally_reset:true},result:'PASS'};
+  const proof={format:'rak-p15-restore-proof-v1',source:'TEST Supabase via GitHub OIDC',target:'ephemeral local Supabase on GitHub-hosted runner',production_touched:false,cost_model:'public-repo standard GitHub runner + local Supabase Docker',tables:{count:publicTables.length,all_counts_match:true,all_hashes_match:true,admin_devices_intentionally_reset:true},auth:{sanitized_users:users.length,sanitized_identities:identities.length,recreated_users:idMap.size,identity_providers_verified:true,credentials_restored:false,replacement_credentials_verified:true,roles_verified:[...new Set(roleProof)].sort()},storage:{source_bucket_count:Number(canary.source_bucket_count||0),source_object_count:Number(canary.source_object_count||0),restored_bucket_count:buckets.length,restored_object_count:objects.length,bytes_verified:true,synthetic_canary:true,synthetic_canary_hash_verified:true},schema:{migration_count:sourceMigrations.length,migration_order_match:true,rls_table_flags_match:true,rls_policy_count_match:true,clean_replay_normalizations:['20260918200612:legacy-rotation-data-presence-guard','20260918203159:legacy-admin-change-log-data-presence-guard','20260918214441:worker-roster-data-presence-guard','20260918220817:employee-payload-data-presence-guard','20260919054241:recursive-identity-data-presence-guard','20260919054241:admin-login-live-profile-verification']},private_data:{rotation_import_metadata_match:true,other_private_runtime_state_intentionally_reset:true},result:'PASS'};
   writeJson(EVIDENCE_PATH,proof);
-  console.log('[P1.5] RESTORE_DRILL_PASS tables='+publicTables.length+' auth_users='+users.length+' storage_objects='+objects.length+' migrations='+sourceMigrations.length+' rls_policies='+expectedPolicies);
+  console.log('[P1.5] RESTORE_DRILL_PASS tables='+publicTables.length+' auth_users='+users.length+' storage_source_objects='+Number(canary.source_object_count||0)+' storage_canary=1 migrations='+sourceMigrations.length+' rls_policies='+expectedPolicies);
 }
 
 try{
