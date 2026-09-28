@@ -18,6 +18,14 @@ const SKIP_PUBLIC_DATA=new Set(['rak_admin_devices']);
 
 function assert(ok,msg){if(!ok)throw new Error('[P1.5 restore drill] '+msg);}
 function safeName(v){return String(v||'').replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'migration';}
+function normalizeMigrationForCleanRestore(version,sql){
+  if(version!=='20260918200612')return sql;
+  const re=/DO \\$guard\\$[\\s\\S]*?END \\$guard\\$;\\s*/i;
+  assert(re.test(sql),'known legacy-data guard missing from 20260918200612');
+  const normalized=sql.replace(re,'-- P1.5 clean restore: historical live-data presence guard intentionally omitted; final restored data/schema are verified below.\\n');
+  assert(!re.test(normalized),'legacy-data guard normalization was incomplete');
+  return normalized;
+}
 function safeStoragePath(v){const parts=String(v||'').split('/');assert(parts.length&&parts.every(p=>p&&p!=='.'&&p!=='..'),'invalid storage path');return parts;}
 function writeJson(file,value){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n',{mode:0o600});}
 function readJson(file){return JSON.parse(fs.readFileSync(file,'utf8'));}
@@ -83,7 +91,8 @@ async function exportSource(){
     const version=String(m?.version||'');const name=String(m?.name||'');const statements=m?.statements;
     assert(/^\d{14}$/.test(version)&&version>last,'migration order is invalid at '+version);
     assert(Array.isArray(statements)&&statements.length>0&&statements.every(x=>typeof x==='string'&&x.trim()),'migration SQL missing for '+version);
-    fs.writeFileSync(path.join(migDir,version+'_'+safeName(name)+'.sql'),statements.join('\n\n')+'\n',{mode:0o600});
+    const migrationSql=normalizeMigrationForCleanRestore(version,statements.join('\n\n')+'\n');
+    fs.writeFileSync(path.join(migDir,version+'_'+safeName(name)+'.sql'),migrationSql,{mode:0o600});
     last=version;
   }
   writeJson(path.join(PRIVATE,'migration-index.json'),migrations.migrations.map(m=>({version:String(m.version),name:String(m.name)})));
@@ -194,7 +203,7 @@ async function restoreTarget(){
   for(const b of buckets)assert(bucketIds.has(String(b.id||b.name||'')),'restored Storage bucket missing');
   for(const o of objects){const bucket=String(o.bucket_id||'');const name=String(o.name||'');const {data,error}=await admin.storage.from(bucket).download(name);assert(!error&&data,'restored Storage object missing');const actual=Buffer.from(await data.arrayBuffer());const source=fs.readFileSync(path.join(PRIVATE,'storage-files',...safeStoragePath(bucket),...safeStoragePath(name)));assert(crypto.createHash('sha256').update(actual).digest('hex')===crypto.createHash('sha256').update(source).digest('hex'),'Storage byte hash mismatch');}
 
-  const proof={format:'rak-p15-restore-proof-v1',source:'TEST Supabase via GitHub OIDC',target:'ephemeral local Supabase on GitHub-hosted runner',production_touched:false,cost_model:'public-repo standard GitHub runner + local Supabase Docker',tables:{count:publicTables.length,all_counts_match:true,all_hashes_match:true,admin_devices_intentionally_reset:true},auth:{sanitized_users:users.length,sanitized_identities:identities.length,recreated_users:idMap.size,identity_providers_verified:true,credentials_restored:false,replacement_credentials_verified:true,roles_verified:[...new Set(roleProof)].sort()},storage:{bucket_count:buckets.length,object_count:objects.length,bytes_verified:true},schema:{migration_count:sourceMigrations.length,migration_order_match:true,rls_table_flags_match:true,rls_policy_count_match:true},private_data:{rotation_import_metadata_match:true,other_private_runtime_state_intentionally_reset:true},result:'PASS'};
+  const proof={format:'rak-p15-restore-proof-v1',source:'TEST Supabase via GitHub OIDC',target:'ephemeral local Supabase on GitHub-hosted runner',production_touched:false,cost_model:'public-repo standard GitHub runner + local Supabase Docker',tables:{count:publicTables.length,all_counts_match:true,all_hashes_match:true,admin_devices_intentionally_reset:true},auth:{sanitized_users:users.length,sanitized_identities:identities.length,recreated_users:idMap.size,identity_providers_verified:true,credentials_restored:false,replacement_credentials_verified:true,roles_verified:[...new Set(roleProof)].sort()},storage:{bucket_count:buckets.length,object_count:objects.length,bytes_verified:true},schema:{migration_count:sourceMigrations.length,migration_order_match:true,rls_table_flags_match:true,rls_policy_count_match:true,clean_replay_normalizations:['20260918200612:legacy-live-data-presence-guard']},private_data:{rotation_import_metadata_match:true,other_private_runtime_state_intentionally_reset:true},result:'PASS'};
   writeJson(EVIDENCE_PATH,proof);
   console.log('[P1.5] RESTORE_DRILL_PASS tables='+publicTables.length+' auth_users='+users.length+' storage_objects='+objects.length+' migrations='+sourceMigrations.length+' rls_policies='+expectedPolicies);
 }
