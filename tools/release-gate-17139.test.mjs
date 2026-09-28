@@ -5,13 +5,12 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.139 release identity is unified and cache-busted',()=>{
+test('1.7.139 diagnostic milestone remains protected by successor releases',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.139');
-  assert.equal(metadata.displayVersion,'1.7.139');
-  assert.equal(metadata.buildId,'v1.7.139-diagnostic-version1');
-  assert(read('index.html').includes('app.js?v=1.7.139'));
-  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=1.7.139')"));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.139'"));
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
+  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"')"));
+  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"'"));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.139 (development)'));
 });
 
 test('1.7.139 regression gates are mandatory in local and CI checks',()=>{
