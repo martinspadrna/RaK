@@ -1,0 +1,61 @@
+name: P2.3 CAS Preview
+
+on:
+  push:
+    branches: [p23-cas-preview]
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_2 }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check out exact test branch SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require preview-only Vercel identity
+        run: |
+          test -n "$VERCEL_TOKEN"
+          test "$VERCEL_ORG_ID" = "team_wZkLmDlJZ9WUtm7IUU3i3tg4"
+          test "$VERCEL_PROJECT_ID" = "prj_Pv7eNEt5qGg2GX9l365fJnc0YUMF"
+      - name: Install pinned Vercel CLI and pull TEST preview settings
+        run: |
+          npm install --global vercel@59.24.0
+          vercel pull --yes --environment=preview --git-branch=development --token="$VERCEL_TOKEN"
+          node -e "const p=require('./.vercel/project.json');if(p.orgId!==process.env.VERCEL_ORG_ID||p.projectId!==process.env.VERCEL_PROJECT_ID)throw Error('Vercel project identity mismatch')"
+      - name: Build preview and prove TEST Supabase isolation
+        run: |
+          vercel build --yes --target=preview --token="$VERCEL_TOKEN"
+          test -s .rak-dist/supabase-config.js
+          grep -q "cgshssdjgzzuprlwnabl" .rak-dist/supabase-config.js
+          if grep -q "bkqamcbkiwumsvelahxr" .rak-dist/supabase-config.js; then echo "Production Supabase ref leaked into TEST preview" >&2; exit 1; fi
+          mkdir -p .vercel/output/static
+          cp -a .rak-dist/. .vercel/output/static/
+      - name: Deploy immutable preview only
+        run: |
+          vercel deploy --prebuilt --yes --target=preview --json --token="$VERCEL_TOKEN" \
+            --meta githubCommitSha="$GITHUB_SHA" --meta githubCommitRef=p23-cas-preview \
+            --meta githubRepo=RaK --meta githubOrg=martinspadrna > deploy-result.json
+          cat deploy-result.json
+          deployment_id="$(jq -r '.id // .deployment.id // empty' deploy-result.json)"
+          test -n "$deployment_id"
+          echo "P23_DEPLOYMENT_ID=$deployment_id" >> "$GITHUB_ENV"
+      - name: Verify deployed preview remains TEST-only
+        run: |
+          vercel curl /supabase-config.js --deployment "$P23_DEPLOYMENT_ID" -- --fail --silent --show-error --output deployed-supabase-config.js
+          grep -q "cgshssdjgzzuprlwnabl" deployed-supabase-config.js
+          if grep -q "bkqamcbkiwumsvelahxr" deployed-supabase-config.js; then echo "Production Supabase ref leaked after deploy" >&2; exit 1; fi
+          vercel curl /rak-release-metadata.js --deployment "$P23_DEPLOYMENT_ID" -- --fail --silent --show-error --output deployed-release.js
+          grep -q "1.7.137" deployed-release.js
+          echo "P2.3 immutable preview verified: $P23_DEPLOYMENT_ID"
