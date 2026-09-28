@@ -671,16 +671,32 @@ function renderMonth(monthKey) {
       (row.cells || []).forEach((cell, cellIdx) => {
         const val = (cell || "").trim();
         let mod = null;
+        let kalirnaEvidence = [];
         try { if (typeof rakDayModForCell === 'function') mod = rakDayModForCell(month, section, row.date, cellIdx); } catch (e) { mod = null; }
-        const tip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : "";
+        try { if (typeof rakKalirnaEvidenceForCell === 'function') kalirnaEvidence = rakKalirnaEvidenceForCell(month, section, row.date, cellIdx) || []; } catch (e) { kalirnaEvidence = []; }
+        const tipParts = [];
+        if (mod && typeof rakDayModTooltip === 'function') tipParts.push(rakDayModTooltip(mod));
+        kalirnaEvidence.forEach(item => {
+          const detail = typeof rakDayModTooltip === 'function' ? rakDayModTooltip(item) : "";
+          tipParts.push([String(item && item.person || '').trim(), detail].filter(Boolean).join(' · '));
+        });
+        const tip = tipParts.filter(Boolean).join(' | ');
         const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : "";
         const titleAttr = tip ? " title='" + escapeHtml(tip) + "'" : "";
         const infoAttr = tip ? " data-daymod-info='" + escapeHtml(tip) + "'" : "";
         const markHtml = badge ? " <span class='rakDayModMark'>" + escapeHtml(badge) + "</span>" : "";
+        const evidenceHtml = kalirnaEvidence.length
+          ? "<span class='rakKalirnaEvidenceList'>" + kalirnaEvidence.map(item => {
+              const evidenceBadge = typeof rakDayModBadge === 'function' ? rakDayModBadge(item) : "→K";
+              return "<span class='rakKalirnaEvidenceName'>" + escapeHtml(String(item && item.person || '').trim()) + " <span class='rakDayModMark'>" + escapeHtml(evidenceBadge) + "</span></span>";
+            }).join("") + "</span>"
+          : "";
+        const dayModClass = (mod || kalirnaEvidence.length) ? " rakDayModCell" : "";
+        const evidenceClass = kalirnaEvidence.length ? " rakKalirnaEvidenceCell" : "";
         if (val) {
-          out += "<td" + (mod ? " class='rakDayModCell'" : "") + titleAttr + infoAttr + ">" + escapeHtml(val) + markHtml + "</td>";
+          out += "<td class='" + (dayModClass + evidenceClass).trim() + "'" + titleAttr + infoAttr + ">" + escapeHtml(val) + markHtml + evidenceHtml + "</td>";
         } else {
-          out += "<td class='missingCell" + (mod ? " rakDayModCell" : "") + "'" + titleAttr + infoAttr + ">" + (badge ? escapeHtml(badge) : "—") + "</td>";
+          out += "<td class='missingCell" + dayModClass + evidenceClass + "'" + titleAttr + infoAttr + ">" + (evidenceHtml || (badge ? escapeHtml(badge) : "—")) + "</td>";
         }
       });
       out += "</tr>";
@@ -1419,12 +1435,17 @@ function buildRotationExportRows(section, sectionKey, month) {
     const metaRow = [null];
     machines.forEach((_, idx) => {
       const rawWorker = String((row && row.cells ? row.cells[idx] : '') || '').trim();
-      cells.push(rawWorker && activeNames && !activeNames.has(rawWorker) ? '' : rawWorker);
+      const visibleWorker = rawWorker && activeNames && !activeNames.has(rawWorker) ? '' : rawWorker;
       let mod = null;
+      let kalirnaEvidence = [];
       try { if (typeof rakDayModForCell === 'function') mod = rakDayModForCell(month, sectionKey, row && row.date, idx); } catch (e) { mod = null; }
-      metaRow.push(mod ? {
-        badge: typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '',
-        tooltip: typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : ''
+      try { if (typeof rakKalirnaEvidenceForCell === 'function') kalirnaEvidence = rakKalirnaEvidenceForCell(month, sectionKey, row && row.date, idx) || []; } catch (e) { kalirnaEvidence = []; }
+      const evidenceNames = kalirnaEvidence.map(item => String(item && item.person || '').trim()).filter(Boolean);
+      cells.push([visibleWorker, evidenceNames.join(' / ')].filter(Boolean).join(' / '));
+      const metaMod = mod || (kalirnaEvidence.length ? kalirnaEvidence[0] : null);
+      metaRow.push(metaMod ? {
+        badge: typeof rakDayModBadge === 'function' ? rakDayModBadge(metaMod) : '',
+        tooltip: typeof rakDayModTooltip === 'function' ? rakDayModTooltip(metaMod) : ''
       } : null);
     });
     cellMeta.push(metaRow);

@@ -238,3 +238,30 @@ body.ladaMode.ladaMode.ladaMode *::after{
   transition:none !important;
   transition-duration:0s !important;
 }
+
+
+/* RaK 1.7.147 – evidenční Kalírna na MFKF06 ze stejného kalirnaOut záznamu. */
+.rakKalirnaEvidenceCell{
+  position:relative;
+}
+.rakKalirnaEvidenceList{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  margin-top:2px;
+  line-height:1.05;
+}
+.rakKalirnaEvidenceName{
+  display:inline-flex;
+  align-items:baseline;
+  justify-content:center;
+  gap:1px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.rakKalirnaEvidenceName .rakDayModMark{
+  margin-left:1px;
+}
+td.rakKalirnaEvidenceCell .appMenuInlineFieldWrap{
+  padding-right:18px;
+}

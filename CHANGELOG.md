@@ -1,3 +1,11 @@
+## RaK 1.7.147 (development)
+
+- „Odešel na kalírnu“ dál používá stejný uložený `kalirnaOut` záznam jako ruční Výjimky dne; nevzniká druhá datová větev ani nové staffing pravidlo.
+- Pokud po neplánovaném přepočtu člověk už není v žádné strojové buňce, tentýž `kalirnaOut` se evidenčně zobrazí na MFKF06 jako „Jméno →K“.
+- Evidenční jméno se nezapisuje do buněk rozpisu, neobsazuje MFKF06, nezvyšuje MO staffing a nemění minimal-reflow/generátor ani statistickou logiku.
+- Stejné evidenční zobrazení používá veřejný rozpis, administrační editor i obrázkový export rozpisu.
+- Ruční Výjimky dne zůstávají beze změny: pokud je člověk stále ve své původní strojové buňce, značka →K zůstává právě tam a MFKF06 se neduplikuje.
+
 ## RaK 1.7.146 (development)
 
 - Administrace → Správci: dlouhá stránka je zhutněná do výchozím způsobem zabalených sekcí Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo.

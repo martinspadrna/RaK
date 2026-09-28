@@ -127,14 +127,29 @@ function adminRotationRowTemplate(section, row, rowIndex, machineCount, allowBla
     cells.map((value, idx) => {
       const filled = String(value || '').trim();
       let mod = null;
+      let kalirnaEvidence = [];
       try { if (typeof rakDayModForAdminCell === 'function') mod = rakDayModForAdminCell(section, date, idx); } catch (e) { mod = null; }
+      try { if (typeof rakKalirnaEvidenceForAdminCell === 'function') kalirnaEvidence = rakKalirnaEvidenceForAdminCell(section, date, idx) || []; } catch (e) { kalirnaEvidence = []; }
       const tdClasses = [];
       if (!filled) tdClasses.push('adminRotationEditorEmptyCell');
-      if (mod) tdClasses.push('rakDayModCell');
+      if (mod || kalirnaEvidence.length) tdClasses.push('rakDayModCell');
+      if (kalirnaEvidence.length) tdClasses.push('rakKalirnaEvidenceCell');
       const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '';
-      const tip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : '';
+      const tipParts = [];
+      if (mod && typeof rakDayModTooltip === 'function') tipParts.push(rakDayModTooltip(mod));
+      kalirnaEvidence.forEach((item) => {
+        const detail = typeof rakDayModTooltip === 'function' ? rakDayModTooltip(item) : '';
+        tipParts.push([String(item && item.person || '').trim(), detail].filter(Boolean).join(' · '));
+      });
+      const tip = tipParts.filter(Boolean).join(' | ');
       const mark = badge ? '<span class="rakDayModMark" aria-hidden="true">' + escapeHtml(badge) + '</span>' : '';
-      return '<td class="' + tdClasses.join(' ') + '"' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') + '>' + renderAdminInlineFieldHtml('data-rot-field', 'cell-' + String(idx), value, String(idx + 1), true) + mark + '</td>';
+      const evidence = kalirnaEvidence.length
+        ? '<span class="rakKalirnaEvidenceList">' + kalirnaEvidence.map((item) => {
+            const evidenceBadge = typeof rakDayModBadge === 'function' ? rakDayModBadge(item) : '→K';
+            return '<span class="rakKalirnaEvidenceName">' + escapeHtml(String(item && item.person || '').trim()) + ' <span class="rakDayModMark" aria-hidden="true">' + escapeHtml(evidenceBadge) + '</span></span>';
+          }).join('') + '</span>'
+        : '';
+      return '<td class="' + tdClasses.join(' ') + '"' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') + '>' + renderAdminInlineFieldHtml('data-rot-field', 'cell-' + String(idx), value, String(idx + 1), true) + mark + evidence + '</td>';
     }).join(''),
     '</tr>'
   ].join('');
