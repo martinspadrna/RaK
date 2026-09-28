@@ -40,15 +40,16 @@
 
 ### Development runtime
 
-- Aktuální TEST runtime je **RaK 1.7.145**, build `v1.7.145-food-compact1`.
-- Exact runtime/test SHA: `03a5e4e415f800b71242523089f9f61bed25abdc`.
-- Actions run **#556 / 36477541779** je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof.
-- READY Vercel deployment: `dpl_GPTcYvTT1oDTbcjZB8SMabnuf6mW`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
+- Aktuální TEST runtime je **RaK 1.7.146**, build `v1.7.146-admins-compact1`.
+- Exact runtime/test SHA: `fe43e643e592df9f56a83a96bd2ca80941ff7133`.
+- Actions run **#558 / 36479490877** je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof.
+- READY Vercel deployment: `dpl_771LYM6ESRZdzSGvvALvHwggqxCX`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
 - Produkce zůstala při release-preview beze změny.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 1 administrační série:** v Administrace → Rozpisy jsou neuložené místní návrhy, exporty a tlačítko „Smazat všechny místní návrhy“ v jednom rámečku, tlačítka mají požadovaný svislý odstup a blok „Statistické odchylky“ je odstraněný.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 2 administrační série:** přehled jména × skupiny strojů je výchozí rozbalený; TNK/W01/W02; Jméno 54 px; TO/MO i stroje 35 px se svislými čárami; panel místních návrhů je výchozí zabalený.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 3 administrační série:** Administrace → Pravidla generátoru je na 1.7.144 potvrzena jako kompaktní skládací editor s pěti výchozím způsobem zabalenými sekcemi; všechna původní pole a ukládací logika zůstávají zachované.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 4 administrační série:** Administrace → Kantýna / jídelna je na 1.7.145 potvrzena jako kompaktní editor se dvěma výchozím způsobem zabalenými sekcemi „Běžná otevírací doba“ a „Přesčasová doba“; časová pole a řádky jsou zhutněné a tři spodní akce jsou vedle sebe. Původní datové hooky a ukládací logika zůstávají zachované.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 5 administrační série:** Administrace → Správci je na 1.7.146 potvrzena jako kompaktní editor; stav je na mobilu 2×2 a sekce Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo jsou výchozím způsobem zabalené. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované. **Administrační série 1–5 je tím uzavřená.**
 
 
 ### Produkce – neměnit bez souhlasu
@@ -61,7 +62,7 @@
 
 ### Aktuální CI poznámka
 
-- Poslední funkční runtime 1.7.145 má zelený exact-SHA run **#556 / 36477541779**. Výkonové limity nebyly uvolněny.
+- Poslední funkční runtime 1.7.146 má zelený exact-SHA run **#558 / 36479490877**. Výkonové limity nebyly uvolněny.
 - Předchozí neúspěšné CI mezikroky 1.7.140/1.7.141 jsou historické a nejsou aktuálním stavem; jejich detail zůstává v GitHub Actions.
 - Při dalším funkčním releasu musí opět projít celý fail-closed řetězec na jeho exact SHA.
 
@@ -303,10 +304,10 @@ Tento seznam byl po konsolidaci znovu porovnán s aktuálním `development`. Nev
 - **Rozpisy → přehled jména × skupiny strojů:** další otevřený bod vlastníka. Požadavek pro příští samostatný krok: nechat přehled v základu rozbalený, zobrazovat TNK/W01/W02, zúžit jméno o 10 %, strojové sloupce o 30 % a oddělit strojové sloupce svislými čárami. Neřešit současně s body 3–5.
 - **Administrace → Pravidla generátoru:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard`; vlastní obsah používá rule/status/impact cards. Neprovádět další redesign bez fyzické připomínky vlastníka.
 - **Administrace → Kantýna / jídelna – FYZICKY PASS 28. 9. 2026:** RaK 1.7.145 rozděluje editor do dvou kompaktních výchozím způsobem zabalených sekcí, zhutňuje tabulky a časová pole a drží tři spodní akce v jednom řádku. Ukládací logika zůstala beze změny; další redesign jen při nové konkrétní fyzické připomínce.
-- **Administrace → Správci:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard`, role overview, bezpečnostní přehled a kompaktní editor účtů. Neprovádět další redesign bez fyzické připomínky vlastníka.
+- **Administrace → Správci – FYZICKY PASS 28. 9. 2026:** RaK 1.7.146 zhutňuje obrazovku do kompaktního stavu 2×2 a výchozím způsobem zabalených sekcí Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované; další redesign jen při nové konkrétní fyzické připomínce.
 - **Owner 9811 při přesunu mimo rozpis:** architektonicky i automaticky ověřeno. TEST 28. 9. 2026 má `rak_admin_profiles.account_id=9811`, `role=owner`, `enabled=true`. `rak_admin_context` používá `rak_admin_profiles` a neodkazuje na `WORKER_ROSTER_SETTINGS` ani `machine_settings`. Gate `release-gate-17084` navíc synteticky přesouvá aktivní účet z rosteru mimo roster a ověřuje, že account/Auth identita zůstane stejná. **Přesun 9811 z pracovníků mezi účty mimo rozpis tedy sám o sobě owner oprávnění neodebere.**
 
-Původní sjednocení Pravidel generátoru, Kantýny/jídelny a Správců existuje, ale vlastník je po fyzickém pohledu stále hodnotí jako příliš roztažené. Proto se znovu vedou jako otevřené body 3–5; řešit je jednotlivě.
+Původně příliš roztažené obrazovky Pravidla generátoru, Kantýna/jídelna a Správci byly postupně zhutněny a fyzicky potvrzeny na iPhonu v releasech 1.7.144–1.7.146. Administrační série 1–5 je uzavřená.
 
 ## Jediný aktuální funkční backlog mimo uzavřených 13 bodů
 
@@ -318,7 +319,9 @@ Tyto položky jsou produktové požadavky; **neotevírají znovu 13bodový audit
 2. **Bod 2 – Administrace → Rozpisy → přehled jména × skupiny strojů: UZAVŘENO, FYZICKY PASS na 1.7.143.** Přehled je defaultně rozbalený; TNK/W01/W02; Jméno 54 px; TO, MO i strojové sloupce 35 px; TO/MO i stroje mají svislé oddělení. Panel „Neuložené místní návrhy“ je defaultně zabalený.
 3. **Bod 3 – Administrace → Pravidla generátoru: UZAVŘENO, FYZICKY PASS na 1.7.144.** Pět kompaktních skládacích sekcí je výchozí zabalených; všechna původní ID polí, data atributy a ukládací logika zůstávají zachované.
 4. **Bod 4 – Administrace → Kantýna/jídelna: UZAVŘENO, FYZICKY PASS na 1.7.145.** Dvě kompaktní výchozím způsobem zabalené sekce, zhutněné řádky/časy a tři spodní akce vedle sebe; původní datové hooky a ukládací logika zachované.
-5. **Bod 5 – Administrace → Správci:** znovu zhutnit a zpřehlednit; současný stav je podle vlastníka pořád příliš roztažený. Toto je **nejbližší další úkol**.
+5. **Bod 5 – Administrace → Správci: UZAVŘENO, FYZICKY PASS na 1.7.146.** Stav správců je na iPhonu kompaktní 2×2; Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo jsou výchozím způsobem zabalené. Secure role/revoke/password logika zůstává zachovaná.
+
+**Administrační série 1–5 je kompletně uzavřená.**
 
 Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test → teprve po „ok“ bod uzavřít a přejít na další.
 
@@ -327,7 +330,7 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 1. **Kalírna → evidenční MFKF06:** pracovníka s důvodem „Odešel na kalírnu“ zobrazit na MFKF06 s jasným označením Kalírny, ale **nezapočítávat ho do aktivního MO staffing počtu**. Minimal-reflow 1.7.123 je už fyzicky PASS a nemá se kvůli tomuto bodu znovu přepisovat.
 2. **Cílený fyzický retest MO-only absence:** na iPhonu ověřit Dovolenou/NV/Paragraf/Lékaře člověka původně na MO. Pokud je TO stále validní, musí po uložení zůstat úplně stejné; změnit se smí jen MO a jiné dny se nesmí změnit. U člověka původně na TO je širší lokální přeskupení povolené, pokud je potřeba.
 
-Doporučené pořadí: dokončit administrační sérii bodem 5; potom se vrátit k ostatnímu backlogu.
+Doporučené pořadí: administrační série je uzavřená; nejbližší další funkční úkol je **Kalírna → evidenční MFKF06**, poté cílený fyzický retest MO-only absence.
 
 ## Release / test checklist pro další funkční změnu
 
