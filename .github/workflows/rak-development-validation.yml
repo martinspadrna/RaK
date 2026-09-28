@@ -424,9 +424,9 @@ jobs:
 
   p15_restore_drill:
     name: P1.5 isolated Supabase restore drill
-    needs: verify
+    # P1.5 is an isolated backup/restore proof. Do not let unrelated frontend
+    # performance-parity noise prevent the database recovery drill from running.
     if: >-
-      needs.verify.result == 'success' &&
       github.ref == 'refs/heads/development' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'push' && contains(github.event.head_commit.message, '[p15-drill]')))
