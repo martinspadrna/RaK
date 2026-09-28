@@ -128,7 +128,7 @@ test('server stage uses RLS revision registry, shared read lock and exclusive CA
   assert.equal((stage.match(/FOR SHARE/g)||[]).length,2);
   assert((stage.match(/FOR UPDATE/g)||[]).length>=4);
   assert(stage.includes('p_expected_revision <> v_current'));
-  assert(!stage.includes("USING ERRCODE='40001'"));
+  assert(stage.includes("USING ERRCODE='40001'"));
   assert(stage.includes('rak_admin_load_machine_settings_v3'));
   assert(stage.includes('rak_admin_load_rotation_month_entries_v3'));
 });
