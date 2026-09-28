@@ -1,9 +1,16 @@
+## RaK 1.7.141 (development)
+
+- Administrace → Rozpisy: neuložené místní návrhy, jejich exporty a tlačítko „Smazat všechny místní návrhy“ jsou v jednom společném rámečku.
+- Tlačítka v tomto rámečku mají svislou mezeru nad i pod sebou.
+- Blok „Statistické odchylky“ byl z Administrace → Rozpisy úplně odstraněn.
+- Bezpečná mazací logika z 1.7.140 se nemění; server ani jiná lokální fronta se nemažou.
+- Body 2–5 uživatelského seznamu zůstávají mimo tento krok.
+
 ## RaK 1.7.140 (development)
 
-- Administrace → Rozpisy: neuložené místní návrhy, jejich exporty a tlačítko „Smazat všechny místní návrhy“ jsou v jednom společném rámečku; tlačítka mají větší svislý odstup.
-- Tlačítko používá existující bezpečný postup: nejdřív read-only ověří online rozpis, potom maže jen místní návrhy a čekající zápisy rozpisu v tomto zařízení; online data ani jiná fronta se nemažou.
-- Blok „Statistické odchylky“ byl z Administrace → Rozpisy úplně odstraněn.
-- Body 2–5 z uživatelského seznamu nejsou součástí tohoto kroku a budou řešené jednotlivě až po fyzickém ověření bodu 1.
+- Administrace → Rozpisy: přidáno viditelné tlačítko „Smazat všechny místní návrhy“.
+- Tlačítko používá bezpečný postup: nejdřív read-only ověří online rozpis, potom maže jen místní návrhy a čekající zápisy rozpisu v tomto zařízení; online data ani jiná fronta se nemažou.
+- Body 2–5 uživatelského seznamu nebyly součástí této verze.
 
 ## RaK 1.7.139 (development)
 
