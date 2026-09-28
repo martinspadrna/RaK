@@ -1,3 +1,10 @@
+## RaK 1.7.137 (development)
+
+- **P2.3 fyzický dvouzařízení CAS – oprava nalezeného závodu:** reálný souběžný test na iPhonu a Windows prokázal, že databázový CAS správně odmítl starou revizi (SQLSTATE `40001`, expected 17 / actual 18), ale HTTP vrstva vrátila 504 a obecný klientský retry stejný zápis později zopakoval už s mezitím obnovenou revizí. Uživatel proto konflikt neviděl a druhý zápis nakonec prošel.
+- Všechny revision/CAS chráněné provozní zápisy nyní používají právě **jeden síťový pokus**. Neúspěšný nebo časově nejednoznačný zápis se nikdy automaticky nereplayuje s novější mezitím načtenou baseline. Týká se nastavení strojů, hlavní Rotace, měsíčních rozpisů a obou neplánovaných změn.
+- Regresní test `server-cas-17102.test.mjs` fail-closed hlídá, že tyto CAS cesty nesmějí znovu získat obecný write retry. Serverový row-lock/CAS ani conflict-rescue workflow se nemění.
+- Runtime/cache jsou zvýšeny na 1.7.137, aby fyzický retest na obou zařízeních nemohl zůstat na starém 1.7.136. Produkční `main`, produkční Vercel a produkční Supabase se tímto TEST releasem nemění.
+
 ## RaK 1.7.136 (development)
 
 - **P2.4 diagnostika skutečného konfliktu:** po ručním klepnutí na synchronizační badge se ještě před flush/syncem pořídí čistě čtecí sanitizovaný snapshot stavu aplikace, fronty a lokálního úložiště. Diagnostika tak zachová původní příčinu i tehdy, když následný sync stav fronty změní.
