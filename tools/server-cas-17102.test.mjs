@@ -128,7 +128,7 @@ test('server stage uses RLS revision registry, shared read lock and exclusive CA
   assert.equal((stage.match(/FOR SHARE/g)||[]).length,2);
   assert((stage.match(/FOR UPDATE/g)||[]).length>=4);
   assert(stage.includes('p_expected_revision <> v_current'));
-  assert(stage.includes("USING ERRCODE='40001'"));
+  assert(!stage.includes("USING ERRCODE='40001'"));
   assert(stage.includes('rak_admin_load_machine_settings_v3'));
   assert(stage.includes('rak_admin_load_rotation_month_entries_v3'));
 });
@@ -140,4 +140,14 @@ test('post-green cutover leaves v2 function signatures but makes legacy mutation
   assert.equal((cutover.match(/ERRCODE='40001'/g)||[]).length,2);
   assert(!cutover.includes('private.rak_upsert_machine_settings'));
   assert(!cutover.includes('DELETE FROM public.rotation_entries'));
+});
+
+
+test('1.7.138 CAS migration removes retryable SQLSTATE 40001 from all live RaK CAS writers',()=>{
+  const migration=read('supabase/migrations/20260928091455_rak_cas_nonretryable_conflicts_17138.sql');
+  assert(migration.includes("ERRCODE = ''P0001''"));
+  assert(migration.includes("v_changed <> 7"));
+  assert(migration.includes("rak_admin_save_rotation_v2"));
+  assert(migration.includes("rak_admin_save_machine_settings_v3"));
+  assert(!migration.includes("ERRCODE = ''40001''"));
 });
