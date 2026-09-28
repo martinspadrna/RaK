@@ -45,8 +45,8 @@ function renderAdminMenuBody(body, section) {
   const foodHtml = [
     '<div class="appMenuCard appMenuAdminCard adminFoodScheduleCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Kantýna / jídelna</div>',
-    '  <div class="appMenuText">',
-    '    <div>Tady si nastavíš běžnou otevírací dobu a přesčasovou dobu kantýny/jídelny. Které neděle jsou přesčasové se nastavuje v Provoz / Přesčasy.</div>',
+    '  <div class="appMenuText adminFoodIntro">',
+    '    <div>Rozbal jen běžnou nebo přesčasovou dobu, kterou chceš upravit.</div>',
     '    <div class="smallText" id="adminOnlineSaveStatus">Stav uložení se zobrazí po kliknutí na Uložit časy.</div>',
     '  </div>',
     buildAdminFoodScheduleSettingsHtml(),

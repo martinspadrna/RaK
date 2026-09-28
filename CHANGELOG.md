@@ -1,3 +1,11 @@
+## RaK 1.7.145 (development)
+
+- Administrace → Kantýna / jídelna: editor je rozdělen do dvou kompaktních skládacích sekcí „Běžná otevírací doba“ a „Přesčasová doba“.
+- Obě sekce jsou po otevření stránky výchozím způsobem zabalené; duplicitní vnitřní nadpis a dlouhá opakovaná nápověda byly odstraněny.
+- Řádky tabulek a časová pole jsou zhutněné pro iPhone; tři spodní akce jsou vedle sebe místo pod sebou.
+- Všechny data atributy, hodnoty a ukládací logika Kantýny/jídelny zůstávají beze změny.
+- Bod 5 není součástí tohoto releasu.
+
 ## RaK 1.7.144 (development)
 
 - Administrace → Pravidla generátoru: stránka je nově rozdělena do pěti kompaktních skládacích sekcí: Kontrola a souhrn pravidel, Lidé a pořadí, Cykly strojů, Vyrovnávací pravidla a Základní soustruhy měkoty.
