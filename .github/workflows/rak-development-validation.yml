@@ -479,6 +479,13 @@ jobs:
           chmod 600 status.env
       - name: Restore data and verify hashes, Auth, RLS, migrations and Storage
         run: node tools/p15-restore-drill.mjs restore .rak-p15-private
+      - name: Retain sanitized P1.5 restore proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-p15-restore-proof-${{ github.sha }}
+          path: .rak-p15-private/restore-proof.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Destroy private restore workspace
         if: always()
         run: |
