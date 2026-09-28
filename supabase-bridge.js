@@ -4042,7 +4042,7 @@
     try {
       if (client && navigator.onLine) {
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required', savedCount: 0 };
-        const savedCount = await runOptimizedSupabaseWrite('machine_settings.save', rows, () => runSupabaseOperation('machine_settings.save', () => upsertMachineSettingsDirect(client, rows, options || {}), { mode: 'write' }));
+        const savedCount = await runOptimizedSupabaseWrite('machine_settings.save', rows, () => runSupabaseOperation('machine_settings.save', () => upsertMachineSettingsDirect(client, rows, options || {}), { mode: 'write', attempts: 1 }));
         state.machineSettingsSnapshot = Array.isArray(rows) ? rows : [];
         saveLocalSnapshot(state.rotationSnapshot || null, rows);
         await flushPendingWrites();
@@ -4100,7 +4100,7 @@
     try {
       if (client && navigator.onLine) {
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required', months: 0, entries: 0 };
-        const summary = await runOptimizedSupabaseWrite('rotation_entries.save:' + String(monthStart || ''), { monthStart, label, rows }, () => runSupabaseOperation('rotation_entries.save', () => upsertRotationMonthEntriesDirect(client, monthStart, label, rows), { mode: 'write' }), { windowMs: 2200 });
+        const summary = await runOptimizedSupabaseWrite('rotation_entries.save:' + String(monthStart || ''), { monthStart, label, rows }, () => runSupabaseOperation('rotation_entries.save', () => upsertRotationMonthEntriesDirect(client, monthStart, label, rows), { mode: 'write', attempts: 1 }), { windowMs: 2200 });
         await flushPendingWrites();
         return { ok: true, queued: false, months: summary.months, entries: summary.entries, revision: summary.revision };
       }
@@ -4924,7 +4924,7 @@
     try {
       if (client && navigator.onLine) {
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required' };
-        const row = await runOptimizedSupabaseWrite('rotation_state.save', { rotation, meta }, () => runSupabaseOperation('rotation_state.save', () => upsertRotationStateDirect(client, rotation, meta, options || {}), { mode: 'write' }), { windowMs: 2200 });
+        const row = await runOptimizedSupabaseWrite('rotation_state.save', { rotation, meta }, () => runSupabaseOperation('rotation_state.save', () => upsertRotationStateDirect(client, rotation, meta, options || {}), { mode: 'write', attempts: 1 }), { windowMs: 2200 });
         state.rotationSnapshot = rotation && typeof rotation === 'object' ? rotation : null;
         state.lastError = null;
         state.rotationSync.lastWriteAt = new Date().toISOString();
@@ -4992,7 +4992,7 @@
         p_person: person,
         p_reason: reason,
         p_allowed_date_labels: allowedDateLabels
-      }), { mode: 'write', attempts: 2, timeoutMs: 18000 });
+      }), { mode: 'write', attempts: 1, timeoutMs: 18000 });
       if (error) throw error;
       const row = data && typeof data === 'object' ? data : null;
       if (!row || !row.payload || !Number.isFinite(Number(row.revision))) throw new Error('Server nevrátil ověřený rozpis po neplánované změně.');
@@ -5059,7 +5059,7 @@
         p_change_kind: changeKind,
         p_reason: reason,
         p_allowed_date_labels: allowedDateLabels
-      }), { mode: 'write', attempts: 2, timeoutMs: 18000 });
+      }), { mode: 'write', attempts: 1, timeoutMs: 18000 });
       if (error) throw error;
       const row = data && typeof data === 'object' ? data : null;
       if (!row || !row.payload || !Number.isFinite(Number(row.revision))) throw new Error('Server nevrátil ověřený rozpis po neplánované změně.');
