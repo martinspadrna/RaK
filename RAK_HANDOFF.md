@@ -291,6 +291,19 @@ Pro Dovolenou, Náhradní volno, Paragraf a Lékaře:
 - Odchod z MFKF06 nevyžaduje další přesun. Odchod z MFKF10 preferuje MFKF06→MFKF10.
 - Pokud přímý přesun neumožní kvalifikace, smí se použít nejkratší nutný řetězec; až pokud žádná lokální permutace není validní, použít scoped generátor pro konkrétní den.
 
+## Dodatečný seznam vlastníka – reconciliace 28. 9. 2026
+
+Tento seznam byl po konsolidaci znovu porovnán s aktuálním `development`. Nevracet již implementované požadavky do kódu bez nové konkrétní regrese.
+
+- **Administrace → Rozpisy → „Místní neuložené návrhy rozpisů“:** požadavek je implementovaný. Viditelná cleanup karta už není součástí rendereru rozpisu; bezpečné funkce pro soukromé návrhy a explicitní cleanup zůstaly zachované kvůli recovery. Regresní gate `release-gate-17096` výslovně hlídá, že cleanup UI se do editoru nevrátí a bezpečnostní funkce nezmizí.
+- **Rozpisy → kompaktní přehled:** implementováno. `<details class="adminRotationCompactOverview" open>` je defaultně rozbalené; pouze zobrazované názvy jsou zkrácené `TNKS01/TNKSO1 → TNK`, `TPKW01 → W01`, `TPKW02 → W02`; uložené machine keys se nemění. Regresní gate 17096 zkratky kontroluje.
+- **Administrace → Pravidla generátoru:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard`; vlastní obsah používá rule/status/impact cards. Neprovádět další redesign bez fyzické připomínky vlastníka.
+- **Administrace → Kantýna / jídelna:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard` se společnou hierarchií text → nastavení → akce. Neprovádět další redesign bez fyzické připomínky vlastníka.
+- **Administrace → Správci:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard`, role overview, bezpečnostní přehled a kompaktní editor účtů. Neprovádět další redesign bez fyzické připomínky vlastníka.
+- **Owner 9811 při přesunu mimo rozpis:** architektonicky i automaticky ověřeno. TEST 28. 9. 2026 má `rak_admin_profiles.account_id=9811`, `role=owner`, `enabled=true`. `rak_admin_context` používá `rak_admin_profiles` a neodkazuje na `WORKER_ROSTER_SETTINGS` ani `machine_settings`. Gate `release-gate-17084` navíc synteticky přesouvá aktivní účet z rosteru mimo roster a ověřuje, že account/Auth identita zůstane stejná. **Přesun 9811 z pracovníků mezi účty mimo rozpis tedy sám o sobě owner oprávnění neodebere.**
+
+U tří subjektivních UI požadavků (Pravidla generátoru, Kantýna/jídelna, Správci) je implementace a automatický kontrakt hotový; pro uživatelské uzavření stačí jeden krátký fyzický iPhone průchod. Pokud vlastník při něm nenajde konkrétní problém, kód se znovu nemění.
+
 ## Jediný aktuální funkční backlog mimo uzavřených 13 bodů
 
 Tyto položky jsou produktové požadavky; **neotevírají znovu 13bodový audit**, dokud neodhalí regresi některé jeho akceptace.
@@ -298,7 +311,7 @@ Tyto položky jsou produktové požadavky; **neotevírají znovu 13bodový audit
 1. **Kalírna → evidenční MFKF06:** pracovníka s důvodem „Odešel na kalírnu“ zobrazit na MFKF06 s jasným označením Kalírny, ale **nezapočítávat ho do aktivního MO staffing počtu**. Minimal-reflow 1.7.123 je už fyzicky PASS a nemá se kvůli tomuto bodu znovu přepisovat.
 2. **Cílený fyzický retest MO-only absence:** na iPhonu ověřit Dovolenou/NV/Paragraf/Lékaře člověka původně na MO. Pokud je TO stále validní, musí po uložení zůstat úplně stejné; změnit se smí jen MO a jiné dny se nesmí změnit. U člověka původně na TO je širší lokální přeskupení povolené, pokud je potřeba.
 
-Doporučené pořadí: nejprve fyzický retest bodu 2 bez změny kódu; potom implementovat bod 1 jako samostatný tematický balík.
+Doporučené pořadí: nejprve krátká fyzická iPhone kontrola dodatečného administračního seznamu bez změny kódu; potom fyzický retest MO-only absence; nakonec implementovat Kalírna → evidenční MFKF06 jako samostatný tematický balík.
 
 ## Release / test checklist pro další funkční změnu
 
