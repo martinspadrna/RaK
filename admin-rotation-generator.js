@@ -507,12 +507,17 @@ function adminBuildRotationGenerationModel(targetMonthKey) {
     for (let rowIdx = 0; rowIdx < maxRows; rowIdx += 1) {
       const hardRow = hardRows[rowIdx] || null;
       const softRow = softRows[rowIdx] || null;
-      const hardCells = Array.from({ length: HARD_MACHINE_HEADERS.length }, (_, idx) => adminRotationCanonicalName(hardRow && hardRow.cells ? hardRow.cells[idx] : '', knownNames));
-      const softCells = Array.from({ length: SOFT_MACHINE_HEADERS.length }, (_, idx) => adminRotationCanonicalName(softRow && softRow.cells ? softRow.cells[idx] : '', knownNames));
       const dateLabel = String(hardRow && hardRow.date || softRow && softRow.date || '');
+      const historyUnavailable = dateLabel ? adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) : new Set();
+      const historyPhysicalName = (value) => {
+        const name = adminRotationCanonicalName(value, knownNames);
+        return name && !historyUnavailable.has(name) ? name : '';
+      };
+      const hardCells = Array.from({ length: HARD_MACHINE_HEADERS.length }, (_, idx) => historyPhysicalName(hardRow && hardRow.cells ? hardRow.cells[idx] : ''));
+      const softCells = Array.from({ length: SOFT_MACHINE_HEADERS.length }, (_, idx) => historyPhysicalName(softRow && softRow.cells ? softRow.cells[idx] : ''));
       const historyNotes = adminRotationGeneratorDateNotes(month, dateLabel);
       if (dateLabel && !adminRotationGeneratorIsDayBlocked(historyNotes)) {
-        replaySoftCoreSkippedAbsence(adminRotationUnavailableNamesForDate(month, dateLabel, knownNames));
+        replaySoftCoreSkippedAbsence(historyUnavailable);
       }
       const hasAny = hardCells.concat(softCells).some((name) => adminRotationIsRealName(name, knownNames));
       if (!hasAny) continue;

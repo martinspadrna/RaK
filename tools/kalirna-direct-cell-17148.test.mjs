@@ -76,3 +76,10 @@ test('public/admin use direct kalirnaOut cell and pink presentation, not derived
   assert(!admin.includes('rakKalirnaEvidenceList'));
   assert(!rotation.includes('rakKalirnaEvidenceList'));
 });
+
+test('Kalírna display cell is excluded from generator history and balancing inputs',()=>{
+  const generator=fs.readFileSync(new URL('../admin-rotation-generator.js',import.meta.url),'utf8');
+  assert(generator.includes('const historyUnavailable = dateLabel ? adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) : new Set();'));
+  assert(generator.includes("return name && !historyUnavailable.has(name) ? name : '';"));
+  assert(generator.includes('replaySoftCoreSkippedAbsence(historyUnavailable);'));
+});
