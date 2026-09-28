@@ -118,6 +118,13 @@ test('server allows selected-day reflow for Kalírna but blocks everything else'
     'pg_advisory_xact_lock',
     'perform private.rak_require_admin(false)'
   ]) assert(migration.includes(marker),'missing server guard: '+marker);
+  assert(migration.includes("if coalesce(v_mod->>'cellIndex','') !~ '^[0-9]+
+  assert(bridge.includes("client.rpc('rak_admin_apply_unplanned_change_v2'"));
+});
+ then"));
+  assert.equal((migration.match(/v_result:=public\.rak_admin_save_rotation_v2/g)||[]).length,1);
+  assert.equal((migration.match(/\$rak\$;/g)||[]).length,1);
+  assert(!migration.includes('Kalirna person is still assigned to a machine'));
   assert(migration.includes('from public,anon'));
   assert(!/grant execute[\s\S]{0,220}\bto\s+anon\b/i.test(migration));
   assert(bridge.includes("client.rpc('rak_admin_apply_unplanned_change_v2'"));

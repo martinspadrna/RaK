@@ -227,38 +227,7 @@ begin
     if v_section<>'soft' then
       raise exception 'Kalirna display cell must be in soft section' using errcode='22023';
     end if;
-    if coalesce(v_mod->>'cellIndex','') !~ '^[0-9]+
-  end loop;
-
-  v_result:=public.rak_admin_save_rotation_v2(
-    v_safe_key,p_payload,
-    coalesce(p_meta,'{}'::jsonb)||jsonb_build_object(
-      'source','unplanned-kalirna-generator',
-      'monthKey',v_month_key,
-      'changeKind',v_kind,
-      'reason',v_reason,
-      'changedDayCount',jsonb_array_length(p_allowed_date_labels)
-    ),
-    p_expected_revision
-  );
-
-  insert into private.rak_unplanned_absence_ops_v1(user_id,operation_id,request_hash,result)
-  values(v_user_id,p_operation_id,v_hash,v_result);
-  delete from private.rak_unplanned_absence_ops_v1
-  where user_id=v_user_id and created_at<now()-interval '30 days';
-
-  return v_result||jsonb_build_object('idempotent_replay',false);
-end;
-$rak$;
-
-revoke all on function public.rak_admin_apply_unplanned_change_v2(
-  text,jsonb,jsonb,bigint,uuid,text,text,text,text,jsonb
-) from public,anon;
-grant execute on function public.rak_admin_apply_unplanned_change_v2(
-  text,jsonb,jsonb,bigint,uuid,text,text,text,text,jsonb
-) to authenticated;
-notify pgrst,'reload schema';
- then
+    if coalesce(v_mod->>'cellIndex','') !~ '^[0-9]+$' then
       raise exception 'Invalid Kalirna display cell' using errcode='22023';
     end if;
     v_cell_index:=(v_mod->>'cellIndex')::integer;
