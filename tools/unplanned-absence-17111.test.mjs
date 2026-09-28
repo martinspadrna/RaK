@@ -103,7 +103,7 @@ test('client write uses one idempotent RPC and does not enqueue or touch recover
   assert(block.includes('p_expected_revision: state.rotationRevision'));
   assert(block.includes('p_operation_id: operationId'));
   assert(block.includes('p_allowed_date_labels: allowedDateLabels'));
-  assert(block.includes("attempts: 2"));
+  assert(block.includes("attempts: 1"));
   for (const forbidden of ['queuePendingWrite','enqueue','restoreRotationBackup','flushPendingWrites']) {
     assert(!block.includes(forbidden), 'partial write unexpectedly touches ' + forbidden);
   }
