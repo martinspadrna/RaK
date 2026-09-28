@@ -206,9 +206,9 @@ function renderAdminMenuBody(body, section) {
   const adminAccountsHtml = [
     '<div class="appMenuCard appMenuAdminCard adminAccountsCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Správci</div>',
-    '  <div class="appMenuText">',
-    '    <div>' + (adminAccountsCanManage ? 'Tady hlavní admin nastaví další admin účty.' : 'Tady můžeš zkontrolovat správce a změnit pouze svoje heslo.') + ' Běžní uživatelé tuhle sekci neuvidí.</div>',
-    '    <div class="smallText" id="adminOnlineSaveStatus">' + (adminAccountsCanManage ? 'Heslo nech prázdné, pokud ho nechceš měnit. Pro odebrání správce klikni na × u řádku a ulož.' : 'Hesla jsou v přehledu vždy skrytá. Hlavní admin a ostatní účty nejdou z tohoto účtu měnit.') + '</div>',
+    '  <div class="appMenuText adminAccountsIntro">',
+    '    <div>' + (adminAccountsCanManage ? 'Spravuj účty, role, zařízení a hesla. Rozbal jen část, kterou chceš upravit.' : 'Přehled správců je jen pro čtení; změnit můžeš svoje heslo.') + '</div>',
+    '    <div class="smallText" id="adminOnlineSaveStatus">' + (adminAccountsCanManage ? 'Změny účtů odešli tlačítkem Uložit správce.' : 'Hesla zůstávají skrytá.') + '</div>',
     '  </div>',
     buildAdminAccountsSettingsHtml(),
     (typeof buildAdminOwnerPasswordHtml === 'function' ? buildAdminOwnerPasswordHtml() : ''),

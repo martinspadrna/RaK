@@ -1,3 +1,11 @@
+## RaK 1.7.146 (development)
+
+- Administrace → Správci: dlouhá stránka je zhutněná do výchozím způsobem zabalených sekcí Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo.
+- Stav správců zůstává viditelný nahoře, ale na iPhonu je kompaktní 2×2 bez dlouhých opakovaných vysvětlivek.
+- Tabulky, role, zařízení, hesla, revoke akcí, minimum hesla 6 znaků i secure owner/admin gate zůstávají funkčně zachované.
+- Editor účtů má vlastní DOM cíl `adminAccountsEditorTable`, takže doplňování prázdného řádku nemůže omylem zasáhnout tabulku přihlášených zařízení.
+- Ostatní produktový backlog není součástí tohoto releasu.
+
 ## RaK 1.7.145 (development)
 
 - Administrace → Kantýna / jídelna: editor je rozdělen do dvou kompaktních skládacích sekcí „Běžná otevírací doba“ a „Přesčasová doba“.

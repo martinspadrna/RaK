@@ -2848,3 +2848,44 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
   font-size:10.5px !important;
   line-height:1.05 !important;
 }
+
+
+/* RaK 1.7.146 – compact Správci editor */
+#appMenuBody .adminAccountsCard .adminAccountsIntro{margin-bottom:6px !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatus{gap:5px !important;margin:7px 0 !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatusGrid{gap:5px !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatusItem{min-height:0 !important;gap:2px !important;padding:6px 7px !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatusItem b{font-size:15px !important;}
+#appMenuBody .adminAccountsCompactSections{display:grid !important;gap:6px !important;margin:7px 0 !important;}
+#appMenuBody .adminAccountsFold{margin:0 !important;border:1px solid rgba(175,210,255,.24) !important;border-radius:8px !important;background:rgba(255,255,255,.035) !important;overflow:hidden !important;}
+#appMenuBody .adminAccountsFold > summary{list-style:none !important;display:flex !important;align-items:center !important;justify-content:space-between !important;gap:8px !important;min-height:34px !important;padding:7px 9px !important;cursor:pointer !important;color:rgba(235,255,240,.92) !important;font-size:13px !important;font-weight:900 !important;line-height:1.15 !important;}
+#appMenuBody .adminAccountsFold > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody .adminAccountsFold > summary::after{content:'›' !important;flex:0 0 auto !important;color:#b8d7ff !important;font-size:18px !important;line-height:1 !important;transform:rotate(0deg) !important;transition:transform .14s ease !important;}
+#appMenuBody .adminAccountsFold[open] > summary::after{transform:rotate(90deg) !important;}
+#appMenuBody .adminAccountsFoldBody{padding:7px 8px 8px !important;border-top:1px solid rgba(175,210,255,.16) !important;}
+#appMenuBody .adminAccountsFoldHint{margin:0 0 6px !important;}
+#appMenuBody .adminAccountsFold .adminAccountsRoleOverview,
+#appMenuBody .adminAccountsFold .adminAccountsSafety,
+#appMenuBody .adminAccountsFold .adminAccountsReadonlyNotice{margin:0 !important;}
+#appMenuBody .adminAccountsFold .adminAccountsSafety{margin-top:6px !important;}
+#appMenuBody .adminAccountsFold .adminAccountsRoleCard,
+#appMenuBody .adminAccountsFold .adminAccountsSafetyItem,
+#appMenuBody .adminAccountsFold .adminAccountsReadonlyNotice{min-height:0 !important;padding:7px !important;}
+#appMenuBody .adminAccountsTableWrap{margin-top:0 !important;}
+#appMenuBody .adminAccountsSessionBody{display:grid !important;gap:0 !important;}
+#appMenuBody .adminAccountsPasswordFold{margin-top:6px !important;}
+#appMenuBody .adminAccountsPasswordFold .adminOwnerPasswordPanel{margin:0 !important;padding-top:0 !important;border-top:0 !important;gap:7px !important;}
+#appMenuBody .adminAccountsCard > .appMenuActionRow{margin-top:8px !important;gap:5px !important;}
+@media (max-width:720px){
+  #appMenuBody .adminAccountsCard .adminAccountsStatusGrid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+  #appMenuBody .adminAccountsCard .adminAccountsStatusItem small{display:none !important;}
+  #appMenuBody .adminAccountsCard .adminAccountsStatusItem span{font-size:10px !important;}
+  #appMenuBody .adminAccountsCard .adminAccountsStatusItem b{font-size:14px !important;}
+  #appMenuBody .adminAccountsFoldBody{padding:6px !important;}
+  #appMenuBody .adminAccountsFold .adminAccountsRoleCard,
+  #appMenuBody .adminAccountsFold .adminAccountsSafetyItem,
+  #appMenuBody .adminAccountsFold .adminAccountsReadonlyNotice{padding:6px !important;}
+  #appMenuBody .adminAccountsPasswordFold .adminOwnerPasswordGrid{gap:6px !important;}
+  #appMenuBody .adminAccountsCard > .appMenuActionRow{display:flex !important;flex-wrap:nowrap !important;}
+  #appMenuBody .adminAccountsCard > .appMenuActionRow > .appMenuAction{flex:1 1 0 !important;min-width:0 !important;min-height:34px !important;padding:6px 3px !important;font-size:10px !important;}
+}

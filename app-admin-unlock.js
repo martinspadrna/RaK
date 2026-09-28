@@ -893,13 +893,14 @@ function buildAdminSessionDevicesHtml(source) {
       }).join('')
     : '<tr><td colspan="4"><span class="smallText">Zatím není uložené žádné odemčené admin zařízení. Objeví se po přihlášení admin heslem.</span></td></tr>';
   return [
-    '<div class="tableWrap appMenuTableWrap uMt8">',
-    '  <div class="appMenuSubTitle">Přihlášená admin zařízení</div>',
-    '  <div class="smallText uMb10">Hlavní admin tady vidí zařízení, kde zůstala administrace odemčená. Odhlášení zařízení zruší všechny jeho admin relace, včetně dalších účtů v tomto prohlížeči. Nové přihlášení heslem je možné.</div>',
-    '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-    '    <thead><tr><th>Zařízení</th><th>Účet</th><th>Naposledy</th><th>Akce</th></tr></thead>',
-    '    <tbody>' + rows + '</tbody>',
-    '  </table>',
+    '<div class="adminAccountsSessionBody">',
+    '  <div class="smallText adminAccountsFoldHint">Odhlášení zařízení zruší jeho admin relace; nové přihlášení heslem zůstává možné.</div>',
+    '  <div class="tableWrap appMenuTableWrap adminAccountsTableWrap">',
+    '    <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsSessionTable">',
+    '      <thead><tr><th>Zařízení</th><th>Účet</th><th>Naposledy</th><th>Akce</th></tr></thead>',
+    '      <tbody>' + rows + '</tbody>',
+    '    </table>',
+    '  </div>',
     '</div>'
   ].join('');
 }
@@ -1000,7 +1001,7 @@ function buildAdminAccountEditableRowHtml(entry) {
 
 function ensureAdminAccountsBlankRow(root, preferredRow) {
   const scope = root && root.querySelector ? root : document;
-  const tbody = scope.querySelector('.adminAccountsTable tbody');
+  const tbody = scope.querySelector('.adminAccountsEditorTable tbody');
   if (!tbody) return false;
   const rows = Array.from(tbody.querySelectorAll('tr[data-admin-account-row]'));
   const isBlank = (row) => !String(row.querySelector('[data-admin-account-id]')?.value || '').trim()
@@ -1029,17 +1030,28 @@ function buildAdminAccountsSettingsHtml() {
     ].join('')).join('') || '<tr><td colspan="4"><span class="smallText">Seznam správců se načte po připojení.</span></td></tr>';
     return [
       buildAdminAccountsStatusHtml(settings),
+      '<div class="adminAccountsCompactSections">',
+      '  <details class="adminAccountsFold">',
+      '    <summary>Přehled rolí</summary>',
+      '    <div class="adminAccountsFoldBody">',
       buildAdminAccountsRoleOverviewHtml(settings),
-      '<div class="adminAccountsReadonlyNotice">',
-      '  <b>Správce může změnit pouze svoje heslo.</b>',
-      '  <span>Hesla všech účtů jsou z bezpečnostních důvodů vždy skrytá. Seznam správců, jejich přístupy i heslo hlavního admina může měnit jen účet 9811.</span>',
-      '</div>',
-      '<div class="tableWrap appMenuTableWrap uMt8">',
-      '  <div class="appMenuSubTitle">Ostatní správci</div>',
-      '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-      '    <thead><tr><th>Účet</th><th>Popis</th><th>Heslo</th><th>Stav</th></tr></thead>',
-      '    <tbody>' + rows + '</tbody>',
-      '  </table>',
+      '      <div class="adminAccountsReadonlyNotice">',
+      '        <b>Správce může změnit pouze svoje heslo.</b>',
+      '        <span>Hesla jsou vždy skrytá. Seznam správců a jejich přístupy může měnit jen hlavní admin.</span>',
+      '      </div>',
+      '    </div>',
+      '  </details>',
+      '  <details class="adminAccountsFold">',
+      '    <summary>Ostatní správci</summary>',
+      '    <div class="adminAccountsFoldBody">',
+      '      <div class="tableWrap appMenuTableWrap adminAccountsTableWrap">',
+      '        <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable adminAccountsReadonlyTable">',
+      '          <thead><tr><th>Účet</th><th>Popis</th><th>Heslo</th><th>Stav</th></tr></thead>',
+      '          <tbody>' + rows + '</tbody>',
+      '        </table>',
+      '      </div>',
+      '    </div>',
+      '  </details>',
       '</div>',
       buildAdminOwnPasswordHtml()
     ].join('');
@@ -1056,15 +1068,32 @@ function buildAdminAccountsSettingsHtml() {
   return [
     buildAdminAccountsStatusHtml({ rows }),
     accountOptions,
+    '<div class="adminAccountsCompactSections">',
+    '  <details class="adminAccountsFold">',
+    '    <summary>Účty správců</summary>',
+    '    <div class="adminAccountsFoldBody">',
+    '      <div class="smallText adminAccountsFoldHint">Vyber účet a roli. Heslo nech prázdné, pokud ho nechceš měnit; odebrání nebo vypnutí potvrď uložením.</div>',
+    '      <div class="tableWrap appMenuTableWrap adminAccountsTableWrap">',
+    '        <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable adminAccountsEditorTable">',
+    '          <thead><tr><th>Účet</th><th>Popis</th><th>Heslo</th><th>Role</th><th>Aktivní</th><th></th></tr></thead>',
+    '          <tbody>' + body + '</tbody>',
+    '        </table>',
+    '      </div>',
+    '    </div>',
+    '  </details>',
+    '  <details class="adminAccountsFold">',
+    '    <summary>Role a bezpečnost</summary>',
+    '    <div class="adminAccountsFoldBody adminAccountsOverviewBody">',
     buildAdminAccountsRoleOverviewHtml(settings),
     buildAdminAccountsSafetyHtml(settings),
+    '    </div>',
+    '  </details>',
+    '  <details class="adminAccountsFold">',
+    '    <summary>Přihlášená zařízení</summary>',
+    '    <div class="adminAccountsFoldBody">',
     buildAdminSessionDevicesHtml(settings),
-    '<div class="tableWrap appMenuTableWrap uMt8">',
-    '  <div class="smallText uMb10">U každého účtu vyber roli: Správce spravuje pracovní části aplikace, Zástupce vidí pouze Report směny. Heslo nech prázdné, pokud ho nechceš měnit. Účet odeber nebo vypni a potvrď uložením. Hesla spravuje Supabase Auth.</div>',
-    '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-    '    <thead><tr><th>Ucet</th><th>Popis</th><th>Heslo</th><th>Role</th><th>Aktivni</th><th></th></tr></thead>',
-    '    <tbody>' + body + '</tbody>',
-    '  </table>',
+    '    </div>',
+    '  </details>',
     '</div>'
   ].join('');
 }
@@ -1072,16 +1101,18 @@ function buildAdminAccountsSettingsHtml() {
 function buildAdminOwnerPasswordHtml() {
   if (!rakAdminCanManageAdmins()) return '';
   return [
-    '<div class="adminOwnerPasswordPanel">',
-    '  <div class="appMenuSubTitle">Změna hesla hlavního admina</div>',
-    '  <div class="smallText">Po změně zůstane tento telefon přihlášený novým heslem.</div>',
-    '  <div class="adminOwnerPasswordGrid">',
-    '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-owner-password="current"></label>',
-    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="new"></label>',
-    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="confirm"></label>',
+    '<details class="adminAccountsFold adminAccountsPasswordFold">',
+    '  <summary>Moje heslo</summary>',
+    '  <div class="adminAccountsFoldBody adminOwnerPasswordPanel">',
+    '    <div class="smallText adminAccountsFoldHint">Po změně zůstane tento telefon přihlášený novým heslem.</div>',
+    '    <div class="adminOwnerPasswordGrid">',
+    '      <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-owner-password="current"></label>',
+    '      <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="new"></label>',
+    '      <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="confirm"></label>',
+    '    </div>',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="change-owner-password">Změnit moje heslo</button>',
     '  </div>',
-    '  <button type="button" class="appMenuAction isActive" data-admin-action="change-owner-password">Změnit moje heslo</button>',
-    '</div>'
+    '</details>'
   ].join('');
 }
 
@@ -1089,16 +1120,18 @@ function buildAdminOwnPasswordHtml() {
   if (!rakAdminCanOpenAdmin() || rakAdminCanManageAdmins()) return '';
   const accountId = rakAdminGetActiveAccountId();
   return [
-    '<div class="adminOwnerPasswordPanel adminOwnPasswordPanel">',
-    '  <div class="appMenuSubTitle">Změna mého hesla</div>',
-    '  <div class="smallText">Měníš heslo pouze pro svůj admin účet ' + escapeHtml(accountId) + '.</div>',
-    '  <div class="adminOwnerPasswordGrid">',
-    '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
-    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="new"></label>',
-    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="confirm"></label>',
+    '<details class="adminAccountsFold adminAccountsPasswordFold adminOwnPasswordPanel">',
+    '  <summary>Moje heslo</summary>',
+    '  <div class="adminAccountsFoldBody adminOwnerPasswordPanel">',
+    '    <div class="smallText adminAccountsFoldHint">Měníš heslo pouze pro svůj admin účet ' + escapeHtml(accountId) + '.</div>',
+    '    <div class="adminOwnerPasswordGrid">',
+    '      <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
+    '      <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="new"></label>',
+    '      <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="confirm"></label>',
+    '    </div>',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="change-own-admin-password">Změnit moje heslo</button>',
     '  </div>',
-    '  <button type="button" class="appMenuAction isActive" data-admin-action="change-own-admin-password">Změnit moje heslo</button>',
-    '</div>'
+    '</details>'
   ].join('');
 }
 
