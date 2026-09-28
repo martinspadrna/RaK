@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+
 const bridge=fs.readFileSync(new URL('../supabase-bridge.js',import.meta.url),'utf8');
 const stage=fs.readFileSync(new URL('../supabase/migrations/20260925110000_rak_revision_cas_stage_17102.sql',import.meta.url),'utf8');
 const cutover=fs.readFileSync(new URL('../supabase/migrations/20260925123000_rak_revision_cas_cutover_17102.sql',import.meta.url),'utf8');
