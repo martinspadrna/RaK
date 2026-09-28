@@ -107,6 +107,7 @@ function renderAdminMenuBody(body, section) {
     '    <button type="button" class="appMenuAction isActive" data-admin-action="save-rotation">Uložit rozpis</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="back-admin">Zpět</button>',
     '  </div>',
+    (typeof rakAdminLocalDraftCleanupHtml === 'function' ? rakAdminLocalDraftCleanupHtml() : ''),
     (typeof buildAdminStatsAnomalyHtml === 'function' ? buildAdminStatsAnomalyHtml((typeof parseMonthKey === 'function' && parseMonthKey(monthKey) ? parseMonthKey(monthKey).year : new Date().getFullYear())) : ''),
     buildAdminRotationTableHtml(monthKey),
     '</div>'

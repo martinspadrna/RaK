@@ -1,3 +1,10 @@
+## RaK 1.7.140 (development)
+
+- Administrace → Rozpisy: viditelné bezpečné tlačítko „Smazat všechny místní návrhy“ používá stávající read-only online preflight a maže jen místní návrhy / čekající zápisy rozpisu, ne server ani jinou frontu.
+- Přehled „jména × skupiny strojů“ je při prvním zobrazení otevřený; TNKS01/TPKW01/TPKW02 se zobrazují jako TNK/W01/W02. Jméno je o 10 % užší, strojové skupiny o 30 % užší a strojové sloupce oddělují svislé čáry.
+- Pravidla generátoru, Kantýna/jídelna a Správci jsou výrazně zhuštěné pro mobil bez změny jejich datové logiky.
+- Produkce ani produkční Supabase se tímto balíkem nemění.
+
 ## RaK 1.7.139 (development)
 
 - **Diagnostika konfliktu už nemá natvrdo zapsanou starou verzi.** Nadpis čte `displayVersion` z `RAK_RELEASE_METADATA`; když metadata nejsou dostupná, zobrazí neutrální „RaK – bezpečná diagnostika konfliktu“ místo zastaralého čísla.

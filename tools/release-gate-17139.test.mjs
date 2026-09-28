@@ -26,5 +26,5 @@ test('1.7.139 regression gates are mandatory in local and CI checks',()=>{
 
 test('development release contains no temporary P2.4 diagnostic seeder',()=>{
   assert(!read('index.html').includes('p24-conflict-seed.js'));
-  assert(read('CHANGELOG.md').startsWith('## RaK 1.7.139 (development)'));
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.139 (development)'));
 });

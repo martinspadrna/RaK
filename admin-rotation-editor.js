@@ -145,7 +145,7 @@ function rakAdminLocalDraftCleanupHtml(){
     +(other?' · '+other+' jiných konfliktů zůstane zachováno':'')+'.</div>'
     +'<div class="smallText">Smazání je nevratné. Nezasáhne online rozpis, ostatní místní frontu ani jiná nastavení. Předem si můžeš stáhnout návrhy výše.</div>'
     +'<button type="button" class="appMenuAction" data-admin-action="discard-local-rotation-drafts"'
-    +(valid?'':' disabled')+'>Smazat neuložené místní návrhy</button>'
+    +(valid?'':' disabled')+'>Smazat všechny místní návrhy</button>'
     +'<div id="rakAdminLocalDraftCleanupStatus" class="smallText" role="status" aria-live="polite"></div>'
     +'</div>';
 }

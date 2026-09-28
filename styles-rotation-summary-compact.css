@@ -81,3 +81,27 @@ html body .rakUpdateToast .rakUpdateToastBadge .rakRuntimeUpdateLogo {
   object-fit:contain !important;
   object-position:center !important;
 }
+
+
+/* RaK 1.7.140 – jméno -10 %, strojové skupiny -30 %, oddělovací čáry. */
+html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable,
+html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummary .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable{
+  width:356px !important;min-width:356px !important;max-width:356px !important;
+}
+html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:first-child,
+html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable td:first-child,
+html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummary .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:first-child,
+html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummary .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable td:first-child{
+  width:54px !important;min-width:54px !important;max-width:54px !important;
+}
+html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:nth-child(n+4),
+html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable td:nth-child(n+4),
+html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummary .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:nth-child(n+4),
+html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummary .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable td:nth-child(n+4){
+  width:35px !important;min-width:35px !important;max-width:35px !important;
+  padding-left:1px !important;padding-right:1px !important;
+  border-left:1px solid color-mix(in srgb,var(--rakThemeAccentStrong,#7cff7c) 22%,rgba(255,255,255,.16)) !important;
+}
+html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:nth-child(n+4){
+  font-size:9px !important;letter-spacing:-.03em !important;
+}
