@@ -421,3 +421,68 @@ jobs:
       - name: Report verified documentation-only skip
         if: steps.policy.outputs.deploy != 'true'
         run: echo "No Vercel deployment required; fail-closed policy result was ${{ steps.policy.outputs.reason }}."
+
+  p15_restore_drill:
+    name: P1.5 isolated Supabase restore drill
+    needs: verify
+    if: >-
+      needs.verify.result == 'success' &&
+      github.ref == 'refs/heads/development' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && contains(github.event.head_commit.message, '[p15-drill]')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out exact development commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install RaK dependencies
+        run: npm install --no-audit --no-fund
+      - name: Ensure PostgreSQL client exists
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Prepare private ephemeral Supabase workspace
+        run: |
+          rm -rf .rak-p15-private
+          mkdir -p .rak-p15-private/supabase/migrations
+          chmod 700 .rak-p15-private
+          printf 'project_id = "rak-p15-restore-drill"\n' > .rak-p15-private/supabase/config.toml
+          node --check tools/p15-restore-drill.mjs
+      - name: Export current TEST backup through short-lived GitHub OIDC
+        run: node tools/p15-restore-drill.mjs export .rak-p15-private
+      - name: Start isolated local Supabase and replay exact TEST migrations
+        run: |
+          cd .rak-p15-private
+          if ! npx --yes supabase@2.117.0 start > supabase-start.log 2>&1; then
+            tail -n 160 supabase-start.log
+            exit 1
+          fi
+          if ! npx --yes supabase@2.117.0 db reset --local > supabase-reset.log 2>&1; then
+            tail -n 200 supabase-reset.log
+            exit 1
+          fi
+          npx --yes supabase@2.117.0 status -o env > status.env
+          chmod 600 status.env
+      - name: Restore data and verify hashes, Auth, RLS, migrations and Storage
+        run: node tools/p15-restore-drill.mjs restore .rak-p15-private
+      - name: Destroy private restore workspace
+        if: always()
+        run: |
+          if [ -d .rak-p15-private ]; then
+            (cd .rak-p15-private && npx --yes supabase@2.117.0 stop --no-backup >/dev/null 2>&1 || true)
+            rm -rf .rak-p15-private
+          fi
