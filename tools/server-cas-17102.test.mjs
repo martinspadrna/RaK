@@ -117,8 +117,8 @@ test('CAS-protected writes never replay through the generic network retry layer'
   assert(bridge.includes("runSupabaseOperation('machine_settings.save', () => upsertMachineSettingsDirect(client, rows, options || {}), { mode: 'write', attempts: 1 })"));
   assert(bridge.includes("runSupabaseOperation('rotation_entries.save', () => upsertRotationMonthEntriesDirect(client, monthStart, label, rows), { mode: 'write', attempts: 1 })"));
   assert(bridge.includes("runSupabaseOperation('rotation_state.save', () => upsertRotationStateDirect(client, rotation, meta, options || {}), { mode: 'write', attempts: 1 })"));
-  assert.match(bridge,/rotation\.unplanned-absence-v1[\\s\\S]{0,1200}mode: 'write', attempts: 1, timeoutMs: 18000/);
-  assert.match(bridge,/rotation\.unplanned-change-v2[\\s\\S]{0,1200}mode: 'write', attempts: 1, timeoutMs: 18000/);
+  assert.match(bridge,/runSupabaseOperation\('rotation\.unplanned-absence-v1'[\\s\\S]*?\{ mode: 'write', attempts: 1, timeoutMs: 18000 \}\);/);
+  assert.match(bridge,/runSupabaseOperation\('rotation\.unplanned-change-v2'[\\s\\S]*?\{ mode: 'write', attempts: 1, timeoutMs: 18000 \}\);/);
 });
 
 test('server stage uses RLS revision registry, shared read lock and exclusive CAS write lock',()=>{
