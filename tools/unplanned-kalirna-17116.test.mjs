@@ -10,7 +10,7 @@ const wizard = read('admin-rotation-generator-wizard.js');
 const index = read('rotation-name-index.js');
 const daymods = read('admin-daymods.js');
 const bridge = read('supabase-bridge.js');
-const migration = read('supabase/migrations/20260926094214_rak_unplanned_kalirna_reflow_17116.sql');
+const migration = read('supabase/migrations/20260928212500_rak_unplanned_kalirna_direct_cell_17148.sql');
 
 function functionBlock(source, name, nextName) {
   const start = source.indexOf('function ' + name + '(');
@@ -81,7 +81,8 @@ test('unplanned Kalírna prefers minimal MO reflow and keeps the scoped generato
     'adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels)',
     'adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels)',
     'adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels)',
-    "throw new Error('Pracovník označený jako Kalírna zůstal ve stroji: ' + date + '.')",
+    'adminRotationUnplannedPlaceKalirnaDisplayCell(regenerated, date, person, knownNames)',
+    "throw new Error('Kalírna nemá stejnou buňku jako její →K výjimka: ' + date + '.')",
     "changeKind: 'daymod'"
   ]) assert(block.includes(marker),marker);
   assert(!block.includes('adminRotationUnplannedApplyAbsenceNotes('));
@@ -109,10 +110,11 @@ test('server allows selected-day reflow for Kalírna but blocks everything else'
     "if v_kind<>'daymod' or v_reason<>'kalirnaOut' then",
     "v_new_month-array['hard','soft','dayMods']::text[]",
     'Kalirna change touched a non-selected day',
-    'Kalirna person is still assigned to a machine',
     'Kalirna change touched unrelated dayMods',
     'Each selected day must contain exactly one Kalirna exception',
-    'Kalirna source cell does not contain selected person',
+    'Each selected day must contain selected person exactly once before change',
+    'Kalirna display cell must be in soft section',
+    'Kalirna display cell does not contain selected person',
     'pg_advisory_xact_lock',
     'perform private.rak_require_admin(false)'
   ]) assert(migration.includes(marker),'missing server guard: '+marker);

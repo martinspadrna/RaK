@@ -12,6 +12,9 @@ test('1.7.148 unplanned local staffing release has one unified cache-busted iden
   assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=1.7.148')"));
   assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.148'"));
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'1.7.148');
+  const migration=read('supabase/migrations/20260928212500_rak_unplanned_kalirna_direct_cell_17148.sql');
+  assert(migration.includes('Kalirna display cell must be in soft section'));
+  assert(migration.includes('Kalirna display person must appear exactly once after change'));
 });
 
 test('1.7.148 local staffing gates are mandatory locally and in CI',()=>{

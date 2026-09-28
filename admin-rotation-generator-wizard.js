@@ -1021,7 +1021,57 @@ function adminRotationUnplannedAssertSelectedDayStaffing(month, allowedDateLabel
       throw new Error(String(date || '') + ': přepočet nemá správný fyzický počet lidí na TO/MO.');
     }
 
-    const plannedSoftSlots = new Set(adminRotationGeneratorSoftSlotPlan(softTarget));
+    const fallbackSoftSlotPlan = (count) => {
+      const idx = {
+        MSKC01: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC01'),
+        MSKC03: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC03'),
+        MSKC04: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC04'),
+        MFKF06: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06'),
+        MFKF10: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10')
+      };
+      if (count >= 5) return [idx.MSKC01, idx.MSKC03, idx.MSKC04, idx.MFKF06, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 4) return [idx.MSKC01, idx.MSKC03, idx.MSKC04, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 3) return [idx.MSKC03, idx.MSKC04, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 2) return [idx.MSKC03, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 1) return [idx.MFKF10].filter((n) => n >= 0);
+      return [];
+    };
+    const plannedSoftSlots = new Set(typeof adminRotationGeneratorSoftSlotPlan === 'function'
+      ? adminRotationGeneratorSoftSlotPlan(softTarget)
+      : fallbackSoftSlotPlan(softTarget));
+
+    if (softTarget === 4) {
+      const latheIndexes = ['MSKC01','MSKC03','MSKC04'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const millIndexes = ['MFKF06','MFKF10'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const latheCount = latheIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      const millCount = millIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      if (latheCount !== 3 || millCount !== 1) {
+        throw new Error(String(date || '') + ': při čtyřech lidech na MO musí být 3 soustruhy a 1 fréza.');
+      }
+    }
+
+    if (softTarget === 3) {
+      const latheIndexes = ['MSKC01','MSKC03','MSKC04'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const millIndexes = ['MFKF06','MFKF10'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const latheCount = latheIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      const millCount = millIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      if (latheCount !== 2 || millCount !== 1) {
+        throw new Error(String(date || '') + ': při třech lidech na MO musí být 2 soustruhy a 1 fréza.');
+      }
+    }
+
     softCells.forEach((value, idx) => {
       const name = adminRotationCanonicalName(value, knownNames);
       const physicallyOccupied = !!(name && !blocked.has(name));
