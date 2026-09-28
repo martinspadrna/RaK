@@ -62,7 +62,9 @@
       :d.cause==='sync-error'?'poslední synchronizace selhala'
       :d.cause==='remote-unverified'?'online stav zatím nebyl čerstvě ověřen'
       :'příčinu nelze bezpečně určit';
-    return ['RaK 1.7.136 – bezpečná diagnostika konfliktu',
+    const releaseVersion=String(root.RAK_RELEASE_METADATA&&root.RAK_RELEASE_METADATA.displayVersion||'').trim();
+    const diagnosticTitle='RaK'+(releaseVersion?' '+releaseVersion:'')+' – bezpečná diagnostika konfliktu';
+    return [diagnosticTitle,
       'Stav aplikace: '+(app[d.appState]||'neznámý'),
       'Fronta: celkem '+d.total+' · zadržené '+d.held+' · ostatní '+d.retryable,
       'Úložiště fronty: '+(d.storageIssue?'chyba / nelze ověřit':'v pořádku'),

@@ -1,3 +1,10 @@
+## RaK 1.7.139 (development)
+
+- **Diagnostika konfliktu už nemá natvrdo zapsanou starou verzi.** Nadpis čte `displayVersion` z `RAK_RELEASE_METADATA`; když metadata nejsou dostupná, zobrazí neutrální „RaK – bezpečná diagnostika konfliktu“ místo zastaralého čísla.
+- Lazy import `rak-conflict-diagnostics.js` v Dashboardu už nepoužívá pevné `?v=1.7.136`. Cache parametr se skládá z aktuálního `moduleCacheVersion` / `displayVersion`, takže při dalších releasech není potřeba ruční úprava a PWA si nevezme starý diagnostický modul.
+- Přidán regresní gate 1.7.139, který spouští formatter proti syntetickým release metadata a blokuje návrat hardcoded diagnostické verze/importu.
+- Runtime/cache jsou zvýšeny na 1.7.139. Produkční `main`, produkční Vercel ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.7.138 (development)
 
 - **P2.3 conflict-rescue fyzicky uzavřen:** řízený TEST scénář se dvěma lokálními konflikty ověřil celý bezpečný tok. U typu „stroj“ RaK nejdřív zobrazil sanitizovanou diagnostiku, nabídl soukromou zálohu fronty, provedl read-only serverovou kontrolu, vyžádal přesný export původních bajtů jediné položky a teprve potom odstranil právě 1 lokální konflikt. Serverové nastavení strojů zůstalo beze změny na revizi 23 a 52 řádcích.
