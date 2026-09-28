@@ -192,7 +192,7 @@ async function restoreTarget(){
 
   const expectedRls=(Array.isArray(snapshot.schema?.tables)?snapshot.schema.tables:[]).filter(t=>t&&['public','private'].includes(t.schema)).map(t=>({schema:String(t.schema),name:String(t.name),rls:Boolean(t.rls_enabled),force_rls:Boolean(t.rls_forced)})).sort((a,b)=>(a.schema+'.'+a.name).localeCompare(b.schema+'.'+b.name));
   const actualRls=psqlJson(db,"select coalesce(jsonb_agg(jsonb_build_object('schema',x.schema,'name',x.name,'rls',x.rls,'force_rls',x.force_rls) order by x.schema,x.name),'[]'::jsonb) from (select n.nspname schema,c.relname name,c.relrowsecurity rls,c.relforcerowsecurity force_rls from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relkind='r') x")||[];
-  assert(JSON.stringify(expectedRls)===JSON.stringify(actualRls),'RLS table flags mismatch');
+  assert(rowKey(expectedRls)===rowKey(actualRls),'RLS table flags mismatch');
   const expectedPolicies=(Array.isArray(snapshot.schema?.policies)?snapshot.schema.policies.filter(p=>p&&['public','private'].includes(String(p.schema||''))).length:0);
   const localPolicies=Number(psql(db,"select count(*) from pg_policies where schemaname in ('public','private')").trim()||0);
   assert(expectedPolicies===localPolicies,'RLS policy count mismatch');
