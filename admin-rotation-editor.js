@@ -106,8 +106,9 @@ function rakAdminMonthDraftRecoveryHtml(monthKey) {
   const drafts=valid?Number(info.drafts||0):entries.length;
   const pending=valid?Number(info.rotationQueued||0):0;
   const other=valid?Number(info.otherConflicts||0):0;
-  return '<div class="appMenuCard rakAdminLocalDraftsCard" id="rakAdminPreservedDrafts" role="status">'
-    +'<b>Neuložené místní návrhy: '+String(entries.length)+'</b>'
+  return '<details class="appMenuCard rakAdminLocalDraftsCard" id="rakAdminPreservedDrafts">'
+    +'<summary><b>Neuložené místní návrhy: '+String(entries.length)+'</b></summary>'
+    +'<div class="rakAdminLocalDraftsBody">'
     +'<div class="smallText">Mohou pocházet z dřívějšího neúspěšného uložení. Nepřepisuj je naslepo. Stáhni soukromou kopii a porovnej ručně.</div>'
     +entries.map(item=>'<button type="button" class="appMenuAction rakAdminLocalDraftDownload" data-admin-action="download-unsynced-draft" data-draft-key="'
       +escapeHtml(item.key)+'">Stáhnout návrh '+escapeHtml(item.monthKey)+' · '
@@ -120,7 +121,8 @@ function rakAdminMonthDraftRecoveryHtml(monthKey) {
     +(valid?'':' disabled')+'>Smazat všechny místní návrhy</button>'
     +'<div id="rakAdminLocalDraftCleanupStatus" class="smallText" role="status" aria-live="polite"></div>'
     +'</div>'
-    +'</div>';
+    +'</div>'
+    +'</details>';
 }
 
 function rakDownloadPreservedAdminMonthDraft(key) {

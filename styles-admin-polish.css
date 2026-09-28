@@ -2559,3 +2559,32 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
 #appMenuBody .rakAdminLocalDraftsCard #rakAdminLocalDraftCleanupStatus:empty{
   display:none !important;
 }
+
+
+/* RaK 1.7.143 – neuložené místní návrhy jsou po načtení zabalené. */
+#appMenuBody details.rakAdminLocalDraftsCard{
+  display:block !important;
+}
+#appMenuBody details.rakAdminLocalDraftsCard > summary{
+  list-style:none !important;
+  cursor:pointer !important;
+  position:relative !important;
+  padding-right:28px !important;
+}
+#appMenuBody details.rakAdminLocalDraftsCard > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody details.rakAdminLocalDraftsCard > summary::after{
+  content:'›' !important;
+  position:absolute !important;
+  right:4px !important;
+  top:50% !important;
+  transform:translateY(-50%) rotate(90deg) !important;
+  opacity:.8 !important;
+}
+#appMenuBody details.rakAdminLocalDraftsCard[open] > summary::after{
+  transform:translateY(-50%) rotate(-90deg) !important;
+}
+#appMenuBody .rakAdminLocalDraftsBody{
+  display:grid !important;
+  gap:6px !important;
+  margin-top:8px !important;
+}

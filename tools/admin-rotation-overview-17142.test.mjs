@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('Admin rotation machine overview starts open and uses compact display-only labels',()=>{
+test('Admin rotation machine overview starts open and keeps compact display-only labels',()=>{
   const runtime=read('rak-runtime-stability.js');
   assert(runtime.includes("const wasOpen = container ? !!(container.querySelector('details') && container.querySelector('details').open) : true;"));
   assert(runtime.includes("if (normalized === 'TNKS01' || normalized === 'TNKSO1') return 'TNK';"));
@@ -13,9 +13,8 @@ test('Admin rotation machine overview starts open and uses compact display-only 
   assert(runtime.includes("const preferredOrder = ['TNKS01', 'TPKW01', 'TPKW02', 'TBK', 'MSK', 'MFK'];"));
 });
 
-test('Admin rotation overview is 356px wide with exact requested column reductions',()=>{
+test('Successor refinements preserve the requested compact column reductions',()=>{
   const css=read('styles-rotation-summary-compact.css');
-  assert(css.includes('width:356px !important;'));
   assert(css.includes('width:54px !important;'));
   assert(css.includes('width:35px !important;'));
   assert(css.includes('border-left:1px solid'));

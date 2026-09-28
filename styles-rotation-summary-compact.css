@@ -1,9 +1,9 @@
-/* RaK 1.7.142 – přehled jména × skupiny strojů pro mobil: 356 px, TNK/W01/W02, oddělené stroje. */
+/* RaK 1.7.143 – přehled jména × skupiny strojů: 334 px; TO/MO stejně široké a oddělené jako stroje. */
 
 html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable {
-  width:356px !important;
-  min-width:356px !important;
-  max-width:356px !important;
+  width:334px !important;
+  min-width:334px !important;
+  max-width:334px !important;
   table-layout:fixed !important;
 }
 
@@ -26,19 +26,20 @@ html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummar
   background:color-mix(in srgb, var(--rakBgBase,#151822) 88%, var(--rakThemeAccentStrong,#7cff7c) 12%) !important;
 }
 
-/* TO + MO zůstávají čitelné, ale kompaktní. */
+/* TO + MO mají stejnou šířku a oddělení jako strojové sloupce. */
 html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:nth-child(2),
 html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable td:nth-child(2),
 html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable th:nth-child(3),
 html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable td:nth-child(3) {
   box-sizing:border-box !important;
-  width:46px !important;
-  min-width:46px !important;
-  max-width:46px !important;
-  padding-left:2px !important;
-  padding-right:2px !important;
+  width:35px !important;
+  min-width:35px !important;
+  max-width:35px !important;
+  padding-left:1px !important;
+  padding-right:1px !important;
   text-align:center !important;
   white-space:nowrap !important;
+  border-left:1px solid color-mix(in srgb, var(--rakThemeAccentStrong,#7cff7c) 22%, rgba(255,255,255,.16)) !important;
 }
 
 /* Strojové sloupce: 35 px = o 30 % užší než dosavadních 50 px. */
@@ -61,9 +62,9 @@ html body .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSu
 
 /* Přetlačí i runtime ochranu min-width:620px v administraci. */
 html body #appMenuBody[data-admin-view="rotation"] #rakRuntimeAdminMachineSummary .adminRotationGeneratorMachineSummary .adminRotationGeneratorMachineSummaryTable.appMenuTable.appMenuAdminTable {
-  width:356px !important;
-  min-width:356px !important;
-  max-width:356px !important;
+  width:334px !important;
+  min-width:334px !important;
+  max-width:334px !important;
   table-layout:fixed !important;
 }
 

@@ -13,7 +13,8 @@ test('rotation local drafts and delete action share one card and statistics anom
   assert(!rotation.includes('rakAdminLocalDraftCleanupHtml()'));
   assert(!rotation.includes('buildAdminStatsAnomalyHtml'));
   assert(rotation.includes('buildAdminRotationTableHtml(monthKey)'));
-  assert(editor.includes('class="appMenuCard rakAdminLocalDraftsCard"'));
+  assert(editor.includes('<details class="appMenuCard rakAdminLocalDraftsCard"'));
+  assert(!editor.includes('<details class="appMenuCard rakAdminLocalDraftsCard" id="rakAdminPreservedDrafts" open'));
   assert(editor.includes('id="rakAdminLocalDraftCleanup"'));
   assert(editor.includes('Smazat všechny místní návrhy'));
   assert(editor.includes('data-admin-action="discard-local-rotation-drafts"'));

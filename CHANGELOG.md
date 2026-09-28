@@ -1,3 +1,10 @@
+## RaK 1.7.143 (development)
+
+- Administrace → Rozpisy → Přehled jména × skupiny strojů: TO a MO mají nově stejnou šířku 35 px jako strojové sloupce a stejné svislé oddělení.
+- Celková šířka přehledu se tím zmenšuje z 356 px na 334 px; Jméno zůstává 54 px a strojové skupiny 35 px.
+- Panel „Neuložené místní návrhy“ je skutečný skládací panel a po načtení stránky je ve výchozím stavu zabalený.
+- Bezpečná logika exportu a mazání místních návrhů se nemění; body 3–5 nejsou součástí tohoto releasu.
+
 ## RaK 1.7.142 (development)
 
 - Administrace → Rozpisy → Přehled jména × skupiny strojů: první zobrazení zůstává rozbalené i při prvním vytvoření dynamického přehledu.
