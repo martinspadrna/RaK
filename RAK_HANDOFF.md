@@ -40,12 +40,14 @@
 
 ### Development runtime
 
-- Aktuální TEST runtime je **RaK 1.7.141**, build `v1.7.141-local-drafts-panel1`.
-- Exact runtime/test SHA: `12605aa640ba383b16e9fc54b79f2ae6951e84e5`.
-- Actions run **#549 / 36471547634** je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof.
-- READY Vercel deployment: `dpl_7HAj147VoAdKYmN1A5vSJfF1SstL`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
+- Aktuální TEST runtime je **RaK 1.7.143**, build `v1.7.143-rotation-overview2`.
+- Exact runtime/test SHA: `4605443ffd11c32d954b6b6f13fa22577afd139e`.
+- Actions run **#552 / 36474212163** je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof.
+- READY Vercel deployment: `dpl_6o88MkcNDagvSG9SxdYW9BpVdW9J`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
 - Produkce zůstala při release-preview beze změny.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 1 administrační série:** v Administrace → Rozpisy jsou neuložené místní návrhy, exporty a tlačítko „Smazat všechny místní návrhy“ v jednom rámečku, tlačítka mají požadovaný svislý odstup a blok „Statistické odchylky“ je odstraněný.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 2 administrační série:** přehled jména × skupiny strojů je výchozí rozbalený; TNK/W01/W02; Jméno 54 px; TO/MO i stroje 35 px se svislými čárami; panel místních návrhů je výchozí zabalený.
+
 
 ### Produkce – neměnit bez souhlasu
 
@@ -311,8 +313,8 @@ Tyto položky jsou produktové požadavky; **neotevírají znovu 13bodový audit
 ### Aktuální administrační série – řešit striktně po jednom
 
 1. **Bod 1 – místní návrhy / Statistické odchylky: UZAVŘENO, FYZICKY PASS na 1.7.141.**
-2. **Bod 2 – Administrace → Rozpisy → přehled jména × skupiny strojů:** defaultně rozbalený; TNK/W01/W02; jméno -10 %, strojové sloupce -30 %; mezi strojovými sloupci svislé čáry. Toto je **nejbližší další úkol**.
-3. **Bod 3 – Administrace → Pravidla generátoru:** znovu zhutnit a zpřehlednit; současný stav je podle vlastníka pořád příliš roztažený.
+2. **Bod 2 – Administrace → Rozpisy → přehled jména × skupiny strojů: UZAVŘENO, FYZICKY PASS na 1.7.143.** Přehled je defaultně rozbalený; TNK/W01/W02; Jméno 54 px; TO, MO i strojové sloupce 35 px; TO/MO i stroje mají svislé oddělení. Panel „Neuložené místní návrhy“ je defaultně zabalený.
+3. **Bod 3 – Administrace → Pravidla generátoru:** znovu zhutnit a zpřehlednit; současný stav je podle vlastníka pořád příliš roztažený. Toto je **nejbližší další úkol**.
 4. **Bod 4 – Administrace → Kantýna/jídelna:** znovu zhutnit a zpřehlednit; současný stav je podle vlastníka pořád příliš roztažený.
 5. **Bod 5 – Administrace → Správci:** znovu zhutnit a zpřehlednit; současný stav je podle vlastníka pořád příliš roztažený.
 
