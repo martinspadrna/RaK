@@ -29,7 +29,7 @@ test('1.7.136 diagnostic remains wired under the current release identity',()=>{
   assert(pkg.scripts.check.includes('node --check rak-conflict-diagnostics.js'));
   assert(pkg.scripts.check.includes('tools/conflict-diagnostic-17136.test.mjs'));
   assert(workflow.includes('tools/conflict-diagnostic-17136.test.mjs'));
-  assert(workflow.includes('rak-170'+patch+'-isolated-build-'+'
+  assert(workflow.includes('rak-170'+patch+'-isolated-build-'));
 });
 
 test('known queue conflict is reduced to fixed safe cause without leaking private fields',()=>{
