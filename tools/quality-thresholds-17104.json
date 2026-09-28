@@ -18,7 +18,7 @@
     "minRounds": 5
   },
   "conflicts": {
-    "requiredSqlState": "40001",
+    "requiredSqlState": "P0001",
     "maxUnknownBaselineNetworkWrites": 0,
     "expectedStaleRpcCalls": 1,
     "maxSilentRevisionAdoptions": 0,

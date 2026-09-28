@@ -14,7 +14,7 @@ test('P2.4 quality thresholds are explicit, zero-tolerance for silent conflicts 
  assert.equal(config.conflicts.maxUnknownBaselineNetworkWrites,0);
  assert.equal(config.conflicts.maxSilentRevisionAdoptions,0);
  assert.equal(config.conflicts.maxLegacyV2MutationRpcReferences,0);
- assert.equal(config.conflicts.requiredSqlState,'40001');
+ assert.equal(config.conflicts.requiredSqlState,'P0001');
 });
 
 test('quality gate measures real CAS fixtures and binds performance/network/parity evidence to exact SHA',()=>{
