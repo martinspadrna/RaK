@@ -4,18 +4,33 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
-    // RAK_170_ABOUT_START
+    // RAK_180_ABOUT_START
     {
-      range: 'RaK 1.7',
-      title: 'Aktuální generace',
+      range: 'RaK 1.8',
+      title: 'Local-first, kalendáře a přesnější provoz',
       lines: [
-        'Rychlejší PWA s odolným offline startem, bezpečnějším přihlášením a synchronizací pracovních dat.',
-        'Rozpisy, absence, pracovníci, správci a report směny mají sjednocenější mobilní ovládání a přesnější výrobní logiku.',
-        'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se průběžně rozšiřují; odstraněné zbytky Her zůstávají pryč.',
-        'Kalendář podle směny A/B/C/D používá přímo Google Calendar a po prvním načtení se znovu využívá pro rychlé otevření.'
+        'Home, Rozpisy/Rotace, Kalkulačky i Více startují skutečně local-first: lokální data a navigace jsou dostupné hned, online synchronizace je jen dorovnává na pozadí a nemění otevřenou stránku.',
+        'První otevření Administrace je rychlejší bez oslabení rolí; hesla mají minimum 6 znaků a secure owner/admin/zástupce pravidla, soukromí a účetní oprávnění zůstávají fail-closed.',
+        'Rozpisy a neplánované změny dostaly přesnější staffing a minimal-reflow logiku, důvody absencí, bezpečné mazání místních návrhů a evidenci odchodu na Kalírnu přímo v rozpisu bez falešného navýšení obsazení.',
+        'Administrace je na iPhonu kompaktnější: přehled strojů, generátor, Kantýna, účty i správci mají čitelnější tabulky, skládací sekce a méně zbytečného posouvání.',
+        'Dashboardový kalendář umí Obrábění i Kalírnu A–D, účetní výběr více kalendářů, originální Google Calendar, barevnou legendu a uložené zapínání/vypínání jednotlivých zdrojů mezi zařízeními.',
+        'Když nejsou aktivní žádné kalendáře, zobrazí se lokální prázdný měsíc bez Google cookie brány; po zapnutí zdroje se vrátí Google Calendar ve stejné velikosti. Kalendář Obrábění D používaný pro dovolené zůstal oddělený a chráněný.',
+        'Kalkulačky korekcí Frézek a Brusů mají sjednocené mobilní ovládání znaménka a Brusy zachovávají samostatnou logiku pro stroje, indexy, C1/C2 a levou/pravou stranu.',
+        'Offline/PWA vrstva, konflikty a zálohy mají přísnější diagnostiku, CAS ochranu a obnovu; release pipeline kontroluje reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a TEST/produkční izolaci.',
+        'Opravy se průběžně přesunuly z dočasných záplat do skutečných vlastníků funkcí; produkční data a chráněné pracovní zdroje se při development testech nemění.'
       ]
     },
-    // RAK_170_ABOUT_END
+    // RAK_180_ABOUT_END
+    {
+      range: 'RaK 1.7',
+      title: 'Stabilizace a local-first základ',
+      lines: [
+        'Rychlejší PWA s odolným offline startem, bezpečnějším přihlášením a synchronizací pracovních dat.',
+        'Rozpisy, absence, pracovníci, správci a report směny dostaly sjednocenější mobilní ovládání a přesnější výrobní logiku.',
+        'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se výrazně rozšířily; odstraněné zbytky Her zůstaly pryč.',
+        'Vznikl základ směnových kalendářů a účtového nastavení, na kterém navazuje generace 1.8.'
+      ]
+    }
     {
       range: 'RaK 1.6',
       title: 'Rychlejší, čistší a přesnější',
@@ -75,11 +90,12 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.7').trim();
+      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.8.0').trim();
+      const aboutDisplayVersion = displayVersion.replace(/\.0$/, '');
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
-        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(displayVersion)) + '</div>',
+        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(aboutDisplayVersion)) + '</div>',
         '  ' + buildAppMenuAboutHistoryHtml(),
         '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
         '</div>'
