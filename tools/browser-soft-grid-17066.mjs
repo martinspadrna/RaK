@@ -10,9 +10,11 @@ import RELEASE_METADATA from '../rak-release-metadata.js';
 const root=process.cwd();
 const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
 assert(chrome,'[17066-browser] actual Chromium required');
-const releasePatch=Number(String(RELEASE_METADATA.displayVersion).split('.').at(-1));
-assert(Number.isInteger(releasePatch)&&releasePatch>=66,'built soft-grid release required');
-const isEqualGrid=releasePatch>=67;
+const releaseParts=String(RELEASE_METADATA.displayVersion).split('.').map(Number);
+const atLeast=(major,minor,patch)=>releaseParts.length===3&&releaseParts.every(Number.isInteger)
+  && (releaseParts[0]>major || (releaseParts[0]===major && (releaseParts[1]>minor || (releaseParts[1]===minor && releaseParts[2]>=patch))));
+assert(atLeast(1,7,66),'built soft-grid release required');
+const isEqualGrid=atLeast(1,7,67);
 const css=['styles.css','styles-inline-legacy.css'].map(file=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,file)).href+'">').join('');
 const machines=['MSKC01','MSKC03','MSKC04','MFKF06','MFKF10'];
 const cols='<colgroup><col style="width:46px">'+machines.map(()=>'<col style="width:50px">').join('')+'</colgroup>';
