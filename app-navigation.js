@@ -1469,6 +1469,70 @@ function rakCalendarLegendHtml(calendars, visibleKeys) {
   return items ? '<div class="calendarSourceLegend" aria-label="Viditelnost kalendářů">' + items + '</div>' : '';
 }
 
+function rakRenderBlankCalendar(container, year, month) {
+  if (!container) return false;
+  const now = new Date();
+  const safeYear = Number.isInteger(Number(year)) ? Number(year) : now.getFullYear();
+  const safeMonthRaw = Number.isInteger(Number(month)) ? Number(month) : now.getMonth();
+  const cursor = new Date(safeYear, safeMonthRaw, 1);
+  const y = cursor.getFullYear();
+  const m = cursor.getMonth();
+  const firstOffset = (new Date(y, m, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const daysInPrevMonth = new Date(y, m, 0).getDate();
+  const monthNames = ['Led','Úno','Bře','Dub','Kvě','Čvn','Čvc','Srp','Zář','Říj','Lis','Pro'];
+  const weekdays = ['PO','ÚT','ST','ČT','PÁ','SO','NE'];
+  const cells = [];
+  for (let i = 0; i < 42; i += 1) {
+    const raw = i - firstOffset + 1;
+    let day = raw;
+    let cellMonth = m;
+    let cellYear = y;
+    let muted = false;
+    if (raw < 1) {
+      day = daysInPrevMonth + raw;
+      cellMonth = m - 1;
+      muted = true;
+      if (cellMonth < 0) { cellMonth = 11; cellYear -= 1; }
+    } else if (raw > daysInMonth) {
+      day = raw - daysInMonth;
+      cellMonth = m + 1;
+      muted = true;
+      if (cellMonth > 11) { cellMonth = 0; cellYear += 1; }
+    }
+    const today = day === now.getDate() && cellMonth === now.getMonth() && cellYear === now.getFullYear();
+    const numberStyle = today
+      ? 'display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 6px;border-radius:999px;background:#1a73e8;color:#fff;font-weight:600;'
+      : 'display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 6px;color:' + (muted ? '#9aa0a6' : '#202124') + ';';
+    cells.push('<div style="min-width:0;min-height:0;border-right:1px solid #dadce0;border-bottom:1px solid #dadce0;padding:7px 8px;background:#fff;box-sizing:border-box;"><span style="' + numberStyle + '">' + String(day) + '</span></div>');
+  }
+  container.dataset.blankYear = String(y);
+  container.dataset.blankMonth = String(m);
+  container.innerHTML = [
+    '<div style="height:100%;min-height:0;display:flex;flex-direction:column;background:#fff;color:#202124;font-family:Arial,sans-serif;">',
+    '<div style="height:54px;flex:0 0 54px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #dadce0;box-sizing:border-box;">',
+    '<button type="button" data-calendar-blank-nav="-1" aria-label="Předchozí měsíc" style="width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#3c4043;font-size:28px;line-height:1;padding:0;">‹</button>',
+    '<button type="button" data-calendar-blank-nav="1" aria-label="Další měsíc" style="width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#3c4043;font-size:28px;line-height:1;padding:0;">›</button>',
+    '<div style="font-size:22px;font-weight:400;margin-left:4px;white-space:nowrap;">' + monthNames[m] + ' ' + String(y) + '</div>',
+    '</div>',
+    '<div style="height:38px;flex:0 0 38px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid #dadce0;background:#fff;">',
+    weekdays.map((label) => '<div style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#5f6368;border-right:1px solid #dadce0;">' + label + '</div>').join(''),
+    '</div>',
+    '<div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));background:#fff;">',
+    cells.join(''),
+    '</div>',
+    '</div>'
+  ].join('');
+  return true;
+}
+
+function rakEnsureBlankCalendar(container) {
+  if (!container) return false;
+  const now = new Date();
+  const year = Number(container.dataset.blankYear);
+  const month = Number(container.dataset.blankMonth);
+  return rakRenderBlankCalendar(container, Number.isInteger(year) ? year : now.getFullYear(), Number.isInteger(month) ? month : now.getMonth());
+}
 function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   if (!content || !content.__rakCalendarDisplayState) return false;
   const state = content.__rakCalendarDisplayState;
@@ -1495,15 +1559,15 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   const empty = content.querySelector('.calendarSourceEmpty');
   const visibleCalendars = calendars.filter((entry) => visibleSet.has(String(entry && entry.key || '').trim()));
   if (!visibleCalendars.length) {
-    const blankUrl = rakShiftCalendarBlankEmbedUrl();
     if (frame) {
-      if (frame.getAttribute('src') !== blankUrl) frame.setAttribute('src', blankUrl);
-      frame.hidden = false;
-      frame.style.display = 'block';
+      frame.removeAttribute('src');
+      frame.hidden = true;
+      frame.style.display = 'none';
     }
     if (empty) {
-      empty.hidden = true;
-      empty.style.display = 'none';
+      empty.hidden = false;
+      empty.style.display = 'flex';
+      rakEnsureBlankCalendar(empty);
     }
     return true;
   }
@@ -1523,18 +1587,6 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
 }
 window.rakCalendarApplyLegendVisibility = rakCalendarApplyLegendVisibility;
 
-function rakShiftCalendarBlankEmbedUrl() {
-  const embed = new URL('https://calendar.google.com/calendar/embed');
-  embed.searchParams.set('height', '900');
-  embed.searchParams.set('wkst', '2');
-  embed.searchParams.set('ctz', 'Europe/Prague');
-  embed.searchParams.set('showPrint', '0');
-  embed.searchParams.set('showTitle', '0');
-  embed.searchParams.set('showTabs', '0');
-  embed.searchParams.set('showCalendars', '0');
-  embed.searchParams.set('showTz', '0');
-  return embed.toString();
-}
 function rakShiftCalendarEmbedUrl(calendars) {
   const sources = [];
   const colors = [];
@@ -1604,7 +1656,7 @@ function renderCalendarModalContent(overlay) {
   const initialVisibleSet = new Set(initialVisibleKeys);
   const initialVisibleCalendars = calendars.filter((entry) => initialVisibleSet.has(String(entry && entry.key || '').trim()));
   const fullCalendarUrl = rakShiftCalendarEmbedUrl(calendars);
-  const calendarUrl = initialVisibleCalendars.length ? rakShiftCalendarEmbedUrl(initialVisibleCalendars) : rakShiftCalendarBlankEmbedUrl();
+  const calendarUrl = initialVisibleCalendars.length ? rakShiftCalendarEmbedUrl(initialVisibleCalendars) : '';
   const calendarLabel = calendars.length === 1
     ? String(calendars[0].label || ('Směna ' + team))
     : (calendars.length ? (String(calendars.length) + ' vybrané kalendáře') : ('Směna ' + team));
@@ -1625,13 +1677,15 @@ function renderCalendarModalContent(overlay) {
   content.__rakCalendars = [];
   content.__rakCalendarState = null;
   content.__rakCalendarDisplayState = { calendars: calendars.slice(), visibleKeys: initialVisibleKeys.slice() };
+  const hasVisibleCalendars = initialVisibleCalendars.length > 0;
   content.innerHTML = [
     rakCalendarLegendHtml(calendars, new Set(initialVisibleKeys)),
     '<div class="calendarModalFrameWrap">',
-    '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
-    '<div class="calendarSourceEmpty" hidden style="display:none">Všechny vybrané kalendáře jsou skryté.</div>',
+    '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade"' + (hasVisibleCalendars ? ' src="' + escapeHtml(calendarUrl) + '"' : ' hidden style="display:none"') + '></iframe>',
+    '<div class="calendarSourceEmpty"' + (hasVisibleCalendars ? ' hidden style="display:none"' : ' style="display:flex;height:100%;min-height:0"') + '></div>',
     '</div>'
   ].join('');
+  if (!hasVisibleCalendars) rakEnsureBlankCalendar(content.querySelector('.calendarSourceEmpty'));
   return true;
 }
 
@@ -1665,6 +1719,20 @@ function ensureCalendarModal(renderContent = true) {
         const nextVisible = Array.from(visible);
         rakCalendarApplyLegendVisibility(content, nextVisible);
         if (typeof window.setRakVisibleCalendarKeys === 'function') window.setRakVisibleCalendarKeys(nextVisible);
+        return;
+      }
+      const blankNav = event.target && event.target.closest ? event.target.closest('[data-calendar-blank-nav]') : null;
+      if (blankNav && content) {
+        event.preventDefault();
+        const blank = content.querySelector('.calendarSourceEmpty');
+        if (blank && blank.hidden === false) {
+          const delta = Number(blankNav.getAttribute('data-calendar-blank-nav')) || 0;
+          const year = Number(blank.dataset.blankYear);
+          const month = Number(blank.dataset.blankMonth);
+          const now = new Date();
+          const next = new Date(Number.isInteger(year) ? year : now.getFullYear(), (Number.isInteger(month) ? month : now.getMonth()) + delta, 1);
+          rakRenderBlankCalendar(blank, next.getFullYear(), next.getMonth());
+        }
         return;
       }
       const choice = event.target && event.target.closest ? event.target.closest('[data-calendar-choice-index]') : null;
