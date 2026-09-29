@@ -21,7 +21,7 @@ test('legend filtering rebuilds only the Google iframe display subset',()=>{
   assert(nav.includes('const visibleCalendars = calendars.filter'));
   assert(nav.includes('const nextUrl = rakShiftCalendarEmbedUrl(visibleCalendars);'));
   assert(nav.includes("frame.setAttribute('src', nextUrl)"));
-  assert(nav.includes('Všechny vybrané kalendáře jsou skryté.'));
+  assert(nav.includes('rakEnsureBlankCalendar(empty)'));
   assert(!nav.includes('setRakSelectedCalendarKeys(visible'));
   assert(!nav.includes('saveActiveAccountCalendarSelection(visible'));
 });
