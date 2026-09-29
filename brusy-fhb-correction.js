@@ -518,7 +518,7 @@
     }
   }
 
-  // RAK_17165_SIGN_FREZKY_PARITY: Brusy/admin sign controls mirror the proven Korekce Frézky control.
+  // RAK_17165_SIGN_FREZKY_PARITY: Brusy/admin sign controls mirror the proven Korekce Frézky control exactly.
   function installStyles() {
     if (document.getElementById('brus-fhb-correction-styles')) return;
     const style = document.createElement('style');
