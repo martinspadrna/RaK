@@ -1,3 +1,9 @@
+## RaK 1.7.164 (development)
+
+- Kalkulačky → Korekce Brusy a Administrace → nastavení korekcí Frézky/Brusy: přepínač znaménka už není centrovaný podle metrik fontu.
+- Znak `+` / `−` se v těchto sdílených ovladačích vykresluje geometricky dvěma přesně centrovanými čárami; přepínací logika, hodnoty a ukládání zůstávají beze změny.
+- Ostatní kalkulačky, korekční modely, strojní nastavení a produkční prostředí nejsou změněné.
+
 ## RaK 1.7.163 (development)
 
 - Dashboard → Kalendář: fyzický iPhone test 1.7.162 odhalil pravou mezeru uvnitř lokálního prázdného měsíce při 0 aktivních kalendářích.
