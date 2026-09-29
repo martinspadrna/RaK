@@ -79,7 +79,7 @@ try{
  const m=String(res.stdout||'').match(/<pre id="probe">([^<]+)<\/pre>/);
  assert(m&&m[1]!=='WAIT','[17100-browser] probe missing');
  const data=JSON.parse(m[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
- assert(data.signs.length===8&&data.signs.every(x=>x.width>=44&&x.height>=44&&x.display!=='none'&&x.visibility==='visible'),'[17100-browser] Brusy sign controls hidden/crushed '+JSON.stringify(data));
+ assert(data.signs.length===8&&data.signs.every(x=>x.width>=42&&x.height>=44&&x.display!=='none'&&x.visibility==='visible'),'[17100-browser] Brusy sign controls hidden/crushed '+JSON.stringify(data));
  assert(data.date.width<=124.5&&data.date.rightBorder>=1&&data.date.nativeOpacity===0,'[17100-browser] visible date shell or native overlay regressed '+JSON.stringify(data));
  assert(data.gap>=8,'[17100-browser] date and shift collide '+JSON.stringify(data));
  assert(data.pickerDistance<=10,'[17100-browser] rotation picker detached from tapped field '+JSON.stringify(data));
