@@ -9,7 +9,7 @@ test('Google iframe gets stable per-calendar colors and a matching visible legen
   assert(nav.includes('RAK_CALENDAR_DISPLAY_COLORS'));
   assert(nav.includes("'kalirna-A': '#A32929'"));
   assert(nav.includes("'kalirna-D': '#5229A3'"));
-  assert(nav.includes('rakCalendarLegendHtml(calendars)'));
+  assert(nav.includes('rakCalendarLegendHtml(calendars'));
   assert(nav.includes("embed.searchParams.append('color', colors[index])"));
   assert(css.includes('.calendarSourceLegendChip'));
   assert(css.includes('.calendarSourceLegendDot'));
