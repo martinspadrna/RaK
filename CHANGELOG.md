@@ -1,3 +1,12 @@
+## RaK 1.7.161 (development)
+
+- Dashboard → Kalendář: opravuje fyzický FAIL nulového stavu z 1.7.160. Google iframe bez `src` vyvolával na iPhonu cookie bránu místo prázdného kalendáře.
+- Při vypnutí všech štítků se proto Google iframe úplně odpojí a zobrazí se lehký lokální měsíční kalendář bez událostí, se stejným bílým měsíčním rozložením a navigací mezi měsíci.
+- Jakmile se zapne alespoň jeden zdroj, lokální prázdný pohled zmizí a znovu se načte originální Google Calendar iframe pouze s aktivními kalendáři.
+- Account-scoped ukládání zapnuto/vypnuto z 1.7.160 zůstává: `calendar_hidden_keys` se synchronizuje přes TEST account UI CAS profil mezi zařízeními.
+- Generátor rozpisu, report dovolených a chráněný kalendář Obrábění D zůstávají beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.160 (development)
 
 - Dashboard → Kalendář: zapnutí/vypnutí jednotlivých štítků legendy se nově ukládá k přihlášenému účtu a synchronizuje mezi zařízeními.

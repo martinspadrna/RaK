@@ -3,15 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('disabling the final visible calendar never leaves the last real source loaded',()=>{
+test('disabling the final visible calendar never leaves the last real Google source loaded',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const end=nav.indexOf('function rakShiftCalendarEmbedUrl',start);
   assert(start>=0 && end>start);
   const fn=nav.slice(start,end);
   assert(fn.includes('if (!visibleCalendars.length)'));
-  assert(fn.includes('rakShiftCalendarBlankEmbedUrl()'));
-  assert(fn.includes("frame.setAttribute('src', blankUrl)"));
+  assert(fn.includes("frame.removeAttribute('src')"));
+  assert(fn.includes("frame.style.display = 'none'"));
   assert(!fn.includes('visibleCalendars[visibleCalendars.length - 1]'));
 });
 
@@ -22,17 +22,16 @@ test('reenabling a calendar reconstructs the Google iframe from the active sourc
   const fn=nav.slice(start,end);
   assert(fn.includes('rakShiftCalendarEmbedUrl(visibleCalendars)'));
   assert(fn.includes("frame.setAttribute('src', nextUrl)"));
-  assert(fn.includes("frame.style.display = 'block';"));
+  assert(fn.includes("frame.style.display = 'block'"));
 });
 
-test('zero-visible state stays temporary and never changes account calendar selection',()=>{
+test('zero-visible state does not change which calendars are selected in Settings',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const end=nav.indexOf('function rakShiftCalendarEmbedUrl',start);
   const fn=nav.slice(start,end);
   assert(!fn.includes('setRakSelectedCalendarKeys'));
   assert(!fn.includes('saveActiveAccountCalendarSelection'));
-  assert(!fn.includes('localStorage'));
 });
 
 test('protected D vacation calendar source remains unchanged',()=>{

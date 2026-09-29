@@ -37,11 +37,11 @@ test('TEST migration bounds hidden keys and keeps direct table access revoked',(
   assert(sql.includes("has_table_privilege('anon', 'public.rak_account_ui_preferences', 'SELECT')"));
 });
 
-test('zero active calendars stay a blank Google calendar and D vacation source stays independent',()=>{
+test('account-synced zero active state stays independent of D vacation source',()=>{
   const nav=read('app-navigation.js');
   const core=read('core.js');
   const report=read('rak-vacation-report.js');
-  assert(nav.includes('rakShiftCalendarBlankEmbedUrl()'));
+  assert(nav.includes('rakEnsureBlankCalendar(empty)'));
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
   assert(report.includes('getRakActiveShiftCalendarContext'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));

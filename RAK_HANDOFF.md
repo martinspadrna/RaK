@@ -338,8 +338,8 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - **RaK 1.7.158 – FYZICKY PASS na iPhonu 29. 9. 2026:** po deaktivaci všech štítků už poslední aktivní kalendář nezůstává zobrazený.
 - Uložený výběr v Nastavení ovlivňuje pouze dashboard. Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
 - **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
-- RaK 1.7.159 připravila UX „0 aktivních = prázdný Google kalendář“, ale před fyzickým uzavřením ji nahrazuje 1.7.160.
-- **RaK 1.7.160 čeká na zelený exact-SHA CI a fyzický test:** nula aktivních štítků = Google kalendář bez událostí; zapnuto/vypnuto v legendě je local-first a ukládá se k účtu jako `calendar_hidden_keys` v TEST account UI CAS profilu, takže se přenese na jiné zařízení. Výběr kalendářů v Nastavení zůstává samostatný.
+- RaK 1.7.160 doplnila account-scoped `calendar_hidden_keys` pro přenos zapnuto/vypnuto legendy mezi zařízeními. Fyzický nulový stav ale FAIL: Google iframe bez zdroje na iPhonu zobrazil cookie bránu.
+- **RaK 1.7.161 čeká na zelený exact-SHA CI a fyzický test:** nula aktivních štítků = lokální prázdný měsíční kalendář bez událostí a bez Google cookie brány; při prvním aktivním zdroji se vrátí originální Google iframe. Account sync viditelnosti z 1.7.160 zůstává.
 
 ### Ostatní otevřený backlog
 
