@@ -9,6 +9,7 @@ test('Chrome process-group isolation ignores only zombie members and remains fai
   assert(script.includes("!String(match[2]).startsWith('Z')"));
   assert(script.includes('chromeProcessGroupHasLiveMembers(pid)'));
   assert(script.includes("signal('SIGKILL')"));
+  assert(script.includes("waitForChromeTreeExit(chrome,10000)"));
   assert(script.includes("'[perf-parity] live Chrome process tree did not exit cleanly'"));
 });
 

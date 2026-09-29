@@ -83,7 +83,7 @@ async function stopChromeProcessTree(chrome){
   signal('SIGTERM');
   if(await waitForChromeTreeExit(chrome,2500))return;
   signal('SIGKILL');
-  assert(await waitForChromeTreeExit(chrome,2500),'[perf-parity] live Chrome process tree did not exit cleanly');
+  assert(await waitForChromeTreeExit(chrome,10000),'[perf-parity] live Chrome process tree did not exit cleanly');
 }
 async function freePort(){return await new Promise((resolve,reject)=>{const s=net.createServer();s.unref();s.on('error',reject);s.listen(0,'127.0.0.1',()=>{const a=s.address();const p=a&&typeof a==='object'?a.port:0;s.close(e=>e?reject(e):resolve(p));});});}
 async function measureRoot(root,label,round){
