@@ -36,21 +36,22 @@
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen **„ok“**, znamená to PASS tohoto testu. Poté zapsat PASS do handoffu.
 - Po větším balíku aktualizovat tento dokument; nevytvářet paralelní plánovací soubor.
 
-## Aktuální stav k 28. 9. 2026
+## Aktuální stav k 29. 9. 2026
 
 ### Development runtime
 
-- Aktuální TEST runtime je **RaK 1.7.146**, build `v1.7.146-admins-compact1`.
-- Exact runtime/test SHA: `fe43e643e592df9f56a83a96bd2ca80941ff7133`.
-- Actions run **#558 / 36479490877** je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof.
-- READY Vercel deployment: `dpl_771LYM6ESRZdzSGvvALvHwggqxCX`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
-- Produkce zůstala při release-preview beze změny.
+- Aktuální TEST runtime je **RaK 1.7.148**, build `v1.7.148-unplanned-local1`.
+- Exact runtime/test SHA: `01dc6e712dee6917a12fad0b35f64c3832550c61`.
+- Actions run **#565 / 36487053202** je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof.
+- READY Vercel deployment: `dpl_DvppGGZjY4Nu76zhtZqsPL8REXZ2`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
+- TEST Supabase `cgshssdjgzzuprlwnabl` má aplikovanou migraci `rak_unplanned_kalirna_direct_cell_17148`; definice `rak_admin_apply_unplanned_change_v2` byla po migraci read-only ověřena přímo v DB.
+- Produkce i `main` zůstaly při release-preview beze změny.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 1 administrační série:** v Administrace → Rozpisy jsou neuložené místní návrhy, exporty a tlačítko „Smazat všechny místní návrhy“ v jednom rámečku, tlačítka mají požadovaný svislý odstup a blok „Statistické odchylky“ je odstraněný.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 2 administrační série:** přehled jména × skupiny strojů je výchozí rozbalený; TNK/W01/W02; Jméno 54 px; TO/MO i stroje 35 px se svislými čárami; panel místních návrhů je výchozí zabalený.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 3 administrační série:** Administrace → Pravidla generátoru je na 1.7.144 potvrzena jako kompaktní skládací editor s pěti výchozím způsobem zabalenými sekcemi; všechna původní pole a ukládací logika zůstávají zachované.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 4 administrační série:** Administrace → Kantýna / jídelna je na 1.7.145 potvrzena jako kompaktní editor se dvěma výchozím způsobem zabalenými sekcemi „Běžná otevírací doba“ a „Přesčasová doba“; časová pole a řádky jsou zhutněné a tři spodní akce jsou vedle sebe. Původní datové hooky a ukládací logika zůstávají zachované.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 5 administrační série:** Administrace → Správci je na 1.7.146 potvrzena jako kompaktní editor; stav je na mobilu 2×2 a sekce Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo jsou výchozím způsobem zabalené. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované. **Administrační série 1–5 je tím uzavřená.**
-
+- **Fyzický iPhone PASS 29. 9. 2026 – neplánovaná Kalírna 1.7.148:** člověk s „Odešel na kalírnu“ zůstává v rozpisu evidenčně jako růžová buňka `Jméno →K`, ale není započítán do fyzického MO staffingu. Bez jiné absence zůstává fyzicky 5 TO + 4 MO a evidence Kalírny je na volné MFKF06; s jednou další absencí zůstává fyzicky 5 TO + 3 MO a evidence Kalírny je na volné MSKC01. D/NV/§/Lékař zůstávají absencemi a neplánovaná změna se omezuje jen na vybraný den / rozsah. **Backlog „Kalírna → evidenční MFKF06“ je uzavřen.**
 
 ### Produkce – neměnit bez souhlasu
 
@@ -62,8 +63,8 @@
 
 ### Aktuální CI poznámka
 
-- Poslední funkční runtime 1.7.146 má zelený exact-SHA run **#558 / 36479490877**. Výkonové limity nebyly uvolněny.
-- Předchozí neúspěšné CI mezikroky 1.7.140/1.7.141 jsou historické a nejsou aktuálním stavem; jejich detail zůstává v GitHub Actions.
+- Poslední funkční runtime 1.7.148 má zelený exact-SHA run **#565 / 36487053202**. Výkonové limity nebyly uvolněny.
+- Neúspěšné mezikroky během přípravy 1.7.148 jsou historické; stabilní TEST alias byl přesunut až po zeleném exact-SHA runu #565.
 - Při dalším funkčním releasu musí opět projít celý fail-closed řetězec na jeho exact SHA.
 
 ## Stav 13 bodů – závěrečný audit 28. 9. 2026
@@ -295,13 +296,16 @@ Pro Dovolenou, Náhradní volno, Paragraf a Lékaře:
 - Typický stav 5→4 na MO při odchodu soustružníka: pracovník z MFKF06 přejde na uvolněný soustruh, MFKF06 zůstane prázdná a MFKF10 zůstane na místě.
 - Odchod z MFKF06 nevyžaduje další přesun. Odchod z MFKF10 preferuje MFKF06→MFKF10.
 - Pokud přímý přesun neumožní kvalifikace, smí se použít nejkratší nutný řetězec; až pokud žádná lokální permutace není validní, použít scoped generátor pro konkrétní den.
+- RaK 1.7.148 ukládá Kalírnu přímo do chráněné prázdné MO buňky se stejným `kalirnaOut` daymodem: viditelně `Jméno →K`, růžově, ale bez započtení do fyzického staffingu, statistik a historie generátoru.
+- Bez jiné absence: fyzicky 5 TO + 4 MO, evidence Kalírny na volné MFKF06. S jednou další absencí: fyzicky 5 TO + 3 MO, evidence Kalírny na volné MSKC01.
+- **Fyzický iPhone PASS 29. 9. 2026:** nové přímé evidenční zobrazení i staffing pravidla potvrzena; bod je uzavřen.
 
 ## Dodatečný seznam vlastníka – reconciliace 28. 9. 2026
 
 Tento seznam byl po konsolidaci znovu porovnán s aktuálním `development`. Nevracet již implementované požadavky do kódu bez nové konkrétní regrese.
 
 - **Administrace → Rozpisy → místní návrhy – FYZICKY PASS 28. 9. 2026:** RaK 1.7.141 sjednocuje neuložené místní návrhy, jejich exporty a „Smazat všechny místní návrhy“ do jednoho rámečku; tlačítka mají svislý odstup. Mazání zůstává fail-closed a lokální, nezasahuje online rozpis ani jinou frontu. „Statistické odchylky“ byly z této obrazovky odstraněny.
-- **Rozpisy → přehled jména × skupiny strojů:** další otevřený bod vlastníka. Požadavek pro příští samostatný krok: nechat přehled v základu rozbalený, zobrazovat TNK/W01/W02, zúžit jméno o 10 %, strojové sloupce o 30 % a oddělit strojové sloupce svislými čárami. Neřešit současně s body 3–5.
+- **Rozpisy → přehled jména × skupiny strojů – FYZICKY PASS 28. 9. 2026:** přehled je výchozí rozbalený, používá TNK/W01/W02, Jméno 54 px, TO/MO i stroje 35 px a svislé oddělení sloupců. Další redesign jen při nové konkrétní fyzické připomínce.
 - **Administrace → Pravidla generátoru:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard`; vlastní obsah používá rule/status/impact cards. Neprovádět další redesign bez fyzické připomínky vlastníka.
 - **Administrace → Kantýna / jídelna – FYZICKY PASS 28. 9. 2026:** RaK 1.7.145 rozděluje editor do dvou kompaktních výchozím způsobem zabalených sekcí, zhutňuje tabulky a časová pole a drží tři spodní akce v jednom řádku. Ukládací logika zůstala beze změny; další redesign jen při nové konkrétní fyzické připomínce.
 - **Administrace → Správci – FYZICKY PASS 28. 9. 2026:** RaK 1.7.146 zhutňuje obrazovku do kompaktního stavu 2×2 a výchozím způsobem zabalených sekcí Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované; další redesign jen při nové konkrétní fyzické připomínce.
@@ -327,10 +331,9 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 
 ### Ostatní otevřený backlog
 
-1. **Kalírna → evidenční MFKF06:** pracovníka s důvodem „Odešel na kalírnu“ zobrazit na MFKF06 s jasným označením Kalírny, ale **nezapočítávat ho do aktivního MO staffing počtu**. Minimal-reflow 1.7.123 je už fyzicky PASS a nemá se kvůli tomuto bodu znovu přepisovat.
-2. **Cílený fyzický retest MO-only absence:** na iPhonu ověřit Dovolenou/NV/Paragraf/Lékaře člověka původně na MO. Pokud je TO stále validní, musí po uložení zůstat úplně stejné; změnit se smí jen MO a jiné dny se nesmí změnit. U člověka původně na TO je širší lokální přeskupení povolené, pokud je potřeba.
+1. **Cílený fyzický retest MO-only absence:** na iPhonu ověřit Dovolenou/NV/Paragraf/Lékaře člověka původně na MO. Pokud je TO stále validní, musí po uložení zůstat úplně stejné; změnit se smí jen MO a jiné dny se nesmí změnit. U člověka původně na TO je širší lokální přeskupení povolené, pokud je potřeba.
 
-Doporučené pořadí: administrační série je uzavřená; nejbližší další funkční úkol je **Kalírna → evidenční MFKF06**, poté cílený fyzický retest MO-only absence.
+**Nejbližší další krok je pouze fyzický retest MO-only absence; nevyžaduje nový kód, pokud test neodhalí regresi.**
 
 ## Release / test checklist pro další funkční změnu
 
