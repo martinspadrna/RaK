@@ -52,7 +52,7 @@
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 4 administrační série:** Administrace → Kantýna / jídelna je na 1.7.145 potvrzena jako kompaktní editor se dvěma výchozím způsobem zabalenými sekcemi „Běžná otevírací doba“ a „Přesčasová doba“; časová pole a řádky jsou zhutněné a tři spodní akce jsou vedle sebe. Původní datové hooky a ukládací logika zůstávají zachované.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 5 administrační série:** Administrace → Správci je na 1.7.146 potvrzena jako kompaktní editor; stav je na mobilu 2×2 a sekce Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo jsou výchozím způsobem zabalené. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované. **Administrační série 1–5 je tím uzavřená.**
 - **Fyzický iPhone PASS 29. 9. 2026 – neplánovaná Kalírna 1.7.148:** člověk s „Odešel na kalírnu“ zůstává v rozpisu evidenčně jako růžová buňka `Jméno →K`, ale není započítán do fyzického MO staffingu. Bez jiné absence zůstává fyzicky 5 TO + 4 MO a evidence Kalírny je na volné MFKF06; s jednou další absencí zůstává fyzicky 5 TO + 3 MO a evidence Kalírny je na volné MSKC01. D/NV/§/Lékař zůstávají absencemi a neplánovaná změna se omezuje jen na vybraný den / rozsah. **Backlog „Kalírna → evidenční MFKF06“ je uzavřen.**
-- **Fyzický iPhone PASS 29. 9. 2026 – MO-only Dovolená:** člověk původně na MO po neplánované Dovolené zmizel ze stroje a je v Absencích; pokud TO zůstává validní, zachovalo se úplně beze změny. MO se přepočítalo lokálně na 4 fyzické pracovníky (MSKC01, MSKC03, MSKC04, MFKF10), MFKF06 zůstala prázdná a jiné dny se nezměnily. Důvod D je tím fyzicky potvrzen.
+- **Fyzický iPhone PASS 29. 9. 2026 – MO-only absence komplet:** Dovolená / Náhradní volno / Paragraf / Lékař jsou fyzicky potvrzené na iPhonu. Člověk původně na MO po neplánované absenci zmizí ze stroje a je v Absencích; pokud TO zůstává validní, zachová se úplně beze změny. MO se přepočítá jen na vybraném dni / rozsahu a jiné dny se nemění. **Cílený MO-only retest všech čtyř důvodů je uzavřen.**
 
 ### Produkce – neměnit bez souhlasu
 
@@ -288,7 +288,7 @@ Pro Dovolenou, Náhradní volno, Paragraf a Lékaře:
 - zachované TO musí mít správný počet lidí, žádnou nedostupnou/duplicitní osobu, platné kvalifikace a musí respektovat pravidlo TPKW02 při 3 absencích;
 - pokud pracovník byl na TO nebo TO nelze bezpečně zachovat, smí se použít širší lokální přepočet pouze daného dne;
 - fail-closed kontrola musí odhalit jakoukoli nepovolenou změnu chráněného TO.
-- **Fyzický iPhone PASS 29. 9. 2026 – Dovolená (D):** MO-only scénář potvrzen; TO zůstalo byte-identické a změnil se jen vybraný den na MO.
+- **Fyzický iPhone PASS 29. 9. 2026 – D / NV / § / Lékař:** všechny čtyři důvody fyzicky potvrzené v MO-only scénáři; při validním původním TO zůstává TO byte-identické, mění se pouze MO na vybraném dni / rozsahu a pracovník je v Absencích.
 
 ### „Odešel na kalírnu“ – minimal reflow
 
@@ -333,9 +333,11 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 
 ### Ostatní otevřený backlog
 
-1. **Cílený fyzický retest MO-only absence – ROZPRACOVÁNO:** Dovolená **PASS** 29. 9. 2026. Ještě fyzicky ověřit NV / Paragraf / Lékaře člověka původně na MO. Pokud je TO stále validní, musí po uložení zůstat úplně stejné; změnit se smí jen MO a jiné dny se nesmí změnit. U člověka původně na TO je širší lokální přeskupení povolené, pokud je potřeba.
+**Žádný známý otevřený funkční backlog.**
 
-**Nejbližší další krok: MO-only Náhradní volno (NV). Nevyžaduje nový kód, pokud test neodhalí regresi.**
+- Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
+- MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
+- Pokud se objeví nová konkrétní regrese nebo nový požadavek vlastníka, řešit jej jako nový samostatný bod; automaticky neotvírat znovu uzavřený 13bodový audit.
 
 ## Release / test checklist pro další funkční změnu
 
