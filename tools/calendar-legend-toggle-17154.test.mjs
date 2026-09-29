@@ -11,7 +11,9 @@ test('calendar legend chips are accessible visibility toggles',()=>{
   assert(nav.includes('function rakCalendarApplyLegendVisibility'));
   assert(nav.includes("if (visible.has(key)) visible.delete(key);"));
   assert(nav.includes('else visible.add(key);'));
-  assert(css.includes('.calendarSourceLegendChip[aria-pressed="false"]'));
+  assert(nav.includes("button.style.opacity = active ? '1' : '.42'"));
+  assert(nav.includes("button.style.filter = active ? '' : 'saturate(.35)'"));
+  assert(css.includes('.calendarSourceLegendChip{'));
 });
 
 test('legend filtering rebuilds only the Google iframe display subset',()=>{

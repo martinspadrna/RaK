@@ -1462,7 +1462,7 @@ function rakCalendarLegendHtml(calendars, visibleKeys) {
   const items = entries.map((entry) => {
     const meta = rakCalendarDisplayMeta(entry);
     const active = visible.has(meta.key);
-    return '<button type="button" class="calendarSourceLegendChip' + (active ? ' isActive' : '') + '" data-calendar-legend-key="' + escapeHtml(meta.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '" title="' + escapeHtml((active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel) + '">' +
+    return '<button type="button" class="calendarSourceLegendChip' + (active ? ' isActive' : '') + '" data-calendar-legend-key="' + escapeHtml(meta.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '" style="font-family:inherit;' + (active ? '' : 'opacity:.42;filter:saturate(.35);') + '" title="' + escapeHtml((active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel) + '">' +
       '<span class="calendarSourceLegendDot" style="--calendar-source-color:' + escapeHtml(meta.color) + '"></span>' +
       '<span>' + escapeHtml(meta.shortLabel) + '</span></button>';
   }).join('');
@@ -1484,6 +1484,8 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
     const active = visibleSet.has(key);
     button.classList.toggle('isActive', active);
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.style.opacity = active ? '1' : '.42';
+    button.style.filter = active ? '' : 'saturate(.35)';
     const entry = calendars.find((calendar) => String(calendar && calendar.key || '').trim() === key);
     const meta = rakCalendarDisplayMeta(entry || { key, label: key });
     button.setAttribute('title', (active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel);

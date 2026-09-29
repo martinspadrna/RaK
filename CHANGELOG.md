@@ -4,6 +4,7 @@
 - Rychlé přepínání viditelnosti nepřepisuje účetní výběr z Nastavení → Kalendář. Uložené kalendáře zůstávají stejné i při dočasném filtrování v otevřeném dashboard kalendáři.
 - Pokud jsou dočasně skryté všechny vybrané kalendáře, legenda zůstává dostupná a iframe se nahradí neutrální informací; kterýkoli zdroj lze znovu zapnout jedním klepnutím.
 - Kalendář Obrábění D používaný směnou D pro dovolené ani operational context generátoru/reportu se nemění.
+- Přepínač nepřidává žádné nové CSS na first-paint critical path; používá stejné styly legendy jako fyzicky potvrzená 1.7.153 a stav vypnutí se aplikuje až při interakci.
 - Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
 
 ## RaK 1.7.153 (development)
