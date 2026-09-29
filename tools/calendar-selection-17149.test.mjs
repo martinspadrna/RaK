@@ -13,6 +13,8 @@ test('1.7.149 exposes eight managed calendars and defaults to exactly one',()=>{
   assert(core.includes("entry.calendarAssignment || entry.calendar_assignment || entry.workGroup || entry.work_group"));
   assert(core.includes("calendarAssignment:'obrabeni-D'"));
   assert(core.includes("['obrabeni-' + team, 'kalirna-' + team]"));
+  assert(core.includes("getRakAllShiftCalendars().filter((entry) => entry.key === assignmentKey).slice(0, 1)"));
+  assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
 });
 
 test('calendar selection is available in Settings and calendar opens in native RaK renderer',()=>{
@@ -21,6 +23,7 @@ test('calendar selection is available in Settings and calendar opens in native R
   const css=read('styles-settings-runtime.css');
   assert(pages.includes('buildRakCalendarSelectionSettingsHtml'));
   assert(pages.includes('bindRakCalendarSelectionSettings'));
+  assert(nav.includes('getRakActiveShiftCalendarDisplayContext'));
   assert(nav.includes("content.innerHTML = '<div class=\"calendarNativeHost\"></div>';"));
   assert(nav.includes('void rakNativeCalendarLoad(content, 0);'));
   assert(css.includes('.rakCalendarPreferenceGroups'));

@@ -1470,9 +1470,11 @@ function rakShiftCalendarEmbedUrl(calendars) {
 
 function renderCalendarModalContent(overlay) {
   if (!overlay) return false;
-  const context = typeof getRakActiveShiftCalendarContext === 'function'
-    ? getRakActiveShiftCalendarContext()
-    : { team: 'D', calendars: [] };
+  const context = typeof getRakActiveShiftCalendarDisplayContext === 'function'
+    ? getRakActiveShiftCalendarDisplayContext()
+    : (typeof getRakActiveShiftCalendarContext === 'function'
+      ? getRakActiveShiftCalendarContext()
+      : { team: 'D', calendars: [] });
   const team = String(context && context.team || 'D');
   const calendars = Array.isArray(context && context.calendars) ? context.calendars : [];
   const title = overlay.querySelector('#calendarModalTitle');

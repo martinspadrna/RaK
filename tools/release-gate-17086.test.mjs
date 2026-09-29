@@ -35,9 +35,10 @@ test('Dashboard and modal keep account-aware calendar routing in selectable-cale
   const dashboard=read('dashboard.js');
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
   assert(core.includes('const info = getRakActiveAccountShiftInfo();'));
+  assert(core.includes("getRakAllShiftCalendars().filter((entry) => entry.key === assignmentKey).slice(0, 1)"));
+  assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
   assert(core.includes('const selectedKeys = getRakSelectedCalendarKeys();'));
-  assert(core.includes('const calendars = getRakAllShiftCalendars().filter'));
-  assert(nav.includes("const context = typeof getRakActiveShiftCalendarContext === 'function'"));
+  assert(nav.includes("const context = typeof getRakActiveShiftCalendarDisplayContext === 'function'"));
   assert(nav.includes('data-calendar-choice-index'));
   assert(dashboard.includes('getRakActiveShiftCalendarContext()'));
   assert(dashboard.includes("setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', true, calendarIcon)"));

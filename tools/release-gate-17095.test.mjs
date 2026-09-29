@@ -56,8 +56,9 @@ test('calendar surface is prewarmed in idle time and keeps account-aware routing
   assert(nav.includes('window.requestIdleCallback(prewarm, { timeout: 1200 })'));
   assert(nav.includes('ensureCalendarModal()'));
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
+  assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
   assert(core.includes('const selectedKeys = getRakSelectedCalendarKeys();'));
-  assert(core.includes('const calendars = getRakAllShiftCalendars().filter'));
+  assert(nav.includes('getRakActiveShiftCalendarDisplayContext'));
 });
 
 test('npm check retains 1.7.95 while CI runs the current release gate',()=>{

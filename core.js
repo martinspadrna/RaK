@@ -1013,18 +1013,24 @@ function getRakActiveShiftCalendarContext() {
   const team = RAK_SHIFT_CALENDAR_TEAMS.includes(String(info && info.team || '').toUpperCase())
     ? String(info.team).toUpperCase()
     : 'D';
-  const selectedKeys = getRakSelectedCalendarKeys();
-  const selected = new Set(selectedKeys);
-  const calendars = getRakAllShiftCalendars().filter((entry) => selected.has(entry.key));
   const assignmentKey = normalizeRakCalendarAssignmentKey(info && info.calendarAssignment || '', team);
+  const calendars = getRakAllShiftCalendars().filter((entry) => entry.key === assignmentKey).slice(0, 1);
   return {
     team,
     outside: !!(info && info.outside),
     assignmentKey,
     assignmentLabel: rakCalendarAssignmentLabel(assignmentKey),
-    selectedKeys,
+    selectedKeys: [assignmentKey],
     calendars
   };
+}
+
+function getRakActiveShiftCalendarDisplayContext() {
+  const base = getRakActiveShiftCalendarContext();
+  const selectedKeys = getRakSelectedCalendarKeys();
+  const selected = new Set(selectedKeys);
+  const calendars = getRakAllShiftCalendars().filter((entry) => selected.has(entry.key));
+  return Object.assign({}, base, { selectedKeys, calendars });
 }
 
 function buildRakCalendarSelectionSettingsHtml() {
@@ -1075,6 +1081,7 @@ window.getRakAllShiftCalendars = getRakAllShiftCalendars;
 window.getRakSelectedCalendarKeys = getRakSelectedCalendarKeys;
 window.setRakSelectedCalendarKeys = setRakSelectedCalendarKeys;
 window.getRakActiveShiftCalendarContext = getRakActiveShiftCalendarContext;
+window.getRakActiveShiftCalendarDisplayContext = getRakActiveShiftCalendarDisplayContext;
 window.buildRakCalendarSelectionSettingsHtml = buildRakCalendarSelectionSettingsHtml;
 window.bindRakCalendarSelectionSettings = bindRakCalendarSelectionSettings;
 
