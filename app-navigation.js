@@ -1495,8 +1495,15 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   const empty = content.querySelector('.calendarSourceEmpty');
   const visibleCalendars = calendars.filter((entry) => visibleSet.has(String(entry && entry.key || '').trim()));
   if (!visibleCalendars.length) {
-    if (frame) frame.hidden = true;
-    if (empty) empty.hidden = false;
+    if (frame) {
+      frame.removeAttribute('src');
+      frame.hidden = true;
+      frame.style.display = 'none';
+    }
+    if (empty) {
+      empty.hidden = false;
+      empty.style.display = 'grid';
+    }
     return true;
   }
 
@@ -1505,8 +1512,12 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   if (frame) {
     if (frame.getAttribute('src') !== nextUrl) frame.setAttribute('src', nextUrl);
     frame.hidden = false;
+    frame.style.display = 'block';
   }
-  if (empty) empty.hidden = true;
+  if (empty) {
+    empty.hidden = true;
+    empty.style.display = 'none';
+  }
   return true;
 }
 
@@ -1599,7 +1610,7 @@ function renderCalendarModalContent(overlay) {
     rakCalendarLegendHtml(calendars, new Set(initialVisibleKeys)),
     '<div class="calendarModalFrameWrap">',
     '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
-    '<div class="calendarSourceEmpty" hidden>Všechny vybrané kalendáře jsou skryté.</div>',
+    '<div class="calendarSourceEmpty" hidden style="display:none">Všechny vybrané kalendáře jsou skryté.</div>',
     '</div>'
   ].join('');
   return true;

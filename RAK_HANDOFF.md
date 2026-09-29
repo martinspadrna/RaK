@@ -336,8 +336,9 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - **RaK 1.7.153 – FYZICKY PASS na iPhonu 29. 9. 2026:** originální Google Calendar iframe, barevná legenda zdrojů, zavření modalu při spodní navigaci a account-scoped synchronizace zvolených kalendářů mezi zařízeními potvrzeny.
 - Uložený multi-výběr ovlivňuje pouze dashboard. Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
 - **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
-- RaK 1.7.154 interaktivní legenda: funkčně implementovaná, ale fyzický iPhone test odhalil layout regresi — jednotlivé štítky se roztáhly přes celou šířku.
-- **RaK 1.7.155 čeká na fyzický test:** štítky legendy mají být jen na šířku krátkého popisku a řadit se vedle sebe; jejich zapnutí/vypnutí stále nesmí přepisovat účetní výběr.
+- **RaK 1.7.155 – FYZICKY PASS šířky legendy 29. 9. 2026:** štítky jsou jen na šířku krátkého popisku a řadí se vedle sebe.
+- Fyzický test 1.7.155 odhalil navazující regresi: po deaktivaci všech štítků zůstával v iframe viditelný poslední aktivní kalendář.
+- **RaK 1.7.156 čeká na fyzický test:** při nule aktivních štítků musí být Google iframe skutečně vyprázdněný/skrytý a po zapnutí zdroje se znovu korektně načíst; účetní výběr se nesmí změnit.
 
 ### Ostatní otevřený backlog
 

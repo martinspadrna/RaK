@@ -1,3 +1,12 @@
+## RaK 1.7.156 (development)
+
+- Dashboard → Kalendář: při vypnutí posledního aktivního štítku se Google iframe skutečně odpojí (`src` se odstraní) a skryje, takže poslední kalendář už nezůstane vizuálně zobrazený.
+- Prázdný stav zobrazuje pouze informaci „Všechny vybrané kalendáře jsou skryté.“; opětovné zapnutí kteréhokoli štítku znovu sestaví originální Google iframe jen z aktivních zdrojů.
+- Dočasné přepínače stále nepřepisují účetní výběr z Nastavení → Kalendář.
+- Šířka kompaktních štítků z fyzicky potvrzené 1.7.155 zůstává beze změny.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.155 (development)
 
 - Dashboard → Kalendář: přepínače barevné legendy už nejsou přes celou šířku; každý štítek má pouze šířku podle svého krátkého popisku (`Kal.A`, `Obr.D` apod.) a skládají se vedle sebe.
