@@ -220,6 +220,7 @@
     hint.textContent = 'Korekci zadáváš ve stroji do programu ' + programSideCs(side.value === 'right' ? 'right' : 'left') + '.';
   }
 
+  // RAK_17166_BRUSY_SIGN_OWNER: calculator Brusy owns the final Frezky-parity sign geometry here.
   function installStyles() {
     if (document.getElementById('brus-fhb-v157-styles')) return;
     const style = document.createElement('style');
