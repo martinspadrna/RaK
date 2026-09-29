@@ -22,13 +22,10 @@ test('blank Google calendar URL contains presentation settings but no source cal
   const end=nav.indexOf('function rakShiftCalendarEmbedUrl',start);
   assert(start>=0 && end>start);
   const helper=nav.slice(start,end);
-  assert(helper.includes('rakShiftCalendarBaseEmbedUrl().toString()'));
-  const baseStart=nav.indexOf('function rakShiftCalendarBaseEmbedUrl');
-  const baseEnd=nav.indexOf('function rakShiftCalendarBlankEmbedUrl',baseStart);
-  const base=nav.slice(baseStart,baseEnd);
-  assert(base.includes("new URL('https://calendar.google.com/calendar/embed')"));
-  assert(base.includes("embed.searchParams.set('ctz', 'Europe/Prague')"));
-  assert(!base.includes("append('src'"));
+  assert(helper.includes("new URL('https://calendar.google.com/calendar/embed')"));
+  assert(helper.includes("embed.searchParams.set('ctz', 'Europe/Prague')"));
+  assert(helper.includes('return embed.toString()'));
+  assert(!helper.includes("append('src'"));
 });
 
 test('real calendar embed still appends only selected source ids and blank state does not persist account selection',()=>{

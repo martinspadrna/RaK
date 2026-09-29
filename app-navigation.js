@@ -1522,7 +1522,7 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   return true;
 }
 
-function rakShiftCalendarBaseEmbedUrl() {
+function rakShiftCalendarBlankEmbedUrl() {
   const embed = new URL('https://calendar.google.com/calendar/embed');
   embed.searchParams.set('height', '900');
   embed.searchParams.set('wkst', '2');
@@ -1532,11 +1532,7 @@ function rakShiftCalendarBaseEmbedUrl() {
   embed.searchParams.set('showTabs', '0');
   embed.searchParams.set('showCalendars', '0');
   embed.searchParams.set('showTz', '0');
-  return embed;
-}
-
-function rakShiftCalendarBlankEmbedUrl() {
-  return rakShiftCalendarBaseEmbedUrl().toString();
+  return embed.toString();
 }
 function rakShiftCalendarEmbedUrl(calendars) {
   const sources = [];
@@ -1571,7 +1567,15 @@ function rakShiftCalendarEmbedUrl(calendars) {
     } catch (_) {}
   });
   if (!sources.length) return '';
-  const embed = rakShiftCalendarBaseEmbedUrl();
+  const embed = new URL('https://calendar.google.com/calendar/embed');
+  embed.searchParams.set('height', '900');
+  embed.searchParams.set('wkst', '2');
+  embed.searchParams.set('ctz', 'Europe/Prague');
+  embed.searchParams.set('showPrint', '0');
+  embed.searchParams.set('showTitle', '0');
+  embed.searchParams.set('showTabs', '0');
+  embed.searchParams.set('showCalendars', '0');
+  embed.searchParams.set('showTz', '0');
   sources.forEach((source, index) => {
     embed.searchParams.append('src', source);
     if (colors[index]) embed.searchParams.append('color', colors[index]);
