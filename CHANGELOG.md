@@ -1,3 +1,10 @@
+## RaK 1.7.163 (development)
+
+- Dashboard → Kalendář: fyzický iPhone test 1.7.162 odhalil pravou mezeru uvnitř lokálního prázdného měsíce při 0 aktivních kalendářích.
+- Oprava mění pouze vnitřní root prázdného měsíce: má `width:100%` a `flex:1`, takže vyplní celou šířku stejného `calendarModalFrame` jako Google iframe.
+- Výběr kalendářů, account-scoped `calendar_hidden_keys`, synchronizace účtu, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstávají beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.162 (development)
 
 - Dashboard → Kalendář: upravuje pouze rozměry lokálního prázdného měsíce při 0 aktivních kalendářích.
