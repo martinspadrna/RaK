@@ -31,7 +31,8 @@ test('calendar zero-visible fix remains interaction-only and protected D source 
   const start=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const end=nav.indexOf('function rakShiftCalendarEmbedUrl',start);
   const fn=nav.slice(start,end);
-  assert(fn.includes("frame.removeAttribute('src');"));
+  assert(fn.includes('if (!visibleCalendars.length)'));
+  assert(fn.includes('rakShiftCalendarBlankEmbedUrl()'));
   assert(!fn.includes('requestIdleCallback'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
 });

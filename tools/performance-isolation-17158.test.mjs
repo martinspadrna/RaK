@@ -26,8 +26,8 @@ test('1.7.158 changes no parity thresholds or sample count',()=>{
 test('zero-visible Google calendar behavior and protected D calendar remain unchanged',()=>{
   const nav=read('app-navigation.js');
   const core=read('core.js');
-  assert(nav.includes("frame.removeAttribute('src');"));
-  assert(nav.includes("frame.style.display = 'none';"));
-  assert(nav.includes("empty.style.display = 'grid';"));
+  assert(nav.includes('rakShiftCalendarBlankEmbedUrl()'));
+  assert(nav.includes("frame.setAttribute('src', blankUrl)"));
+  assert(nav.includes("empty.style.display = 'none';"));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
 });

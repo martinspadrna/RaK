@@ -8,8 +8,9 @@ test('1.7.156 zero-visible calendar milestone remains active in successors',()=>
   const metadata=assertCurrentReleaseIdentity(read,'1.7.156');
   assert(read('CHANGELOG.md').includes('## RaK 1.7.156 (development)'));
   const nav=read('app-navigation.js');
-  assert(nav.includes("frame.removeAttribute('src');"));
-  assert(nav.includes("frame.style.display = 'none';"));
+  assert(nav.includes('if (!visibleCalendars.length)'));
+  assert(nav.includes('rakShiftCalendarBlankEmbedUrl()'));
+  assert(nav.includes("frame.setAttribute('src', blankUrl)"));
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,metadata.displayVersion);
 });
 
