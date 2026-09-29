@@ -42,6 +42,8 @@ test('each parity sample tears down the complete Chromium process group before t
  assert(script.includes('function stopChromeProcessTree(chrome)'));
  assert(script.includes("process.kill(-pid,name)"));
  assert(script.includes('await stopChromeProcessTree(chrome)'));
- assert(script.includes("'[perf-parity] Chrome process tree did not exit cleanly'"));
+ assert(script.includes('function chromeProcessGroupHasLiveMembers(pid)'));
+ assert(script.includes("!String(match[2]).startsWith('Z')"));
+ assert(script.includes("'[perf-parity] live Chrome process tree did not exit cleanly'"));
  assert(!script.includes("chrome.kill('SIGTERM');for(let i=0;i<20"));
 });

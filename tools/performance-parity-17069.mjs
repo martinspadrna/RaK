@@ -48,8 +48,15 @@ function summarize(samples){
   return out;
 }
 
-function chromeProcessGroupAlive(pid){
+function chromeProcessGroupHasLiveMembers(pid){
   if(!POSIX_CHROME_GROUP||!Number.isInteger(pid)||pid<=0)return false;
+  const ps=spawnSync('ps',['-eo','pgid=,stat='],{encoding:'utf8',timeout:2000,maxBuffer:2*1024*1024});
+  if(!ps.error&&ps.status===0){
+    return String(ps.stdout||'').split(/\r?\n/).some(line=>{
+      const match=line.trim().match(/^(\d+)\s+(\S+)/);
+      return !!(match&&Number(match[1])===pid&&!String(match[2]).startsWith('Z'));
+    });
+  }
   try{process.kill(-pid,0);return true;}catch(err){return !!(err&&err.code==='EPERM');}
 }
 async function waitForChromeTreeExit(chrome,timeoutMs){
@@ -57,8 +64,8 @@ async function waitForChromeTreeExit(chrome,timeoutMs){
   const pid=Number(chrome&&chrome.pid||0);
   while(Date.now()<end){
     const parentAlive=!!(chrome&&chrome.exitCode===null);
-    const groupAlive=POSIX_CHROME_GROUP&&pid>0&&chromeProcessGroupAlive(pid);
-    if(!parentAlive&&!groupAlive)return true;
+    const groupHasLiveMembers=POSIX_CHROME_GROUP&&pid>0&&chromeProcessGroupHasLiveMembers(pid);
+    if(!parentAlive&&!groupHasLiveMembers)return true;
     await delay(50);
   }
   return false;
@@ -72,11 +79,11 @@ async function stopChromeProcessTree(chrome){
       else if(chrome.exitCode===null)chrome.kill(name);
     }catch(err){if(!err||err.code!=='ESRCH')throw err;}
   };
-  if(chrome.exitCode!==null&&(!POSIX_CHROME_GROUP||!chromeProcessGroupAlive(pid)))return;
+  if(chrome.exitCode!==null&&(!POSIX_CHROME_GROUP||!chromeProcessGroupHasLiveMembers(pid)))return;
   signal('SIGTERM');
   if(await waitForChromeTreeExit(chrome,2500))return;
   signal('SIGKILL');
-  assert(await waitForChromeTreeExit(chrome,2500),'[perf-parity] Chrome process tree did not exit cleanly');
+  assert(await waitForChromeTreeExit(chrome,2500),'[perf-parity] live Chrome process tree did not exit cleanly');
 }
 async function freePort(){return await new Promise((resolve,reject)=>{const s=net.createServer();s.unref();s.on('error',reject);s.listen(0,'127.0.0.1',()=>{const a=s.address();const p=a&&typeof a==='object'?a.port:0;s.close(e=>e?reject(e):resolve(p));});});}
 async function measureRoot(root,label,round){

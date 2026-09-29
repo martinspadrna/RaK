@@ -1,3 +1,12 @@
+## RaK 1.7.158 (development)
+
+- Zpřesňuje izolaci parity benchmarku z 1.7.157: kontrola procesní skupiny rozlišuje skutečně živé Chrome procesy od Linux `Z` zombie položek čekajících pouze na reap.
+- SIGTERM/SIGKILL zůstává nad celou oddělenou Chrome procesní skupinou a benchmark stále fail-closed selže, pokud po cleanupu zůstane jakýkoli živý člen.
+- Performance limity, 20 kol a baseline 1.7.69 zůstávají beze změny.
+- Funkční oprava kalendáře z 1.7.156 zůstává: při vypnutí posledního štítku se iframe odpojí a zmizí; po opětovném zapnutí se sestaví z aktivních zdrojů.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.157 (development)
 
 - Zachovává funkční opravu 1.7.156: při vypnutí posledního kalendáře se starý Google iframe odpojí a skryje; po opětovném zapnutí se načte jen aktivní zdroj.
