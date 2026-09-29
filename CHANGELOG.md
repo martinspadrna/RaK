@@ -1,3 +1,10 @@
+## RaK 1.7.150 (development)
+
+- Dashboard → Kalendář vrací původní Google Calendar iframe vzhled, pokud výběr obsahuje pouze veřejné kalendáře Obrábění / jiné veřejné Google zdroje.
+- Pokud výběr obsahuje private Kalírnu A–D, používá bezpečný nativní RaK renderer, protože private ICS nelze vložit do Google iframe bez zpřístupnění kalendáře.
+- Multi-výběr z Nastavení zůstává zachovaný. Generátor a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.149 (development)
 
 - Kalendář v RaK má osm stabilních pracovních zdrojů: Obrábění A/B/C/D a Kalírna A/B/C/D. Každý účet má po prvním přihlášení vybraný právě jeden výchozí kalendář podle svého zařazení.
