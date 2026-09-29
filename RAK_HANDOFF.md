@@ -346,7 +346,7 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 
 Řešit striktně po jednom po dokončení kalendářového follow-upu:
 
-1. **RaK 1.7.165 – čeká na exact-SHA CI + TEST preview + fyzický iPhone test:** po upřesnění referenčního vzhledu z Korekce → Frézky se Brusy + Administrace Frézky/Brusy dorovnávají na stejný sign-control (`+`/`−`, rozměry, typografie, glass vzhled a centrování). 1.7.164 bylo funkčně vystředěné, ale vizuálně neodpovídalo požadovanému referenčnímu vzoru.
+1. **RaK 1.7.166 – čeká na exact-SHA CI + TEST preview + fyzický iPhone test:** 1.7.165 fyzicky ověřeno jen částečně — Administrace → Frézky OK, Administrace → Brusy FAIL, Kalkulačky → Brusy FAIL. Kořen nalezen v pozdějších vlastních stylech `brusy-fhb-v157.js` a `brusy-fhb-v158.js`; oba skutečné brusové sign-control vlastníky jsou nyní dorovnané na referenční Frézky (42×46 px, stejný glass styl a výška inputu; 38×44 na velmi úzkém displeji). Frézky se nemění.
 2. „O aplikaci“: přejít na 1.8, pod 1.8 shrnout změny od 1.7 a 1.7 přejmenovat z „aktuální generace“.
 3. Administrace → Kalendáře: nastavení kalendáře pro report dovolených.
 4. WhatsApp sdílení reportu směn: uložit přibližně 3 čísla a nabídnout výběr příjemce.
