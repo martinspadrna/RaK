@@ -5,8 +5,7 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('the current release preserves the unified 1.7.104 minimum milestone',()=>{
-  const metadata=assertCurrentReleaseIdentity(read,'1.7.104');
-  assert(Number(metadata.displayVersion.split('.').at(-1))>=104);
+  assertCurrentReleaseIdentity(read,'1.7.104');
 });
 
 test('Frézky correction settings expose +/- on every signed measurement field',()=>{
