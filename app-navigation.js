@@ -1511,7 +1511,7 @@ function rakRenderBlankCalendar(container, year, month) {
   container.dataset.blankYear = String(y);
   container.dataset.blankMonth = String(m);
   container.innerHTML = [
-    '<div style="width:100%;height:100%;min-height:0;display:flex;flex-direction:column;background:#fff;color:#202124;font-family:Arial,sans-serif;box-sizing:border-box;">',
+    '<div style="height:100%;min-height:0;display:flex;flex-direction:column;background:#fff;color:#202124;font-family:Arial,sans-serif;">',
     '<div style="height:54px;flex:0 0 54px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #dadce0;box-sizing:border-box;">',
     '<button type="button" data-calendar-blank-nav="-1" aria-label="Předchozí měsíc" style="width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#3c4043;font-size:28px;line-height:1;padding:0;">‹</button>',
     '<button type="button" data-calendar-blank-nav="1" aria-label="Další měsíc" style="width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#3c4043;font-size:28px;line-height:1;padding:0;">›</button>',
@@ -1569,11 +1569,6 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
     if (empty) {
       empty.hidden = false;
       empty.style.display = 'flex';
-      empty.style.width = '100%';
-      empty.style.height = '100%';
-      empty.style.minHeight = '0';
-      empty.style.flex = '1 1 auto';
-      empty.style.boxSizing = 'border-box';
       rakEnsureBlankCalendar(empty);
     }
     return true;
@@ -1689,7 +1684,7 @@ function renderCalendarModalContent(overlay) {
     rakCalendarLegendHtml(calendars, new Set(initialVisibleKeys)),
     '<div class="calendarModalFrameWrap">',
     '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade"' + (hasVisibleCalendars ? ' src="' + escapeHtml(calendarUrl) + '"' : ' hidden style="display:none"') + '></iframe>',
-    '<div class="calendarSourceEmpty"' + (hasVisibleCalendars ? ' hidden style="display:none;width:100%;height:100%;min-height:0;flex:1 1 auto;box-sizing:border-box"' : ' style="display:flex;width:100%;height:100%;min-height:0;flex:1 1 auto;box-sizing:border-box"') + '></div>',
+    '<div class="calendarSourceEmpty calendarModalFrame"' + (hasVisibleCalendars ? ' hidden style="display:none"' : ' style="display:flex"') + '></div>',
     '</div>'
   ].join('');
   if (!hasVisibleCalendars) rakEnsureBlankCalendar(content.querySelector('.calendarSourceEmpty'));
