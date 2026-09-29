@@ -3,15 +3,23 @@ import RELEASE_METADATA from '../rak-release-metadata.js';
 
 export {RELEASE_METADATA};
 
-function patch(version){
-  const match=String(version||'').match(/^1\.7\.(\d+)$/);
-  assert(match,'invalid display version');
-  return Number(match[1]);
+function semverParts(version){
+  const match=String(version||'').trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
+  assert(match,'invalid release version');
+  return match.slice(1).map(Number);
+}
+
+function compareSemver(left,right){
+  const a=semverParts(left),b=semverParts(right);
+  for(let i=0;i<3;i+=1){
+    if(a[i]!==b[i]) return a[i]-b[i];
+  }
+  return 0;
 }
 
 export function assertCurrentReleaseIdentity(read,minimumVersion){
   const metadata=RELEASE_METADATA;
-  assert(patch(metadata.displayVersion)>=patch(minimumVersion),'release regressed below '+minimumVersion);
+  assert(compareSemver(metadata.displayVersion,minimumVersion)>=0,'release regressed below '+minimumVersion);
   assert.equal(metadata.technicalVersion,metadata.displayVersion);
   assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
