@@ -1510,7 +1510,7 @@ function renderCalendarModalContent(overlay) {
   return true;
 }
 
-function ensureCalendarModal() {
+function ensureCalendarModal(renderContent = true) {
   let overlay = document.getElementById('calendarModal');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -1604,7 +1604,7 @@ function ensureCalendarModal() {
     bindGlobalEscapeOnce('calendarModalKeydownBound', hideCalendarModal);
     document.body.appendChild(overlay);
   }
-  renderCalendarModalContent(overlay);
+  if (renderContent) renderCalendarModalContent(overlay);
   return overlay;
 }
 
@@ -1661,7 +1661,7 @@ function bindCalendarTile() {
   const prewarm = () => {
     try {
       const context = typeof getRakActiveShiftCalendarContext === 'function' ? getRakActiveShiftCalendarContext() : null;
-      if (context && Array.isArray(context.calendars) && context.calendars.length) ensureCalendarModal();
+      if (context && Array.isArray(context.calendars) && context.calendars.length) ensureCalendarModal(false);
     } catch (_) {}
   };
   if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {

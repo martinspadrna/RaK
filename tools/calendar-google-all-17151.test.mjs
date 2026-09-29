@@ -34,3 +34,13 @@ test('private Google ICS tokens remain server-only even though display uses cale
   assert(!/private-[0-9a-f]{16,}/i.test(checked));
   assert(read('core.js').includes('RAK_SHIFT_CALENDAR_SOURCE_IDS'));
 });
+
+test('calendar prewarm creates only the shell and never starts Google iframe before user opens it',()=>{
+  const nav=read('app-navigation.js');
+  assert(nav.includes('function ensureCalendarModal(renderContent = true)'));
+  assert(nav.includes('if (renderContent) renderCalendarModalContent(overlay);'));
+  assert(nav.includes('ensureCalendarModal(false);'));
+  const openStart=nav.indexOf('function openCalendarInRak()');
+  const openEnd=nav.indexOf('function bindCalendarTile()',openStart);
+  assert(nav.slice(openStart,openEnd).includes('const overlay = ensureCalendarModal();'));
+});

@@ -50,11 +50,13 @@ test('calendar modal keeps a reusable renderer and successors may use native RaK
   if(nativeMode) assert(renderer.includes("content.dataset.calendarSignature === signature && existingNative"));
 });
 
-test('calendar surface is prewarmed in idle time and keeps account-aware routing',()=>{
+test('calendar shell is prewarmed in idle time without starting third-party iframe',()=>{
   const nav=read('app-navigation.js');
   const core=read('core.js');
   assert(nav.includes('window.requestIdleCallback(prewarm, { timeout: 1200 })'));
-  assert(nav.includes('ensureCalendarModal()'));
+  assert(nav.includes('ensureCalendarModal(false)'));
+  assert(nav.includes('function ensureCalendarModal(renderContent = true)'));
+  assert(nav.includes('if (renderContent) renderCalendarModalContent(overlay);'));
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
   assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
   assert(core.includes('const selectedKeys = getRakSelectedCalendarKeys();'));
