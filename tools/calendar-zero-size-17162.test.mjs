@@ -3,29 +3,26 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('zero-source local calendar always fills the same frame wrapper as Google iframe',()=>{
+test('zero-source local calendar reuses the exact Google frame sizing class',()=>{
   const nav=read('app-navigation.js');
+  const css=read('styles-modal.css');
+  assert(nav.includes('class="calendarSourceEmpty calendarModalFrame"'));
+  assert(css.includes('.calendarModalFrame{width:100%;height:100%;'));
   const applyStart=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const applyEnd=nav.indexOf('function rakShiftCalendarEmbedUrl',applyStart);
   const apply=nav.slice(applyStart,applyEnd);
-  for(const marker of [
-    "empty.style.width = '100%'",
-    "empty.style.height = '100%'",
-    "empty.style.minHeight = '0'",
-    "empty.style.flex = '1 1 auto'",
-    "empty.style.boxSizing = 'border-box'"
-  ]) assert(apply.includes(marker),marker);
-  assert(nav.includes('style="display:flex;width:100%;height:100%;min-height:0;flex:1 1 auto;box-sizing:border-box"'));
-  assert(nav.includes('style="display:none;width:100%;height:100%;min-height:0;flex:1 1 auto;box-sizing:border-box"'));
+  assert(apply.includes("empty.style.display = 'flex'"));
+  assert(apply.includes('rakEnsureBlankCalendar(empty)'));
+  assert(!apply.includes('empty.style.width'));
+  assert(!apply.includes('empty.style.height'));
 });
 
-test('blank month root stretches in both axes without changing calendar behavior',()=>{
+test('blank month remains local, full-height and event-free',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function rakRenderBlankCalendar');
   const end=nav.indexOf('function rakEnsureBlankCalendar',start);
   const fn=nav.slice(start,end);
-  assert(fn.includes('width:100%;height:100%;min-height:0;display:flex;flex-direction:column'));
-  assert(fn.includes('box-sizing:border-box'));
+  assert(fn.includes('height:100%;min-height:0;display:flex;flex-direction:column'));
   assert(fn.includes("const weekdays = ['PO','ÚT','ST','ČT','PÁ','SO','NE']"));
   assert(!fn.includes('calendar.google.com'));
 });
