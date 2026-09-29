@@ -68,7 +68,7 @@ test('strict CI runs this gate after two clean canonical builds',()=>{
  const pkg=JSON.parse(read('package.json')),workflow=read('.github/workflows/rak-development-validation.yml');
  assert(pkg.scripts.check.includes('tools/release-gate-17072.test.mjs'));
  for(const anchor of ['npm run vercel-build\n          npm run vercel-build',
-  'node --test tools/release-gate-17072.test.mjs','rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'])
+  'node --test tools/release-gate-17072.test.mjs','rak-current-isolated-build-'])
   assert(workflow.includes(anchor),'CI missing '+anchor);
 });
 
