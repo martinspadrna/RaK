@@ -1,7 +1,7 @@
 ## RaK 1.7.162 (development)
 
 - Dashboard → Kalendář: upravuje pouze rozměry lokálního prázdného měsíce při 0 aktivních kalendářích.
-- Prázdný host i jeho měsíční obsah se při otevření i po vypnutí posledního štítku explicitně roztáhnou na celou šířku a výšku stejného `calendarModalFrameWrap`, který používá Google Calendar iframe.
+- Prázdný host používá stejnou existující třídu `calendarModalFrame` jako Google iframe, takže v témže `calendarModalFrameWrap` přebírá přesně stejnou šířku a výšku bez další startupové CSS/JS vrstvy.
 - Výběr kalendářů, account-scoped `calendar_hidden_keys`, synchronizace účtu, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstávají beze změny.
 - Po zapnutí alespoň jednoho zdroje se dál vrací originální Google Calendar iframe.
 - Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
