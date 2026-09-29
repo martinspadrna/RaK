@@ -41,5 +41,5 @@ test('strict CI checks metadata after both canonical builds and keeps reproducib
   assert(pkg.scripts.check.includes('tools/release-gate-17076.test.mjs'));
   assert(workflow.includes('npm run vercel-build\n          npm run vercel-build'));
   assert(workflow.includes('node --test tools/release-gate-17076.test.mjs'));
-  assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
+  assert(workflow.includes('rak-current-isolated-build-'));
 });
