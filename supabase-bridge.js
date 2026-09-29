@@ -3629,7 +3629,8 @@
             const queuedUi = normalizeGameUiSettings(entry);
             const remoteUi = await loadGameAccountUiSettingsDirect(client, account);
             const sameAppearance = !!(remoteUi && queuedUi.appearance_id === remoteUi.appearance_id);
-            if (sameAppearance) {
+            const sameCalendars = queuedUi.calendar_keys === null || !!(remoteUi && JSON.stringify(queuedUi.calendar_keys) === JSON.stringify(remoteUi.calendar_keys || []));
+            if (sameAppearance && sameCalendars) {
               writeTimedCache(gameUiSettingsCacheKey(account), [remoteUi], 'ui');
               flushed += 1;
               continue;
@@ -4760,15 +4761,22 @@
     return String(defs[idx] && defs[idx].id || fallback || '').trim();
   }
 
+  function normalizeGameCalendarKeys(value) {
+    if (!Array.isArray(value)) return null;
+    return Array.from(new Set(value.map((key) => String(key || '').trim()).filter((key) => /^(obrabeni|kalirna)-[ABCD]$/.test(key)))).slice(0, 8);
+  }
+
   function normalizeGameUiSettings(entry) {
     const accountNumber = String(entry && (entry.account_number || entry.accountNumber) || '').trim();
     const appearanceRaw = String(entry && (entry.appearance_id || entry.appearanceId || entry.theme_id || entry.themeId || entry.background_id || entry.backgroundId) || '').trim();
     const appearance = appearanceRaw || 'obsidian';
+    const calendarKeys = normalizeGameCalendarKeys(entry && (entry.calendar_keys ?? entry.calendarKeys));
     return {
       account_number: accountNumber,
       appearance_id: appearance,
       theme_id: appearance,
       background_id: appearance,
+      calendar_keys: calendarKeys,
       expected_revision: Math.max(0, Number(entry && (entry.expected_revision ?? entry.serverRevision ?? entry.revision) || 0) || 0),
       revision: Math.max(0, Number(entry && (entry.revision ?? entry.serverRevision ?? entry.expected_revision) || 0) || 0),
       updated_at: String(entry && (entry.updated_at || entry.updatedAt) || new Date().toISOString())
@@ -4787,9 +4795,10 @@
       appearance_id: appearance,
       theme_id: appearance,
       background_id: appearance,
+      calendar_keys: normalizeGameCalendarKeys(row.calendar_keys ?? row.calendarKeys) || [],
       revision: Math.max(0, Number(row.revision || 0) || 0),
       updated_at: row.updated_at || row.updatedAt || null,
-      source: 'account_ui_preferences_rpc'
+      source: 'account_ui_preferences_rpc_v2'
     };
   }
 
@@ -4810,9 +4819,10 @@
     if (!normalized.account_number) throw new Error('Chybí účet pro uložení vzhledu.');
     try {
       rememberGameUiRpcSmoke('attempt');
-      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => client.rpc('rak_save_account_ui_preferences', {
+      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => client.rpc('rak_save_account_ui_preferences_v2', {
         p_account_number: normalized.account_number,
         p_appearance_id: normalized.appearance_id,
+        p_calendar_keys: normalized.calendar_keys,
         p_expected_revision: normalized.expected_revision
       }), { mode: 'write', attempts: 1 });
       if (error) throw error;

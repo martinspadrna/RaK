@@ -173,6 +173,37 @@ body.calendarModalOpen{overflow:hidden;}
   flex-direction:column;
   gap:10px;
 }
+.calendarSourceLegend{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  overflow-x:auto;
+  padding:1px 1px 3px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;}
+.calendarSourceLegend::-webkit-scrollbar{display:none;}
+.calendarSourceLegendChip{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:28px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.07);
+  color:var(--text);
+  font-size:12px;
+  font-weight:800;
+  line-height:1;}
+.calendarSourceLegendDot{
+  width:10px;
+  height:10px;
+  flex:0 0 10px;
+  border-radius:50%;
+  background:var(--calendar-source-color,#5C6BC0);
+  box-shadow:0 0 0 1px rgba(255,255,255,.18);}
 .calendarModalFrameWrap{flex:1;
   min-height:0;
   border-radius:18px;

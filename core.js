@@ -979,34 +979,79 @@ function getRakDefaultCalendarKey() {
   return all.some((entry) => entry.key === preferred) ? preferred : 'obrabeni-D';
 }
 
+function normalizeRakCalendarSelectionKeys(keys) {
+  const valid = new Set(getRakAllShiftCalendars().map((entry) => entry.key));
+  return Array.from(new Set((Array.isArray(keys) ? keys : [])
+    .map((value) => String(value || '').trim())
+    .filter((key) => valid.has(key)))).slice(0, 8);
+}
+
+function rakCalendarSelectionStorageKeyForAccount(accountId) {
+  const id = String(accountId || '').trim() || 'anonymous';
+  return RAK_CALENDAR_SELECTION_STORAGE_PREFIX + id;
+}
+
 function rakCalendarSelectionStorageKey() {
   const info = getRakActiveAccountShiftInfo();
-  const accountId = String(info && info.accountId || '').trim() || 'anonymous';
-  return RAK_CALENDAR_SELECTION_STORAGE_PREFIX + accountId;
+  return rakCalendarSelectionStorageKeyForAccount(info && info.accountId);
 }
 
 function getRakSelectedCalendarKeys() {
-  const all = getRakAllShiftCalendars();
-  const valid = new Set(all.map((entry) => entry.key));
   let saved = [];
   try {
     const parsed = JSON.parse(localStorage.getItem(rakCalendarSelectionStorageKey()) || '[]');
-    if (Array.isArray(parsed)) saved = parsed.map((value) => String(value || '').trim()).filter((key) => valid.has(key));
+    if (Array.isArray(parsed)) saved = normalizeRakCalendarSelectionKeys(parsed);
   } catch (err) {}
-  const unique = Array.from(new Set(saved));
-  return unique.length ? unique : [getRakDefaultCalendarKey()];
+  return saved.length ? saved : [getRakDefaultCalendarKey()];
+}
+
+function applyRakRemoteCalendarSelection(keys, accountId) {
+  const selected = normalizeRakCalendarSelectionKeys(keys);
+  if (!selected.length) return false;
+  const info = getRakActiveAccountShiftInfo();
+  const activeAccountId = String(info && info.accountId || '').trim();
+  const wantedAccountId = String(accountId || activeAccountId || '').trim();
+  if (wantedAccountId && activeAccountId && wantedAccountId !== activeAccountId) return false;
+  try {
+    localStorage.setItem(rakCalendarSelectionStorageKeyForAccount(wantedAccountId || activeAccountId), JSON.stringify(selected));
+  } catch (err) { return false; }
+  try {
+    document.querySelectorAll('[data-calendar-user-key]').forEach((input) => {
+      input.checked = selected.includes(String(input.getAttribute('data-calendar-user-key') || '').trim());
+    });
+    const status = document.querySelector('#rakCalendarPreferenceStatus');
+    if (status) status.textContent = 'Vybráno: ' + String(selected.length) + ' · uloženo k účtu';
+  } catch (err) {}
+  try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+  return true;
+}
+
+function queueRakAccountCalendarSelectionSync(selected) {
+  const info = getRakActiveAccountShiftInfo();
+  const accountId = String(info && info.accountId || '').trim();
+  if (!accountId) return false;
+  try {
+    if (typeof window.saveActiveAccountCalendarSelection === 'function') {
+      window.saveActiveAccountCalendarSelection(selected);
+      return true;
+    }
+    window.__rakPendingCalendarSelectionForAccount = { accountId, keys: selected.slice() };
+  } catch (err) {}
+  return false;
 }
 
 function setRakSelectedCalendarKeys(keys) {
-  const all = getRakAllShiftCalendars();
-  const valid = new Set(all.map((entry) => entry.key));
-  const selected = Array.from(new Set((Array.isArray(keys) ? keys : []).map((value) => String(value || '').trim()).filter((key) => valid.has(key))));
+  const selected = normalizeRakCalendarSelectionKeys(keys);
   if (!selected.length) return { ok: false, reason: 'at-least-one-calendar' };
   try { localStorage.setItem(rakCalendarSelectionStorageKey(), JSON.stringify(selected)); }
   catch (err) { return { ok: false, reason: 'storage-failed', error: err }; }
+  queueRakAccountCalendarSelectionSync(selected);
   try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
   return { ok: true, keys: selected };
 }
+
+window.applyRakRemoteCalendarSelection = applyRakRemoteCalendarSelection;
+window.normalizeRakCalendarSelectionKeys = normalizeRakCalendarSelectionKeys;
 
 function getRakActiveShiftCalendarContext() {
   const info = getRakActiveAccountShiftInfo();
@@ -1049,7 +1094,7 @@ function buildRakCalendarSelectionSettingsHtml() {
   return [
     '<details class="appMenuCard appMenuSettingsCard rakCalendarPreferenceCard">',
     '  <summary class="appMenuCardTitle">Kalendář</summary>',
-    '  <div class="smallText">Výchozí je jen jeden kalendář podle tvého zařazení: <b>' + escapeHtml(active.assignmentLabel) + '</b>. Zaškrtni libovolné další kalendáře, které chceš zobrazit po kliknutí na Kalendář na dashboardu.</div>',
+    '  <div class="smallText">Výchozí je jen jeden kalendář podle tvého zařazení: <b>' + escapeHtml(active.assignmentLabel) + '</b>. Výběr se ukládá k přihlášenému účtu a načte se i na jiném zařízení.</div>',
     '  <div class="rakCalendarPreferenceGroups">' + groups + '</div>',
     '  <div class="smallText" id="rakCalendarPreferenceStatus">Vybráno: ' + String(selected.size) + '</div>',
     '</details>'

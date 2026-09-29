@@ -1,3 +1,10 @@
+## RaK 1.7.153 (development)
+
+- Dashboard → Kalendář zachovává originální Google Calendar iframe, ale nad ním zobrazuje kompaktní barevnou legendu (např. `Kal.A`, `Kal.D`, `Obr.A`). Stejná stabilní barva se posílá Googlu pro daný kalendář, takže je bez otevírání události poznat, které směně patří.
+- Uživatelský výběr z Nastavení → Kalendář zůstává local-first v zařízení a zároveň se ukládá do account UI profilu v TEST Supabase s CAS revizí. Po přihlášení stejného účtu na jiném zařízení se výběr načte ze serveru; offline zůstává poslední lokální volba.
+- Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu; account multi-výběr ovlivňuje pouze dashboard.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.152 (development)
 
 - Otevřený Dashboard → Kalendář se při kliknutí na kteroukoli položku spodní navigace nejdřív zavře; Google iframe ani jeho detail události už nezůstávají nad stránkou Více/Home/Rotace/Kalkulačky.

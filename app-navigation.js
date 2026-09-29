@@ -1430,6 +1430,40 @@ function hideCalendarModal() {
   document.body.classList.remove('calendarModalOpening');
 }
 
+const RAK_CALENDAR_DISPLAY_COLORS = Object.freeze({
+  'obrabeni-A': '#2952A3',
+  'obrabeni-B': '#1B887A',
+  'obrabeni-C': '#28754E',
+  'obrabeni-D': '#0D7813',
+  'kalirna-A': '#A32929',
+  'kalirna-B': '#B1365F',
+  'kalirna-C': '#7A367A',
+  'kalirna-D': '#5229A3'
+});
+
+function rakCalendarDisplayMeta(entry) {
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  const key = String(safe.key || '').trim();
+  const match = key.match(/^(obrabeni|kalirna)-([ABCD])$/);
+  const fallbackLabel = String(safe.label || 'Kalendář').trim() || 'Kalendář';
+  return {
+    key,
+    color: RAK_CALENDAR_DISPLAY_COLORS[key] || '#5C6BC0',
+    shortLabel: match ? ((match[1] === 'kalirna' ? 'Kal.' : 'Obr.') + match[2]) : fallbackLabel.slice(0, 12),
+    fullLabel: fallbackLabel
+  };
+}
+
+function rakCalendarLegendHtml(calendars) {
+  const items = (Array.isArray(calendars) ? calendars : []).map((entry) => {
+    const meta = rakCalendarDisplayMeta(entry);
+    return '<span class="calendarSourceLegendChip" title="' + escapeHtml(meta.fullLabel) + '" aria-label="' + escapeHtml(meta.fullLabel) + '">' +
+      '<span class="calendarSourceLegendDot" style="--calendar-source-color:' + escapeHtml(meta.color) + '"></span>' +
+      '<span>' + escapeHtml(meta.shortLabel) + '</span></span>';
+  }).join('');
+  return items ? '<div class="calendarSourceLegend" aria-label="Legenda kalendářů">' + items + '</div>' : '';
+}
+
 function rakShiftCalendarEmbedUrl(calendars) {
   const sources = [];
   const colors = [];
@@ -1443,11 +1477,12 @@ function rakShiftCalendarEmbedUrl(calendars) {
       if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return;
       const entrySources = url.searchParams.getAll('src').map((src) => String(src || '').trim()).filter(Boolean);
       const entryColors = url.searchParams.getAll('color');
+      const managedColor = rakCalendarDisplayMeta(entry).color;
       entrySources.forEach((source, index) => {
         if (seen.has(source)) return;
         seen.add(source);
         sources.push(source);
-        colors.push(String(entryColors[index] || '').trim());
+        colors.push(String(managedColor || entryColors[index] || '').trim());
       });
     } catch (_) {}
   });
@@ -1503,6 +1538,7 @@ function renderCalendarModalContent(overlay) {
   content.__rakCalendars = [];
   content.__rakCalendarState = null;
   content.innerHTML = [
+    rakCalendarLegendHtml(calendars),
     '<div class="calendarModalFrameWrap">',
     '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
     '</div>'
