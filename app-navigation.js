@@ -1511,7 +1511,7 @@ function rakRenderBlankCalendar(container, year, month) {
   container.dataset.blankYear = String(y);
   container.dataset.blankMonth = String(m);
   container.innerHTML = [
-    '<div style="height:100%;min-height:0;display:flex;flex-direction:column;background:#fff;color:#202124;font-family:Arial,sans-serif;">',
+    '<div style="width:100%;height:100%;min-width:0;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;box-sizing:border-box;background:#fff;color:#202124;font-family:Arial,sans-serif;">',
     '<div style="height:54px;flex:0 0 54px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #dadce0;box-sizing:border-box;">',
     '<button type="button" data-calendar-blank-nav="-1" aria-label="Předchozí měsíc" style="width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#3c4043;font-size:28px;line-height:1;padding:0;">‹</button>',
     '<button type="button" data-calendar-blank-nav="1" aria-label="Další měsíc" style="width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#3c4043;font-size:28px;line-height:1;padding:0;">›</button>',
