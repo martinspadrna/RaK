@@ -31,7 +31,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se výrazně rozšířily; odstraněné zbytky Her zůstaly pryč.',
         'Vznikl základ směnových kalendářů a účtového nastavení, na kterém navazuje generace 1.8.'
       ]
-    }
+    },
     {
       range: 'RaK 1.6',
       title: 'Rychlejší, čistší a přesnější',
