@@ -4,17 +4,17 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.162 blank-calendar sizing release has unified identity',()=>{
+test('1.7.162 shared-frame sizing milestone remains active in successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.162');
-  assert.equal(metadata.displayVersion,'1.7.162');
-  assert.equal(metadata.buildId,'v1.7.162-calendar-zero-size1');
-  assert(read('index.html').includes('app.js?v=1.7.162'));
-  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=1.7.162')"));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v1.7.162'"));
-  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'1.7.162');
+  const nav=read('app-navigation.js');
+  const css=read('styles-modal.css');
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.162 (development)'));
+  assert(nav.includes('class="calendarSourceEmpty calendarModalFrame"'));
+  assert(css.includes('.calendarModalFrame{width:100%;'));
+  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,metadata.displayVersion);
 });
 
-test('1.7.162 sizing gates are mandatory locally and in CI',()=>{
+test('1.7.162 sizing gates remain mandatory locally and in CI',()=>{
   const pkg=JSON.parse(read('package.json'));
   const workflow=read('.github/workflows/rak-development-validation.yml');
   for(const file of ['tools/calendar-zero-size-17162.test.mjs','tools/release-gate-17162.test.mjs']){
@@ -24,7 +24,7 @@ test('1.7.162 sizing gates are mandatory locally and in CI',()=>{
   assert(workflow.includes('rak-170162-isolated-build-${{ github.sha }}'));
 });
 
-test('1.7.162 remains TEST-only',()=>{
+test('1.7.162 milestone remains TEST-only',()=>{
   const config=read('supabase-config.js');
   assert(config.includes('cgshssdjgzzuprlwnabl'));
   assert(!config.includes('bkqamcbkiwumsvelahxr'));
