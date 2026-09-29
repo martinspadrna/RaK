@@ -22,8 +22,7 @@ function runDiagnostic({status={},review={},conflicts={ok:true,items:[],total:0}
 test('1.7.136 diagnostic remains wired under verified successor releases',()=>{
   const pkg=JSON.parse(read('package.json'));
   const current=String(pkg.version||'');
-  const patch=Number(current.split('.').at(-1));
-  assert(/^1\.7\.\d+$/.test(current)&&Number.isInteger(patch)&&patch>=136);
+  assertCurrentReleaseIdentity(read,'1.7.136');
   assertCurrentReleaseIdentity(read,current);
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(pkg.scripts.check.includes('node --check rak-conflict-diagnostics.js'));
