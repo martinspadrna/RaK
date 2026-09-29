@@ -17,15 +17,14 @@ test('1.7.149 exposes eight managed calendars and defaults to exactly one',()=>{
   assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
 });
 
-test('calendar selection is available in Settings and calendar opens in native RaK renderer',()=>{
+test('calendar selection remains available in Settings and dashboard keeps account-aware display routing',()=>{
   const pages=read('app-menu-pages.js');
   const nav=read('app-navigation.js');
   const css=read('styles-settings-runtime.css');
   assert(pages.includes('buildRakCalendarSelectionSettingsHtml'));
   assert(pages.includes('bindRakCalendarSelectionSettings'));
   assert(nav.includes('getRakActiveShiftCalendarDisplayContext'));
-  assert(nav.includes("content.innerHTML = '<div class=\"calendarNativeHost\"></div>';"));
-  assert(nav.includes('void rakNativeCalendarLoad(content, 0);'));
+  assert(nav.includes('rakShiftCalendarEmbedUrl(calendars)'));
   assert(css.includes('.rakCalendarPreferenceGroups'));
   assert(css.includes('.rakCalendarPreferenceOption'));
 });

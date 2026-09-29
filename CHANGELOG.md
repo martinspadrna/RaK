@@ -1,3 +1,11 @@
+## RaK 1.7.151 (development)
+
+- Dashboard → Kalendář používá originální Google Calendar iframe pro každý uživatelský výběr, včetně 2+ vybraných kalendářů a výběru obsahujícího Kalírnu.
+- Do Google iframe se posílají pouze bezpečné calendar ID; private ICS tokeny Kalírny zůstávají výhradně v TEST Supabase Vaultu a nejsou součástí klienta ani GitHubu.
+- Pokud soukromý Kalírna kalendář Google v iframe nezobrazí, jde o oprávnění/sdílení na straně Google; RaK už nepřepíná na vlastní nativní vzhled.
+- Generátor a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.150 (development)
 
 - Dashboard → Kalendář vrací původní Google Calendar iframe vzhled, pokud výběr obsahuje pouze veřejné kalendáře Obrábění / jiné veřejné Google zdroje.

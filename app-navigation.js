@@ -1495,30 +1495,18 @@ function renderCalendarModalContent(overlay) {
     return true;
   }
 
-  const containsPrivateKalirna = calendars.some((entry) => /^kalirna-[ABCD]$/.test(String(entry && entry.key || '').trim()));
-  const signature = (containsPrivateKalirna ? 'native|' : 'google|') + calendarUrl;
+  const signature = 'google|' + calendarUrl;
+  const existingFrame = content.querySelector('.calendarModalFrame');
+  if (content.dataset.calendarSignature === signature && existingFrame) return true;
 
-  if (!containsPrivateKalirna) {
-    const existingFrame = content.querySelector('.calendarModalFrame');
-    if (content.dataset.calendarSignature === signature && existingFrame) return true;
-    content.dataset.calendarSignature = signature;
-    content.__rakCalendars = [];
-    content.__rakCalendarState = null;
-    content.innerHTML = [
-      '<div class="calendarModalFrameWrap">',
-      '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
-      '</div>'
-    ].join('');
-    return true;
-  }
-
-  const existingNative = content.querySelector('.calendarNativeHost');
-  if (content.dataset.calendarSignature === signature && existingNative) return true;
   content.dataset.calendarSignature = signature;
-  content.__rakCalendars = [{ label: calendarLabel, url: calendarUrl }];
+  content.__rakCalendars = [];
   content.__rakCalendarState = null;
-  content.innerHTML = '<div class="calendarNativeHost"></div>';
-  void rakNativeCalendarLoad(content, 0);
+  content.innerHTML = [
+    '<div class="calendarModalFrameWrap">',
+    '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
+    '</div>'
+  ].join('');
   return true;
 }
 
