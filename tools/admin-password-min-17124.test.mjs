@@ -39,7 +39,12 @@ test('server accepts six-character passwords and still rejects shorter or overlo
 });
 
 test('lower minimum does not weaken role or current-password verification',()=>{
-  assert(edge.includes('(actor.role !== "owner" && actor.role !== "admin")'));
+  assert(edge.includes('["owner", "admin", "deputy"].includes(String(actor.role || ""))'));
+  const ownPassword=edge.indexOf('if (action === "change-own-password")');
+  const deputyBlock=edge.indexOf('if (actor.role === "deputy")');
+  const directory=edge.indexOf('if (action === "list-admin-directory")');
+  assert(ownPassword>=0 && deputyBlock>ownPassword && directory>deputyBlock,
+    'deputy may change only own password and must be blocked before directory/management actions');
   assert(edge.includes('if (actor.role !== "owner") return jsonResponse'));
   assert.equal((edge.match(/currentPassword === newPassword/g)||[]).length,2);
   assert.equal((edge.match(/signInWithPassword/g)||[]).length,2);
