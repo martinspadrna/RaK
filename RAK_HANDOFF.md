@@ -333,14 +333,13 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 
 ### Dashboard → Kalendář
 
-- **RaK 1.7.153 – FYZICKY PASS na iPhonu 29. 9. 2026:** originální Google Calendar iframe, barevná legenda zdrojů, zavření modalu při spodní navigaci a account-scoped synchronizace zvolených kalendářů mezi zařízeními potvrzeny.
-- Uložený multi-výběr ovlivňuje pouze dashboard. Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
-- **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
+- **RaK 1.7.153 – FYZICKY PASS na iPhonu 29. 9. 2026:** originální Google Calendar iframe, barevná legenda zdrojů, zavření modalu při spodní navigaci a account-scoped synchronizace kalendářů vybraných v Nastavení mezi zařízeními potvrzeny.
 - **RaK 1.7.155 – FYZICKY PASS šířky legendy 29. 9. 2026:** štítky jsou jen na šířku krátkého popisku a řadí se vedle sebe.
-- Fyzický test 1.7.155 odhalil navazující regresi: po deaktivaci všech štítků zůstával v iframe viditelný poslední aktivní kalendář.
-- **RaK 1.7.158 – FYZICKY PASS na iPhonu 29. 9. 2026:** po deaktivaci všech štítků už poslední aktivní kalendář nezůstává zobrazený. Exact-SHA CI i performance parity jsou zelené; izolace parity benchmarku ukončuje živé Chromium procesy a ignoruje pouze `Z` zombie.
-- Následný UX požadavek vlastníka: při nule aktivních štítků nemá být prázdná plocha s textem, ale normální Google kalendář bez událostí.
-- **RaK 1.7.159 čeká na zelený exact-SHA CI a fyzický test:** nula aktivních štítků používá Google embed bez `src` kalendářů; účetní výběr i chráněné Obrábění D zůstávají nedotčené.
+- **RaK 1.7.158 – FYZICKY PASS na iPhonu 29. 9. 2026:** po deaktivaci všech štítků už poslední aktivní kalendář nezůstává zobrazený.
+- Uložený výběr v Nastavení ovlivňuje pouze dashboard. Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
+- **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
+- RaK 1.7.159 připravila UX „0 aktivních = prázdný Google kalendář“, ale před fyzickým uzavřením ji nahrazuje 1.7.160.
+- **RaK 1.7.160 čeká na zelený exact-SHA CI a fyzický test:** nula aktivních štítků = Google kalendář bez událostí; zapnuto/vypnuto v legendě je local-first a ukládá se k účtu jako `calendar_hidden_keys` v TEST account UI CAS profilu, takže se přenese na jiné zařízení. Výběr kalendářů v Nastavení zůstává samostatný.
 
 ### Ostatní otevřený backlog
 

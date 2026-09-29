@@ -1,3 +1,12 @@
+## RaK 1.7.160 (development)
+
+- Dashboard → Kalendář: zapnutí/vypnutí jednotlivých štítků legendy se nově ukládá k přihlášenému účtu a synchronizuje mezi zařízeními.
+- Interně se ukládají pouze skryté managed klíče Obrábění/Kalírna A–D. Výběr kalendářů v Nastavení a jejich aktuální viditelnost jsou dvě oddělené účetní preference.
+- Stav je local-first: změna legendy se projeví okamžitě lokálně a online CAS synchronizace dorovná stejný stav na TEST Supabase.
+- Při nule aktivních štítků zůstává originální Google Calendar iframe zobrazený bez událostí.
+- Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu; Obrábění D používané směnou D pro dovolené se nemění.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.159 (development)
 
 - Dashboard → Kalendář: při vypnutí všech štítků legendy už nezůstává prázdný panel s hláškou; zobrazí se originální Google Calendar iframe bez jediného zdrojového kalendáře, tedy kalendář bez událostí.
