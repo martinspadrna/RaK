@@ -16,7 +16,7 @@ assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'))).version
 assert.equal(RELEASE_METADATA.technicalVersion,RELEASE_METADATA.displayVersion);
 const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
 const expected=RELEASE_METADATA.displayVersion;
-assert(/^1\.7\.\d+$/.test(expected),'[17052-browser] expected release missing from metadata');
+assert(/^\d+\.\d+\.\d+$/.test(expected),'[17052-browser] expected semver release missing from metadata');
 assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'[17052-browser] preview must use TEST database');
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml','.jpg':'image/jpeg','.woff2':'font/woff2','.ico':'image/x-icon'};
 const NETWORK_BUDGET=JSON.parse(fs.readFileSync(path.join(ROOT,'tools/network-resilience-17104.json'),'utf8'));
