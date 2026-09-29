@@ -346,7 +346,7 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 
 Řešit striktně po jednom po dokončení kalendářového follow-upu:
 
-1. **RaK 1.7.164 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** Kalkulačka → Korekce Brusy + Administrace → korekce frézek/brusů; `+`/`−` jsou opticky vystředěné ve všech ověřených sign-controlech. Přepínací logika a hodnoty zůstaly beze změny.
+1. **RaK 1.7.165 – čeká na exact-SHA CI + TEST preview + fyzický iPhone test:** po upřesnění referenčního vzhledu z Korekce → Frézky se Brusy + Administrace Frézky/Brusy dorovnávají na stejný sign-control (`+`/`−`, rozměry, typografie, glass vzhled a centrování). 1.7.164 bylo funkčně vystředěné, ale vizuálně neodpovídalo požadovanému referenčnímu vzoru.
 2. „O aplikaci“: přejít na 1.8, pod 1.8 shrnout změny od 1.7 a 1.7 přejmenovat z „aktuální generace“.
 3. Administrace → Kalendáře: nastavení kalendáře pro report dovolených.
 4. WhatsApp sdílení reportu směn: uložit přibližně 3 čísla a nabídnout výběr příjemce.
