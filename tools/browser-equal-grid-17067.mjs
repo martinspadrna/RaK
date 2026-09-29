@@ -11,8 +11,10 @@ import RELEASE_METADATA from '../rak-release-metadata.js';
 const ROOT=process.cwd();
 const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
 assert(CHROME,'[17067-browser] real Chromium required');
-const releasePatch=Number(String(RELEASE_METADATA.displayVersion).split('.').at(-1));
-assert(Number.isInteger(releasePatch)&&releasePatch>=67,'built equal-grid release required');
+const releaseParts=String(RELEASE_METADATA.displayVersion).split('.').map(Number);
+const atLeastEqualGrid=releaseParts.length===3&&releaseParts.every(Number.isInteger)
+  && (releaseParts[0]>1 || (releaseParts[0]===1 && (releaseParts[1]>7 || (releaseParts[1]===7 && releaseParts[2]>=67))));
+assert(atLeastEqualGrid,'built equal-grid release required');
 const editor=fs.readFileSync('admin-rotation-editor.js','utf8');
 function markup(section){
  const line=editor.split('\n').find(l=>l.includes(`data-daymod-section="${section}" style="--rak-grid-width:`));
