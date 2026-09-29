@@ -5,7 +5,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('calendar legend chips size to their labels instead of full row width',()=>{
   const nav=read('app-navigation.js');
-  assert(nav.includes('display:inline-flex;width:auto;min-width:0;max-width:max-content;flex:0 0 auto;'));
+  assert(nav.includes('font-family:inherit;width:auto;'));
   assert(nav.includes('calendarSourceLegendChip'));
 });
 

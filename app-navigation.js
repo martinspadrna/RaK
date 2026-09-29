@@ -1462,7 +1462,7 @@ function rakCalendarLegendHtml(calendars, visibleKeys) {
   const items = entries.map((entry) => {
     const meta = rakCalendarDisplayMeta(entry);
     const active = visible.has(meta.key);
-    return '<button type="button" class="calendarSourceLegendChip' + (active ? ' isActive' : '') + '" data-calendar-legend-key="' + escapeHtml(meta.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '" style="font-family:inherit;display:inline-flex;width:auto;min-width:0;max-width:max-content;flex:0 0 auto;' + (active ? '' : 'opacity:.42;filter:saturate(.35);') + '" title="' + escapeHtml((active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel) + '">' +
+    return '<button type="button" class="calendarSourceLegendChip' + (active ? ' isActive' : '') + '" data-calendar-legend-key="' + escapeHtml(meta.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '" style="font-family:inherit;width:auto;' + (active ? '' : 'opacity:.42;filter:saturate(.35);') + '" title="' + escapeHtml((active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel) + '">' +
       '<span class="calendarSourceLegendDot" style="--calendar-source-color:' + escapeHtml(meta.color) + '"></span>' +
       '<span>' + escapeHtml(meta.shortLabel) + '</span></button>';
   }).join('');

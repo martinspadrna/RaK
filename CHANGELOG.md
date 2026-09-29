@@ -2,7 +2,7 @@
 
 - Dashboard → Kalendář: přepínače barevné legendy už nejsou přes celou šířku; každý štítek má pouze šířku podle svého krátkého popisku (`Kal.A`, `Obr.D` apod.) a skládají se vedle sebe.
 - Funkce dočasného skrývání/zobrazování kalendářů z 1.7.154 zůstává beze změny a stále nepřepisuje účetní výběr.
-- Oprava je pouze interaction-time inline layout; nepřidává nové pravidlo do first-paint CSS cesty.
+- Oprava používá jen minimální inline `width:auto`; existující ověřené `inline-flex`/`flex:0 0 auto` z 1.7.153 zůstává beze změny a do first-paint CSS cesty se nic nepřidává.
 - Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
 - Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
 
