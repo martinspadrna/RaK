@@ -4819,12 +4819,18 @@
     if (!normalized.account_number) throw new Error('Chybí účet pro uložení vzhledu.');
     try {
       rememberGameUiRpcSmoke('attempt');
-      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => client.rpc('rak_save_account_ui_preferences_v2', {
-        p_account_number: normalized.account_number,
-        p_appearance_id: normalized.appearance_id,
-        p_calendar_keys: normalized.calendar_keys,
-        p_expected_revision: normalized.expected_revision
-      }), { mode: 'write', attempts: 1 });
+      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => normalized.calendar_keys === null
+        ? client.rpc('rak_save_account_ui_preferences', {
+            p_account_number: normalized.account_number,
+            p_appearance_id: normalized.appearance_id,
+            p_expected_revision: normalized.expected_revision
+          })
+        : client.rpc('rak_save_account_ui_preferences_v2', {
+            p_account_number: normalized.account_number,
+            p_appearance_id: normalized.appearance_id,
+            p_calendar_keys: normalized.calendar_keys,
+            p_expected_revision: normalized.expected_revision
+          }), { mode: 'write', attempts: 1 });
       if (error) throw error;
       const decoded = decodeGameUiSettingsRow(data);
       if (!decoded) throw new Error('Uložení vzhledu nevrátilo platný stav.');

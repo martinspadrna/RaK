@@ -1477,7 +1477,17 @@ function rakShiftCalendarEmbedUrl(calendars) {
       if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return;
       const entrySources = url.searchParams.getAll('src').map((src) => String(src || '').trim()).filter(Boolean);
       const entryColors = url.searchParams.getAll('color');
-      const managedColor = rakCalendarDisplayMeta(entry).color;
+      const key = String(entry && entry.key || '').trim();
+      const managedColor = ({
+        'obrabeni-A': '#2952A3',
+        'obrabeni-B': '#1B887A',
+        'obrabeni-C': '#28754E',
+        'obrabeni-D': '#0D7813',
+        'kalirna-A': '#A32929',
+        'kalirna-B': '#B1365F',
+        'kalirna-C': '#7A367A',
+        'kalirna-D': '#5229A3'
+      })[key] || '';
       entrySources.forEach((source, index) => {
         if (seen.has(source)) return;
         seen.add(source);
