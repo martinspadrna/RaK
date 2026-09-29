@@ -1,3 +1,11 @@
+## RaK 1.7.154 (development)
+
+- Barevná legenda nad originálním Google Calendar iframe je interaktivní: klepnutím na `Obr.A–D` / `Kal.A–D` se daný kalendář dočasně skryje nebo znovu zobrazí.
+- Rychlé přepínání viditelnosti nepřepisuje účetní výběr z Nastavení → Kalendář. Uložené kalendáře zůstávají stejné i při dočasném filtrování v otevřeném dashboard kalendáři.
+- Pokud jsou dočasně skryté všechny vybrané kalendáře, legenda zůstává dostupná a iframe se nahradí neutrální informací; kterýkoli zdroj lze znovu zapnout jedním klepnutím.
+- Kalendář Obrábění D používaný směnou D pro dovolené ani operational context generátoru/reportu se nemění.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.153 (development)
 
 - Dashboard → Kalendář zachovává originální Google Calendar iframe, ale nad ním zobrazuje kompaktní barevnou legendu (např. `Kal.A`, `Kal.D`, `Obr.A`). Stejná stabilní barva se posílá Googlu pro daný kalendář, takže je bez otevírání události poznat, které směně patří.

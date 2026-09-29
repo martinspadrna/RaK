@@ -331,9 +331,22 @@ Tyto položky jsou produktové požadavky; **neotevírají znovu 13bodový audit
 
 Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test → teprve po „ok“ bod uzavřít a přejít na další.
 
+### Dashboard → Kalendář
+
+- **RaK 1.7.153 – FYZICKY PASS na iPhonu 29. 9. 2026:** originální Google Calendar iframe, barevná legenda zdrojů, zavření modalu při spodní navigaci a account-scoped synchronizace zvolených kalendářů mezi zařízeními potvrzeny.
+- Uložený multi-výběr ovlivňuje pouze dashboard. Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
+- **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
+- Otevřený follow-up: interaktivní legenda pro dočasné zapnutí/vypnutí viditelnosti jednotlivých již vybraných kalendářů; nesmí přepisovat účetní výběr.
+
 ### Ostatní otevřený backlog
 
-**Žádný známý otevřený funkční backlog.**
+Řešit striktně po jednom po dokončení kalendářového follow-upu:
+
+1. Kalkulačka → Brusy + Administrace → korekce frézek/brusů: vystředit přepínací `+`.
+2. „O aplikaci“: přejít na 1.8, pod 1.8 shrnout změny od 1.7 a 1.7 přejmenovat z „aktuální generace“.
+3. Administrace → Kalendáře: nastavení kalendáře pro report dovolených.
+4. WhatsApp sdílení reportu směn: uložit přibližně 3 čísla a nabídnout výběr příjemce.
+5. Z Administrace odstranit text „TEST diagnostika se spustí pouze klepnutím.“
 
 - Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
 - MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.

@@ -194,9 +194,20 @@ body.calendarModalOpen{overflow:hidden;}
   border:1px solid rgba(255,255,255,.14);
   background:rgba(255,255,255,.07);
   color:var(--text);
+  font:inherit;
   font-size:12px;
   font-weight:800;
-  line-height:1;}
+  line-height:1;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:opacity .15s ease,filter .15s ease,border-color .15s ease,background .15s ease;}
+.calendarSourceLegendChip.isActive{
+  border-color:color-mix(in srgb,var(--calendar-source-color,#5C6BC0) 58%,rgba(255,255,255,.18));
+  background:rgba(255,255,255,.11);}
+.calendarSourceLegendChip[aria-pressed="false"]{
+  opacity:.42;
+  filter:saturate(.35);}
+.calendarSourceLegendChip:focus-visible{outline:2px solid rgba(255,255,255,.72);outline-offset:2px;}
 .calendarSourceLegendDot{
   width:10px;
   height:10px;
@@ -215,6 +226,18 @@ body.calendarModalOpen{overflow:hidden;}
   border:0;
   display:block;
   background:#fff;}
+.calendarModalFrame[hidden]{display:none;}
+.calendarSourceEmpty{
+  height:100%;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:#fff;
+  color:#5f6368;
+  text-align:center;
+  font-size:15px;
+  font-weight:700;}
+.calendarSourceEmpty[hidden]{display:none;}
 
 .calendarNativeHost{flex:1;
   min-height:0;

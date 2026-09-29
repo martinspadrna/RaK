@@ -1454,14 +1454,58 @@ function rakCalendarDisplayMeta(entry) {
   };
 }
 
-function rakCalendarLegendHtml(calendars) {
-  const items = (Array.isArray(calendars) ? calendars : []).map((entry) => {
+function rakCalendarLegendHtml(calendars, visibleKeys) {
+  const entries = Array.isArray(calendars) ? calendars : [];
+  const visible = visibleKeys instanceof Set
+    ? visibleKeys
+    : new Set(entries.map((entry) => String(entry && entry.key || '').trim()).filter(Boolean));
+  const items = entries.map((entry) => {
     const meta = rakCalendarDisplayMeta(entry);
-    return '<span class="calendarSourceLegendChip" title="' + escapeHtml(meta.fullLabel) + '" aria-label="' + escapeHtml(meta.fullLabel) + '">' +
+    const active = visible.has(meta.key);
+    return '<button type="button" class="calendarSourceLegendChip' + (active ? ' isActive' : '') + '" data-calendar-legend-key="' + escapeHtml(meta.key) + '" aria-pressed="' + (active ? 'true' : 'false') + '" title="' + escapeHtml((active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel) + '">' +
       '<span class="calendarSourceLegendDot" style="--calendar-source-color:' + escapeHtml(meta.color) + '"></span>' +
-      '<span>' + escapeHtml(meta.shortLabel) + '</span></span>';
+      '<span>' + escapeHtml(meta.shortLabel) + '</span></button>';
   }).join('');
-  return items ? '<div class="calendarSourceLegend" aria-label="Legenda kalendářů">' + items + '</div>' : '';
+  return items ? '<div class="calendarSourceLegend" aria-label="Viditelnost kalendářů">' + items + '</div>' : '';
+}
+
+function rakCalendarApplyLegendVisibility(content, visibleKeys) {
+  if (!content || !content.__rakCalendarDisplayState) return false;
+  const state = content.__rakCalendarDisplayState;
+  const calendars = Array.isArray(state.calendars) ? state.calendars : [];
+  const allowed = new Set(calendars.map((entry) => String(entry && entry.key || '').trim()).filter(Boolean));
+  const visible = Array.from(new Set((Array.isArray(visibleKeys) ? visibleKeys : [])
+    .map((key) => String(key || '').trim())
+    .filter((key) => allowed.has(key))));
+  state.visibleKeys = visible;
+  const visibleSet = new Set(visible);
+  content.querySelectorAll('[data-calendar-legend-key]').forEach((button) => {
+    const key = String(button.getAttribute('data-calendar-legend-key') || '').trim();
+    const active = visibleSet.has(key);
+    button.classList.toggle('isActive', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    const entry = calendars.find((calendar) => String(calendar && calendar.key || '').trim() === key);
+    const meta = rakCalendarDisplayMeta(entry || { key, label: key });
+    button.setAttribute('title', (active ? 'Skrýt ' : 'Zobrazit ') + meta.fullLabel);
+  });
+
+  const frame = content.querySelector('.calendarModalFrame');
+  const empty = content.querySelector('.calendarSourceEmpty');
+  const visibleCalendars = calendars.filter((entry) => visibleSet.has(String(entry && entry.key || '').trim()));
+  if (!visibleCalendars.length) {
+    if (frame) frame.hidden = true;
+    if (empty) empty.hidden = false;
+    return true;
+  }
+
+  const nextUrl = rakShiftCalendarEmbedUrl(visibleCalendars);
+  if (!nextUrl) return false;
+  if (frame) {
+    if (frame.getAttribute('src') !== nextUrl) frame.setAttribute('src', nextUrl);
+    frame.hidden = false;
+  }
+  if (empty) empty.hidden = true;
+  return true;
 }
 
 function rakShiftCalendarEmbedUrl(calendars) {
@@ -1544,13 +1588,16 @@ function renderCalendarModalContent(overlay) {
   const existingFrame = content.querySelector('.calendarModalFrame');
   if (content.dataset.calendarSignature === signature && existingFrame) return true;
 
+  const initialVisibleKeys = calendars.map((entry) => String(entry && entry.key || '').trim()).filter(Boolean);
   content.dataset.calendarSignature = signature;
   content.__rakCalendars = [];
   content.__rakCalendarState = null;
+  content.__rakCalendarDisplayState = { calendars: calendars.slice(), visibleKeys: initialVisibleKeys.slice() };
   content.innerHTML = [
-    rakCalendarLegendHtml(calendars),
+    rakCalendarLegendHtml(calendars, new Set(initialVisibleKeys)),
     '<div class="calendarModalFrameWrap">',
     '<iframe class="calendarModalFrame" title="Google kalendář ' + escapeHtml(calendarLabel) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
+    '<div class="calendarSourceEmpty" hidden>Všechny vybrané kalendáře jsou skryté.</div>',
     '</div>'
   ].join('');
   return true;
@@ -1576,6 +1623,16 @@ function ensureCalendarModal(renderContent = true) {
         return;
       }
       const content = overlay.querySelector('#calendarModalContent');
+      const legendButton = event.target && event.target.closest ? event.target.closest('[data-calendar-legend-key]') : null;
+      if (legendButton && content && content.__rakCalendarDisplayState) {
+        event.preventDefault();
+        const key = String(legendButton.getAttribute('data-calendar-legend-key') || '').trim();
+        const visible = new Set(Array.isArray(content.__rakCalendarDisplayState.visibleKeys) ? content.__rakCalendarDisplayState.visibleKeys : []);
+        if (visible.has(key)) visible.delete(key);
+        else visible.add(key);
+        rakCalendarApplyLegendVisibility(content, Array.from(visible));
+        return;
+      }
       const choice = event.target && event.target.closest ? event.target.closest('[data-calendar-choice-index]') : null;
       if (choice) {
         const calendars = content && Array.isArray(content.__rakCalendars) ? content.__rakCalendars : [];
