@@ -19,7 +19,9 @@ test('Frézky correction settings expose +/- on every signed measurement field',
   assert(src.includes("event.target.matches('[data-admin-correction-sign-input=\"1\"]')"));
   const css=read('brusy-fhb-correction.js');
   assert(css.includes('.adminFhbCalibration .adminCorrectionSignedInput'));
-  assert(css.includes('visibility:visible!important;opacity:1!important;width:48px!important'));
+  assert(css.includes('visibility:visible!important;opacity:1!important'));
+  assert(css.includes('--rakCorrectionSignButtonW:42px'));
+  assert(css.includes('--rakCorrectionSignedInputH:46px'));
 });
 
 test('Brusy correction settings expose +/- before, during and after correction',()=>{
