@@ -1482,8 +1482,10 @@ function rakRenderBlankCalendar(container, year, month) {
   const daysInPrevMonth = new Date(y, m, 0).getDate();
   const monthNames = ['Led','Úno','Bře','Dub','Kvě','Čvn','Čvc','Srp','Zář','Říj','Lis','Pro'];
   const weekdays = ['PO','ÚT','ST','ČT','PÁ','SO','NE'];
+  const rowCount = firstOffset + daysInMonth > 35 ? 6 : 5;
+  const totalCells = rowCount * 7;
   const cells = [];
-  for (let i = 0; i < 42; i += 1) {
+  for (let i = 0; i < totalCells; i += 1) {
     const raw = i - firstOffset + 1;
     let day = raw;
     let cellMonth = m;
@@ -1518,7 +1520,7 @@ function rakRenderBlankCalendar(container, year, month) {
     '<div style="height:38px;flex:0 0 38px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid #dadce0;background:#fff;">',
     weekdays.map((label) => '<div style="display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#5f6368;border-right:1px solid #dadce0;">' + label + '</div>').join(''),
     '</div>',
-    '<div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));background:#fff;">',
+    '<div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(' + String(rowCount) + ',minmax(0,1fr));background:#fff;">',
     cells.join(''),
     '</div>',
     '</div>'

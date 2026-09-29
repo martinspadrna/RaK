@@ -12,13 +12,13 @@ test('zero active calendars use an in-app blank month grid and never a source-le
   assert(!nav.includes("calendar.google.com/calendar/embed');\n  embed.searchParams.set('height', '900');\n  embed.searchParams.set('wkst', '2');\n  embed.searchParams.set('ctz', 'Europe/Prague');\n  embed.searchParams.set('showPrint', '0');\n  embed.searchParams.set('showTitle', '0');\n  embed.searchParams.set('showTabs', '0');\n  embed.searchParams.set('showCalendars', '0');\n  embed.searchParams.set('showTz', '0');\n  return embed.toString();"));
 });
 
-test('blank month has Google-like month navigation, weekdays and 42 day cells without events',()=>{
+test('blank month has Google-like month navigation, weekdays and adaptive five/six-row grid without events',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function rakRenderBlankCalendar');
   const end=nav.indexOf('function rakEnsureBlankCalendar',start);
   const fn=nav.slice(start,end);
   assert(fn.includes("const weekdays = ['PO','ÚT','ST','ČT','PÁ','SO','NE']"));
-  assert(fn.includes('for (let i = 0; i < 42; i += 1)'));
+  assert(fn.includes('const rowCount = firstOffset + daysInMonth > 35 ? 6 : 5'));
   assert(fn.includes('data-calendar-blank-nav'));
   assert(!fn.includes('calendar.google.com'));
 });
