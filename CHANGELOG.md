@@ -1,3 +1,10 @@
+## RaK 1.7.152 (development)
+
+- Otevřený Dashboard → Kalendář se při kliknutí na kteroukoli položku spodní navigace nejdřív zavře; Google iframe ani jeho detail události už nezůstávají nad stránkou Více/Home/Rotace/Kalkulačky.
+- Originální Google Calendar iframe z 1.7.151 zůstává beze změny; oprava zasahuje pouze teardown modalu při změně route.
+- Názvy událostí Kalírny se nemění v RaK. Google iframe zobrazí jejich skutečné názvy až při veřejném oprávnění „Zobrazit všechny podrobnosti událostí“.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.151 (development)
 
 - Dashboard → Kalendář používá originální Google Calendar iframe pro každý uživatelský výběr, včetně 2+ vybraných kalendářů a výběru obsahujícího Kalírnu.

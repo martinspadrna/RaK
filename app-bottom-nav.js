@@ -101,6 +101,16 @@ function openRakEarlyMenuShell() {
   }
 }
 
+function rakDismissTransientSurfacesForBottomNav() {
+  // Route changes own teardown of transient overlays. The Google Calendar
+  // iframe is cross-origin, so hiding its parent modal also dismisses any
+  // event detail popover rendered inside that frame.
+  try {
+    if (typeof hideCalendarModal === 'function') hideCalendarModal();
+  } catch (err) {}
+}
+window.rakDismissTransientSurfacesForBottomNav = rakDismissTransientSurfacesForBottomNav;
+
 function installBottomNavBindings() {
   const nav = document.querySelector('.bottomNav');
   if (!nav || nav.__rotaceBound) return;
@@ -121,6 +131,7 @@ function installBottomNavBindings() {
     const handler = actionMap[btn.dataset.action];
     if (!handler) return;
     event.preventDefault();
+    rakDismissTransientSurfacesForBottomNav();
     handler();
   }, { passive: false });
 }
