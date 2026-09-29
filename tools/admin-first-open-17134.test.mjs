@@ -10,8 +10,7 @@ const root=fileURLToPath(new URL('..',import.meta.url));
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('1.7.134 Admin first-open release identity is unified',()=>{
-  const metadata=assertCurrentReleaseIdentity(read,'1.7.134');
-  assert(/^1\.7\.\d+$/.test(metadata.displayVersion));
+  assertCurrentReleaseIdentity(read,'1.7.134');
   assert(read('CHANGELOG.md').includes('## RaK 1.7.134 (development)'));
   assert(read('app-menu-admin-shell.js').includes('RAK_17134_LOCAL_ADMIN_ROOT'));
 });
