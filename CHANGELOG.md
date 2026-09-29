@@ -1,3 +1,10 @@
+## RaK 1.7.166 (development)
+
+- Fyzický iPhone test 1.7.165: Administrace → nastavení korekcí → Frézky PASS, ale Administrace → Brusy a Kalkulačky → Brusy stále používaly vlastní pozdější styly.
+- Oprava je přesunuta do skutečných vlastníků těchto dvou brusových obrazovek: `brusy-fhb-v157.js` pro Kalkulačky → Brusy a `brusy-fhb-v158.js` pro Administrace → Brusy.
+- Obě brusové větve nyní používají stejnou geometrii jako správné Frézky: 42 × 46 px, stejný glass vzhled a stejnou výšku inputu; na velmi úzkém displeji 38 × 44 px.
+- Administrace → Frézky, výpočetní logika, hodnoty a ukládání nebyly změněné. Produkce ani `main` nejsou změněné.
+
 ## RaK 1.7.165 (development)
 
 - Korekce → Brusy a Administrace → nastavení korekcí Frézky/Brusy: přepínače znaménka jsou vizuálně dorovnané podle fungujícího vzoru z Korekce → Frézky.
