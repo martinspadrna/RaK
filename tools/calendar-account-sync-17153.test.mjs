@@ -46,3 +46,14 @@ test('operational generator/report calendar context is still the single assigned
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
   assert(!read('app-navigation.js').includes('calendar.google.com/calendar/v3'));
 });
+
+test('calendar cannot race first paint through an idle prewarm',()=>{
+  const nav=read('app-navigation.js');
+  const bindStart=nav.indexOf('function bindCalendarTile()');
+  const bindEnd=nav.indexOf("try {\n  if (typeof window !== 'undefined' && !window.__rakBottomNavIndicatorResizeBound)",bindStart);
+  const binder=nav.slice(bindStart,bindEnd);
+  assert(bindStart>=0 && bindEnd>bindStart);
+  assert(!binder.includes('requestIdleCallback'));
+  assert(!binder.includes('ensureCalendarModal(false)'));
+  assert(binder.includes('return openCalendarInRak();'));
+});

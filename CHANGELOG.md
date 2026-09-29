@@ -4,6 +4,7 @@
 - Uživatelský výběr z Nastavení → Kalendář zůstává local-first v zařízení a zároveň se ukládá do account UI profilu v TEST Supabase s CAS revizí. Po přihlášení stejného účtu na jiném zařízení se výběr načte ze serveru; offline zůstává poslední lokální volba.
 - Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu; account multi-výběr ovlivňuje pouze dashboard.
 - Původní Obrábění D kalendář používaný směnou D pro plánování dovolených se nemění: RaK nemění jeho zdroj, název ani události; pouze jej může zobrazit v Google iframe.
+- Kořen periodických FCP špiček: kalendářový `requestIdleCallback` závodil s prvním paintem na fresh startu. Idle prewarm modalu je odstraněný; Google iframe i shell se vytvářejí až po klepnutí na Kalendář. Performance limity zůstávají beze změny.
 - Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
 
 ## RaK 1.7.152 (development)

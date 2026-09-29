@@ -1704,19 +1704,9 @@ function bindCalendarTile() {
   el.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') handler(event);
   });
-  const prewarm = () => {
-    try {
-      const context = typeof getRakActiveShiftCalendarContext === 'function' ? getRakActiveShiftCalendarContext() : null;
-      if (context && Array.isArray(context.calendars) && context.calendars.length) ensureCalendarModal(false);
-    } catch (_) {}
-  };
-  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(prewarm, { timeout: 1200 });
-  } else if (typeof registerTimeout === 'function') {
-    registerTimeout(prewarm, 600);
-  } else {
-    setTimeout(prewarm, 600);
-  }
+  // Calendar work is strictly interaction-started. Idle prewarm used to append
+  // the modal shell before first paint; on slower fresh Chromium starts that race
+  // periodically delayed FCP. Creating the shell on tap keeps startup deterministic.
   return true;
 }
 
