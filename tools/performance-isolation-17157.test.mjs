@@ -7,7 +7,7 @@ test('parity runner isolates every sample with a detached Chromium process group
   const script=read('tools/performance-parity-17069.mjs');
   assert(script.includes("const POSIX_CHROME_GROUP=process.platform!=='win32'"));
   assert(script.includes('detached:POSIX_CHROME_GROUP'));
-  assert(script.includes('function chromeProcessGroupAlive(pid)'));
+  assert(script.includes('function chromeProcessGroup'));
   assert(script.includes('function stopChromeProcessTree(chrome)'));
   assert(script.includes("process.kill(-pid,name)"));
   assert(script.includes('await stopChromeProcessTree(chrome)'));
