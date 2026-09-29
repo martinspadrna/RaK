@@ -7,8 +7,7 @@ const read = file => fs.readFileSync(new URL('../' + file, import.meta.url), 'ut
 
 test('1.7.138 conflict-rescue milestone remains protected by successor release identity', () => {
   const current=String(JSON.parse(read('package.json')).version||'');
-  const patch=Number(current.split('.').at(-1));
-  assert(/^1\.7\.\d+$/.test(current)&&Number.isInteger(patch)&&patch>=138);
+  assertCurrentReleaseIdentity(read,'1.7.138');
   const metadata = assertCurrentReleaseIdentity(read, current);
   assert.equal(metadata.displayVersion, current);
   assert(read('index.html').includes('rak-runtime-diagnostics.js?v='+current));
