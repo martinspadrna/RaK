@@ -1,3 +1,10 @@
+## RaK 1.7.165 (development)
+
+- Korekce → Brusy a Administrace → nastavení korekcí Frézky/Brusy: přepínače znaménka jsou vizuálně dorovnané podle fungujícího vzoru z Korekce → Frézky.
+- Vrací se skutečný textový znak `+` / `−` místo vlastních pseudo-prvků; používá stejné rozměry, typografii, centrování, rámeček a glass vzhled jako referenční Frézky.
+- Přepínací logika a zadané hodnoty se nemění; jde pouze o vzhled a layout sign-controlu.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.164 (development)
 
 - Kalkulačky → Korekce Brusy a Administrace → nastavení korekcí Frézky/Brusy: přepínač znaménka už není centrovaný podle metrik fontu.
