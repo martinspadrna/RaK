@@ -518,6 +518,7 @@
     }
   }
 
+  // RAK_17164_SIGN_CENTER_RELEASE: shared Brusy/admin sign controls use geometric optical centering on iOS.
   function installStyles() {
     if (document.getElementById('brus-fhb-correction-styles')) return;
     const style = document.createElement('style');
