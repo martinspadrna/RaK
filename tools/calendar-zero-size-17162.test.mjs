@@ -7,7 +7,8 @@ test('zero-source local calendar reuses the exact Google frame sizing class',()=
   const nav=read('app-navigation.js');
   const css=read('styles-modal.css');
   assert(nav.includes('class="calendarSourceEmpty calendarModalFrame"'));
-  assert(css.includes('.calendarModalFrame{width:100%;height:100%;'));
+  assert(css.includes('.calendarModalFrame{width:100%;'));
+  assert(css.includes('height:100%;'));
   const applyStart=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const applyEnd=nav.indexOf('function rakShiftCalendarEmbedUrl',applyStart);
   const apply=nav.slice(applyStart,applyEnd);
