@@ -1,3 +1,11 @@
+## RaK 1.7.159 (development)
+
+- Dashboard → Kalendář: při vypnutí všech štítků legendy už nezůstává prázdný panel s hláškou; zobrazí se originální Google Calendar iframe bez jediného zdrojového kalendáře, tedy kalendář bez událostí.
+- Přepínače legendy nadále mění jen dočasnou viditelnost v otevřeném dashboardovém kalendáři a nepřepisují účetní výběr kalendářů.
+- Opětovné zapnutí libovolného štítku přestaví iframe jen z právě aktivních zdrojů; poslední dříve aktivní zdroj se při stavu nula nikdy nepřenáší.
+- Obrábění D používané směnou D pro dovolené zůstává beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.158 (development)
 
 - Zpřesňuje izolaci parity benchmarku z 1.7.157: kontrola procesní skupiny rozlišuje skutečně živé Chrome procesy od Linux `Z` zombie položek čekajících pouze na reap.

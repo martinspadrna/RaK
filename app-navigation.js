@@ -1495,14 +1495,15 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   const empty = content.querySelector('.calendarSourceEmpty');
   const visibleCalendars = calendars.filter((entry) => visibleSet.has(String(entry && entry.key || '').trim()));
   if (!visibleCalendars.length) {
+    const blankUrl = rakShiftCalendarBlankEmbedUrl();
     if (frame) {
-      frame.removeAttribute('src');
-      frame.hidden = true;
-      frame.style.display = 'none';
+      if (frame.getAttribute('src') !== blankUrl) frame.setAttribute('src', blankUrl);
+      frame.hidden = false;
+      frame.style.display = 'block';
     }
     if (empty) {
-      empty.hidden = false;
-      empty.style.display = 'grid';
+      empty.hidden = true;
+      empty.style.display = 'none';
     }
     return true;
   }
@@ -1521,6 +1522,22 @@ function rakCalendarApplyLegendVisibility(content, visibleKeys) {
   return true;
 }
 
+function rakShiftCalendarBaseEmbedUrl() {
+  const embed = new URL('https://calendar.google.com/calendar/embed');
+  embed.searchParams.set('height', '900');
+  embed.searchParams.set('wkst', '2');
+  embed.searchParams.set('ctz', 'Europe/Prague');
+  embed.searchParams.set('showPrint', '0');
+  embed.searchParams.set('showTitle', '0');
+  embed.searchParams.set('showTabs', '0');
+  embed.searchParams.set('showCalendars', '0');
+  embed.searchParams.set('showTz', '0');
+  return embed;
+}
+
+function rakShiftCalendarBlankEmbedUrl() {
+  return rakShiftCalendarBaseEmbedUrl().toString();
+}
 function rakShiftCalendarEmbedUrl(calendars) {
   const sources = [];
   const colors = [];
@@ -1554,15 +1571,7 @@ function rakShiftCalendarEmbedUrl(calendars) {
     } catch (_) {}
   });
   if (!sources.length) return '';
-  const embed = new URL('https://calendar.google.com/calendar/embed');
-  embed.searchParams.set('height', '900');
-  embed.searchParams.set('wkst', '2');
-  embed.searchParams.set('ctz', 'Europe/Prague');
-  embed.searchParams.set('showPrint', '0');
-  embed.searchParams.set('showTitle', '0');
-  embed.searchParams.set('showTabs', '0');
-  embed.searchParams.set('showCalendars', '0');
-  embed.searchParams.set('showTz', '0');
+  const embed = rakShiftCalendarBaseEmbedUrl();
   sources.forEach((source, index) => {
     embed.searchParams.append('src', source);
     if (colors[index]) embed.searchParams.append('color', colors[index]);

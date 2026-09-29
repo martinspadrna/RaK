@@ -3,27 +3,26 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('disabling the final visible calendar unloads and hides the stale Google iframe',()=>{
+test('disabling the final visible calendar never leaves the last real source loaded',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const end=nav.indexOf('function rakShiftCalendarEmbedUrl',start);
   assert(start>=0 && end>start);
   const fn=nav.slice(start,end);
-  assert(fn.includes("frame.removeAttribute('src');"));
-  assert(fn.includes("frame.style.display = 'none';"));
-  assert(fn.includes("empty.style.display = 'grid';"));
   assert(fn.includes('if (!visibleCalendars.length)'));
+  assert(fn.includes('rakShiftCalendarBlankEmbedUrl()'));
+  assert(fn.includes("frame.setAttribute('src', blankUrl)"));
+  assert(!fn.includes('visibleCalendars[visibleCalendars.length - 1]'));
 });
 
-test('reenabling a calendar reconstructs the Google iframe and hides the empty state',()=>{
+test('reenabling a calendar reconstructs the Google iframe from the active source set',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const end=nav.indexOf('function rakShiftCalendarEmbedUrl',start);
   const fn=nav.slice(start,end);
+  assert(fn.includes('rakShiftCalendarEmbedUrl(visibleCalendars)'));
   assert(fn.includes("frame.setAttribute('src', nextUrl)"));
   assert(fn.includes("frame.style.display = 'block';"));
-  assert(fn.includes("empty.style.display = 'none';"));
-  assert(nav.includes('Všechny vybrané kalendáře jsou skryté.'));
 });
 
 test('zero-visible state stays temporary and never changes account calendar selection',()=>{

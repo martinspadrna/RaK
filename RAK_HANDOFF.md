@@ -338,9 +338,9 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
 - **RaK 1.7.155 – FYZICKY PASS šířky legendy 29. 9. 2026:** štítky jsou jen na šířku krátkého popisku a řadí se vedle sebe.
 - Fyzický test 1.7.155 odhalil navazující regresi: po deaktivaci všech štítků zůstával v iframe viditelný poslední aktivní kalendář.
-- RaK 1.7.156 implementovala vyprázdnění/skrytí iframe při nule aktivních zdrojů, ale exact-SHA verify zadržel release na FCP P95 kvůli pozdním outlierům v benchmarku; TEST alias proto zůstal na 1.7.155.
-- RaK 1.7.157 zavedla oddělenou Chrome process group, ale první exact-SHA běh správně odhalil chybu v kontrolním kritériu: Linux zombie členové byli chybně považováni za živé a CI skončilo fail-closed před měřením.
-- **RaK 1.7.158 čeká na zelený exact-SHA CI a fyzický test:** process-group cleanup ignoruje pouze `Z` zombie bez CPU/memory zátěže, ale vyžaduje 0 živých Chrome členů; funkční oprava nuly aktivních kalendářů zůstává stejná a performance limity se nemění.
+- **RaK 1.7.158 – FYZICKY PASS na iPhonu 29. 9. 2026:** po deaktivaci všech štítků už poslední aktivní kalendář nezůstává zobrazený. Exact-SHA CI i performance parity jsou zelené; izolace parity benchmarku ukončuje živé Chromium procesy a ignoruje pouze `Z` zombie.
+- Následný UX požadavek vlastníka: při nule aktivních štítků nemá být prázdná plocha s textem, ale normální Google kalendář bez událostí.
+- **RaK 1.7.159 čeká na zelený exact-SHA CI a fyzický test:** nula aktivních štítků používá Google embed bez `src` kalendářů; účetní výběr i chráněné Obrábění D zůstávají nedotčené.
 
 ### Ostatní otevřený backlog
 
