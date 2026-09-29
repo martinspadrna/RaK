@@ -3630,7 +3630,8 @@
             const remoteUi = await loadGameAccountUiSettingsDirect(client, account);
             const sameAppearance = !!(remoteUi && queuedUi.appearance_id === remoteUi.appearance_id);
             const sameCalendars = queuedUi.calendar_keys === null || !!(remoteUi && JSON.stringify(queuedUi.calendar_keys) === JSON.stringify(remoteUi.calendar_keys || []));
-            if (sameAppearance && sameCalendars) {
+            const sameHiddenCalendars = queuedUi.calendar_hidden_keys === null || !!(remoteUi && JSON.stringify(queuedUi.calendar_hidden_keys) === JSON.stringify(remoteUi.calendar_hidden_keys || []));
+            if (sameAppearance && sameCalendars && sameHiddenCalendars) {
               writeTimedCache(gameUiSettingsCacheKey(account), [remoteUi], 'ui');
               flushed += 1;
               continue;
@@ -4771,12 +4772,14 @@
     const appearanceRaw = String(entry && (entry.appearance_id || entry.appearanceId || entry.theme_id || entry.themeId || entry.background_id || entry.backgroundId) || '').trim();
     const appearance = appearanceRaw || 'obsidian';
     const calendarKeys = normalizeGameCalendarKeys(entry && (entry.calendar_keys ?? entry.calendarKeys));
+    const calendarHiddenKeys = normalizeGameCalendarKeys(entry && (entry.calendar_hidden_keys ?? entry.calendarHiddenKeys));
     return {
       account_number: accountNumber,
       appearance_id: appearance,
       theme_id: appearance,
       background_id: appearance,
       calendar_keys: calendarKeys,
+      calendar_hidden_keys: calendarHiddenKeys,
       expected_revision: Math.max(0, Number(entry && (entry.expected_revision ?? entry.serverRevision ?? entry.revision) || 0) || 0),
       revision: Math.max(0, Number(entry && (entry.revision ?? entry.serverRevision ?? entry.expected_revision) || 0) || 0),
       updated_at: String(entry && (entry.updated_at || entry.updatedAt) || new Date().toISOString())
@@ -4796,9 +4799,10 @@
       theme_id: appearance,
       background_id: appearance,
       calendar_keys: normalizeGameCalendarKeys(row.calendar_keys ?? row.calendarKeys) || [],
+      calendar_hidden_keys: normalizeGameCalendarKeys(row.calendar_hidden_keys ?? row.calendarHiddenKeys),
       revision: Math.max(0, Number(row.revision || 0) || 0),
       updated_at: row.updated_at || row.updatedAt || null,
-      source: 'account_ui_preferences_rpc_v2'
+      source: 'account_ui_preferences_rpc'
     };
   }
 
@@ -4819,18 +4823,26 @@
     if (!normalized.account_number) throw new Error('Chybí účet pro uložení vzhledu.');
     try {
       rememberGameUiRpcSmoke('attempt');
-      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => normalized.calendar_keys === null
-        ? client.rpc('rak_save_account_ui_preferences', {
-            p_account_number: normalized.account_number,
-            p_appearance_id: normalized.appearance_id,
-            p_expected_revision: normalized.expected_revision
-          })
-        : client.rpc('rak_save_account_ui_preferences_v2', {
+      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => normalized.calendar_hidden_keys !== null
+        ? client.rpc('rak_save_account_ui_preferences_v3', {
             p_account_number: normalized.account_number,
             p_appearance_id: normalized.appearance_id,
             p_calendar_keys: normalized.calendar_keys,
+            p_calendar_hidden_keys: normalized.calendar_hidden_keys,
             p_expected_revision: normalized.expected_revision
-          }), { mode: 'write', attempts: 1 });
+          })
+        : normalized.calendar_keys === null
+          ? client.rpc('rak_save_account_ui_preferences', {
+              p_account_number: normalized.account_number,
+              p_appearance_id: normalized.appearance_id,
+              p_expected_revision: normalized.expected_revision
+            })
+          : client.rpc('rak_save_account_ui_preferences_v2', {
+              p_account_number: normalized.account_number,
+              p_appearance_id: normalized.appearance_id,
+              p_calendar_keys: normalized.calendar_keys,
+              p_expected_revision: normalized.expected_revision
+            }), { mode: 'write', attempts: 1 });
       if (error) throw error;
       const decoded = decodeGameUiSettingsRow(data);
       if (!decoded) throw new Error('Uložení vzhledu nevrátilo platný stav.');

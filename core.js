@@ -823,6 +823,7 @@ const RAK_SHIFT_CALENDAR_SETTINGS_KEY = 'SHIFT_CALENDAR_SETTINGS';
 const RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY = 'shift_calendar_settings';
 const RAK_SHIFT_CALENDAR_TEAMS = Object.freeze(['A','B','C','D']);
 const RAK_CALENDAR_SELECTION_STORAGE_PREFIX = 'rak-calendar-selection-v17149:';
+const RAK_CALENDAR_HIDDEN_STORAGE_PREFIX = 'rak-calendar-hidden-v17160:';
 const RAK_SHIFT_CALENDAR_SOURCE_IDS = Object.freeze({
   A: Object.freeze({
     obrabeni: '849eb5bcbcfdba0ce4171f4a530c530e6fe096c4f9848bede490cd4e129c7b02@group.calendar.google.com',
@@ -995,6 +996,85 @@ function rakCalendarSelectionStorageKey() {
   const info = getRakActiveAccountShiftInfo();
   return rakCalendarSelectionStorageKeyForAccount(info && info.accountId);
 }
+function rakCalendarHiddenStorageKeyForAccount(accountId) {
+  const id = String(accountId || '').trim() || 'anonymous';
+  return RAK_CALENDAR_HIDDEN_STORAGE_PREFIX + id;
+}
+
+function rakCalendarHiddenStorageKey() {
+  const info = getRakActiveAccountShiftInfo();
+  return rakCalendarHiddenStorageKeyForAccount(info && info.accountId);
+}
+
+function getRakCalendarHiddenKeys(accountId) {
+  let hidden = [];
+  try {
+    const key = accountId === undefined ? rakCalendarHiddenStorageKey() : rakCalendarHiddenStorageKeyForAccount(accountId);
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (Array.isArray(parsed)) hidden = normalizeRakCalendarSelectionKeys(parsed);
+  } catch (err) {}
+  return hidden;
+}
+
+function getRakVisibleCalendarKeys(selectedKeys) {
+  const selected = normalizeRakCalendarSelectionKeys(Array.isArray(selectedKeys) ? selectedKeys : getRakSelectedCalendarKeys());
+  const hidden = new Set(getRakCalendarHiddenKeys());
+  return selected.filter((key) => !hidden.has(key));
+}
+
+function applyRakRemoteCalendarHiddenKeys(keys, accountId) {
+  if (!Array.isArray(keys)) return false;
+  const hidden = normalizeRakCalendarSelectionKeys(keys);
+  const info = getRakActiveAccountShiftInfo();
+  const activeAccountId = String(info && info.accountId || '').trim();
+  const wantedAccountId = String(accountId || activeAccountId || '').trim();
+  if (wantedAccountId && activeAccountId && wantedAccountId !== activeAccountId) return false;
+  try {
+    localStorage.setItem(rakCalendarHiddenStorageKeyForAccount(wantedAccountId || activeAccountId), JSON.stringify(hidden));
+  } catch (err) { return false; }
+  try {
+    const content = document.querySelector('#calendarModalContent');
+    const state = content && content.__rakCalendarDisplayState;
+    if (state && Array.isArray(state.calendars) && typeof window.rakCalendarApplyLegendVisibility === 'function') {
+      const hiddenSet = new Set(hidden);
+      const visible = state.calendars
+        .map((entry) => String(entry && entry.key || '').trim())
+        .filter((key) => key && !hiddenSet.has(key));
+      window.rakCalendarApplyLegendVisibility(content, visible);
+    }
+  } catch (err) {}
+  return true;
+}
+
+function queueRakAccountCalendarHiddenSync(hidden) {
+  const info = getRakActiveAccountShiftInfo();
+  const accountId = String(info && info.accountId || '').trim();
+  if (!accountId) return false;
+  try {
+    if (typeof window.saveActiveAccountCalendarHiddenKeys === 'function') {
+      window.saveActiveAccountCalendarHiddenKeys(hidden);
+      return true;
+    }
+    window.__rakPendingCalendarHiddenForAccount = { accountId, keys: hidden.slice() };
+  } catch (err) {}
+  return false;
+}
+
+function setRakVisibleCalendarKeys(keys) {
+  const selected = getRakSelectedCalendarKeys();
+  const selectedSet = new Set(selected);
+  const visible = normalizeRakCalendarSelectionKeys(keys).filter((key) => selectedSet.has(key));
+  const visibleSet = new Set(visible);
+  const previousHidden = getRakCalendarHiddenKeys();
+  const preservedHidden = previousHidden.filter((key) => !selectedSet.has(key));
+  const hiddenSelected = selected.filter((key) => !visibleSet.has(key));
+  const nextHidden = normalizeRakCalendarSelectionKeys(preservedHidden.concat(hiddenSelected));
+  try { localStorage.setItem(rakCalendarHiddenStorageKey(), JSON.stringify(nextHidden)); }
+  catch (err) { return { ok: false, reason: 'storage-failed', error: err }; }
+  queueRakAccountCalendarHiddenSync(nextHidden);
+  const hiddenSet = new Set(nextHidden);
+  return { ok: true, visibleKeys: selected.filter((key) => !hiddenSet.has(key)), hiddenKeys: nextHidden };
+}
 
 function getRakSelectedCalendarKeys() {
   let saved = [];
@@ -1053,6 +1133,10 @@ function setRakSelectedCalendarKeys(keys) {
 
 window.applyRakRemoteCalendarSelection = applyRakRemoteCalendarSelection;
 window.normalizeRakCalendarSelectionKeys = normalizeRakCalendarSelectionKeys;
+window.applyRakRemoteCalendarHiddenKeys = applyRakRemoteCalendarHiddenKeys;
+window.getRakCalendarHiddenKeys = getRakCalendarHiddenKeys;
+window.getRakVisibleCalendarKeys = getRakVisibleCalendarKeys;
+window.setRakVisibleCalendarKeys = setRakVisibleCalendarKeys;
 
 function getRakActiveShiftCalendarContext() {
   const info = getRakActiveAccountShiftInfo();

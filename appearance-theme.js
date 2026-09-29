@@ -238,11 +238,13 @@ const rakProfileUiSyncGuard = {
 function getProfileUiPayloadSignature(payload) {
   if (!payload || typeof payload !== 'object') return '';
   const calendarKeys = normalizeProfileCalendarKeys(payload.calendar_keys ?? payload.calendarKeys);
+  const calendarHiddenKeys = normalizeProfileCalendarKeys(payload.calendar_hidden_keys ?? payload.calendarHiddenKeys);
   return [
     String(payload.account_number || payload.accountNumber || '').trim(),
     normalizeThemePreferenceId(payload.theme_id || payload.themeId || payload.theme || 'default', 'default'),
     normalizeBackgroundPreferenceId(payload.background_id || payload.backgroundId || payload.background || 'ios-mesh', 'ios-mesh'),
     calendarKeys === null ? '~' : calendarKeys.join(','),
+    calendarHiddenKeys === null ? '~' : calendarHiddenKeys.join(','),
     Math.max(0, Number(payload.expected_revision ?? payload.serverRevision ?? payload.revision ?? 0) || 0)
   ].join('|');
 }
@@ -255,6 +257,7 @@ function getProfileUiSyncStatus() {
     themeId: ui && ui.themeId ? ui.themeId : getLocalThemePreference(),
     backgroundId: ui && ui.backgroundId ? ui.backgroundId : getLocalBackgroundPreference(),
     calendarKeys: ui && Array.isArray(ui.calendarKeys) ? ui.calendarKeys.slice() : [],
+    calendarHiddenKeys: ui && Array.isArray(ui.calendarHiddenKeys) ? ui.calendarHiddenKeys.slice() : [],
     serverRevision: ui ? Math.max(0, Number(ui.serverRevision || 0) || 0) : 0,
     dirty: !!(ui && ui.dirty === true),
     remoteLoadActive: rakProfileUiRemoteLoadPromises.size > 0,
@@ -319,6 +322,8 @@ function ensureAccountUiSettings(account) {
   account.uiSettings.backgroundId = account.uiSettings.backgroundId ? normalizeBackgroundPreferenceId(account.uiSettings.backgroundId, '') : '';
   const rawCalendarKeys = Object.prototype.hasOwnProperty.call(account.uiSettings, 'calendarKeys') ? account.uiSettings.calendarKeys : account.calendarKeys;
   account.uiSettings.calendarKeys = normalizeProfileCalendarKeys(rawCalendarKeys);
+  const rawCalendarHiddenKeys = Object.prototype.hasOwnProperty.call(account.uiSettings, 'calendarHiddenKeys') ? account.uiSettings.calendarHiddenKeys : account.calendarHiddenKeys;
+  account.uiSettings.calendarHiddenKeys = normalizeProfileCalendarKeys(rawCalendarHiddenKeys) || [];
   account.uiSettings.updatedAt = Number(account.uiSettings.updatedAt || 0) || 0;
   account.uiSettings.serverRevision = Math.max(0, Number(account.uiSettings.serverRevision || 0) || 0);
   account.uiSettings.serverUpdatedAt = String(account.uiSettings.serverUpdatedAt || '');
@@ -368,6 +373,13 @@ function saveActiveAccountUiSettings(partial, options = {}) {
       changed = true;
     }
   }
+  if (Object.prototype.hasOwnProperty.call(partial || {}, 'calendarHiddenKeys')) {
+    const nextHiddenKeys = normalizeProfileCalendarKeys(partial.calendarHiddenKeys);
+    if (nextHiddenKeys !== null && !sameProfileCalendarKeys(ui.calendarHiddenKeys, nextHiddenKeys)) {
+      ui.calendarHiddenKeys = nextHiddenKeys;
+      changed = true;
+    }
+  }
   if (changed || !ui.updatedAt) {
     ui.updatedAt = Date.now();
     ui.dirty = true;
@@ -384,11 +396,13 @@ function getAccountUiRemotePayload(accountId) {
   const appearance = normalizeThemePreferenceId(ui.themeId || ui.backgroundId || RAK_DEFAULT_APPEARANCE_ID, RAK_DEFAULT_APPEARANCE_ID);
   const localCalendarKeys = normalizeProfileCalendarKeys(ui.calendarKeys);
   const fallbackCalendarKeys = typeof getRakSelectedCalendarKeys === 'function' ? normalizeProfileCalendarKeys(getRakSelectedCalendarKeys()) : null;
+  const localCalendarHiddenKeys = normalizeProfileCalendarKeys(ui.calendarHiddenKeys) || [];
   return {
     account_number: String(account.id || '').trim(),
     theme_id: appearance,
     background_id: appearance,
     calendar_keys: localCalendarKeys && localCalendarKeys.length ? localCalendarKeys : fallbackCalendarKeys,
+    calendar_hidden_keys: localCalendarHiddenKeys,
     expected_revision: Math.max(0, Number(ui.serverRevision || 0) || 0),
     updated_at: new Date(Number(ui.updatedAt || Date.now()) || Date.now()).toISOString()
   };
@@ -415,14 +429,17 @@ function applyRemoteAccountUiState(accountId, remote, reason) {
   const appearance = normalizeThemePreferenceId(remote.appearance_id || remote.theme_id || remote.background_id || '', '');
   if (!appearance) return false;
   const remoteCalendarKeys = normalizeProfileCalendarKeys(remote.calendar_keys ?? remote.calendarKeys);
+  const remoteCalendarHiddenKeys = normalizeProfileCalendarKeys(remote.calendar_hidden_keys ?? remote.calendarHiddenKeys);
   const remoteRevision = Math.max(0, Number(remote.revision || remote.serverRevision || 0) || 0);
   const remoteUpdatedAt = String(remote.updated_at || remote.updatedAt || '');
   const remoteTs = Date.parse(remoteUpdatedAt) || 0;
   const calendarChanged = !!(remoteCalendarKeys && remoteCalendarKeys.length && !sameProfileCalendarKeys(state.ui.calendarKeys, remoteCalendarKeys));
-  const changed = state.ui.themeId !== appearance || state.ui.backgroundId !== appearance || calendarChanged;
+  const calendarHiddenChanged = remoteCalendarHiddenKeys !== null && !sameProfileCalendarKeys(state.ui.calendarHiddenKeys, remoteCalendarHiddenKeys);
+  const changed = state.ui.themeId !== appearance || state.ui.backgroundId !== appearance || calendarChanged || calendarHiddenChanged;
   state.ui.themeId = appearance;
   state.ui.backgroundId = appearance;
   if (remoteCalendarKeys && remoteCalendarKeys.length) state.ui.calendarKeys = remoteCalendarKeys;
+  if (remoteCalendarHiddenKeys !== null) state.ui.calendarHiddenKeys = remoteCalendarHiddenKeys;
   state.ui.serverRevision = remoteRevision;
   state.ui.serverUpdatedAt = remoteUpdatedAt;
   state.ui.dirty = false;
@@ -439,6 +456,9 @@ function applyRemoteAccountUiState(accountId, remote, reason) {
   applyAppearancePreference(appearance, true, { skipProfile: true, skipRemote: true });
   if (remoteCalendarKeys && remoteCalendarKeys.length && typeof window.applyRakRemoteCalendarSelection === 'function') {
     window.applyRakRemoteCalendarSelection(remoteCalendarKeys, id);
+  }
+  if (remoteCalendarHiddenKeys !== null && typeof window.applyRakRemoteCalendarHiddenKeys === 'function') {
+    window.applyRakRemoteCalendarHiddenKeys(remoteCalendarHiddenKeys, id);
   }
   if (typeof renderThemeSettingsCards === 'function') renderThemeSettingsCards();
   return true;
@@ -589,7 +609,9 @@ async function loadActiveAccountUiRemoteSettings(accountId) {
         state.ui.themeId = appearance;
         state.ui.backgroundId = appearance;
         const seedCalendarKeys = typeof getRakSelectedCalendarKeys === 'function' ? normalizeProfileCalendarKeys(getRakSelectedCalendarKeys()) : null;
+        const seedCalendarHiddenKeys = typeof getRakCalendarHiddenKeys === 'function' ? normalizeProfileCalendarKeys(getRakCalendarHiddenKeys()) : [];
         if (seedCalendarKeys && seedCalendarKeys.length) state.ui.calendarKeys = seedCalendarKeys;
+        state.ui.calendarHiddenKeys = seedCalendarHiddenKeys || [];
         if (!state.ui.updatedAt) state.ui.updatedAt = Date.now();
         state.ui.serverRevision = 0;
         state.ui.serverUpdatedAt = '';
@@ -607,9 +629,11 @@ async function loadActiveAccountUiRemoteSettings(accountId) {
       const localTs = Math.max(0, Number(state.ui.updatedAt || 0) || 0);
       const localAppearance = normalizeThemePreferenceId(state.ui.themeId || state.ui.backgroundId || RAK_DEFAULT_APPEARANCE_ID, RAK_DEFAULT_APPEARANCE_ID);
       const remoteCalendarKeys = normalizeProfileCalendarKeys(remote.calendar_keys ?? remote.calendarKeys) || [];
+      const remoteCalendarHiddenKeys = normalizeProfileCalendarKeys(remote.calendar_hidden_keys ?? remote.calendarHiddenKeys);
       const storedLocalCalendarKeys = normalizeProfileCalendarKeys(state.ui.calendarKeys);
       const fallbackLocalCalendarKeys = typeof getRakSelectedCalendarKeys === 'function' ? normalizeProfileCalendarKeys(getRakSelectedCalendarKeys()) : null;
       const localCalendarKeys = storedLocalCalendarKeys && storedLocalCalendarKeys.length ? storedLocalCalendarKeys : (fallbackLocalCalendarKeys || []);
+      const localCalendarHiddenKeys = normalizeProfileCalendarKeys(state.ui.calendarHiddenKeys) || [];
 
       if (!remoteCalendarKeys.length && localCalendarKeys.length) {
         state.ui.calendarKeys = localCalendarKeys;
@@ -625,7 +649,10 @@ async function loadActiveAccountUiRemoteSettings(accountId) {
         rakProfileUiSyncGuard.remoteOlderSkips += 1;
         return Object.assign({ ok: true, skipped: true, reason: 'remote-revision-older' }, remote);
       }
-      if (remoteRevision >= localRevision && localAppearance === remoteAppearance && sameProfileCalendarKeys(localCalendarKeys, remoteCalendarKeys)) {
+      if (remoteRevision >= localRevision
+          && localAppearance === remoteAppearance
+          && sameProfileCalendarKeys(localCalendarKeys, remoteCalendarKeys)
+          && (remoteCalendarHiddenKeys === null || sameProfileCalendarKeys(localCalendarHiddenKeys, remoteCalendarHiddenKeys))) {
         state.ui.serverRevision = remoteRevision;
         state.ui.serverUpdatedAt = String(remote.updated_at || remote.updatedAt || '');
         state.ui.dirty = false;
@@ -713,6 +740,31 @@ try {
   if (pending && account && String(pending.accountId || '') === String(account.id || '')) {
     saveActiveAccountCalendarSelection(pending.keys);
     delete window.__rakPendingCalendarSelectionForAccount;
+  }
+} catch (err) {}
+function saveActiveAccountCalendarHiddenKeys(keys) {
+  const normalized = normalizeProfileCalendarKeys(keys);
+  if (normalized === null) return false;
+  const saved = saveActiveAccountUiSettings({ calendarHiddenKeys: normalized }, { reason: 'calendar-hidden-change', skipRemote: true });
+  if (!saved) return false;
+  const pushNow = () => {
+    try { void pushActiveAccountUiRemoteSettings('calendar-hidden-change-immediate'); }
+    catch (err) { console.warn('Calendar hidden preference remote save failed', err); }
+  };
+  if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.saveGameAccountUiSettings === 'function') pushNow();
+  else if (typeof window.rakEnsureFeature === 'function') {
+    void window.rakEnsureFeature('sync').then(pushNow).catch((err) => console.warn('Calendar hidden preference sync load failed', err));
+  } else scheduleActiveAccountUiRemoteSave('calendar-hidden-change');
+  return true;
+}
+
+window.saveActiveAccountCalendarHiddenKeys = saveActiveAccountCalendarHiddenKeys;
+try {
+  const pendingHidden = window.__rakPendingCalendarHiddenForAccount;
+  const account = getActiveProfileUiAccount();
+  if (pendingHidden && account && String(pendingHidden.accountId || '') === String(account.id || '')) {
+    saveActiveAccountCalendarHiddenKeys(pendingHidden.keys);
+    delete window.__rakPendingCalendarHiddenForAccount;
   }
 } catch (err) {}
 
