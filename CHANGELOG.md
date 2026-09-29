@@ -1,3 +1,11 @@
+## RaK 1.7.155 (development)
+
+- Dashboard → Kalendář: přepínače barevné legendy už nejsou přes celou šířku; každý štítek má pouze šířku podle svého krátkého popisku (`Kal.A`, `Obr.D` apod.) a skládají se vedle sebe.
+- Funkce dočasného skrývání/zobrazování kalendářů z 1.7.154 zůstává beze změny a stále nepřepisuje účetní výběr.
+- Oprava je pouze interaction-time inline layout; nepřidává nové pravidlo do first-paint CSS cesty.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.154 (development)
 
 - Barevná legenda nad originálním Google Calendar iframe je interaktivní: klepnutím na `Obr.A–D` / `Kal.A–D` se daný kalendář dočasně skryje nebo znovu zobrazí.
