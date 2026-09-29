@@ -43,8 +43,9 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (req.method !== "POST") return jsonResponse(req, 405, { ok: false, error: "method_not_allowed" });
 
   const { data: actor, error: actorError } = await ctx.supabase.rpc("rak_admin_context");
-  // Deputy may use the shift report, but cannot administer users or passwords.
-  if (actorError || !actor || (actor.role !== "owner" && actor.role !== "admin")) {
+  // RaK 1.7.149: owner/admin/deputy may change only their own password.
+  // All management actions remain blocked for deputy below.
+  if (actorError || !actor || !["owner", "admin", "deputy"].includes(String(actor.role || ""))) {
     return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
   }
 
@@ -62,6 +63,10 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
     if (verifyError || String(verified?.user?.id || "") !== String(actor.user_id || "")) return jsonResponse(req, 403, { ok: false, error: "invalid_current_password" });
     const { error: updateError } = await ctx.supabaseAdmin.auth.admin.updateUserById(String(actor.user_id || ""), { password: newPassword });
     return updateError ? jsonResponse(req, 500, { ok: false, error: "password_update_failed" }) : jsonResponse(req, 200, { ok: true });
+  }
+
+  if (actor.role === "deputy") {
+    return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
   }
 
   if (action === "list-admin-directory") {

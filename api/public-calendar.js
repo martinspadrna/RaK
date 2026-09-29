@@ -3,6 +3,14 @@
 const GOOGLE_CALENDAR_HOST = 'calendar.google.com';
 const MAX_ICS_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 2;
+const { PUBLISHABLE_KEY, supabaseRequest } = require('./_admin-auth');
+
+const PRIVATE_CALENDAR_SOURCE_IDS = new Set([
+  'd5be95a22ab9eaad50fbe177a127966aa6cf9542c8d7060f109f8b007d1e22ee@group.calendar.google.com',
+  '510fa715a70e00fa40b555ae624f3da8d61dccda4fd9450e73a0798927bcb7bb@group.calendar.google.com',
+  'dadcfb3ad2302f9f7819b4a668c0bb72d001b8bf5bcd71f98ef7b85e39a55ae3@group.calendar.google.com',
+  '28220cf74cf3681b41feb5c0efa76ef348e52e9a90a9b5300e1dfffbcc96cd62@group.calendar.google.com'
+]);
 
 function normalizeCalendarSourceId(value) {
   let raw = String(value || '').trim();
@@ -41,6 +49,27 @@ function validRedirect(value, expectedSourceId) {
   } catch (_) {
     return false;
   }
+}
+
+async function fetchPrivateCalendar(sourceId) {
+  if (!PRIVATE_CALENDAR_SOURCE_IDS.has(sourceId)) throw new Error('private_calendar_not_allowed');
+  if (!PUBLISHABLE_KEY) throw new Error('private_calendar_backend_not_configured');
+  const response = await supabaseRequest('/rest/v1/rpc/rak_calendar_private_feed', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + PUBLISHABLE_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ p_source_id: sourceId })
+  });
+  if (!response.ok) throw new Error('private_calendar_backend_' + String(response.status));
+  const payload = await response.json();
+  const text = typeof payload === 'string' ? payload : '';
+  if (!text || text.length > MAX_ICS_BYTES || !text.includes('BEGIN:VCALENDAR') || !text.includes('END:VCALENDAR')) {
+    throw new Error('invalid_private_calendar');
+  }
+  return text;
 }
 
 async function fetchPublicCalendar(sourceId, redirectCount = 0) {
@@ -91,7 +120,9 @@ module.exports = async function publicCalendar(req, res) {
   }
 
   try {
-    const text = await fetchPublicCalendar(sourceId);
+    const text = PRIVATE_CALENDAR_SOURCE_IDS.has(sourceId)
+      ? await fetchPrivateCalendar(sourceId)
+      : await fetchPublicCalendar(sourceId);
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -102,4 +133,4 @@ module.exports = async function publicCalendar(req, res) {
   }
 };
 
-module.exports._test = { normalizeCalendarSourceId, calendarUrl, validRedirect };
+module.exports._test = { normalizeCalendarSourceId, calendarUrl, validRedirect, PRIVATE_CALENDAR_SOURCE_IDS };

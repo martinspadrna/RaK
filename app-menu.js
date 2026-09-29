@@ -678,6 +678,30 @@ function bindAppMenuHandlers(body) {
         }
         return;
       }
+      if (menuAction === 'change-account-password') {
+        event.preventDefault();
+        const statusEl = body.querySelector('#rakAccountPasswordStatus');
+        if (statusEl) statusEl.textContent = 'Měním heslo…';
+        if (!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport())) {
+          throw new Error('Pro změnu hesla musí být účet bezpečně přihlášený.');
+        }
+        const result = typeof rakAdminChangeOwnPassword === 'function'
+          ? await rakAdminChangeOwnPassword(body)
+          : { ok: false, reason: 'missing-handler' };
+        if (!result || result.ok === false) {
+          const messages = {
+            'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.',
+            'password-mismatch': 'Nová hesla se neshodují.',
+            'password-unchanged': 'Nové heslo je stejné jako současné.',
+            'invalid_current_password': 'Současné heslo není správné.',
+            'missing-session': 'Bezpečné přihlášení už vypršelo. Přihlas se znovu.'
+          };
+          throw (result && result.error ? result.error : new Error(messages[result && result.reason] || 'Změna hesla selhala.'));
+        }
+        body.querySelectorAll('[data-admin-own-password]').forEach((input) => { input.value = ''; });
+        if (statusEl) statusEl.textContent = 'Heslo bylo změněno.';
+        return;
+      }
       if (menuAction === 'settings') {
         openAppMenu('settings');
         return;

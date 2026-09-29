@@ -1477,26 +1477,31 @@ function renderCalendarModalContent(overlay) {
   const calendars = Array.isArray(context && context.calendars) ? context.calendars : [];
   const title = overlay.querySelector('#calendarModalTitle');
   const content = overlay.querySelector('#calendarModalContent');
-  if (title) title.textContent = 'Kalendář · směna ' + team;
   if (!content) return false;
 
   const calendarUrl = rakShiftCalendarEmbedUrl(calendars);
+  const calendarLabel = calendars.length === 1
+    ? String(calendars[0].label || ('Směna ' + team))
+    : (calendars.length ? (String(calendars.length) + ' vybrané kalendáře') : ('Směna ' + team));
+  if (title) title.textContent = 'Kalendář · ' + calendarLabel;
+
   if (!calendarUrl) {
     content.dataset.calendarSignature = '';
-    content.innerHTML = '<div class="appMenuText">Pro směnu ' + escapeHtml(team) + ' není nastavený žádný veřejný Google kalendář.</div>';
+    content.__rakCalendars = [];
+    content.__rakCalendarState = null;
+    content.innerHTML = '<div class="appMenuText">Není vybraný žádný kalendář.</div>';
     return true;
   }
 
-  const signature = team + '|' + calendarUrl;
-  const existingFrame = content.querySelector('.calendarModalFrame');
-  if (content.dataset.calendarSignature === signature && existingFrame) return true;
+  const signature = calendarUrl;
+  const existingNative = content.querySelector('.calendarNativeHost');
+  if (content.dataset.calendarSignature === signature && existingNative) return true;
 
   content.dataset.calendarSignature = signature;
-  content.innerHTML = [
-    '<div class="calendarModalFrameWrap">',
-    '<iframe class="calendarModalFrame" title="Google kalendář směny ' + escapeHtml(team) + '" loading="eager" referrerpolicy="no-referrer-when-downgrade" src="' + escapeHtml(calendarUrl) + '"></iframe>',
-    '</div>'
-  ].join('');
+  content.__rakCalendars = [{ label: calendarLabel, url: calendarUrl }];
+  content.__rakCalendarState = null;
+  content.innerHTML = '<div class="calendarNativeHost"></div>';
+  void rakNativeCalendarLoad(content, 0);
   return true;
 }
 

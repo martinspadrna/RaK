@@ -7,6 +7,18 @@
   const ACCOUNT_UI_MIGRATION_KEY = 'rotace_kalkulacky:account_ui_migration_v1';
   const ACCOUNT_UI_PROFILE_VERSION = 912;
 
+  function normalizeCalendarAssignment(value, fallbackTeam) {
+    const team = ['A','B','C','D'].includes(String(fallbackTeam || '').trim().toUpperCase())
+      ? String(fallbackTeam).trim().toUpperCase()
+      : '';
+    const raw = String(value || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-');
+    const match = raw.match(/^(obrabeni|kalirna)-([abcd])$/);
+    if (match) return match[1] + '-' + match[2].toUpperCase();
+    return team ? ('obrabeni-' + team) : '';
+  }
+
   // Vzhled účtu dříve sdílel úložiště s modulem Hry. Hry už se v RaK nenačítají,
   // proto tu ponecháváme jen malou kompatibilní profilovou vrstvu pro vzhled.
   function makeAccountUiEntry(accountId, name) {
@@ -69,7 +81,8 @@
       const requestedTeam = String(parsed.shiftTeam || '').trim().toUpperCase();
       const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
       if (!accountNumber || !fullName) return null;
-      return { accountNumber, fullName, shiftTeam, updatedAt: Number(parsed.updatedAt || 0) || 0 };
+      const calendarAssignment = normalizeCalendarAssignment(parsed.calendarAssignment || '', shiftTeam);
+      return { accountNumber, fullName, shiftTeam, calendarAssignment, updatedAt: Number(parsed.updatedAt || 0) || 0 };
     } catch (err) { return null; }
   }
 
@@ -104,6 +117,7 @@
       accountNumber: String(src.accountNumber || '').trim(),
       fullName: String(src.fullName || '').trim(),
       shiftTeam: ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '',
+      calendarAssignment: normalizeCalendarAssignment(src.calendarAssignment || '', requestedTeam),
       updatedAt: Date.now()
     };
     if (!next.accountNumber || !next.fullName) return false;
@@ -157,8 +171,9 @@
     const fullName = String(safe.fullName || '').trim();
     const requestedTeam = String(safe.shiftTeam || '').trim().toUpperCase();
     const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
+    const calendarAssignment = normalizeCalendarAssignment(safe.calendarAssignment || '', shiftTeam);
     if (!accountNumber || !fullName) return;
-    window.__RAK_USER_PROFILE__ = { accountNumber, fullName, shiftTeam, updatedAt: Number(safe.updatedAt || Date.now()) || Date.now() };
+    window.__RAK_USER_PROFILE__ = { accountNumber, fullName, shiftTeam, calendarAssignment, updatedAt: Number(safe.updatedAt || Date.now()) || Date.now() };
     window.__RAK_EARLY_USER_PROFILE__ = window.__RAK_USER_PROFILE__;
     try {
       if (typeof app === 'object' && app) {
@@ -230,14 +245,15 @@
     try {
       const client = clientFactory(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
       // RAK_LOGIN_RPC_17027: do not expose the whole table to the login client.
-      const { data, error } = await client.rpc('rak_lookup_account_for_login_v3', { p_last4: suffix });
+      const { data, error } = await client.rpc('rak_lookup_account_for_login_v4', { p_last4: suffix });
       if (error) return { ok: false, reason: 'lookup-failed', error };
       if (!data || data.ok !== true) return { ok: false, reason: data && data.reason || 'not-found' };
       // RAK_LOGIN_ADMIN_GATE_17045: fail closed if the admin-password flag is absent.
       if (typeof data.requiresAdminAuth !== 'boolean') return { ok: false, reason: 'admin-gate-unavailable' };
       const shiftTeam = String(data.shiftTeam || '').trim().toUpperCase();
       if (!['A','B','C','D'].includes(shiftTeam)) return { ok: false, reason: 'shift-team-unavailable' };
-      return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim(), shiftTeam, requiresAdminAuth: data.requiresAdminAuth };
+      const calendarAssignment = normalizeCalendarAssignment(data.calendarAssignment || '', shiftTeam);
+      return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim(), shiftTeam, calendarAssignment, requiresAdminAuth: data.requiresAdminAuth };
     } catch (error) {
       return { ok: false, reason: 'lookup-failed', error };
     }
@@ -323,13 +339,17 @@
   async function refreshMissingShiftTeam(profile) {
     const safe = profile && typeof profile === 'object' ? profile : null;
     const currentTeam = String(safe && safe.shiftTeam || '').trim().toUpperCase();
+    const currentAssignment = normalizeCalendarAssignment(safe && safe.calendarAssignment || '', currentTeam);
     const accountNumber = String(safe && safe.accountNumber || '').trim();
-    if (!accountNumber || ['A','B','C','D'].includes(currentTeam)) return false;
+    const hasTeam = ['A','B','C','D'].includes(currentTeam);
+    const hasExplicitAssignment = !!String(safe && safe.calendarAssignment || '').trim() && !!currentAssignment;
+    if (!accountNumber || (hasTeam && hasExplicitAssignment)) return false;
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
       const result = await lookup(accountNumber.slice(-4));
       if (!result || result.ok !== true || String(result.accountNumber || '').trim() !== accountNumber) return false;
       if (!['A','B','C','D'].includes(String(result.shiftTeam || '').trim().toUpperCase())) return false;
+      if (!normalizeCalendarAssignment(result.calendarAssignment || '', result.shiftTeam)) return false;
       if (!write(result)) return false;
       apply(result);
       return true;
@@ -342,7 +362,7 @@
     const profile = get();
     if (profile) {
       apply(profile, { migrateLegacyAppearance: true });
-      if (!['A','B','C','D'].includes(String(profile.shiftTeam || '').trim().toUpperCase())) void refreshMissingShiftTeam(profile);
+      if (!['A','B','C','D'].includes(String(profile.shiftTeam || '').trim().toUpperCase()) || !String(profile.calendarAssignment || '').trim()) void refreshMissingShiftTeam(profile);
     }
     refreshMenu();
     try {

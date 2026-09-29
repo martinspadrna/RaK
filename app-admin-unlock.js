@@ -1171,7 +1171,9 @@ async function rakAdminChangeOwnerPassword(root) {
 }
 
 async function rakAdminChangeOwnPassword(root) {
-  if (!rakAdminCanOpenAdmin() || rakAdminCanManageAdmins() || typeof app === 'undefined' || !app || app.adminAuthVersion !== 2) return { ok: false, reason: 'not-allowed' };
+  // RaK 1.7.149: owner/admin/deputy may change only their own password from Settings.
+  // This does not grant deputy access to any admin management surface.
+  if (!rakAdminCanOpenShiftReport() || typeof app === 'undefined' || !app || app.adminAuthVersion !== 2) return { ok: false, reason: 'not-allowed' };
   const accountId = rakAdminGetActiveAccountId();
   const scope = root && root.querySelector ? root : document;
   const currentPassword = String(scope.querySelector('[data-admin-own-password="current"]')?.value || '');

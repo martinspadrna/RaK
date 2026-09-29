@@ -1,3 +1,13 @@
+## RaK 1.7.149 (development)
+
+- Kalendář v RaK má osm stabilních pracovních zdrojů: Obrábění A/B/C/D a Kalírna A/B/C/D. Každý účet má po prvním přihlášení vybraný právě jeden výchozí kalendář podle svého zařazení.
+- Administrace → Pracovníci → Účty aplikace nově umí zařazení Obrábění A–D nebo Kalírna A–D. Staré účty se bezpečně mapují na Obrábění své původní směny.
+- Nastavení → Kalendář umožňuje každému uživateli zaškrtnout libovolné další kalendáře. Dashboard pak otevře jeden společný nativní RaK kalendář se sloučenými vybranými zdroji.
+- Kalírna A–D používá private Google ICS jen serverově: private URL jsou uložené v TEST Supabase Vaultu a klient ani GitHub neobsahují private tokeny. Veřejný RaK endpoint pracuje pouze s allowlistovanými calendar ID.
+- Login RPC v4 vrací pouze zařazení konkrétního přihlášeného účtu, takže pracovník Kalírny dostane správný výchozí kalendář už při prvním přihlášení.
+- Nastavení → Heslo umožňuje ownerovi, správci i zástupci změnit pouze svoje vlastní heslo. Zástupce tím nezískává žádné další administrační oprávnění.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.148 (development)
 
 - Neplánovaná Kalírna už není jen odvozený text pod prázdnou buňkou. Po lokálním přepočtu se stejný `kalirnaOut` zapíše přímo na chráněnou prázdnou MO pozici a člověk je v rozpisu jako „Jméno →K“.

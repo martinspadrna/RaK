@@ -113,6 +113,21 @@ function renderAppMenuContactPage(body, versionText) {
 function renderAppMenuSettingsPage(body, versionText) {
       bindAppMenuHandlers(body);
       const profileCard = buildRakProfileSettingsHtml();
+      const calendarCard = typeof buildRakCalendarSelectionSettingsHtml === 'function' ? buildRakCalendarSelectionSettingsHtml() : '';
+      const canChangePassword = typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport();
+      const passwordCard = canChangePassword ? [
+        '<details class="appMenuCard appMenuSettingsCard rakAccountPasswordCard">',
+        '  <summary class="appMenuCardTitle">Heslo</summary>',
+        '  <div class="smallText">Změníš pouze heslo svého aktuálního účtu. Minimálně 6 znaků.</div>',
+        '  <div class="rakAccountPasswordGrid">',
+        '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
+        '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="new"></label>',
+        '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="confirm"></label>',
+        '  </div>',
+        '  <div class="smallText" id="rakAccountPasswordStatus" role="status" aria-live="polite"></div>',
+        '  <button type="button" class="appMenuAction isActive" data-menu-action="change-account-password">Změnit moje heslo</button>',
+        '</details>'
+      ].join('') : '';
       const privacyCard = [
         '<details class="appMenuCard appMenuSettingsCard">',
         '  <summary class="appMenuCardTitle">Soukromí a data</summary>',
@@ -125,11 +140,16 @@ function renderAppMenuSettingsPage(body, versionText) {
       const themeCards = buildThemeSystemSettingsHtml();
       body.innerHTML = [
         profileCard,
+        calendarCard,
+        passwordCard,
         privacyCard,
         performanceCard,
         themeCards,
         '<button type="button" class="appMenuAction appMenuBack appMenuStandaloneBack" data-menu-back="1">Zpět</button>'
       ].join('');
+      if (typeof bindRakCalendarSelectionSettings === 'function') {
+        try { bindRakCalendarSelectionSettings(body); } catch (err) {}
+      }
       if (typeof renderThemeSettingsCards === 'function') {
         try { renderThemeSettingsCards(); } catch (err) {}
       }
