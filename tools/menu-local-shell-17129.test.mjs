@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const nav = read('app-bottom-nav.js');
 const menu = read('app-menu.js');
 const metadata = read('rak-release-metadata.js');
 const version = JSON.parse(read('package.json')).version;
-const patch = Number(String(version).split('.').at(-1) || 0);
 
-assert(patch >= 129, '1.7.129 local-menu milestone must remain active in successors');
+assertCurrentReleaseIdentity(read,'1.7.129');
 assert(metadata.includes("displayVersion: '" + version + "'"));
 assert(read('CHANGELOG.md').includes('## RaK 1.7.129 (development)'));
 
