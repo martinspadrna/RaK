@@ -30,7 +30,9 @@ test('Brusy signed controls are explicitly visible and touch sized in calculator
   const indexed=read('brusy-fhb-v158.js');
   assert(src.includes('class="calcSignedInput brusFhbSignedInput"'));
   assert(src.includes('.adminFhbCalibration .adminCorrectionSignedInput'));
-  assert(src.includes('visibility:visible!important;opacity:1!important;width:48px!important'));
+  assert(src.includes('visibility:visible!important;opacity:1!important'));
+  assert(src.includes('--rakCorrectionSignButtonW:42px'));
+  assert(src.includes('--rakCorrectionSignedInputH:46px'));
   assert(src.includes('data-brus-fhb-sign-target="brus_fhb_left"'));
   assert(src.includes('data-brus-fhb-sign-target="brus_fhb_right"'));
   for(const field of ['protocolLeft','protocolRight','taperDelta','shiftDelta','resultLeft','resultRight']){
