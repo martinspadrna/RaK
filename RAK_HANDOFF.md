@@ -338,7 +338,8 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
 - **RaK 1.7.155 – FYZICKY PASS šířky legendy 29. 9. 2026:** štítky jsou jen na šířku krátkého popisku a řadí se vedle sebe.
 - Fyzický test 1.7.155 odhalil navazující regresi: po deaktivaci všech štítků zůstával v iframe viditelný poslední aktivní kalendář.
-- **RaK 1.7.156 čeká na fyzický test:** při nule aktivních štítků musí být Google iframe skutečně vyprázdněný/skrytý a po zapnutí zdroje se znovu korektně načíst; účetní výběr se nesmí změnit.
+- RaK 1.7.156 implementovala vyprázdnění/skrytí iframe při nule aktivních zdrojů, ale exact-SHA verify zadržel release na FCP P95 kvůli pozdním outlierům v benchmarku; TEST alias proto zůstal na 1.7.155.
+- **RaK 1.7.157 čeká na zelený exact-SHA CI a fyzický test:** stejná funkční oprava nuly aktivních kalendářů + fail-closed izolace celého Chromium procesního stromu mezi parity vzorky; performance limity se nemění.
 
 ### Ostatní otevřený backlog
 

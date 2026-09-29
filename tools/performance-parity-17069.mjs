@@ -16,6 +16,7 @@ const CONFIG=JSON.parse(fs.readFileSync(path.join(ROOT,'tools','performance-pari
 const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>{try{return fs.statSync(n).isFile();}catch{return false;}});
 assert(CHROME,'[perf-parity] Chrome/Chromium binary missing');
 assert.equal(typeof WebSocket,'function','[perf-parity] Node WebSocket required');
+const POSIX_CHROME_GROUP=process.platform!=='win32';
 
 function run(cmd,args,opts={}){
   const result=spawnSync(cmd,args,{cwd:opts.cwd||WORKSPACE,encoding:'utf8',timeout:opts.timeout||240000,maxBuffer:4*1024*1024,env:{...process.env,...opts.env}});
@@ -47,6 +48,36 @@ function summarize(samples){
   return out;
 }
 
+function chromeProcessGroupAlive(pid){
+  if(!POSIX_CHROME_GROUP||!Number.isInteger(pid)||pid<=0)return false;
+  try{process.kill(-pid,0);return true;}catch(err){return !!(err&&err.code==='EPERM');}
+}
+async function waitForChromeTreeExit(chrome,timeoutMs){
+  const end=Date.now()+timeoutMs;
+  const pid=Number(chrome&&chrome.pid||0);
+  while(Date.now()<end){
+    const parentAlive=!!(chrome&&chrome.exitCode===null);
+    const groupAlive=POSIX_CHROME_GROUP&&pid>0&&chromeProcessGroupAlive(pid);
+    if(!parentAlive&&!groupAlive)return true;
+    await delay(50);
+  }
+  return false;
+}
+async function stopChromeProcessTree(chrome){
+  if(!chrome)return;
+  const pid=Number(chrome.pid||0);
+  const signal=(name)=>{
+    try{
+      if(POSIX_CHROME_GROUP&&pid>0)process.kill(-pid,name);
+      else if(chrome.exitCode===null)chrome.kill(name);
+    }catch(err){if(!err||err.code!=='ESRCH')throw err;}
+  };
+  if(chrome.exitCode!==null&&(!POSIX_CHROME_GROUP||!chromeProcessGroupAlive(pid)))return;
+  signal('SIGTERM');
+  if(await waitForChromeTreeExit(chrome,2500))return;
+  signal('SIGKILL');
+  assert(await waitForChromeTreeExit(chrome,2500),'[perf-parity] Chrome process tree did not exit cleanly');
+}
 async function freePort(){return await new Promise((resolve,reject)=>{const s=net.createServer();s.unref();s.on('error',reject);s.listen(0,'127.0.0.1',()=>{const a=s.address();const p=a&&typeof a==='object'?a.port:0;s.close(e=>e?reject(e):resolve(p));});});}
 async function measureRoot(root,label,round){
   const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml','.jpg':'image/jpeg','.woff2':'font/woff2','.ico':'image/x-icon'};
@@ -69,7 +100,7 @@ async function measureRoot(root,label,round){
   const check=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error('[perf-parity] JS '+String(r.exceptionDetails.text||''));return r.result?.value;};
   const until=async(expression,ms=30000)=>{const end=Date.now()+ms;let last=null;while(Date.now()<end){try{last=await check(expression);if(last)return last;}catch(e){last=String(e.message);}await delay(100);}throw new Error('[perf-parity] timeout '+expression+' last='+JSON.stringify(last));};
   try{
-    chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe']});
+    chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe'],detached:POSIX_CHROME_GROUP});
     chrome.stderr.on('data',c=>{stderr=(stderr+String(c)).slice(-3000);});
     let port=0;for(let i=0;i<300;i++){const file=path.join(profile,'DevToolsActivePort');if(fs.existsSync(file)){port=Number(fs.readFileSync(file,'utf8').split('\n')[0]);break;}if(chrome.exitCode!==null)throw new Error('[perf-parity] Chrome exited '+chrome.exitCode+' '+stderr);await delay(100);}assert(port>0,'[perf-parity] debugger missing');
     const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();const tab=tabs.find(t=>t.type==='page');assert(tab?.webSocketDebuggerUrl,'[perf-parity] page target missing');
@@ -90,8 +121,9 @@ async function measureRoot(root,label,round){
     const result={startupReadyMs:data.startupReadyMs,wallReadyMs,firstContentfulPaintMs:data.firstContentfulPaintMs};console.log('[perf-parity] '+label+' round='+round+' '+JSON.stringify(result));return result;
   }finally{
     for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('closing'));}pending.clear();try{ws?.close();}catch{}
-    if(chrome&&chrome.exitCode===null){chrome.kill('SIGTERM');for(let i=0;i<20&&chrome.exitCode===null;i++)await delay(100);if(chrome.exitCode===null)chrome.kill('SIGKILL');}
-    await new Promise(resolve=>server.close(resolve));fs.rmSync(profile,{recursive:true,force:true,maxRetries:8,retryDelay:100});
+    await stopChromeProcessTree(chrome);
+    await new Promise(resolve=>server.close(resolve));
+    fs.rmSync(profile,{recursive:true,force:true,maxRetries:8,retryDelay:100});
   }
 }
 
@@ -124,7 +156,8 @@ try{
   const baseline=[],current=[];
   // P95 needs enough samples to be a percentile rather than the single maximum.
   // Alternate pair order as well, so scheduler/thermal drift cannot systematically
-  // penalize only the current release by always measuring it second.
+  // penalize only the current release by always measuring it second. Each sample
+  // also tears down the complete detached Chrome process group before the next one.
   for(let round=1;round<=CONFIG.rounds;round++){
     if(round%2===1){
       baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));

@@ -1,3 +1,11 @@
+## RaK 1.7.157 (development)
+
+- Zachovává funkční opravu 1.7.156: při vypnutí posledního kalendáře se starý Google iframe odpojí a skryje; po opětovném zapnutí se načte jen aktivní zdroj.
+- Performance parity runner nově spouští každý Chromium vzorek v oddělené procesní skupině a před dalším vzorkem fail-closed ukončí celý procesní strom. Tím se odstraní kontaminace pozdních FCP měření přeživšími renderer/GPU procesy.
+- Performance limity, 20 kol, baseline 1.7.69 i P50/P95 pravidla zůstávají beze změny.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.156 (development)
 
 - Dashboard → Kalendář: při vypnutí posledního aktivního štítku se Google iframe skutečně odpojí (`src` se odstraní) a skryje, takže poslední kalendář už nezůstane vizuálně zobrazený.

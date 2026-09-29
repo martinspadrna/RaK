@@ -35,3 +35,13 @@ test('parity tolerance is bounded, median-based and P95 uses enough alternating 
  assert(script.includes("assert(c[metric].p50Ms<=medianLimit"));
  assert(script.includes("assert(c[metric].p95Ms<=p95Limit"));
 });
+
+test('each parity sample tears down the complete Chromium process group before the next sample',()=>{
+ assert(script.includes("const POSIX_CHROME_GROUP=process.platform!=='win32'"));
+ assert(script.includes('detached:POSIX_CHROME_GROUP'));
+ assert(script.includes('function stopChromeProcessTree(chrome)'));
+ assert(script.includes("process.kill(-pid,name)"));
+ assert(script.includes('await stopChromeProcessTree(chrome)'));
+ assert(script.includes("'[perf-parity] Chrome process tree did not exit cleanly'"));
+ assert(!script.includes("chrome.kill('SIGTERM');for(let i=0;i<20"));
+});
