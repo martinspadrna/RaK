@@ -1510,6 +1510,7 @@ function rakRenderBlankCalendar(container, year, month) {
   }
   container.dataset.blankYear = String(y);
   container.dataset.blankMonth = String(m);
+  // RAK_17163_BLANK_MONTH_FULL_WIDTH: keep the local zero-source month stretched to the shared Google frame.
   container.innerHTML = [
     '<div style="width:100%;height:100%;min-width:0;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;box-sizing:border-box;background:#fff;color:#202124;font-family:Arial,sans-serif;">',
     '<div style="height:54px;flex:0 0 54px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid #dadce0;box-sizing:border-box;">',
