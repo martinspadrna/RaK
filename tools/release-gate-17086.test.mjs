@@ -29,20 +29,21 @@ test('shift calendars keep Google embed allowed while rejecting private and fore
   assert.equal(api.valid('https://evil.example/calendar/embed?src=test'),false);
 });
 
-test('Dashboard and modal select calendars from the active account shift',()=>{
+test('Dashboard and modal keep account-aware calendar routing in selectable-calendar successors',()=>{
   const core=read('core.js');
   const nav=read('app-navigation.js');
   const dashboard=read('dashboard.js');
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
   assert(core.includes('const info = getRakActiveAccountShiftInfo();'));
-  assert(core.includes('calendars: getRakShiftCalendarsForTeam(team)'));
+  assert(core.includes('const selectedKeys = getRakSelectedCalendarKeys();'));
+  assert(core.includes('const calendars = getRakAllShiftCalendars().filter'));
   assert(nav.includes("const context = typeof getRakActiveShiftCalendarContext === 'function'"));
   assert(nav.includes('data-calendar-choice-index'));
   assert(dashboard.includes('getRakActiveShiftCalendarContext()'));
   assert(dashboard.includes("setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', true, calendarIcon)"));
 });
 
-test('calendar settings have their own admin page and preserve the legacy D calendar until saved',()=>{
+test('calendar settings keep their admin page while successors provide built-in Obrábění/Kalírna sources',()=>{
   const core=read('core.js');
   const nav=read('app-navigation.js');
   const renderer=read('app-menu-admin-renderer.js');
@@ -54,7 +55,10 @@ test('calendar settings have their own admin page and preserve the legacy D cale
   assert.equal((renderer.match(/adminCalendarNotesCard/g)||[]).length,1);
   assert(menu.includes("adminAction === 'save-calendars'"));
   assert(menu.includes("openAppMenu('admin-calendars')"));
-  assert(core.includes("teams.D.push({ label: 'Kalendář směny D', url: legacyUrl })"));
+  assert(core.includes('RAK_SHIFT_CALENDAR_SOURCE_IDS'));
+  assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
+  assert(core.includes("kalirna: '28220cf74cf3681b41feb5c0efa76ef348e52e9a90a9b5300e1dfffbcc96cd62@group.calendar.google.com'"));
+  assert(core.includes('function rakBuiltinShiftCalendarEntries(team)'));
   assert(nav.includes("const rows = ['food', 'eportal', 'payroll'].map"));
   assert(nav.includes("const links = { calendar: current.links.calendar };"));
 });

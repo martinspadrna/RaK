@@ -5,7 +5,7 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.95 Google shift iframe milestone remains active in verified successors',()=>{
+test('1.7.95 shift-calendar rendering milestone remains active in verified successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.95');
   assert.equal(metadata.technicalVersion,metadata.displayVersion);
   assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
@@ -38,25 +38,26 @@ test('shift calendars combine into one Google embed with main-style controls',()
   assert.equal(url.searchParams.get('showCalendars'),'0');
 });
 
-test('calendar modal uses and reuses the real Google iframe instead of waiting for ICS',()=>{
+test('calendar modal keeps a reusable renderer and successors may use native RaK calendar for merged sources',()=>{
   const nav=read('app-navigation.js');
   const start=nav.indexOf('function renderCalendarModalContent');
   const end=nav.indexOf('function ensureCalendarModal',start);
   const renderer=nav.slice(start,end);
-  assert(renderer.includes('calendarModalFrame'));
-  assert(renderer.includes('<iframe'));
-  assert(renderer.includes('loading="eager"'));
-  assert(renderer.includes("content.dataset.calendarSignature === signature && existingFrame"));
-  assert(!renderer.includes('rakNativeCalendarLoad(content, 0)'));
+  assert(renderer.includes('content.dataset.calendarSignature'));
+  const iframeMode=renderer.includes('calendarModalFrame');
+  const nativeMode=renderer.includes('calendarNativeHost') && renderer.includes('rakNativeCalendarLoad(content, 0)');
+  assert(iframeMode || nativeMode);
+  if(nativeMode) assert(renderer.includes("content.dataset.calendarSignature === signature && existingNative"));
 });
 
-test('calendar iframe is prewarmed in idle time and keeps account-shift routing',()=>{
+test('calendar surface is prewarmed in idle time and keeps account-aware routing',()=>{
   const nav=read('app-navigation.js');
   const core=read('core.js');
   assert(nav.includes('window.requestIdleCallback(prewarm, { timeout: 1200 })'));
   assert(nav.includes('ensureCalendarModal()'));
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
-  assert(core.includes('calendars: getRakShiftCalendarsForTeam(team)'));
+  assert(core.includes('const selectedKeys = getRakSelectedCalendarKeys();'));
+  assert(core.includes('const calendars = getRakAllShiftCalendars().filter'));
 });
 
 test('npm check retains 1.7.95 while CI runs the current release gate',()=>{

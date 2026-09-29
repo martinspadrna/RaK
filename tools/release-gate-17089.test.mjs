@@ -17,15 +17,20 @@ test('1.7.89 calendar-account milestone remains active in verified successors',(
   assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
 });
 
-test('single-account login v3 still supplies only the resolved account shift context',()=>{
+test('bounded login successor preserves v3 shift lookup and extends only the resolved account calendar assignment',()=>{
   const profile=read('rak-user-profile.js');
-  const migration=read('supabase/migrations/20260924164526_rak_login_shift_team_v3_17089.sql');
-  assert(profile.includes("client.rpc('rak_lookup_account_for_login_v3'"));
+  const v3=read('supabase/migrations/20260924164526_rak_login_shift_team_v3_17089.sql');
+  const v4=read('supabase/migrations/20260929023449_rak_login_calendar_assignment_v4_17149.sql');
+  assert(profile.includes("client.rpc('rak_lookup_account_for_login_v4'"));
   assert(profile.includes('shiftTeam'));
-  assert(migration.includes('public.rak_lookup_account_for_login_v2(p_last4)'));
-  assert(migration.includes("jsonb_build_object('shiftTeam', v_shift)"));
-  assert(migration.includes('REVOKE ALL ON FUNCTION public.rak_lookup_account_for_login_v3(text) FROM PUBLIC, anon, authenticated'));
-  assert(!migration.includes('jsonb_agg'));
+  assert(profile.includes('calendarAssignment'));
+  assert(v3.includes('public.rak_lookup_account_for_login_v2(p_last4)'));
+  assert(v3.includes("jsonb_build_object('shiftTeam', v_shift)"));
+  assert(v3.includes('REVOKE ALL ON FUNCTION public.rak_lookup_account_for_login_v3(text) FROM PUBLIC, anon, authenticated'));
+  assert(!v3.includes('jsonb_agg'));
+  assert(v4.includes('public.rak_lookup_account_for_login_v3(p_last4)'));
+  assert(v4.includes("jsonb_build_object('calendarAssignment', v_assignment)"));
+  assert(!v4.includes('jsonb_agg'));
 });
 
 test('profile shift still drives calendar team without private roster data',()=>{
@@ -39,7 +44,7 @@ test('profile shift still drives calendar team without private roster data',()=>
     getRakWorkerRosterSettings:()=>({workers:[],appAccounts:[]})
   };
   const {api}=runNamedDeclarations({
-    modules:[{source:helper,names:['getRakActiveAccountShiftInfo']}],
+    modules:[{source:core,names:['normalizeRakCalendarAssignmentKey','rakCalendarAssignmentTeam','getRakActiveAccountShiftInfo']}],
     globals:runtime,
     exports:{info:'getRakActiveAccountShiftInfo'}
   });

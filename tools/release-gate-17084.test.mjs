@@ -68,7 +68,7 @@ test('shift/roster placement cannot mutate owner or authenticated account identi
   const app={activeAccountId:account,activeAccountName:profile.fullName};
   let roster={appAccounts:[{loginNumber:account,shiftTeam:'A'}]};
   const {api}=runNamedDeclarations({
-    modules:[{source:core,names:['getRakActiveAccountShiftInfo']}],
+    modules:[{source:core,names:['normalizeRakCalendarAssignmentKey','rakCalendarAssignmentTeam','getRakActiveAccountShiftInfo']}],
     globals:{window:{rakUserProfileGet:()=>profile},app,getRakWorkerRosterSettings:()=>roster},
     exports:{get:'getRakActiveAccountShiftInfo'}
   });
