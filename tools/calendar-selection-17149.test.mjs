@@ -51,7 +51,7 @@ test('login carries calendarAssignment so Kalírna default is correct on first l
   assert(profile.includes("client.rpc('rak_lookup_account_for_login_v4'"));
   assert(profile.includes('calendarAssignment'));
   assert(migration.includes("jsonb_build_object('calendarAssignment', v_assignment)"));
-  assert(migration.includes("'kalirna'"));
+  assert(migration.includes('(obrabeni|kalirna)-[abcd]'));
   assert(migration.includes("'obrabeni-' || lower(v_shift)"));
 });
 
