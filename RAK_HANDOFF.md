@@ -339,7 +339,8 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - Uložený výběr v Nastavení ovlivňuje pouze dashboard. Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
 - **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
 - RaK 1.7.160 doplnila account-scoped `calendar_hidden_keys` pro přenos zapnuto/vypnuto legendy mezi zařízeními. Fyzický nulový stav ale FAIL: Google iframe bez zdroje na iPhonu zobrazil cookie bránu.
-- **RaK 1.7.161 čeká na zelený exact-SHA CI a fyzický test:** nula aktivních štítků = lokální prázdný měsíční kalendář bez událostí a bez Google cookie brány; při prvním aktivním zdroji se vrátí originální Google iframe. Account sync viditelnosti z 1.7.160 zůstává.
+- **RaK 1.7.161 – exact-SHA CI GREEN, fyzický iPhone test 29. 9. 2026 částečný PASS:** při nule aktivních štítků se správně zobrazí lokální prázdný měsíční kalendář bez událostí a bez Google cookie brány; po zapnutí zdroje se vrátí originální Google iframe. Account sync viditelnosti z 1.7.160 zůstává.
+- **Jediný otevřený kalendářový follow-up pro nový chat:** lokální prázdný měsíční kalendář při 0 aktivních zdrojích je na iPhonu výrazně menší než Google kalendář s aktivním zdrojem. Upravit pouze layout/rozměry tak, aby prázdný stav zabíral stejnou šířku a výšku jako běžný zobrazený Google Calendar iframe v modalu. Neměnit účetní výběr, `calendar_hidden_keys`, obsah pracovních kalendářů ani chráněné Obrábění D pro dovolené.
 
 ### Ostatní otevřený backlog
 
