@@ -4,20 +4,20 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.7.163 fixes the iPhone blank-calendar right gap only',()=>{
+test('1.7.163 full-width blank-calendar milestone remains active in successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.163');
-  assert.equal(metadata.displayVersion,'1.7.163');
-  assert.equal(metadata.buildId,'v1.7.163-calendar-zero-width1');
   const nav=read('app-navigation.js');
+  assert(read('CHANGELOG.md').includes('## RaK 1.7.163 (development)'));
   const start=nav.indexOf('function rakRenderBlankCalendar');
   const end=nav.indexOf('function rakEnsureBlankCalendar',start);
   const fn=nav.slice(start,end);
   assert(fn.includes('width:100%;height:100%;min-width:0;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;box-sizing:border-box'));
   assert(nav.includes('class="calendarSourceEmpty calendarModalFrame"'));
   assert(nav.includes("frame.setAttribute('src', nextUrl)"));
+  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,metadata.displayVersion);
 });
 
-test('1.7.163 remains account-safe and TEST-only',()=>{
+test('1.7.163 account-safe TEST milestone remains active',()=>{
   const core=read('core.js');
   const bridge=read('supabase-bridge.js');
   const config=read('supabase-config.js');
@@ -28,7 +28,7 @@ test('1.7.163 remains account-safe and TEST-only',()=>{
   assert(!config.includes('bkqamcbkiwumsvelahxr'));
 });
 
-test('1.7.163 gates are mandatory locally and in CI',()=>{
+test('1.7.163 gate remains mandatory locally and in CI',()=>{
   const pkg=JSON.parse(read('package.json'));
   const workflow=read('.github/workflows/rak-development-validation.yml');
   assert(pkg.scripts.check.includes('tools/release-gate-17163.test.mjs'));
