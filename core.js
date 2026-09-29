@@ -1002,7 +1002,8 @@ function getRakSelectedCalendarKeys() {
     const parsed = JSON.parse(localStorage.getItem(rakCalendarSelectionStorageKey()) || '[]');
     if (Array.isArray(parsed)) saved = normalizeRakCalendarSelectionKeys(parsed);
   } catch (err) {}
-  return saved.length ? saved : [getRakDefaultCalendarKey()];
+  const unique = Array.from(new Set(saved));
+  return unique.length ? unique : [getRakDefaultCalendarKey()];
 }
 
 function applyRakRemoteCalendarSelection(keys, accountId) {
