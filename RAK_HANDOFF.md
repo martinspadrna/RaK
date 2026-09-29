@@ -340,7 +340,7 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
 - RaK 1.7.160 doplnila account-scoped `calendar_hidden_keys` pro přenos zapnuto/vypnuto legendy mezi zařízeními. Fyzický nulový stav ale FAIL: Google iframe bez zdroje na iPhonu zobrazil cookie bránu.
 - **RaK 1.7.161 – exact-SHA CI GREEN, fyzický iPhone test 29. 9. 2026 částečný PASS:** při nule aktivních štítků se správně zobrazí lokální prázdný měsíční kalendář bez událostí a bez Google cookie brány; po zapnutí zdroje se vrátí originální Google iframe. Account sync viditelnosti z 1.7.160 zůstává.
-- **RaK 1.7.162 – exact-SHA CI GREEN, fyzický iPhone test odhalil pravou mezeru:** host už měl rozměr Google iframe, ale vnitřní lokální měsíc nevyplnil jeho celou šířku. **RaK 1.7.163 čeká na exact-SHA CI a fyzický iPhone test:** pouze vnitřní root prázdného měsíce dostal `width:100%` + `flex:1`, aby zmizela pravá mezera. Výběr kalendářů, `calendar_hidden_keys`, account sync, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstávají beze změny.
+- **RaK 1.7.163 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** při 0 aktivních kalendářích lokální prázdný měsíc vyplňuje stejnou šířku i výšku jako Google iframe a pravá mezera je odstraněná. Po zapnutí zdroje se vrací originální Google Calendar iframe. Výběr kalendářů, `calendar_hidden_keys`, account sync, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstaly beze změny. Produkce ani `main` nebyly změněny.
 
 ### Ostatní otevřený backlog
 
