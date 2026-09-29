@@ -33,11 +33,12 @@ test('about page is compact and Christmas countdown says do Vanoc',()=>{
   const pages=read('app-menu-pages.js');
   const core=read('core.js');
   assert(!pages.includes('RaK spojuje pracovní rotace'));
-  assert(pages.includes("title: 'Aktuální generace'"));
+  assert(!pages.includes("title: 'Aktuální generace'"));
+  assert(pages.includes("title: 'Stabilizace a local-first základ'"));
   const start=pages.indexOf("range: 'RaK 1.7'");
   const end=pages.indexOf("range: 'RaK 1.6'",start);
-  const current=pages.slice(start,end);
-  assert.equal((current.match(/^\s*'/gm)||[]).length,4);
+  const historical=pages.slice(start,end);
+  assert.equal((historical.match(/^\s*'/gm)||[]).length,4);
   assert(core.includes("countdownLabel: 'Vánoc'"));
   assert(core.includes("const isChristmasCountdown = String(upcoming.key || '').toLowerCase().startsWith('vanoce');"));
   assert(core.includes("isChristmasCountdown ? 'do Vánoc'"));
