@@ -8,7 +8,9 @@ test('1.7.151 all-Google calendar milestone remains active in successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.151');
   assert(read('CHANGELOG.md').includes('## RaK 1.7.151 (development)'));
   const nav=read('app-navigation.js');
-  assert(nav.includes("const signature = 'google|' + calendarUrl;"));
+  assert(nav.includes("const signature = 'google|' +"));
+  assert(nav.includes("fullCalendarUrl"));
+  assert(nav.includes("|visible="));
   assert(nav.includes('calendarModalFrame'));
   assert(nav.includes('<iframe'));
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,metadata.displayVersion);

@@ -19,7 +19,9 @@ test('calendar remains the original Google iframe after navigation-dismiss fix',
   const start=nav.indexOf('function renderCalendarModalContent');
   const end=nav.indexOf('function ensureCalendarModal',start);
   const renderer=nav.slice(start,end);
-  assert(renderer.includes("const signature = 'google|' + calendarUrl;"));
+  assert(renderer.includes("const signature = 'google|' +"));
+  assert(renderer.includes("fullCalendarUrl"));
+  assert(renderer.includes("|visible="));
   assert(renderer.includes('<iframe'));
   assert(!renderer.includes('calendarNativeHost'));
 });

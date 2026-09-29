@@ -9,7 +9,9 @@ test('1.7.151 dashboard always renders original Google Calendar iframe for selec
   const end=nav.indexOf('function ensureCalendarModal',start);
   assert(start>=0 && end>start);
   const renderer=nav.slice(start,end);
-  assert(renderer.includes("const signature = 'google|' + calendarUrl;"));
+  assert(renderer.includes("const signature = 'google|' +"));
+  assert(renderer.includes("fullCalendarUrl"));
+  assert(renderer.includes("|visible="));
   assert(renderer.includes('calendarModalFrame'));
   assert(renderer.includes('<iframe'));
   assert(renderer.includes('loading="eager"'));
