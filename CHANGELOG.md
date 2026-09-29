@@ -1,3 +1,11 @@
+## RaK 1.8.0 (development)
+
+- „O aplikaci“ otevírá novou generaci RaK 1.8 a shrnuje hlavní dodané změny od 1.7: skutečný local-first start, rychlejší Administraci, bezpečnější účty a CAS konflikty, přesnější neplánované změny/ staffing, kompaktnější mobilní administraci, pracovní kalendáře A–D, uloženou legendu, prázdný lokální měsíc, sjednocené korekce a přísnější offline/release kontroly.
+- Historická sekce RaK 1.7 už není označená „Aktuální generace“; nově se jmenuje „Stabilizace a local-first základ“.
+- Uživatelské „O aplikaci“ zobrazuje `RaK 1.8`; technická release identita zůstává korektní semver `1.8.0`.
+- Release identity helper už není natvrdo omezený na 1.7.x a porovnává plnou semver trojici, takže 1.8.x navazuje na historické release gates bez speciální záplaty.
+- Produkční `main`, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.7.166 (development)
 
 - Fyzický iPhone test 1.7.165: Administrace → nastavení korekcí → Frézky PASS, ale Administrace → Brusy a Kalkulačky → Brusy stále používaly vlastní pozdější styly.
