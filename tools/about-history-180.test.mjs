@@ -13,27 +13,29 @@ test('O aplikaci leads with RaK 1.8 and keeps 1.7 as historical generation',()=>
   assert(!src.includes("title: 'Aktuální generace'"));
 });
 
-test('RaK 1.8 history covers the delivered 1.7-to-1.8 work areas',()=>{
+test('RaK 1.8 history stays compact while retaining the delivered work areas',()=>{
   const src=read('app-menu-pages.js');
   const start=src.indexOf('// RAK_180_ABOUT_START');
   const end=src.indexOf('// RAK_180_ABOUT_END',start);
   const block=src.slice(start,end);
   for(const phrase of [
     'skutečně local-first',
-    'První otevření Administrace',
     'neplánované změny',
-    'Kantýna',
+    'Kalírnou',
     'Obrábění i Kalírnu A–D',
     'prázdný měsíc',
-    'Kalkulačky korekcí Frézek a Brusů',
+    'Korekce Frézek a Brusů',
     'CAS ochranu',
-    'skutečných vlastníků funkcí'
+    'reprodukovatelný build'
   ]) assert(block.includes(phrase),phrase);
+  const lineBlock=block.slice(block.indexOf('lines: ['),block.indexOf(']\n    }'));
+  assert.equal((lineBlock.match(/^\s*'/gm)||[]).length,5);
 });
 
-test('O aplikaci shows major version 1.8 while technical release stays semver',()=>{
+test('O aplikaci always shows generation 1.8 while technical release may advance within 1.8.x',()=>{
   const src=read('app-menu-pages.js');
-  assert(src.includes("const aboutDisplayVersion = displayVersion.replace(/\\.0$/, '');"));
-  assert(src.includes("versionText || '1.8.0'"));
+  assert(src.includes("versionText || '1.8.1'"));
+  assert(src.includes("const displayParts = displayVersion.split('.')"));
+  assert(src.includes("displayParts.slice(0, 2).join('.')"));
   assert(src.includes("formatRakDisplayVersion(aboutDisplayVersion)"));
 });
