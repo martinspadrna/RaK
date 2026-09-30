@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RAK_BUILD_TARGET: ${{ github.ref_name == 'development' && 'test' || 'production' }}
+  RAK_BUILD_TARGET: ${{ (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/')) && 'production' || (github.ref_name == 'main' && 'production' || 'test') }}
 
 jobs:
   verify:
