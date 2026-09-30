@@ -5,7 +5,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
     // RAK_180_ABOUT_START
-// RAK_181_ABOUT_COMPACT: RaK 1.8 keeps the same coverage in a shorter user-facing summary.
+// RAK_181_ABOUT_COMPACT: RaK 1.8 keeps the same coverage in a shorter five-point user-facing summary.
     {
       range: 'RaK 1.8',
       title: 'Local-first, kalendáře a přesnější provoz',
