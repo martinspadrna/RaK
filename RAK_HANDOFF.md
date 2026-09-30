@@ -347,7 +347,7 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 Řešit striktně po jednom po dokončení kalendářového follow-upu:
 
 1. **RaK 1.7.166 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** Kalkulačky → Brusy a Administrace → Brusy jsou dorovnané na referenční vzhled Frézek; `+ / −` má správné rozměry, výšku, glass vzhled i centrování. Oprava je přímo ve skutečných vlastnících `brusy-fhb-v157.js` a `brusy-fhb-v158.js`; Administrace → Frézky zůstala beze změny.
-2. **RaK 1.8.0 – čeká na exact-SHA CI + TEST preview + fyzický iPhone test:** „O aplikaci“ nově zobrazuje RaK 1.8, nahoře má souhrn dodaných změn od 1.7 a historická RaK 1.7 je přejmenovaná na „Stabilizace a local-first základ“. Technická identita je 1.8.0; release helper je zobecněný na semver napříč 1.7 → 1.8.
+2. **RaK 1.8.0 – exact-SHA CI GREEN + TEST preview READY, čeká na fyzický iPhone test:** „O aplikaci“ nově zobrazuje RaK 1.8, nahoře má souhrn dodaných změn od 1.7 a historická RaK 1.7 je přejmenovaná na „Stabilizace a local-first základ“. Technická identita je 1.8.0; release helper i historické výkonové/browser gates jsou zobecněné na semver napříč 1.7 → 1.8. Nasazený runtime SHA: `932fb4901336b980f00da96eb2898752f7e673b1`.
 3. Administrace → Kalendáře: nastavení kalendáře pro report dovolených.
 4. WhatsApp sdílení reportu směn: uložit přibližně 3 čísla a nabídnout výběr příjemce.
 5. Z Administrace odstranit text „TEST diagnostika se spustí pouze klepnutím.“
