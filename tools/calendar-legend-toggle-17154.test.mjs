@@ -26,12 +26,13 @@ test('legend filtering rebuilds only the Google iframe display subset',()=>{
   assert(!nav.includes('saveActiveAccountCalendarSelection(visible'));
 });
 
-test('stored account selection and operational vacation calendar remain separate from temporary visibility',()=>{
+test('stored account selection and dedicated vacation-report calendar remain separate from temporary visibility',()=>{
   const core=read('core.js');
   const nav=read('app-navigation.js');
   const report=read('rak-vacation-report.js');
   assert(core.includes('function setRakSelectedCalendarKeys(keys)'));
-  assert(report.includes('getRakActiveShiftCalendarContext'));
+  assert(report.includes('getRakVacationReportCalendarContext'));
+  assert(!report.includes('getRakActiveShiftCalendarContext'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
   const applyStart=nav.indexOf('function rakCalendarApplyLegendVisibility');
   const applyEnd=nav.indexOf('function rakShiftCalendarEmbedUrl',applyStart);

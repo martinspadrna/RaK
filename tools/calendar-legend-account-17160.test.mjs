@@ -43,6 +43,7 @@ test('account-synced zero active state stays independent of D vacation source',(
   const report=read('rak-vacation-report.js');
   assert(nav.includes('rakEnsureBlankCalendar(empty)'));
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
-  assert(report.includes('getRakActiveShiftCalendarContext'));
+  assert(report.includes('getRakVacationReportCalendarContext'));
+  assert(!report.includes('getRakActiveShiftCalendarContext'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
 });

@@ -9,7 +9,7 @@ test('calendar legend chips size to their labels instead of full row width',()=>
   assert(nav.includes('calendarSourceLegendChip'));
 });
 
-test('legend width fix does not change stored calendar selection or D vacation source',()=>{
+test('legend width fix does not change stored calendar selection or dedicated vacation-report source',()=>{
   const nav=read('app-navigation.js');
   const core=read('core.js');
   const report=read('rak-vacation-report.js');
@@ -17,6 +17,7 @@ test('legend width fix does not change stored calendar selection or D vacation s
   const legendEnd=nav.indexOf('function rakShiftCalendarEmbedUrl',legendStart);
   const legend=nav.slice(legendStart,legendEnd);
   assert(!/setRakSelectedCalendarKeys|saveActiveAccountCalendarSelection|localStorage/.test(legend));
-  assert(report.includes('getRakActiveShiftCalendarContext'));
+  assert(report.includes('getRakVacationReportCalendarContext'));
+  assert(!report.includes('getRakActiveShiftCalendarContext'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
 });

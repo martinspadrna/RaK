@@ -36,13 +36,14 @@ test('TEST migration stores only bounded managed calendar keys without exposing 
   assert(sql.includes('REVOKE ALL ON FUNCTION public.rak_save_account_ui_preferences_v2'));
 });
 
-test('operational generator/report calendar context is still the single assigned calendar and D vacation source stays untouched',()=>{
+test('generator stays on the single assigned calendar while report uses its dedicated admin calendar and D source stays untouched',()=>{
   const core=read('core.js');
   const wizard=read('admin-rotation-generator-wizard.js');
   const report=read('rak-vacation-report.js');
   assert(core.includes('function getRakActiveShiftCalendarContext()'));
   assert(wizard.includes('getRakActiveShiftCalendarContext'));
-  assert(report.includes('getRakActiveShiftCalendarContext'));
+  assert(report.includes('getRakVacationReportCalendarContext'));
+  assert(!report.includes('getRakActiveShiftCalendarContext'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
   assert(!read('app-navigation.js').includes('calendar.google.com/calendar/v3'));
 });

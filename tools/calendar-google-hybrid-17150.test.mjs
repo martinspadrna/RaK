@@ -17,14 +17,16 @@ test('successors keep Google Calendar iframe capability',()=>{
   assert(nav.includes('rakShiftCalendarEmbedUrl(calendars)'));
 });
 
-test('operational calendar context remains exactly one assigned calendar',()=>{
+test('generator context remains exactly one assigned calendar while report has its own single configured source',()=>{
   const core=read('core.js');
   const wizard=read('admin-rotation-generator-wizard.js');
   const report=read('rak-vacation-report.js');
   assert(core.includes("getRakAllShiftCalendars().filter((entry) => entry.key === assignmentKey).slice(0, 1)"));
   assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
   assert(wizard.includes('getRakActiveShiftCalendarContext'));
-  assert(report.includes('getRakActiveShiftCalendarContext'));
+  assert(report.includes('getRakVacationReportCalendarContext'));
+  assert(!report.includes('getRakActiveShiftCalendarContext'));
   assert(!wizard.includes('getRakActiveShiftCalendarDisplayContext'));
   assert(!report.includes('getRakActiveShiftCalendarDisplayContext'));
+  assert(core.includes('function getRakVacationReportCalendarContext()'));
 });
