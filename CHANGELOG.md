@@ -1,3 +1,9 @@
+## RaK 1.8.1 (development)
+
+- „O aplikaci“: popis RaK 1.8 je zkrácený přibližně na polovinu, ale zachovává hlavní oblasti změn — local-first start, rozpisy/absence, Administraci, pracovní kalendáře, korekce, offline/CAS a release kontroly.
+- Uživatelské označení zůstává „RaK 1.8“ i při technické verzi 1.8.1; stránka zobrazuje generaci major.minor místo plné patch verze.
+- Produkční `main`, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
 ## RaK 1.8.0 (development)
 
 - „O aplikaci“ otevírá novou generaci RaK 1.8 a shrnuje hlavní dodané změny od 1.7: skutečný local-first start, rychlejší Administraci, bezpečnější účty a CAS konflikty, přesnější neplánované změny/ staffing, kompaktnější mobilní administraci, pracovní kalendáře A–D, uloženou legendu, prázdný lokální měsíc, sjednocené korekce a přísnější offline/release kontroly.
