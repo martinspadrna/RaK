@@ -357,6 +357,19 @@ Všechny níže uvedené položky jsou nyní uzavřené:
 - MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
 - Pokud se objeví nová konkrétní regrese nebo nový požadavek vlastníka, řešit jej jako nový samostatný bod; automaticky neotvírat znovu uzavřený 13bodový audit.
 
+
+## Připravený kandidát pro budoucí `main` – RaK 1.8.4
+
+- **Zatím nemergovat a nenasazovat do produkce.** Vlastník požádal pouze o přípravu, aby mohl později RaK 1.8.4 převést na `main`.
+- Fyzicky otestovaný runtime zůstává SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`; následný `development` commit `9c89c1056318a884ff0a16af3e9f1803fdd392ec` byl pouze dokumentační.
+- Připravená větev: `release/1.8.4-main-ready`; exact kandidát SHA **`62cce4a409e341ed129d71022f174b6306fe3bc9`**.
+- Kandidát je merge commit aktuálního development stavu a dosavadního `main`, přičemž zachovává novější runtime z development a obnovuje produkční release guardy / production-target validaci z main. `main` je přímý předek kandidáta; compare proti `main` je `ahead`, `behind_by=0`.
+- Produkční-target fail-closed CI kandidáta: Actions run **`36681015175` SUCCESS**. Prošly dvě canonical sestavy, release/regresní gates, rollback/PWA kontrakty, source ZIP + restore rehearsal, skutečný Chromium offline/recovery, performance budget + parity, quality thresholds a bezpečné anonymní HTTP probe pouze proti TEST databázi. Release preview se u tohoto PR záměrně nespouštěl.
+- Dočasný CI PR #4 byl po zeleném ověření uzavřen **bez merge do development**.
+- Připravený cílový PR: **draft #5 „RaK 1.8.4 — připraveno pro main“**, `release/1.8.4-main-ready → main`. GitHub ho po přepočtu označil jako mergeable; ponechat jako draft, dokud vlastník výslovně neschválí merge.
+- Aktuální `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`. Produkční Vercel ani produkční Supabase nebyly během přípravy změněny.
+- Až vlastník později schválí vydání: 1) merge draft PR #5 do `main`; 2) ověřit exact SHA nového `main` produkční validací; 3) produkční deployment spustit až po dalším samostatném výslovném souhlasu přes auditovaný manual production-release workflow.
+
 ## Release / test checklist pro další funkční změnu
 
 Před commitem/releasem:
