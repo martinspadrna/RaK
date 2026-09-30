@@ -1,3 +1,10 @@
+## RaK 1.8.2 (development)
+
+- Administrace → Kalendáře má samostatnou volbu „Kalendář pro report dovolených“. Volba se ukládá do stávajícího nastavení kalendářů; výchozí i bezpečný fallback zůstává Obrábění D.
+- Report dovolených už není svázaný se směnou právě přihlášeného účtu. Načítá jeden administrátorem zvolený kalendář a dál ho spojuje s uloženými absencemi v rozpisu bez duplicit.
+- Dashboard, uživatelský výběr/viditelnost kalendářů a generátor rozpisu zůstávají na dosavadní logice. Chráněný zdroj Obrábění D se nemění.
+- Nevyžaduje se žádná nová tabulka ani Supabase migrace; produkční main, produkční Vercel ani produkční Supabase se tímto development releasem nemění.
+
 ## RaK 1.8.1 (development)
 
 - „O aplikaci“: popis RaK 1.8 je zkrácený přibližně na polovinu, ale zachovává hlavní oblasti změn — local-first start, rozpisy/absence, Administraci, pracovní kalendáře, korekce, offline/CAS a release kontroly.

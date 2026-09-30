@@ -950,7 +950,15 @@ function normalizeRakShiftCalendarSettings(settings) {
       return true;
     }).slice(0, 8);
   });
-  return { type: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY, teams };
+  const availableKeys = new Set(RAK_SHIFT_CALENDAR_TEAMS
+    .flatMap((team) => teams[team] || [])
+    .map((entry) => String(entry && entry.key || '').trim())
+    .filter(Boolean));
+  const requestedVacationReportCalendarKey = String(raw.vacationReportCalendarKey || raw.vacation_report_calendar_key || '').trim();
+  const vacationReportCalendarKey = availableKeys.has(requestedVacationReportCalendarKey)
+    ? requestedVacationReportCalendarKey
+    : 'obrabeni-D';
+  return { type: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY, vacationReportCalendarKey, teams };
 }
 
 function getRakShiftCalendarSettings() {
@@ -971,6 +979,24 @@ function getRakShiftCalendarsForTeam(team) {
 
 function getRakAllShiftCalendars() {
   return RAK_SHIFT_CALENDAR_TEAMS.flatMap((team) => getRakShiftCalendarsForTeam(team));
+}
+
+function getRakVacationReportCalendarContext() {
+  const settings = getRakShiftCalendarSettings();
+  const all = getRakAllShiftCalendars();
+  const requestedKey = String(settings && settings.vacationReportCalendarKey || '').trim();
+  const calendar = all.find((entry) => entry.key === requestedKey)
+    || all.find((entry) => entry.key === 'obrabeni-D')
+    || null;
+  const team = calendar && RAK_SHIFT_CALENDAR_TEAMS.includes(String(calendar.team || '').toUpperCase())
+    ? String(calendar.team).toUpperCase()
+    : 'D';
+  return {
+    team,
+    calendarKey: calendar ? calendar.key : 'obrabeni-D',
+    calendarLabel: calendar ? calendar.label : 'Obrábění D',
+    calendars: calendar ? [calendar] : []
+  };
 }
 
 function getRakDefaultCalendarKey() {
@@ -1208,6 +1234,7 @@ window.isRakAllowedGoogleCalendarUrl = isRakAllowedGoogleCalendarUrl;
 window.getRakShiftCalendarSettings = getRakShiftCalendarSettings;
 window.getRakShiftCalendarsForTeam = getRakShiftCalendarsForTeam;
 window.getRakAllShiftCalendars = getRakAllShiftCalendars;
+window.getRakVacationReportCalendarContext = getRakVacationReportCalendarContext;
 window.getRakSelectedCalendarKeys = getRakSelectedCalendarKeys;
 window.setRakSelectedCalendarKeys = setRakSelectedCalendarKeys;
 window.getRakActiveShiftCalendarContext = getRakActiveShiftCalendarContext;
@@ -1258,7 +1285,17 @@ function buildAdminShiftCalendarRowHtml(team, entry) {
 
 function buildAdminShiftCalendarsSettingsHtml() {
   const settings = getRakShiftCalendarSettings();
-  return RAK_SHIFT_CALENDAR_TEAMS.map((team) => {
+  const allCalendars = RAK_SHIFT_CALENDAR_TEAMS.flatMap((team) => (settings.teams[team] || []).map((entry) => Object.assign({ team }, entry)));
+  const reportCalendarKey = String(settings.vacationReportCalendarKey || 'obrabeni-D');
+  const reportOptions = allCalendars.map((entry) => '<option value="' + escapeHtml(entry.key) + '"' + (entry.key === reportCalendarKey ? ' selected' : '') + '>' + escapeHtml(entry.label) + '</option>').join('');
+  const reportPicker = [
+    '<div class="appMenuCard adminVacationReportCalendarCard">',
+    '  <div class="appMenuSubTitle">Report dovolených</div>',
+    '  <div class="smallText uMb10">Vyber kalendář, ze kterého Report dovolené načítá absence. Výchozí zůstává Obrábění D; tato volba nemění Dashboard ani generátor rozpisu.</div>',
+    '  <label class="appMenuFieldLabel">Kalendář pro report dovolených<select class="appMenuInlineInput appMenuWideInput" data-vacation-report-calendar-key>' + reportOptions + '</select></label>',
+    '</div>'
+  ].join('');
+  return reportPicker + RAK_SHIFT_CALENDAR_TEAMS.map((team) => {
     const entries = Array.isArray(settings.teams[team]) ? settings.teams[team] : [];
     const rows = entries.map((entry) => buildAdminShiftCalendarRowHtml(team, entry)).join('')
       + buildAdminShiftCalendarRowHtml(team, {});
@@ -1291,7 +1328,8 @@ function readAdminShiftCalendarsSettingsFromDom() {
     const key = String(row.getAttribute('data-calendar-key') || '').trim();
     teams[team].push({ key, label: label || ('Kalendář ' + String(teams[team].length + 1)), url: normalizedUrl });
   });
-  return normalizeRakShiftCalendarSettings({ teams });
+  const vacationReportCalendarKey = String(document.querySelector('#appMenuBody [data-vacation-report-calendar-key]')?.value || '').trim();
+  return normalizeRakShiftCalendarSettings({ teams, vacationReportCalendarKey });
 }
 
 window.isRakShiftCalendarSettingsRow = isRakShiftCalendarSettingsRow;
