@@ -156,7 +156,7 @@ try{
   const currentMetadata=fs.readFileSync(path.join(ROOT,'rak-release-metadata.js'),'utf8');
   const currentPackage=JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8'));
   const currentVersion=String(CONFIG.current&&CONFIG.current.version||'').trim();
-  assert(/^1\.7\.\d+$/.test(currentVersion),'[perf-parity] current version is invalid');
+  assert(/^\d+\.\d+\.\d+$/.test(currentVersion),'[perf-parity] current version is invalid');
   assert(currentMetadata.includes("displayVersion: '"+currentVersion+"'"),'[perf-parity] current canonical release metadata is not '+currentVersion);
   assert.equal(currentPackage.version,currentVersion,'[perf-parity] current canonical package is not '+currentVersion);
   const currentLabel='current-'+currentVersion;
