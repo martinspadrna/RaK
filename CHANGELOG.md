@@ -1,3 +1,10 @@
+## RaK 1.8.7 (development)
+
+- Dokončení opravy živé auth diagnostiky pro roli zástupce: skutečný runtime ve `Více` (`app-menu.js`) teď používá stejný signed-role token jako změna vlastního hesla.
+- Kořen 1.8.6 byl nesynchronizovaný duplicitní zdroj diagnostiky: testovací helper byl opravený, ale lehký local-first shell `Více` měl stále starý getter pouze pro owner/admin. Nový regresní kontrakt hlídá oba zdroje současně, aby se znovu nerozešly.
+- Oprávnění se nerozšiřují: admin-write credential zůstává pouze owner/admin; deputy dostává jen svůj už existující podepsaný Auth token pro vlastní heslo a read-only diagnostiku.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
 ## RaK 1.8.6 (development)
 
 - Oprava podepsané relace pro roli zástupce: změna vlastního hesla a ruční „Ověřit oprávnění“ už nepoužívají token getter vyhrazený pouze pro owner/admin.

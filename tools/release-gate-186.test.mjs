@@ -4,18 +4,13 @@ import fs from 'node:fs';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('1.8.6 has unified release identity for signed deputy session fix',()=>{
+test('1.8.6 signed deputy session milestone remains present in successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.8.6');
-  assert.equal(metadata.displayVersion,'1.8.6');
-  assert.equal(metadata.technicalVersion,'1.8.6');
-  assert.equal(metadata.moduleCacheVersion,'1.8.6');
-  assert.equal(metadata.cacheVersion,'v1.8.6');
-  assert.equal(metadata.buildId,'v1.8.6-deputy-signed-session1');
-  assert.equal(JSON.parse(read('package.json')).version,'1.8.6');
-  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'1.8.6');
-  assert(read('index.html').includes('app.js?v=1.8.6'));
-  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=1.8.6')"));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v1.8.6'"));
+  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,metadata.displayVersion);
+  const bridge=read('supabase-bridge.js');
+  const unlock=read('app-admin-unlock.js');
+  assert(bridge.includes('getSignedAdminAccessToken'));
+  assert(unlock.includes('getSignedAdminAccessToken'));
   assert(read('CHANGELOG.md').includes('## RaK 1.8.6 (development)'));
 });
 
