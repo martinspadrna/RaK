@@ -366,9 +366,20 @@ Uzavřené položky:
 
 ## Kandidát pro budoucí `main` – aktuální stav
 
-- Původní připravený kandidát RaK 1.8.4 a draft PR #5 jsou **zastaralé a uzavřené bez merge**.
-- Nové regresní opravy 1.8.5–1.8.7 jsou fyzicky potvrzené; aktuálně není evidovaný otevřený produktový bod. Až vlastník výslovně řekne pokračovat s přípravou pro `main`, připravit nový kandidát z fyzicky ověřeného RaK 1.8.7 a znovu projít produkčními fail-closed guardy. Samotné zapsání tohoto PASS nic do `main` ani produkce nenasazuje.
-- Aktuální `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel ani produkční Supabase nebyly změněny.
+- **RaK 1.8.8 je aktuální vývojový základ pro nový release kandidát.** Funkční/source HEAD: `eb7261f904e16666ae437ccab17470ef007efd2f`.
+- Důvod 1.8.8: produkční rollout audit odhalil, že pozdější migrace 1.7.148 znovu přepsala `rak_admin_apply_unplanned_change_v2` se SQLSTATE `40001`, čímž zrušila non-retryable CAS opravu 1.7.138. Nová forward-only TEST migrace `20260930112049_rak_unplanned_change_cas_nonretryable_188.sql` problém cíleně opravuje bez zpětné editace už aplikovaných migrací.
+- **Live TEST Supabase ověření po 1.8.8 migraci:** finální `rak_admin_apply_unplanned_change_v2` má 2× `P0001`, 0× `40001`, zůstává `SECURITY DEFINER`, `authenticated` má EXECUTE, `anon` ne a `search_path` zůstává prázdný.
+- **Exact-SHA CI GREEN:** GitHub Actions run **#776 / ID 36709295247** pro `eb7261f...` prošel kompletně včetně dvojitého canonical buildu, všech release/inherited gates, reálného Chromium offline/network testu, benchmarku, performance parity proti immutable 1.7.69, quality thresholds, TEST anonymous HTTP, canonical source kontroly a CI release proof.
+- **TEST preview READY:** Vercel deployment `dpl_6KM3C1toG7B8mE26RxETn8DRA2Lg`, source SHA `eb7261f...`, stable development alias byl přesunut až po immutable verification.
+- **Produkce zůstala beze změny:** production deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, source SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; production Supabase `bkqamcbkiwumsvelahxr` nebyla 1.8.8 přípravou změněna.
+- **Produkční Supabase blocker je připravený, ne provedený:** produkce má migration head `20260924105811`; do 1.8.8 je 17 pending aktivních migrací včetně nové 1.8.8 opravy. Aktuální frontend vyžaduje objekty, které produkce ještě nemá, proto nový frontend nesmí jít na produkci před koordinovaným backend rolloutem.
+- **Kalendář prerequisite:** před migrací `20260929022427_rak_calendar_private_feed_17149.sql` musí být v PROD nainstalovaný `http` extension ve schema `extensions` a bezpečně vytvořeny čtyři Vault secret names `rak_calendar_kalirna_[a-d]_ics`. Secret hodnoty nikdy neukládat do Git/chat/logů.
+- **Edge Function:** do produkce je potřeba nasadit pouze aktuální `supabase/functions/rak-admin-users/index.ts` z release kandidáta s `verify_jwt=true`. TEST deployment je bitově shodný s development zdrojem. `rak-p15-restore-export` je TEST-only a do produkce nesmí. Současný produkční `rak-admin-users` je bitově shodný se souborem na `main`, takže `main` je ověřený rollback source.
+- **Připravené produkční ops soubory:** `supabase/ops/production_preflight_188.sql`, `production_calendar_prerequisite_188.sql`, `production_postcheck_188.sql`, `rollback_188_restore_legacy_v2_writers.sql` a `PRODUCTION_ROLLOUT_188.md`.
+- Rollback v2 writerů byl na TESTu **úspěšně proveden uvnitř transakce a následně ROLLBACK**; po rollbacku zůstaly live TEST v2 writery v původním cutover stavu. Tím je rollback syntax i jeho vlastní postcheck ověřen bez trvalé změny TESTu.
+- Starý produkční frontend 1.7.83 používá `rak_admin_save_machine_settings_v2` a `rak_admin_save_rotation_month_entries_v2`; úplný backend rollout proto musí proběhnout v koordinovaném maintenance okně a následovat bezprostředně nový frontend. Samotný návrat Vercel aliasu po DB cutoveru nestačí — rollback musí případně obnovit i tyto dva kompatibilní v2 writery.
+- Draft PR #6 / `release/1.8.7-main-ready` je po objevení backendového blockeru **zastaralý a nesmí se mergovat**. Připravit nový `release/1.8.8-main-ready` z aktuálního development HEAD a aktuálního `main`, znovu production-target CI a tree-identity proof.
+- Žádný merge do `main`, produkční Supabase zásah, PROD Edge Function deployment ani přesun produkčního Vercel aliasu bez nového explicitního souhlasu vlastníka pro konkrétní produkční krok.
 
 ## Release / test checklist pro další funkční změnu
 
