@@ -40,10 +40,10 @@
 
 ### Development runtime
 
-- Aktuální TEST runtime je **RaK 1.8.4**, build `v1.8.4-admin-diagnostic-copy1`.
-- Exact runtime/test SHA: `8678cb313ecb84513f36b1339468c2c03a2fe4d5`.
-- Actions run `36674539554`, attempt 3, je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof. Výkonové limity nebyly uvolněny.
-- READY Vercel deployment: `dpl_4eKwWjB41PNExVgZKwZuVPVwov7x`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
+- Aktuální TEST runtime je **RaK 1.8.7**, build `v1.8.7-live-auth-source1`.
+- Exact runtime/test SHA: `3d919c88757ca75a20020eb2ae51901c922fdbbb`.
+- Actions run `36687768493`, attempt 1, je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof. Výkonové limity nebyly uvolněny.
+- READY Vercel deployment: `dpl_BeDLm4ABrThiFG7EaFf3TV691msp`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
 - TEST Supabase `cgshssdjgzzuprlwnabl` má aplikovanou migraci `rak_unplanned_kalirna_direct_cell_17148`; definice `rak_admin_apply_unplanned_change_v2` byla po migraci read-only ověřena přímo v DB.
 - Produkce i `main` zůstaly při release-preview beze změny.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 1 administrační série:** v Administrace → Rozpisy jsou neuložené místní návrhy, exporty a tlačítko „Smazat všechny místní návrhy“ v jednom rámečku, tlačítka mají požadovaný svislý odstup a blok „Statistické odchylky“ je odstraněný.
@@ -54,7 +54,8 @@
 - **Fyzický iPhone PASS 29. 9. 2026 – neplánovaná Kalírna 1.7.148:** člověk s „Odešel na kalírnu“ zůstává v rozpisu evidenčně jako růžová buňka `Jméno →K`, ale není započítán do fyzického MO staffingu. Bez jiné absence zůstává fyzicky 5 TO + 4 MO a evidence Kalírny je na volné MFKF06; s jednou další absencí zůstává fyzicky 5 TO + 3 MO a evidence Kalírny je na volné MSKC01. D/NV/§/Lékař zůstávají absencemi a neplánovaná změna se omezuje jen na vybraný den / rozsah. **Backlog „Kalírna → evidenční MFKF06“ je uzavřen.**
 - **Fyzický iPhone PASS 29. 9. 2026 – MO-only absence komplet:** Dovolená / Náhradní volno / Paragraf / Lékař jsou fyzicky potvrzené na iPhonu. Člověk původně na MO po neplánované absenci zmizí ze stroje a je v Absencích; pokud TO zůstává validní, zachová se úplně beze změny. MO se přepočítá jen na vybraném dni / rozsahu a jiné dny se nemění. **Cílený MO-only retest všech čtyř důvodů je uzavřen.**
 - **Fyzický iPhone PASS 30. 9. 2026 – Administrace → Kalendáře / Report dovolených 1.8.3:** samostatná volba kalendáře pro Report dovolených je funkční, výchozí/fallback zůstává Obrábění D a nový blok má potvrzený svislý odstup od „Směny A“. Report není svázaný se směnou přihlášeného účtu; Dashboard a generátor zůstávají beze změny. **Kalendářový follow-up je uzavřen.**
-- **Fyzický iPhone PASS 30. 9. 2026 – Více / diagnostika 1.8.4:** výchozí text „TEST diagnostika se spustí pouze klepnutím.“ je odstraněný a po klepnutí na „Ověřit oprávnění“ se výsledek živé diagnostiky dál správně zobrazí. **Poslední otevřený produktový bod je uzavřen.**
+- **Fyzický iPhone PASS 30. 9. 2026 – Více / diagnostika 1.8.4:** výchozí text „TEST diagnostika se spustí pouze klepnutím.“ je odstraněný.
+- **Fyzický iPhone PASS 30. 9. 2026 – RaK 1.8.7 / podepsaná relace zástupce:** změna vlastního hesla funguje a „Ověřit oprávnění“ na testovacím účtu po finální opravě správně používá podepsanou signed-role relaci. Runtime `app-menu.js` a diagnostický helper jsou sjednocené na `getSignedAdminAccessToken`; admin-write gate zůstává pouze owner/admin. **Auth regrese je uzavřená.**
 
 ### Produkce – neměnit bez souhlasu
 
@@ -66,8 +67,8 @@
 
 ### Aktuální CI poznámka
 
-- Poslední funkční runtime 1.8.4 má zelený exact-SHA run `36674539554` (attempt 3) pro SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`. Výkonové limity nebyly uvolněny.
-- Stabilní TEST alias byl přesunut až po zeleném exact-SHA ověření a immutable HTTP kontrole deploymentu `dpl_4eKwWjB41PNExVgZKwZuVPVwov7x`.
+- Poslední funkční runtime 1.8.7 má zelený exact-SHA run `36687768493` (attempt 1) pro SHA `3d919c88757ca75a20020eb2ae51901c922fdbbb`. Výkonové limity nebyly uvolněny.
+- Stabilní TEST alias byl přesunut až po zeleném exact-SHA ověření a immutable HTTP kontrole deploymentu `dpl_BeDLm4ABrThiFG7EaFf3TV691msp`.
 - Při dalším funkčním releasu musí opět projít celý fail-closed řetězec na jeho exact SHA.
 
 ## Stav 13 bodů – závěrečný audit 28. 9. 2026
@@ -354,17 +355,19 @@ Uzavřené položky:
 4. **RaK 1.8.4 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** ve Více → Správce je odstraněný výchozí text „TEST diagnostika se spustí pouze klepnutím.“; stavový prvek zůstává zachovaný a po „Ověřit oprávnění“ dál zobrazí výsledek živé diagnostiky. Finální fyzicky ověřený SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`.
 5. **RaK 1.8.5 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Dashboard → Kantýna i Jídelna se při klepnutí na spodní navigaci včetně local-first „Více“ správně zavřou před změnou obrazovky. Oprava je ve společném teardownu spodní navigace; finální fyzicky ověřený SHA `aa2b26c35f7c866613d420c2dd8f93dfae7a0f6d`.
 
-**Aktuálně otevřený bod – řešit nyní jako jediný:** RaK 1.8.6 fyzicky 30. 9. 2026 pouze ČÁSTEČNÝ PASS: změna vlastního hesla na testovacím účtu funguje, ale „Ověřit oprávnění“ stále hlásí „Platná podepsaná relace není dostupná. Přihlas se znovu.“ Kořen potvrzen: změna hesla už používá `getSignedAdminAccessToken`, zatímco skutečný local-first runtime diagnostiky ve `Více` (`app-menu.js`) zůstal na starém `getAdminAccessToken`, který deputy správně blokuje. RaK 1.8.7 má sjednotit runtime diagnostiku se signed-role cestou a přidat regresní kontrakt proti dalšímu rozjezdu duplicitních zdrojů; secure admin-write gate nesmí být rozšířen.
+6. **RaK 1.8.7 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** testovací účet může změnit vlastní heslo a „Ověřit oprávnění“ už nepíše, že podepsaná relace není dostupná. Kořen byl v duplicitním runtime zdroji: `app-menu.js` zůstal na admin-only `getAdminAccessToken`, i když helper a změna hesla už používaly signed-role token. Finální oprava sjednotila runtime i helper na `getSignedAdminAccessToken` a regresní test hlídá jejich shodu; admin-write oprávnění zůstává pouze owner/admin. Fyzicky ověřený SHA `3d919c88757ca75a20020eb2ae51901c922fdbbb`.
+
+**Aktuálně není evidovaný žádný otevřený produktový bod.**
 
 - Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
 - MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
 - Pokud se objeví nová konkrétní regrese nebo nový požadavek vlastníka, řešit jej jako nový samostatný bod; automaticky neotvírat znovu uzavřený 13bodový audit.
 
 
-## Kandidát pro budoucí `main` – stav po nových regresích
+## Kandidát pro budoucí `main` – aktuální stav
 
-- Původní připravený kandidát RaK 1.8.4 a draft PR #5 jsou **zastaralé a uzavřené bez merge**, protože po jejich přípravě přibyl fyzicky potvrzený fix 1.8.5 a nový otevřený auth bod.
-- Nový kandidát pro `main` nepřipravovat, dokud nebude uzavřen aktuální auth problém a všechny nové fyzické testy.
+- Původní připravený kandidát RaK 1.8.4 a draft PR #5 jsou **zastaralé a uzavřené bez merge**.
+- Nové regresní opravy 1.8.5–1.8.7 jsou fyzicky potvrzené; aktuálně není evidovaný otevřený produktový bod. Až vlastník výslovně řekne pokračovat s přípravou pro `main`, připravit nový kandidát z fyzicky ověřeného RaK 1.8.7 a znovu projít produkčními fail-closed guardy. Samotné zapsání tohoto PASS nic do `main` ani produkce nenasazuje.
 - Aktuální `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel ani produkční Supabase nebyly změněny.
 
 ## Release / test checklist pro další funkční změnu
