@@ -346,29 +346,26 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 
 ### Ostatní produktový backlog
 
-Všechny níže uvedené položky jsou nyní uzavřené:
+Uzavřené položky:
 
 1. **RaK 1.7.166 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** Kalkulačky → Brusy a Administrace → Brusy jsou dorovnané na referenční vzhled Frézek; `+ / −` má správné rozměry, výšku, glass vzhled i centrování. Oprava je přímo ve skutečných vlastnících `brusy-fhb-v157.js` a `brusy-fhb-v158.js`; Administrace → Frézky zůstala beze změny.
 2. **RaK 1.8.1 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** popis nové generace v „O aplikaci“ je zkrácený přibližně na polovinu do pěti kratších bodů. Uživatelské označení zůstává `RaK 1.8`, historická 1.7 zůstává „Stabilizace a local-first základ“. Runtime SHA `5a5e655517b89deb19af2e7d4911c7a73aa0167d`; první parity běh měl dvě FCP špičky, čistý rerun stejného SHA prošel bez změny limitů.
 3. **RaK 1.8.3 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Administrace → Kalendáře má samostatný „Kalendář pro report dovolených“, uložený ve stávajícím `SHIFT_CALENDAR_SETTINGS`; výchozí/fallback je Obrábění D. Report už není svázaný se směnou přihlášeného účtu, Dashboard a generátor zůstávají beze změny. Finální fyzicky ověřený SHA `d964ff2da700423a1932cff9d42032ccbd0ecf39`; 1.8.3 navíc potvrzuje požadovaný odstup bloku od „Směny A“.
 4. **RaK 1.8.4 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** ve Více → Správce je odstraněný výchozí text „TEST diagnostika se spustí pouze klepnutím.“; stavový prvek zůstává zachovaný a po „Ověřit oprávnění“ dál zobrazí výsledek živé diagnostiky. Finální fyzicky ověřený SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`.
+5. **RaK 1.8.5 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Dashboard → Kantýna i Jídelna se při klepnutí na spodní navigaci včetně local-first „Více“ správně zavřou před změnou obrazovky. Oprava je ve společném teardownu spodní navigace; finální fyzicky ověřený SHA `aa2b26c35f7c866613d420c2dd8f93dfae7a0f6d`.
+
+**Aktuálně otevřený bod – řešit nyní jako jediný:** testovací účet po čerstvém přihlášení nemá použitelnou podepsanou relaci pro vlastní změnu hesla ani pro „Ověřit oprávnění“. UI hlásí „Bezpečné přihlášení už vypršelo. Přihlas se znovu.“ / „Platná podepsaná relace není dostupná. Přihlas se znovu.“ i po opětovném přihlášení. Hledat kořen v obnově/persistenci/napojení Supabase Auth relace; neobcházet secure gate lokálním příznakem.
 
 - Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
 - MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
 - Pokud se objeví nová konkrétní regrese nebo nový požadavek vlastníka, řešit jej jako nový samostatný bod; automaticky neotvírat znovu uzavřený 13bodový audit.
 
 
-## Připravený kandidát pro budoucí `main` – RaK 1.8.4
+## Kandidát pro budoucí `main` – stav po nových regresích
 
-- **Zatím nemergovat a nenasazovat do produkce.** Vlastník požádal pouze o přípravu, aby mohl později RaK 1.8.4 převést na `main`.
-- Fyzicky otestovaný runtime zůstává SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`; následný `development` commit `9c89c1056318a884ff0a16af3e9f1803fdd392ec` byl pouze dokumentační.
-- Připravená větev: `release/1.8.4-main-ready`; exact kandidát SHA **`62cce4a409e341ed129d71022f174b6306fe3bc9`**.
-- Kandidát je merge commit aktuálního development stavu a dosavadního `main`, přičemž zachovává novější runtime z development a obnovuje produkční release guardy / production-target validaci z main. `main` je přímý předek kandidáta; compare proti `main` je `ahead`, `behind_by=0`.
-- Produkční-target fail-closed CI kandidáta: Actions run **`36681015175` SUCCESS**. Prošly dvě canonical sestavy, release/regresní gates, rollback/PWA kontrakty, source ZIP + restore rehearsal, skutečný Chromium offline/recovery, performance budget + parity, quality thresholds a bezpečné anonymní HTTP probe pouze proti TEST databázi. Release preview se u tohoto PR záměrně nespouštěl.
-- Dočasný CI PR #4 byl po zeleném ověření uzavřen **bez merge do development**.
-- Připravený cílový PR: **draft #5 „RaK 1.8.4 — připraveno pro main“**, `release/1.8.4-main-ready → main`. GitHub ho po přepočtu označil jako mergeable; ponechat jako draft, dokud vlastník výslovně neschválí merge.
-- Aktuální `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`. Produkční Vercel ani produkční Supabase nebyly během přípravy změněny.
-- Až vlastník později schválí vydání: 1) merge draft PR #5 do `main`; 2) ověřit exact SHA nového `main` produkční validací; 3) produkční deployment spustit až po dalším samostatném výslovném souhlasu přes auditovaný manual production-release workflow.
+- Původní připravený kandidát RaK 1.8.4 a draft PR #5 jsou **zastaralé a uzavřené bez merge**, protože po jejich přípravě přibyl fyzicky potvrzený fix 1.8.5 a nový otevřený auth bod.
+- Nový kandidát pro `main` nepřipravovat, dokud nebude uzavřen aktuální auth problém a všechny nové fyzické testy.
+- Aktuální `main` zůstává `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`; produkční Vercel ani produkční Supabase nebyly změněny.
 
 ## Release / test checklist pro další funkční změnu
 
