@@ -31,7 +31,7 @@ async function runRole(role){
       throw new Error('unexpected endpoint '+url);
     },
     SUPABASE_CONFIG:{url:'https://cgshssdjgzzuprlwnabl.supabase.co',publishableKey:'sb_publishable_test_canary'},
-    RotationSupabaseBridge:{getAdminAccessToken:async()=>token}, globalThis:null,window:null,
+    RotationSupabaseBridge:{getSignedAdminAccessToken:async()=>token}, globalThis:null,window:null,
     Error,TypeError,RangeError,ReferenceError,SyntaxError,URIError,Object,Array,String,Number,Boolean,Math,JSON,Map,Set,Date
   });
   context.globalThis=context; context.window=context;
