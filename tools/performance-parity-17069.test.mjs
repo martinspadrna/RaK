@@ -16,6 +16,7 @@ test('P2.1 parity uses immutable 1.7.69, its historical two-pass build and commo
  for(const marker of ["git',['-C',WORKSPACE,'worktree','add','--detach'","npm',['run','vercel-build']","window.__rakBootV2StartupReady","first-contentful-paint","dashboardVisible","baseline-1.7.69","const currentLabel='current-'+currentVersion","CONFIG.current&&CONFIG.current.version"])assert(script.includes(marker),'missing '+marker);
  assert(workflow.includes('node --test tools/performance-parity-17069.test.mjs'));
  assert(workflow.includes('node tools/performance-parity-17069.mjs'));
+ assert(script.includes("/^\\d+\\.\\d+\\.\\d+$/"),'current performance release must accept semver successors');
 });
 test('parity tolerance is bounded, median-based and P95 uses enough alternating samples',()=>{
  assert.deepEqual(Object.keys(config.metrics),['firstContentfulPaintMs']);
