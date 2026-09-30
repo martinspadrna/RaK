@@ -3,6 +3,16 @@ import RELEASE_METADATA from '../rak-release-metadata.js';
 
 export {RELEASE_METADATA};
 
+export const BUILD_TARGET=String(process.env.RAK_BUILD_TARGET||'test').trim();
+assert(['test','production'].includes(BUILD_TARGET),'RAK_BUILD_TARGET must be test or production');
+
+export function assertSupabaseTarget(config,label='release'){
+  if(BUILD_TARGET==='production')
+    assert(config.includes('bkqamcbkiwumsvelahxr')&&!config.includes('cgshssdjgzzuprlwnabl'),label+' must use production Supabase only');
+  else
+    assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),label+' must use TEST Supabase only');
+}
+
 function semverParts(version){
   const match=String(version||'').trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
   assert(match,'invalid release version');
@@ -40,7 +50,7 @@ export function assertCurrentReleaseIdentity(read,minimumVersion){
   assert(config.includes('const rakReleaseMetadata = window.RAK_RELEASE_METADATA;'));
   assert(config.includes('window.RAK_RELEASE_VERSION = rakReleaseMetadata.displayVersion;'));
   assert(config.includes('window.RAK_PWA_BUILD = rakReleaseMetadata.buildId;'));
-  assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config,'runtime configuration');
 
   const sw=read('sw.js');
   assert(sw.indexOf("importScripts('./rak-release-metadata.js?sw=")<sw.indexOf('const CACHE_VERSION'));

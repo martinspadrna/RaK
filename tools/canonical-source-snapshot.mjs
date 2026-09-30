@@ -30,7 +30,7 @@ function git(root, ...args) {
 function sha256(content) {return crypto.createHash('sha256').update(content).digest('hex');}
 function names(output) {return output.split('\0').filter(Boolean).sort();}
 function assert(condition, message) {if (!condition) throw Error('[canonical-snapshot] '+message);}
-export function capture(root = DEFAULT_ROOT) {
+export function capture(root = DEFAULT_ROOT, target = process.env.RAK_BUILD_TARGET || 'test') {
   const sha = git(root,'rev-parse','HEAD').trim();
   assert(/^[a-f0-9]{40}$/i.test(sha), 'invalid HEAD SHA');
   const tracked = names(git(root,'ls-files','-z')).filter(isRuntimePath);
@@ -46,7 +46,13 @@ export function capture(root = DEFAULT_ROOT) {
   const read=p=>fs.readFileSync(path.join(root,p),'utf8');
   assert(read('index.html').includes(`var build='${EXPECTED_BUILD}';`),'wrong HTML build');
   assert(read('sw.js').includes(`const CACHE_VERSION = 'v${EXPECTED_RELEASE}';`),'wrong worker version');
-  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl') && !read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'), 'not TEST Supabase');
+  const supabaseConfig=read('supabase-config.js');
+  assert(['test','production'].includes(target),'unknown build target');
+  if(target==='production') {
+    assert(supabaseConfig.includes('bkqamcbkiwumsvelahxr') && !supabaseConfig.includes('cgshssdjgzzuprlwnabl'),'not production Supabase');
+  } else {
+    assert(supabaseConfig.includes('cgshssdjgzzuprlwnabl') && !supabaseConfig.includes('bkqamcbkiwumsvelahxr'),'not TEST Supabase');
+  }
   assert(JSON.parse(read('package.json')).version==='1.7.0','technical version must remain 1.7.0');
   const manifest={schema:SNAPSHOT_SCHEMA, sourceCommit:sha, release:EXPECTED_RELEASE, buildId:EXPECTED_BUILD,
     files, changedPaths, runtimeDigest:sha256(JSON.stringify(files))};
