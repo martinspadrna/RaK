@@ -341,6 +341,14 @@
     return error ? { ok: false, error } : { ok: true };
   }
 
+  async function getSignedAdminAccessToken() {
+    const client = getClient();
+    if (!client || !hasSignedAdminRoleContext()) return '';
+    const { data, error } = await client.auth.getSession();
+    if (error) return '';
+    return String(data && data.session && data.session.access_token || '');
+  }
+
   async function getAdminAccessToken() {
     const client = getClient();
     if (!client || !hasSecureAdminContext()) return '';
@@ -2611,9 +2619,15 @@
     });
   }
 
+  function hasSignedAdminRoleContext() {
+    const context = state.adminAuth && state.adminAuth.context;
+    return !!(context && context.authenticated === true && context.account_id
+      && ['owner', 'admin', 'deputy'].includes(String(context.role || '')));
+  }
+
   function hasSecureAdminContext() {
     const context = state.adminAuth && state.adminAuth.context;
-    return !!(context && context.authenticated === true && context.account_id && (context.role === 'owner' || context.role === 'admin'));
+    return !!(hasSignedAdminRoleContext() && (context.role === 'owner' || context.role === 'admin'));
   }
 
   function hasAdminWriteCredential() {
@@ -5605,6 +5619,7 @@
     signInAdminAccount,
     restoreAdminAuthSession,
     signOutAdminAccount,
+    getSignedAdminAccessToken,
     getAdminAccessToken,
     // RAK_SECURE_DIRECTORY_17027: same authenticated client as the admin console.
     listApplicationAccountsSecure: async () => {

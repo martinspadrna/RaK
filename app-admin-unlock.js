@@ -1183,7 +1183,7 @@ async function rakAdminChangeOwnPassword(root) {
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;
-  const accessToken = bridge && typeof bridge.getAdminAccessToken === 'function' ? await bridge.getAdminAccessToken() : '';
+  const accessToken = bridge && typeof bridge.getSignedAdminAccessToken === 'function' ? await bridge.getSignedAdminAccessToken() : '';
   if (!accessToken) return { ok: false, reason: 'missing-session' };
   const adminUsersUrl = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '').replace(/\/$/, '') + '/functions/v1/rak-admin-users';
   const response = await fetch(adminUsersUrl, {

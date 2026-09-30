@@ -1,3 +1,10 @@
+## RaK 1.8.6 (development)
+
+- Oprava podepsané relace pro roli zástupce: změna vlastního hesla a ruční „Ověřit oprávnění“ už nepoužívají token getter vyhrazený pouze pro owner/admin.
+- Supabase Auth relace se nerozšiřuje o žádná nová oprávnění. Nový signed-role token getter přijímá pouze ověřené role owner/admin/deputy; původní admin-write getter zůstává omezený na owner/admin a všechny privilegované zápisové cesty ho dál používají.
+- Serverový `rak-admin-users` už změnu vlastního hesla pro owner/admin/deputy správně povoluje před deputy management blokem; backend ani databáze se kvůli této opravě nemění.
+- Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
 ## RaK 1.8.5 (development)
 
 - Dashboard → Kantýna/Jídelna: při klepnutí na libovolnou položku spodní navigace, včetně „Více“, se otevřený popup jídelních časů nejdřív zavře.

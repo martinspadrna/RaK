@@ -37,8 +37,8 @@ async function rakRunLiveAuthDiagnostic() {
     }
 
     const bridge = window.RotationSupabaseBridge;
-    const token = bridge && typeof bridge.getAdminAccessToken === 'function'
-      ? await bridge.getAdminAccessToken()
+    const token = bridge && typeof bridge.getSignedAdminAccessToken === 'function'
+      ? await bridge.getSignedAdminAccessToken()
       : '';
     if (!token || token.length < 100) {
       setStatus('Platná podepsaná relace není dostupná. Přihlas se znovu.', false);
