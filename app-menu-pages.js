@@ -5,20 +5,16 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
     // RAK_180_ABOUT_START
-// RAK_180_RELEASE_RUNTIME: O aplikaci displays the RaK 1.8 generation; release metadata remains semver 1.8.0 and successor-safe.
+// RAK_181_ABOUT_COMPACT: RaK 1.8 keeps the same coverage in a shorter user-facing summary.
     {
       range: 'RaK 1.8',
       title: 'Local-first, kalendáře a přesnější provoz',
       lines: [
-        'Home, Rozpisy/Rotace, Kalkulačky i Více startují skutečně local-first: lokální data a navigace jsou dostupné hned, online synchronizace je jen dorovnává na pozadí a nemění otevřenou stránku.',
-        'První otevření Administrace je rychlejší bez oslabení rolí; hesla mají minimum 6 znaků a secure owner/admin/zástupce pravidla, soukromí a účetní oprávnění zůstávají fail-closed.',
-        'Rozpisy a neplánované změny dostaly přesnější staffing a minimal-reflow logiku, důvody absencí, bezpečné mazání místních návrhů a evidenci odchodu na Kalírnu přímo v rozpisu bez falešného navýšení obsazení.',
-        'Administrace je na iPhonu kompaktnější: přehled strojů, generátor, Kantýna, účty i správci mají čitelnější tabulky, skládací sekce a méně zbytečného posouvání.',
-        'Dashboardový kalendář umí Obrábění i Kalírnu A–D, účetní výběr více kalendářů, originální Google Calendar, barevnou legendu a uložené zapínání/vypínání jednotlivých zdrojů mezi zařízeními.',
-        'Když nejsou aktivní žádné kalendáře, zobrazí se lokální prázdný měsíc bez Google cookie brány; po zapnutí zdroje se vrátí Google Calendar ve stejné velikosti. Kalendář Obrábění D používaný pro dovolené zůstal oddělený a chráněný.',
-        'Kalkulačky korekcí Frézek a Brusů mají sjednocené mobilní ovládání znaménka a Brusy zachovávají samostatnou logiku pro stroje, indexy, C1/C2 a levou/pravou stranu.',
-        'Offline/PWA vrstva, konflikty a zálohy mají přísnější diagnostiku, CAS ochranu a obnovu; release pipeline kontroluje reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a TEST/produkční izolaci.',
-        'Opravy se průběžně přesunuly z dočasných záplat do skutečných vlastníků funkcí; produkční data a chráněné pracovní zdroje se při development testech nemění.'
+        'RaK startuje skutečně local-first: Home, Rozpisy/Rotace, Kalkulačky i Více jsou dostupné hned z lokálních dat a online synchronizace je jen aktualizuje na pozadí.',
+        'Rozpisy, absence a neplánované změny mají přesnější staffing a práci s Kalírnou; Administrace je rychlejší a na iPhonu přehlednější a kompaktnější.',
+        'Dashboardový kalendář podporuje Obrábění i Kalírnu A–D, uložený výběr a legendu; bez aktivního zdroje zobrazí lokální prázdný měsíc bez Google cookie brány.',
+        'Korekce Frézek a Brusů mají sjednocené mobilní ovládání. Offline/PWA, konflikty a zálohy mají přísnější diagnostiku, CAS ochranu a obnovu.',
+        'Release pipeline hlídá reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a oddělení TESTu od produkce; opravy míří do skutečných vlastníků funkcí.'
       ]
     },
     // RAK_180_ABOUT_END
@@ -91,8 +87,9 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.8.0').trim();
-      const aboutDisplayVersion = displayVersion.replace(/\.0$/, '');
+      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.8.1').trim();
+      const displayParts = displayVersion.split('.');
+      const aboutDisplayVersion = displayParts.length >= 2 ? displayParts.slice(0, 2).join('.') : displayVersion;
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
