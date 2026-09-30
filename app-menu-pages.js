@@ -5,7 +5,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
     // RAK_180_ABOUT_START
-// RAK_180_RELEASE_RUNTIME: O aplikaci displays the RaK 1.8 generation; release metadata remains semver 1.8.0.
+// RAK_180_RELEASE_RUNTIME: O aplikaci displays the RaK 1.8 generation; release metadata remains semver 1.8.0 and successor-safe.
     {
       range: 'RaK 1.8',
       title: 'Local-first, kalendáře a přesnější provoz',
