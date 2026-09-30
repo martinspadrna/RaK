@@ -4,7 +4,7 @@ on:
   push:
     branches: [development]
   pull_request:
-    branches: [development]
+    branches: [development, main]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RAK_BUILD_TARGET: ${{ (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/')) && 'production' || (github.ref_name == 'main' && 'production' || 'test') }}
+  RAK_BUILD_TARGET: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'main') || github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) && 'production' || 'test' }}
 
 jobs:
   verify:
