@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {RELEASE_METADATA,assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
+import {RELEASE_METADATA,assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const version = '1.7.41';
 const build = 'v1.7.41-twopass1';
@@ -30,9 +30,9 @@ test('older and newer guards all survive build replay', () => {
   assert(stage.includes('const already17040=already17041||indexSource.includes('));
   assert(stage.includes(`already17041?"var build='${build}';":already17040?`));
 });
-test('test-only database and minimal rotation projection remain', () => {
+test('release-target database and minimal rotation projection remain', () => {
   const config = read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl') && !config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config,'two-pass release');
   assert(read('supabase-bridge.js').includes(".select('id,key,payload,meta,revision,updated_at').eq('key', 'main').maybeSingle()"));
 });
 test('pipeline itself requires second pass', () => {
