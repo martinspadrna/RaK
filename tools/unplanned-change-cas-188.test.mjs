@@ -46,3 +46,16 @@ test('1.8.8 production operations bundle is fail-closed and never embeds calenda
   assert(rollback.includes("Legacy v2 rollback grants are incomplete"));
   assert(!rollback.includes('DROP TABLE'));
 });
+
+test('1.8.8 production calendar prerequisite and runbook stay secret-free',()=>{
+  const prerequisite=read('supabase/ops/production_calendar_prerequisite_188.sql');
+  const runbook=read('supabase/ops/PRODUCTION_ROLLOUT_188.md');
+  assert(prerequisite.includes('CREATE EXTENSION IF NOT EXISTS http WITH SCHEMA extensions'));
+  assert(prerequisite.includes('vault.create_secret()'));
+  assert(runbook.includes('20260930112049_rak_unplanned_change_cas_nonretryable_188.sql'));
+  assert(runbook.includes('rollback_188_restore_legacy_v2_writers.sql'));
+  for(const text of [prerequisite,runbook]){
+    assert(!text.includes('/private-'));
+    assert(!text.includes('basic.ics'));
+  }
+});
