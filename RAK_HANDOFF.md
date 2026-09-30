@@ -350,8 +350,7 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 1. **RaK 1.7.166 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** Kalkulačky → Brusy a Administrace → Brusy jsou dorovnané na referenční vzhled Frézek; `+ / −` má správné rozměry, výšku, glass vzhled i centrování. Oprava je přímo ve skutečných vlastnících `brusy-fhb-v157.js` a `brusy-fhb-v158.js`; Administrace → Frézky zůstala beze změny.
 2. **RaK 1.8.1 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** popis nové generace v „O aplikaci“ je zkrácený přibližně na polovinu do pěti kratších bodů. Uživatelské označení zůstává `RaK 1.8`, historická 1.7 zůstává „Stabilizace a local-first základ“. Runtime SHA `5a5e655517b89deb19af2e7d4911c7a73aa0167d`; první parity běh měl dvě FCP špičky, čistý rerun stejného SHA prošel bez změny limitů.
 3. **RaK 1.8.3 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Administrace → Kalendáře má samostatný „Kalendář pro report dovolených“, uložený ve stávajícím `SHIFT_CALENDAR_SETTINGS`; výchozí/fallback je Obrábění D. Report už není svázaný se směnou přihlášeného účtu, Dashboard a generátor zůstávají beze změny. Finální fyzicky ověřený SHA `d964ff2da700423a1932cff9d42032ccbd0ecf39`; 1.8.3 navíc potvrzuje požadovaný odstup bloku od „Směny A“.
-4. WhatsApp sdílení reportu směn: uložit přibližně 3 čísla a nabídnout výběr příjemce.
-5. Z Administrace odstranit text „TEST diagnostika se spustí pouze klepnutím.“
+4. Z Administrace odstranit text „TEST diagnostika se spustí pouze klepnutím.“
 
 - Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
 - MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
