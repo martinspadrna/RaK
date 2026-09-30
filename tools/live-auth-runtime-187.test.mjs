@@ -19,7 +19,7 @@ function response(ok,status,payload){return {ok,status,json:async()=>payload,bod
 
 async function runActualMenuDeputy(){
   const source=extractDiagnostic(menu);
-  const token='eyJhbGciOiJIUzI1NiJ9.runtime-deputy-signed-token.signature-long-enough-for-live-diagnostic';
+  const token='eyJhbGciOiJIUzI1NiJ9.runtime-deputy-signed-token.signature-long-enough-for-live-diagnostic-and-over-one-hundred-characters-total-canary';
   const status={textContent:'',dataset:{}};
   const calls=[];
   const context=vm.createContext({
