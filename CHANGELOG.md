@@ -1,3 +1,7 @@
+## RaK 1.8.8 (development)
+- Produkční rollout audit odhalil, že pozdější 1.7.148 přepsala `rak_admin_apply_unplanned_change_v2` a znovu zavedla retryable SQLSTATE `40001`, který 1.7.138 už odstranila.
+- Nová forward-only migrace `20260930112049_rak_unplanned_change_cas_nonretryable_188.sql` cíleně převádí finální definici tohoto RPC na `P0001` a fail-closed ověřuje, že `40001` nezůstalo. TEST live ověření po migraci: `40001=false`, `P0001=true`, authenticated EXECUTE zachováno.
+
 ## RaK 1.8.7 (development)
 
 - Dokončení opravy živé auth diagnostiky pro roli zástupce: skutečný runtime ve `Více` (`app-menu.js`) teď používá stejný signed-role token jako změna vlastního hesla.
