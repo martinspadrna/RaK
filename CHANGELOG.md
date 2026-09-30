@@ -1,3 +1,9 @@
+## RaK 1.8.5 (development)
+
+- Dashboard → Kantýna/Jídelna: při klepnutí na libovolnou položku spodní navigace, včetně „Více“, se otevřený popup jídelních časů nejdřív zavře.
+- Oprava je ve společném teardownu spodní navigace: local-first cesta do „Více“ už neobchází zavření food modalu; stejný teardown zároveň bezpečně uklízí kalendář a detail osoby.
+- Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
 ## RaK 1.8.4 (development)
 
 - Více → správce: odstraněn výchozí text „TEST diagnostika se spustí pouze klepnutím.“ pod tlačítkem „Ověřit oprávnění“.

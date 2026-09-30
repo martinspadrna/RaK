@@ -108,6 +108,12 @@ function rakDismissTransientSurfacesForBottomNav() {
   try {
     if (typeof hideCalendarModal === 'function') hideCalendarModal();
   } catch (err) {}
+  try {
+    if (typeof hideFoodScheduleModal === 'function') hideFoodScheduleModal();
+  } catch (err) {}
+  try {
+    if (typeof hidePersonScheduleModal === 'function') hidePersonScheduleModal();
+  } catch (err) {}
 }
 window.rakDismissTransientSurfacesForBottomNav = rakDismissTransientSurfacesForBottomNav;
 
