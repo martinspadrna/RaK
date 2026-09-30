@@ -68,7 +68,8 @@
   "ignoreCommand": "node tools/vercel-ignore-build.mjs",
   "git": {
     "deploymentEnabled": {
-      "development": false
+      "development": false,
+      "main": false
     }
   },
   "outputDirectory": ".rak-dist"

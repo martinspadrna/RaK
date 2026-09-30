@@ -1,0 +1,187 @@
+name: RaK audited production release
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA already proven green by RaK development validation
+        required: true
+        type: string
+      expected_development_sha:
+        description: Exact immutable development SHA approved for this promotion
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rak-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_2 }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_PROJECT_NAME: skoda-spada
+      PRODUCTION_ALIAS: skoda-spada.vercel.app
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      EXPECTED_DEVELOPMENT_SHA: ${{ inputs.expected_development_sha }}
+      RAK_BUILD_TARGET: production
+    steps:
+      - name: Check out the exact approved main SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fail closed unless both protected refs still match
+        run: |
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          test -n "$VERCEL_TOKEN"
+          test "$VERCEL_ORG_ID" = "team_wZkLmDlJZ9WUtm7IUU3i3tg4"
+          test "$VERCEL_PROJECT_ID" = "prj_Pv7eNEt5qGg2GX9l365fJnc0YUMF"
+      - name: Require a successful exact-SHA validation run
+        run: |
+          mkdir -p .rak-production-evidence/input
+          runs="$(gh api "repos/${{ github.repository }}/actions/workflows/rak-development-validation.yml/runs?branch=main&event=workflow_dispatch&status=completed&per_page=100")"
+          ci_run_id="$(printf '%s' "$runs" | jq -r --arg sha "$EXPECTED_SHA" '[.workflow_runs[] | select(.head_sha==$sha and .conclusion=="success")] | sort_by(.run_number) | last | .id // empty')"
+          test -n "$ci_run_id"
+          echo "CI_RUN_ID=$ci_run_id" >> "$GITHUB_ENV"
+          gh run download "$ci_run_id" --repo "${{ github.repository }}" --name "rak-ci-proof-$EXPECTED_SHA" --dir .rak-production-evidence/input
+      - name: Verify downloaded CI and two-build proof
+        run: node tools/release-evidence.mjs verify-ci .rak-production-evidence/input/ci-proof.json .rak-production-evidence/input/canonical-build-verified.json "$EXPECTED_SHA"
+      - name: Install pinned Vercel CLI and pull production settings
+        run: |
+          npm install --global vercel@59.24.0
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          node -e "const p=require('./.vercel/project.json');if(p.orgId!==process.env.VERCEL_ORG_ID||p.projectId!==process.env.VERCEL_PROJECT_ID)throw Error('Vercel project identity mismatch')"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const source=fs.readFileSync('supabase-config.js','utf8');
+          if(!source.includes('bkqamcbkiwumsvelahxr')||source.includes('cgshssdjgzzuprlwnabl'))throw Error('production frontend Supabase isolation mismatch');
+          const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+          if(config.git?.deploymentEnabled?.development!==false||config.git?.deploymentEnabled?.main!==false)throw Error('automatic protected-branch deployment not disabled');
+          const env=fs.readFileSync('.vercel/.env.production.local','utf8');
+          const hasUrl=/^(?:RAK_SUPABASE_URL|SUPABASE_URL|NEXT_PUBLIC_SUPABASE_URL)=/m.test(env);
+          const hasKey=/^(?:RAK_SUPABASE_PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY|NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY|SUPABASE_ANON_KEY)=/m.test(env);
+          if(!hasUrl||!hasKey)throw Error('required production Supabase Vercel variables missing');
+          NODE
+      - name: Snapshot the non-destructive rollback target
+        run: |
+          vercel api "/v13/deployments/$PRODUCTION_ALIAS" --raw --token="$VERCEL_TOKEN" > .rak-production-evidence/rollback-target.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const raw=JSON.parse(fs.readFileSync('.rak-production-evidence/rollback-target.json','utf8'));
+          const d=raw.result?.deployment??raw.deployment??raw;
+          const id=String(d.id||d.uid||''),url=String(d.url||'').replace(/^https?:\/\//,'');
+          if(!/^dpl_/.test(id)||!url.endsWith('.vercel.app')||(d.state||d.readyState)!=='READY')throw Error('rollback target is not a READY Vercel deployment');
+          fs.appendFileSync(process.env.GITHUB_ENV,'ROLLBACK_ID='+id+'\nROLLBACK_URL='+url+'\n');
+          NODE
+      - name: Build the exact production SHA
+        run: |
+          vercel build --yes --prod --token="$VERCEL_TOKEN"
+          test -s ".rak-dist/supabase-vendor-2.110.7.js"
+          mkdir -p ".vercel/output/static"
+          cp ".rak-dist/supabase-vendor-2.110.7.js" ".vercel/output/static/supabase-vendor-2.110.7.js"
+          test -s ".vercel/output/static/supabase-vendor-2.110.7.js"
+      - name: Create one unaliased production candidate after green CI
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          vercel deploy --prebuilt --yes --prod --skip-domain --json --token="$VERCEL_TOKEN" \
+            --meta githubCommitSha="$EXPECTED_SHA" --meta githubCommitRef=main \
+            --meta githubRepo=RaK --meta githubOrg=martinspadrna > .rak-production-evidence/deploy-result.json
+          deployment_id="$(jq -r '.id // .deployment.id // empty' .rak-production-evidence/deploy-result.json)"
+          test -n "$deployment_id"
+          echo "DEPLOYMENT_ID=$deployment_id" >> "$GITHUB_ENV"
+          vercel api "/v13/deployments/$deployment_id" --raw --token="$VERCEL_TOKEN" > .rak-production-evidence/deployment.json
+      - name: Verify candidate READY, exact SHA and immutable production HTTP
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const raw=JSON.parse(fs.readFileSync('.rak-production-evidence/deployment.json','utf8'));
+          const d=raw.result?.deployment??raw.deployment??raw;
+          if((d.state||d.readyState)!=='READY')throw Error('candidate is not READY');
+          if((d.meta||{}).githubCommitSha!==process.env.EXPECTED_SHA||(d.meta||{}).githubCommitRef!=='main')throw Error('candidate Git SHA metadata mismatch');
+          if((d.projectId||d.project?.id)!==process.env.VERCEL_PROJECT_ID)throw Error('candidate project mismatch');
+          NODE
+          mkdir -p .rak-production-evidence/http/immutable
+          for spec in "index:/" "sw:/sw.js" "metadata:/rak-release-metadata.js" "supabase:/supabase-config.js"; do
+            name="${spec%%:*}"; path="${spec#*:}"
+            vercel curl "$path" --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header ".rak-production-evidence/http/immutable/$name.headers" --output ".rak-production-evidence/http/immutable/$name.body"
+          done
+          node tools/release-evidence.mjs http-check immutable-production .rak-production-evidence/http/immutable .rak-production-evidence/http-immutable.json production
+      - name: Move the production alias only after immutable verification
+        id: alias
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          echo "ALIAS_ATTEMPTED=true" >> "$GITHUB_ENV"
+          vercel alias set "$DEPLOYMENT_ID" "$PRODUCTION_ALIAS" --token="$VERCEL_TOKEN"
+          vercel api "/v13/deployments/$PRODUCTION_ALIAS" --raw --token="$VERCEL_TOKEN" > .rak-production-evidence/alias-after.json
+          test "$(jq -r '.id // .uid // .deployment.id // .result.deployment.id // empty' .rak-production-evidence/alias-after.json)" = "$DEPLOYMENT_ID"
+      - name: Verify public production alias and assemble durable evidence
+        run: |
+          mkdir -p .rak-production-evidence/http/production
+          for spec in "index:/" "sw:/sw.js" "metadata:/rak-release-metadata.js" "supabase:/supabase-config.js"; do
+            name="${spec%%:*}"; path="${spec#*:}"
+            code="$(curl --silent --show-error --location --dump-header ".rak-production-evidence/http/production/$name.headers" --output ".rak-production-evidence/http/production/$name.body" --write-out '%{http_code}' "https://$PRODUCTION_ALIAS$path")"
+            test "$code" = "200"
+          done
+          node tools/release-evidence.mjs http-check production-alias .rak-production-evidence/http/production .rak-production-evidence/http-production.json production
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import RELEASE_METADATA from './rak-release-metadata.js';
+          const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const unwrap=raw=>raw.result?.deployment??raw.deployment??raw;
+          const current=unwrap(read('.rak-production-evidence/deployment.json'));
+          const rollback=unwrap(read('.rak-production-evidence/rollback-target.json'));
+          const ci=read('.rak-production-evidence/input/ci-proof.json');
+          const build=read('.rak-production-evidence/input/canonical-build-verified.json');
+          const evidence={
+            schema:'rak-production-release-evidence-v1',result:'PASS',createdAt:new Date().toISOString(),
+            release:{sha:process.env.EXPECTED_SHA,branch:'main',...RELEASE_METADATA},
+            github:{runId:Number(process.env.CI_RUN_ID),runUrl:'https://github.com/'+process.env.GITHUB_REPOSITORY+'/actions/runs/'+process.env.CI_RUN_ID,conclusion:'success'},
+            checks:{completed:ci.completedChecks,canonicalBuild:{stableDigest:build.stableDigest,repeatBuild:build.repeatBuild,fileCount:build.files.length}},
+            vercel:{projectId:process.env.VERCEL_PROJECT_ID,deploymentId:current.id||current.uid,state:current.state||current.readyState,url:current.url,commitSha:current.meta?.githubCommitSha,productionAlias:process.env.PRODUCTION_ALIAS},
+            http:{immutable:read('.rak-production-evidence/http-immutable.json'),productionAlias:read('.rak-production-evidence/http-production.json')},
+            supabase:{productionProject:'bkqamcbkiwumsvelahxr',testProjectAbsentFromOutput:true},
+            rollback:{targetDeploymentId:rollback.id||rollback.uid,targetUrl:rollback.url,targetSha:rollback.meta?.githubCommitSha,state:rollback.state||rollback.readyState,procedure:['Verify rollback target remains READY.','Run vercel alias set <rollback URL> '+process.env.PRODUCTION_ALIAS+'.','Verify /, /sw.js, /rak-release-metadata.js and /supabase-config.js.']},
+            invariants:{developmentSha:process.env.EXPECTED_DEVELOPMENT_SHA,automaticMainDeploymentDisabled:true,phaseBExcluded:true,secretsExcluded:true}
+          };
+          if(JSON.stringify(evidence).match(/gho_|github_pat_|Bearer\s|VERCEL_TOKEN|_vercel_share/i))throw Error('secret-like value in evidence');
+          fs.writeFileSync('.rak-production-evidence/release-evidence.json',JSON.stringify(evidence,null,2)+'\n');
+          NODE
+      - name: Retain machine-readable production evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-production-release-evidence-${{ inputs.expected_sha }}
+          path: |
+            .rak-production-evidence/release-evidence.json
+            .rak-production-evidence/http-immutable.json
+            .rak-production-evidence/http-production.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Restore the previous alias if any post-alias check failed
+        if: failure() && env.ALIAS_ATTEMPTED == 'true'
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          vercel alias set "$ROLLBACK_URL" "$PRODUCTION_ALIAS" --token="$VERCEL_TOKEN"
+          vercel api "/v13/deployments/$PRODUCTION_ALIAS" --raw --token="$VERCEL_TOKEN" > .rak-production-evidence/rollback-after.json
+          test "$(jq -r '.id // .uid // .deployment.id // .result.deployment.id // empty' .rak-production-evidence/rollback-after.json)" = "$ROLLBACK_ID"
