@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
+import {assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.160 account-persisted legend visibility milestone remains active in successors',()=>{
@@ -25,6 +25,5 @@ test('1.7.160 gates remain mandatory locally and in CI',()=>{
 
 test('1.7.160 successors remain TEST-only',()=>{
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config,'release milestone');
 });
