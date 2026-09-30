@@ -26,3 +26,23 @@ test('1.8.8 CAS repair is forward-only and narrowly scoped',()=>{
   assert(!repair.includes('bkqamcbkiwumsvelahxr'));
   assert.equal((repair.match(/EXECUTE v_repaired/g)||[]).length,1);
 });
+
+test('1.8.8 production operations bundle is fail-closed and never embeds calendar secrets',()=>{
+  const preflight=read('supabase/ops/production_preflight_188.sql');
+  const postcheck=read('supabase/ops/production_postcheck_188.sql');
+  const rollback=read('supabase/ops/rollback_188_restore_legacy_v2_writers.sql');
+  for(const sql of [preflight,postcheck,rollback]){
+    assert(!sql.includes('/private-'));
+    assert(!sql.includes('basic.ics'));
+  }
+  assert(preflight.includes("supabase_migrations.schema_migrations"));
+  assert(preflight.includes("still_compatible_with_1_7_83"));
+  assert(preflight.includes("installed_version IS NOT NULL AS installed"));
+  assert(postcheck.includes("no_retryable_40001"));
+  assert(postcheck.includes("has_nonretryable_p0001"));
+  assert(postcheck.includes("Revision-aware RaK client required"));
+  assert(rollback.includes("settings.save.legacy_v2"));
+  assert(rollback.includes("rotation.month_entries.save.legacy_v2"));
+  assert(rollback.includes("Legacy v2 rollback grants are incomplete"));
+  assert(!rollback.includes('DROP TABLE'));
+});
