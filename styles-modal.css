@@ -557,6 +557,7 @@ body.appMenuOpen{overflow:hidden;}
   border-radius:20px;
   padding:14px;
   background:rgba(255,255,255,.02);}
+.adminVacationReportCalendarCard{margin-bottom:12px;}
 .appMenuCardTitle{font-size:16px;
   font-weight:800;
   margin-bottom:10px;}

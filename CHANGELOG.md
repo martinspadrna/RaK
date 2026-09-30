@@ -1,3 +1,8 @@
+## RaK 1.8.3 (development)
+
+- Administrace → Kalendáře: blok „Report dovolených“ má větší svislý odstup od následující „Směny A“, aby nové nastavení nebylo vizuálně nalepené na seznam směn.
+- Funkce výběru kalendáře pro report dovolených, Dashboard ani generátor rozpisu se nemění. Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
 ## RaK 1.8.2 (development)
 
 - Administrace → Kalendáře má samostatnou volbu „Kalendář pro report dovolených“. Volba se ukládá do stávajícího nastavení kalendářů; výchozí i bezpečný fallback zůstává Obrábění D.
