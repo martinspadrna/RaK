@@ -40,10 +40,10 @@
 
 ### Development runtime
 
-- Aktuální TEST runtime je **RaK 1.8.3**, build `v1.8.3-vacation-report-spacing1`.
-- Exact runtime/test SHA: `d964ff2da700423a1932cff9d42032ccbd0ecf39`.
-- Actions run `36670987132`, attempt 3, je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof. Výkonové limity nebyly uvolněny.
-- READY Vercel deployment: `dpl_7q9MKaKMp6KVM19RaKXF4YnsE5xi`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
+- Aktuální TEST runtime je **RaK 1.8.4**, build `v1.8.4-admin-diagnostic-copy1`.
+- Exact runtime/test SHA: `8678cb313ecb84513f36b1339468c2c03a2fe4d5`.
+- Actions run `36674539554`, attempt 3, je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof. Výkonové limity nebyly uvolněny.
+- READY Vercel deployment: `dpl_4eKwWjB41PNExVgZKwZuVPVwov7x`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
 - TEST Supabase `cgshssdjgzzuprlwnabl` má aplikovanou migraci `rak_unplanned_kalirna_direct_cell_17148`; definice `rak_admin_apply_unplanned_change_v2` byla po migraci read-only ověřena přímo v DB.
 - Produkce i `main` zůstaly při release-preview beze změny.
 - **Fyzický iPhone PASS 28. 9. 2026 – bod 1 administrační série:** v Administrace → Rozpisy jsou neuložené místní návrhy, exporty a tlačítko „Smazat všechny místní návrhy“ v jednom rámečku, tlačítka mají požadovaný svislý odstup a blok „Statistické odchylky“ je odstraněný.
@@ -54,6 +54,7 @@
 - **Fyzický iPhone PASS 29. 9. 2026 – neplánovaná Kalírna 1.7.148:** člověk s „Odešel na kalírnu“ zůstává v rozpisu evidenčně jako růžová buňka `Jméno →K`, ale není započítán do fyzického MO staffingu. Bez jiné absence zůstává fyzicky 5 TO + 4 MO a evidence Kalírny je na volné MFKF06; s jednou další absencí zůstává fyzicky 5 TO + 3 MO a evidence Kalírny je na volné MSKC01. D/NV/§/Lékař zůstávají absencemi a neplánovaná změna se omezuje jen na vybraný den / rozsah. **Backlog „Kalírna → evidenční MFKF06“ je uzavřen.**
 - **Fyzický iPhone PASS 29. 9. 2026 – MO-only absence komplet:** Dovolená / Náhradní volno / Paragraf / Lékař jsou fyzicky potvrzené na iPhonu. Člověk původně na MO po neplánované absenci zmizí ze stroje a je v Absencích; pokud TO zůstává validní, zachová se úplně beze změny. MO se přepočítá jen na vybraném dni / rozsahu a jiné dny se nemění. **Cílený MO-only retest všech čtyř důvodů je uzavřen.**
 - **Fyzický iPhone PASS 30. 9. 2026 – Administrace → Kalendáře / Report dovolených 1.8.3:** samostatná volba kalendáře pro Report dovolených je funkční, výchozí/fallback zůstává Obrábění D a nový blok má potvrzený svislý odstup od „Směny A“. Report není svázaný se směnou přihlášeného účtu; Dashboard a generátor zůstávají beze změny. **Kalendářový follow-up je uzavřen.**
+- **Fyzický iPhone PASS 30. 9. 2026 – Více / diagnostika 1.8.4:** výchozí text „TEST diagnostika se spustí pouze klepnutím.“ je odstraněný a po klepnutí na „Ověřit oprávnění“ se výsledek živé diagnostiky dál správně zobrazí. **Poslední otevřený produktový bod je uzavřen.**
 
 ### Produkce – neměnit bez souhlasu
 
@@ -65,8 +66,8 @@
 
 ### Aktuální CI poznámka
 
-- Poslední funkční runtime 1.8.3 má zelený exact-SHA run `36670987132` (attempt 3) pro SHA `d964ff2da700423a1932cff9d42032ccbd0ecf39`. Výkonové limity nebyly uvolněny.
-- Stabilní TEST alias byl přesunut až po zeleném exact-SHA ověření a immutable HTTP kontrole deploymentu `dpl_7q9MKaKMp6KVM19RaKXF4YnsE5xi`.
+- Poslední funkční runtime 1.8.4 má zelený exact-SHA run `36674539554` (attempt 3) pro SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`. Výkonové limity nebyly uvolněny.
+- Stabilní TEST alias byl přesunut až po zeleném exact-SHA ověření a immutable HTTP kontrole deploymentu `dpl_4eKwWjB41PNExVgZKwZuVPVwov7x`.
 - Při dalším funkčním releasu musí opět projít celý fail-closed řetězec na jeho exact SHA.
 
 ## Stav 13 bodů – závěrečný audit 28. 9. 2026
@@ -343,14 +344,14 @@ Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test
 - **RaK 1.7.161 – exact-SHA CI GREEN, fyzický iPhone test 29. 9. 2026 částečný PASS:** při nule aktivních štítků se správně zobrazí lokální prázdný měsíční kalendář bez událostí a bez Google cookie brány; po zapnutí zdroje se vrátí originální Google iframe. Account sync viditelnosti z 1.7.160 zůstává.
 - **RaK 1.7.163 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** při 0 aktivních kalendářích lokální prázdný měsíc vyplňuje stejnou šířku i výšku jako Google iframe a pravá mezera je odstraněná. Po zapnutí zdroje se vrací originální Google Calendar iframe. Výběr kalendářů, `calendar_hidden_keys`, account sync, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstaly beze změny. Produkce ani `main` nebyly změněny.
 
-### Ostatní otevřený backlog
+### Ostatní produktový backlog
 
-Řešit striktně po jednom:
+Všechny níže uvedené položky jsou nyní uzavřené:
 
 1. **RaK 1.7.166 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** Kalkulačky → Brusy a Administrace → Brusy jsou dorovnané na referenční vzhled Frézek; `+ / −` má správné rozměry, výšku, glass vzhled i centrování. Oprava je přímo ve skutečných vlastnících `brusy-fhb-v157.js` a `brusy-fhb-v158.js`; Administrace → Frézky zůstala beze změny.
 2. **RaK 1.8.1 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** popis nové generace v „O aplikaci“ je zkrácený přibližně na polovinu do pěti kratších bodů. Uživatelské označení zůstává `RaK 1.8`, historická 1.7 zůstává „Stabilizace a local-first základ“. Runtime SHA `5a5e655517b89deb19af2e7d4911c7a73aa0167d`; první parity běh měl dvě FCP špičky, čistý rerun stejného SHA prošel bez změny limitů.
 3. **RaK 1.8.3 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Administrace → Kalendáře má samostatný „Kalendář pro report dovolených“, uložený ve stávajícím `SHIFT_CALENDAR_SETTINGS`; výchozí/fallback je Obrábění D. Report už není svázaný se směnou přihlášeného účtu, Dashboard a generátor zůstávají beze změny. Finální fyzicky ověřený SHA `d964ff2da700423a1932cff9d42032ccbd0ecf39`; 1.8.3 navíc potvrzuje požadovaný odstup bloku od „Směny A“.
-4. Z Administrace odstranit text „TEST diagnostika se spustí pouze klepnutím.“
+4. **RaK 1.8.4 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** ve Více → Správce je odstraněný výchozí text „TEST diagnostika se spustí pouze klepnutím.“; stavový prvek zůstává zachovaný a po „Ověřit oprávnění“ dál zobrazí výsledek živé diagnostiky. Finální fyzicky ověřený SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`.
 
 - Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
 - MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
