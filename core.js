@@ -370,7 +370,6 @@ function mergeRakSpecialDaysSettingsRows(settings) {
 const RAK_CALENDAR_NOTES_SETTINGS_KEY = 'CALENDAR_NOTES_SETTINGS';
 const RAK_CALENDAR_NOTES_SETTINGS_CATEGORY = 'calendar_notes_settings';
 const RAK_CALENDAR_NOTE_DEFS = [
-  { id: 'mondayBurn', label: 'Pondělí – Brusy: spálení' },
   { id: 'firstMorningRivet', label: 'První ranní v měsíci – Roznýtování laborka' }
 ];
 window.RAK_CALENDAR_NOTES_SETTINGS_KEY = RAK_CALENDAR_NOTES_SETTINGS_KEY;
@@ -653,14 +652,45 @@ function normalizeRakWorkerEntry(entry) {
   return { name, loginNumber, machines, active: rakWorkerRosterActiveValue17007(entry) };
 }
 
+const RAK_CALENDAR_ASSIGNMENT_AREAS = Object.freeze(['obrabeni','kalirna']);
+function normalizeRakCalendarAssignmentKey(value, fallbackTeam) {
+  const fallback = ['A','B','C','D'].includes(String(fallbackTeam || '').trim().toUpperCase())
+    ? String(fallbackTeam).trim().toUpperCase()
+    : 'D';
+  const raw = String(value || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-');
+  const match = raw.match(/^(obrabeni|kalirna)-([abcd])$/);
+  if (match) return match[1] + '-' + match[2].toUpperCase();
+  if (/^[abcd]$/.test(raw)) return 'obrabeni-' + raw.toUpperCase();
+  return 'obrabeni-' + fallback;
+}
+function rakCalendarAssignmentTeam(value) {
+  const key = normalizeRakCalendarAssignmentKey(value, 'D');
+  return key.slice(-1).toUpperCase();
+}
+function rakCalendarAssignmentLabel(value) {
+  const key = normalizeRakCalendarAssignmentKey(value, 'D');
+  const area = key.startsWith('kalirna-') ? 'Kalírna' : 'Obrábění';
+  return area + ' ' + rakCalendarAssignmentTeam(key);
+}
+window.normalizeRakCalendarAssignmentKey = normalizeRakCalendarAssignmentKey;
+window.rakCalendarAssignmentTeam = rakCalendarAssignmentTeam;
+window.rakCalendarAssignmentLabel = rakCalendarAssignmentLabel;
+
 function normalizeRakApplicationAccountEntry(entry) {
   if (!entry || typeof entry !== 'object') return null;
   const name = String(entry.name || '').trim();
   const loginNumber = normalizeRakWorkerLoginNumber(entry.loginNumber || entry.login_number || '');
   if (!name || !loginNumber) return null;
   const requestedTeam = String(entry.shiftTeam || entry.shift_team || 'D').trim().toUpperCase();
-  const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : 'D';
-  return { name, loginNumber, shiftTeam };
+  const legacyTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : 'D';
+  const calendarAssignment = normalizeRakCalendarAssignmentKey(
+    entry.calendarAssignment || entry.calendar_assignment || entry.workGroup || entry.work_group || '',
+    legacyTeam
+  );
+  const shiftTeam = rakCalendarAssignmentTeam(calendarAssignment);
+  return { name, loginNumber, shiftTeam, calendarAssignment };
 }
 
 function normalizeRakWorkerRosterSettings(settings) {
@@ -741,12 +771,30 @@ function getWorkerNameByLoginNumber(loginNumber) {
 // RAK_EXTERNAL_SHIFT_TEAMS_17020
 function getRakActiveAccountShiftInfo() {
   let id = '';
-  try { const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null; id = String(profile && profile.accountNumber || '').trim(); } catch(err) {}
+  let profileTeam = '';
+  let profileAssignment = '';
+  try {
+    const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+    id = String(profile && profile.accountNumber || '').trim();
+    const requestedTeam = String(profile && profile.shiftTeam || '').trim().toUpperCase();
+    profileTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
+    const rawAssignment = String(profile && profile.calendarAssignment || '').trim();
+    profileAssignment = rawAssignment ? normalizeRakCalendarAssignmentKey(rawAssignment, profileTeam || 'D') : '';
+  } catch(err) {}
   if(!id) { try { id = String(app && app.activeAccountId || '').trim(); } catch(err) {} }
-  if(!id) return {team:'D',outside:false,accountId:''};
+  if(!id) return {team:'D',outside:false,accountId:'',calendarAssignment:'obrabeni-D'};
   const roster = getRakWorkerRosterSettings();
   const account = (roster.appAccounts || []).find(row => String(row.loginNumber || '') === id);
-  return account ? {team:account.shiftTeam || 'D',outside:true,accountId:id} : {team:'D',outside:false,accountId:id};
+  if (account) {
+    const calendarAssignment = normalizeRakCalendarAssignmentKey(account.calendarAssignment || profileAssignment || '', account.shiftTeam || profileTeam || 'D');
+    return {team:rakCalendarAssignmentTeam(calendarAssignment),outside:true,accountId:id,calendarAssignment};
+  }
+  if (profileAssignment || profileTeam) {
+    const calendarAssignment = profileAssignment || normalizeRakCalendarAssignmentKey('', profileTeam);
+    const team = rakCalendarAssignmentTeam(calendarAssignment);
+    return {team,outside:team!=='D',accountId:id,calendarAssignment};
+  }
+  return {team:'D',outside:false,accountId:id,calendarAssignment:'obrabeni-D'};
 }
 function getRakActiveAccountShiftTeam() { return getRakActiveAccountShiftInfo().team; }
 function rakCanAccessRotations() { return getRakActiveAccountShiftTeam() === 'D'; }
@@ -770,6 +818,531 @@ window.getRakActiveAccountShiftTeam=getRakActiveAccountShiftTeam;
 window.rakCanAccessRotations=rakCanAccessRotations;
 window.rakApplyShiftAccess=rakApplyShiftAccess;
 window.getWorkerNameByLoginNumber = getWorkerNameByLoginNumber;
+
+const RAK_SHIFT_CALENDAR_SETTINGS_KEY = 'SHIFT_CALENDAR_SETTINGS';
+const RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY = 'shift_calendar_settings';
+const RAK_SHIFT_CALENDAR_TEAMS = Object.freeze(['A','B','C','D']);
+const RAK_CALENDAR_SELECTION_STORAGE_PREFIX = 'rak-calendar-selection-v17149:';
+const RAK_CALENDAR_HIDDEN_STORAGE_PREFIX = 'rak-calendar-hidden-v17160:';
+const RAK_SHIFT_CALENDAR_SOURCE_IDS = Object.freeze({
+  A: Object.freeze({
+    obrabeni: '849eb5bcbcfdba0ce4171f4a530c530e6fe096c4f9848bede490cd4e129c7b02@group.calendar.google.com',
+    kalirna: 'd5be95a22ab9eaad50fbe177a127966aa6cf9542c8d7060f109f8b007d1e22ee@group.calendar.google.com'
+  }),
+  B: Object.freeze({
+    obrabeni: 'b022b906bc9d6d024aa365153d520b91f4d10b679458f0bdaa220c99eb53e1d6@group.calendar.google.com',
+    kalirna: '510fa715a70e00fa40b555ae624f3da8d61dccda4fd9450e73a0798927bcb7bb@group.calendar.google.com'
+  }),
+  C: Object.freeze({
+    obrabeni: 'ee007244f725ec2ab399ac8f39dc79397190510fea11e121258f8d78bbef9115@group.calendar.google.com',
+    kalirna: 'dadcfb3ad2302f9f7819b4a668c0bb72d001b8bf5bcd71f98ef7b85e39a55ae3@group.calendar.google.com'
+  }),
+  D: Object.freeze({
+    obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com',
+    kalirna: '28220cf74cf3681b41feb5c0efa76ef348e52e9a90a9b5300e1dfffbcc96cd62@group.calendar.google.com'
+  })
+});
+window.RAK_SHIFT_CALENDAR_SETTINGS_KEY = RAK_SHIFT_CALENDAR_SETTINGS_KEY;
+window.RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY = RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY;
+window.RAK_SHIFT_CALENDAR_TEAMS = RAK_SHIFT_CALENDAR_TEAMS;
+window.RAK_SHIFT_CALENDAR_SOURCE_IDS = RAK_SHIFT_CALENDAR_SOURCE_IDS;
+
+function rakShiftCalendarSettingsJson(row) {
+  if (row && row.settings_json && typeof row.settings_json === 'object') return row.settings_json;
+  try { return row && row.settings_json ? JSON.parse(String(row.settings_json)) : {}; }
+  catch (err) { return {}; }
+}
+
+function isRakShiftCalendarSettingsRow(row) {
+  const settings = rakShiftCalendarSettingsJson(row);
+  return String(row && row.category || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY
+    || String(row && row.machine_key || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_KEY
+    || String(settings && settings.stored_category || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY
+    || String(settings && settings.admin_settings_key || '').trim() === RAK_SHIFT_CALENDAR_SETTINGS_KEY;
+}
+
+function normalizeRakGoogleCalendarUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || url.hostname !== 'calendar.google.com') return '';
+
+    if (/^\/calendar\/embed\/?$/.test(url.pathname)) {
+      const sources = url.searchParams.getAll('src').map((src) => String(src || '').trim()).filter(Boolean);
+      if (!sources.length) return '';
+      return url.toString();
+    }
+
+    const publicIcs = url.pathname.match(/^\/calendar\/ical\/([^/]+)\/public\/basic\.ics$/);
+    if (!publicIcs) return '';
+    let calendarId = '';
+    try { calendarId = decodeURIComponent(publicIcs[1] || '').trim(); }
+    catch (err) { return ''; }
+    if (!calendarId) return '';
+
+    const embed = new URL('https://calendar.google.com/calendar/embed');
+    embed.searchParams.set('src', calendarId);
+    return embed.toString();
+  } catch (err) {
+    return '';
+  }
+}
+
+function isRakAllowedGoogleCalendarUrl(value) {
+  return !!normalizeRakGoogleCalendarUrl(value);
+}
+
+function rakCalendarEmbedUrlForSource(sourceId) {
+  const source = String(sourceId || '').trim();
+  if (!source) return '';
+  const embed = new URL('https://calendar.google.com/calendar/embed');
+  embed.searchParams.set('src', source);
+  return embed.toString();
+}
+
+function rakBuiltinShiftCalendarEntries(team) {
+  const safeTeam = RAK_SHIFT_CALENDAR_TEAMS.includes(String(team || '').toUpperCase()) ? String(team).toUpperCase() : 'D';
+  const ids = RAK_SHIFT_CALENDAR_SOURCE_IDS[safeTeam] || RAK_SHIFT_CALENDAR_SOURCE_IDS.D;
+  return [
+    { key: 'obrabeni-' + safeTeam, label: 'Obrábění ' + safeTeam, url: rakCalendarEmbedUrlForSource(ids.obrabeni), managed: true },
+    { key: 'kalirna-' + safeTeam, label: 'Kalírna ' + safeTeam, url: rakCalendarEmbedUrlForSource(ids.kalirna), managed: true }
+  ];
+}
+
+function normalizeRakShiftCalendarEntry(entry, index, team) {
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  const safeTeam = RAK_SHIFT_CALENDAR_TEAMS.includes(String(team || '').toUpperCase()) ? String(team).toUpperCase() : 'D';
+  const url = normalizeRakGoogleCalendarUrl(safe.url);
+  if (!url) return null;
+  const rawKey = String(safe.key || safe.calendarKey || '').trim();
+  const canonical = /^(obrabeni|kalirna)-[ABCD]$/.test(rawKey) ? rawKey : '';
+  const key = canonical || (Number(index) === 0 ? 'obrabeni-' + safeTeam : 'custom-' + safeTeam + '-' + String((Number(index) || 0) + 1));
+  const fallbackLabel = key === 'obrabeni-' + safeTeam ? ('Obrábění ' + safeTeam)
+    : (key === 'kalirna-' + safeTeam ? ('Kalírna ' + safeTeam) : ('Kalendář ' + String((Number(index) || 0) + 1)));
+  return {
+    key,
+    label: String(safe.label || fallbackLabel).trim().slice(0, 80) || fallbackLabel,
+    url,
+    managed: safe.managed === true
+  };
+}
+
+function normalizeRakShiftCalendarSettings(settings) {
+  const raw = settings && typeof settings === 'object' ? settings : {};
+  const source = raw.teams && typeof raw.teams === 'object' ? raw.teams : {};
+  const teams = {};
+  RAK_SHIFT_CALENDAR_TEAMS.forEach((team) => {
+    const builtins = rakBuiltinShiftCalendarEntries(team);
+    const incoming = (Array.isArray(source[team]) ? source[team] : [])
+      .map((entry, index) => normalizeRakShiftCalendarEntry(entry, index, team))
+      .filter(Boolean);
+    const processing = incoming.find((entry) => entry.key === 'obrabeni-' + team) || incoming[0] || null;
+    const processingBuiltin = Object.assign({}, builtins[0], processing && processing.url ? { url: processing.url } : {});
+    const kalirnaBuiltin = Object.assign({}, builtins[1]);
+    const extras = incoming.filter((entry) => entry !== processing && entry.key !== 'kalirna-' + team);
+    const seenKeys = new Set();
+    const seenUrls = new Set();
+    teams[team] = [processingBuiltin, kalirnaBuiltin].concat(extras).filter((entry) => {
+      if (!entry || seenKeys.has(entry.key) || seenUrls.has(entry.url)) return false;
+      seenKeys.add(entry.key);
+      seenUrls.add(entry.url);
+      return true;
+    }).slice(0, 8);
+  });
+  const availableKeys = new Set(RAK_SHIFT_CALENDAR_TEAMS
+    .flatMap((team) => teams[team] || [])
+    .map((entry) => String(entry && entry.key || '').trim())
+    .filter(Boolean));
+  const requestedVacationReportCalendarKey = String(raw.vacationReportCalendarKey || raw.vacation_report_calendar_key || '').trim();
+  const vacationReportCalendarKey = availableKeys.has(requestedVacationReportCalendarKey)
+    ? requestedVacationReportCalendarKey
+    : 'obrabeni-D';
+  return { type: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY, vacationReportCalendarKey, teams };
+}
+
+function getRakShiftCalendarSettings() {
+  const rows = (typeof app !== 'undefined' && app && Array.isArray(app.machineSettingsRows)) ? app.machineSettingsRows : [];
+  const row = rows.find(isRakShiftCalendarSettingsRow);
+  if (row) return normalizeRakShiftCalendarSettings(rakShiftCalendarSettingsJson(row));
+  return normalizeRakShiftCalendarSettings({ teams: {} });
+}
+
+function getRakShiftCalendarsForTeam(team) {
+  const wanted = String(team || 'D').trim().toUpperCase();
+  const safeTeam = RAK_SHIFT_CALENDAR_TEAMS.includes(wanted) ? wanted : 'D';
+  const settings = getRakShiftCalendarSettings();
+  return Array.isArray(settings.teams[safeTeam])
+    ? settings.teams[safeTeam].map((entry) => ({ key: entry.key, label: entry.label, url: entry.url, team: safeTeam }))
+    : [];
+}
+
+function getRakAllShiftCalendars() {
+  return RAK_SHIFT_CALENDAR_TEAMS.flatMap((team) => getRakShiftCalendarsForTeam(team));
+}
+
+function getRakVacationReportCalendarContext() {
+  const settings = getRakShiftCalendarSettings();
+  const all = getRakAllShiftCalendars();
+  const requestedKey = String(settings && settings.vacationReportCalendarKey || '').trim();
+  const calendar = all.find((entry) => entry.key === requestedKey)
+    || all.find((entry) => entry.key === 'obrabeni-D')
+    || null;
+  const team = calendar && RAK_SHIFT_CALENDAR_TEAMS.includes(String(calendar.team || '').toUpperCase())
+    ? String(calendar.team).toUpperCase()
+    : 'D';
+  return {
+    team,
+    calendarKey: calendar ? calendar.key : 'obrabeni-D',
+    calendarLabel: calendar ? calendar.label : 'Obrábění D',
+    calendars: calendar ? [calendar] : []
+  };
+}
+
+function getRakDefaultCalendarKey() {
+  const info = getRakActiveAccountShiftInfo();
+  const preferred = normalizeRakCalendarAssignmentKey(info && info.calendarAssignment || '', info && info.team || 'D');
+  const all = getRakAllShiftCalendars();
+  return all.some((entry) => entry.key === preferred) ? preferred : 'obrabeni-D';
+}
+
+function normalizeRakCalendarSelectionKeys(keys) {
+  const valid = new Set(getRakAllShiftCalendars().map((entry) => entry.key));
+  return Array.from(new Set((Array.isArray(keys) ? keys : [])
+    .map((value) => String(value || '').trim())
+    .filter((key) => valid.has(key)))).slice(0, 8);
+}
+
+function rakCalendarSelectionStorageKeyForAccount(accountId) {
+  const id = String(accountId || '').trim() || 'anonymous';
+  return RAK_CALENDAR_SELECTION_STORAGE_PREFIX + id;
+}
+
+function rakCalendarSelectionStorageKey() {
+  const info = getRakActiveAccountShiftInfo();
+  return rakCalendarSelectionStorageKeyForAccount(info && info.accountId);
+}
+function rakCalendarHiddenStorageKeyForAccount(accountId) {
+  const id = String(accountId || '').trim() || 'anonymous';
+  return RAK_CALENDAR_HIDDEN_STORAGE_PREFIX + id;
+}
+
+function rakCalendarHiddenStorageKey() {
+  const info = getRakActiveAccountShiftInfo();
+  return rakCalendarHiddenStorageKeyForAccount(info && info.accountId);
+}
+
+function getRakCalendarHiddenKeys(accountId) {
+  let hidden = [];
+  try {
+    const key = accountId === undefined ? rakCalendarHiddenStorageKey() : rakCalendarHiddenStorageKeyForAccount(accountId);
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    if (Array.isArray(parsed)) hidden = normalizeRakCalendarSelectionKeys(parsed);
+  } catch (err) {}
+  return hidden;
+}
+
+function getRakVisibleCalendarKeys(selectedKeys) {
+  const selected = normalizeRakCalendarSelectionKeys(Array.isArray(selectedKeys) ? selectedKeys : getRakSelectedCalendarKeys());
+  const hidden = new Set(getRakCalendarHiddenKeys());
+  return selected.filter((key) => !hidden.has(key));
+}
+
+function applyRakRemoteCalendarHiddenKeys(keys, accountId) {
+  if (!Array.isArray(keys)) return false;
+  const hidden = normalizeRakCalendarSelectionKeys(keys);
+  const info = getRakActiveAccountShiftInfo();
+  const activeAccountId = String(info && info.accountId || '').trim();
+  const wantedAccountId = String(accountId || activeAccountId || '').trim();
+  if (wantedAccountId && activeAccountId && wantedAccountId !== activeAccountId) return false;
+  try {
+    localStorage.setItem(rakCalendarHiddenStorageKeyForAccount(wantedAccountId || activeAccountId), JSON.stringify(hidden));
+  } catch (err) { return false; }
+  try {
+    const content = document.querySelector('#calendarModalContent');
+    const state = content && content.__rakCalendarDisplayState;
+    if (state && Array.isArray(state.calendars) && typeof window.rakCalendarApplyLegendVisibility === 'function') {
+      const hiddenSet = new Set(hidden);
+      const visible = state.calendars
+        .map((entry) => String(entry && entry.key || '').trim())
+        .filter((key) => key && !hiddenSet.has(key));
+      window.rakCalendarApplyLegendVisibility(content, visible);
+    }
+  } catch (err) {}
+  return true;
+}
+
+function queueRakAccountCalendarHiddenSync(hidden) {
+  const info = getRakActiveAccountShiftInfo();
+  const accountId = String(info && info.accountId || '').trim();
+  if (!accountId) return false;
+  try {
+    if (typeof window.saveActiveAccountCalendarHiddenKeys === 'function') {
+      window.saveActiveAccountCalendarHiddenKeys(hidden);
+      return true;
+    }
+    window.__rakPendingCalendarHiddenForAccount = { accountId, keys: hidden.slice() };
+  } catch (err) {}
+  return false;
+}
+
+function setRakVisibleCalendarKeys(keys) {
+  const selected = getRakSelectedCalendarKeys();
+  const selectedSet = new Set(selected);
+  const visible = normalizeRakCalendarSelectionKeys(keys).filter((key) => selectedSet.has(key));
+  const visibleSet = new Set(visible);
+  const previousHidden = getRakCalendarHiddenKeys();
+  const preservedHidden = previousHidden.filter((key) => !selectedSet.has(key));
+  const hiddenSelected = selected.filter((key) => !visibleSet.has(key));
+  const nextHidden = normalizeRakCalendarSelectionKeys(preservedHidden.concat(hiddenSelected));
+  try { localStorage.setItem(rakCalendarHiddenStorageKey(), JSON.stringify(nextHidden)); }
+  catch (err) { return { ok: false, reason: 'storage-failed', error: err }; }
+  queueRakAccountCalendarHiddenSync(nextHidden);
+  const hiddenSet = new Set(nextHidden);
+  return { ok: true, visibleKeys: selected.filter((key) => !hiddenSet.has(key)), hiddenKeys: nextHidden };
+}
+
+function getRakSelectedCalendarKeys() {
+  let saved = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(rakCalendarSelectionStorageKey()) || '[]');
+    if (Array.isArray(parsed)) saved = normalizeRakCalendarSelectionKeys(parsed);
+  } catch (err) {}
+  const unique = Array.from(new Set(saved));
+  return unique.length ? unique : [getRakDefaultCalendarKey()];
+}
+
+function applyRakRemoteCalendarSelection(keys, accountId) {
+  const selected = normalizeRakCalendarSelectionKeys(keys);
+  if (!selected.length) return false;
+  const info = getRakActiveAccountShiftInfo();
+  const activeAccountId = String(info && info.accountId || '').trim();
+  const wantedAccountId = String(accountId || activeAccountId || '').trim();
+  if (wantedAccountId && activeAccountId && wantedAccountId !== activeAccountId) return false;
+  try {
+    localStorage.setItem(rakCalendarSelectionStorageKeyForAccount(wantedAccountId || activeAccountId), JSON.stringify(selected));
+  } catch (err) { return false; }
+  try {
+    document.querySelectorAll('[data-calendar-user-key]').forEach((input) => {
+      input.checked = selected.includes(String(input.getAttribute('data-calendar-user-key') || '').trim());
+    });
+    const status = document.querySelector('#rakCalendarPreferenceStatus');
+    if (status) status.textContent = 'Vybráno: ' + String(selected.length) + ' · uloženo k účtu';
+  } catch (err) {}
+  try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+  return true;
+}
+
+function queueRakAccountCalendarSelectionSync(selected) {
+  const info = getRakActiveAccountShiftInfo();
+  const accountId = String(info && info.accountId || '').trim();
+  if (!accountId) return false;
+  try {
+    if (typeof window.saveActiveAccountCalendarSelection === 'function') {
+      window.saveActiveAccountCalendarSelection(selected);
+      return true;
+    }
+    window.__rakPendingCalendarSelectionForAccount = { accountId, keys: selected.slice() };
+  } catch (err) {}
+  return false;
+}
+
+function setRakSelectedCalendarKeys(keys) {
+  const selected = normalizeRakCalendarSelectionKeys(keys);
+  if (!selected.length) return { ok: false, reason: 'at-least-one-calendar' };
+  try { localStorage.setItem(rakCalendarSelectionStorageKey(), JSON.stringify(selected)); }
+  catch (err) { return { ok: false, reason: 'storage-failed', error: err }; }
+  queueRakAccountCalendarSelectionSync(selected);
+  try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+  return { ok: true, keys: selected };
+}
+
+window.applyRakRemoteCalendarSelection = applyRakRemoteCalendarSelection;
+window.normalizeRakCalendarSelectionKeys = normalizeRakCalendarSelectionKeys;
+window.applyRakRemoteCalendarHiddenKeys = applyRakRemoteCalendarHiddenKeys;
+window.getRakCalendarHiddenKeys = getRakCalendarHiddenKeys;
+window.getRakVisibleCalendarKeys = getRakVisibleCalendarKeys;
+window.setRakVisibleCalendarKeys = setRakVisibleCalendarKeys;
+
+function getRakActiveShiftCalendarContext() {
+  const info = getRakActiveAccountShiftInfo();
+  const team = RAK_SHIFT_CALENDAR_TEAMS.includes(String(info && info.team || '').toUpperCase())
+    ? String(info.team).toUpperCase()
+    : 'D';
+  const assignmentKey = normalizeRakCalendarAssignmentKey(info && info.calendarAssignment || '', team);
+  const calendars = getRakAllShiftCalendars().filter((entry) => entry.key === assignmentKey).slice(0, 1);
+  return {
+    team,
+    outside: !!(info && info.outside),
+    assignmentKey,
+    assignmentLabel: rakCalendarAssignmentLabel(assignmentKey),
+    selectedKeys: [assignmentKey],
+    calendars
+  };
+}
+
+function getRakActiveShiftCalendarDisplayContext() {
+  const base = getRakActiveShiftCalendarContext();
+  const selectedKeys = getRakSelectedCalendarKeys();
+  const selected = new Set(selectedKeys);
+  const calendars = getRakAllShiftCalendars().filter((entry) => selected.has(entry.key));
+  return Object.assign({}, base, { selectedKeys, calendars });
+}
+
+function buildRakCalendarSelectionSettingsHtml() {
+  const selected = new Set(getRakSelectedCalendarKeys());
+  const settings = getRakShiftCalendarSettings();
+  const groups = RAK_SHIFT_CALENDAR_TEAMS.map((team) => {
+    const items = (settings.teams[team] || []).map((entry) => [
+      '<label class="rakCalendarPreferenceOption">',
+      '  <input type="checkbox" data-calendar-user-key="' + escapeHtml(entry.key) + '"' + (selected.has(entry.key) ? ' checked' : '') + '>',
+      '  <span>' + escapeHtml(entry.label) + '</span>',
+      '</label>'
+    ].join('')).join('');
+    return '<div class="rakCalendarPreferenceGroup"><b>Směna ' + team + '</b><div class="rakCalendarPreferenceOptions">' + items + '</div></div>';
+  }).join('');
+  const active = getRakActiveShiftCalendarContext();
+  return [
+    '<details class="appMenuCard appMenuSettingsCard rakCalendarPreferenceCard">',
+    '  <summary class="appMenuCardTitle">Kalendář</summary>',
+    '  <div class="smallText">Výchozí je jen jeden kalendář podle tvého zařazení: <b>' + escapeHtml(active.assignmentLabel) + '</b>. Výběr se ukládá k přihlášenému účtu a načte se i na jiném zařízení.</div>',
+    '  <div class="rakCalendarPreferenceGroups">' + groups + '</div>',
+    '  <div class="smallText" id="rakCalendarPreferenceStatus">Vybráno: ' + String(selected.size) + '</div>',
+    '</details>'
+  ].join('');
+}
+
+function bindRakCalendarSelectionSettings(root) {
+  const scope = root && root.querySelectorAll ? root : document;
+  scope.querySelectorAll('[data-calendar-user-key]').forEach((input) => {
+    if (input.dataset.bound === '1') return;
+    input.dataset.bound = '1';
+    input.addEventListener('change', () => {
+      const checked = Array.from(scope.querySelectorAll('[data-calendar-user-key]:checked')).map((el) => el.getAttribute('data-calendar-user-key'));
+      const result = setRakSelectedCalendarKeys(checked);
+      if (!result.ok) input.checked = true;
+      const finalKeys = getRakSelectedCalendarKeys();
+      const status = scope.querySelector('#rakCalendarPreferenceStatus');
+      if (status) status.textContent = result.ok ? ('Vybráno: ' + String(finalKeys.length)) : 'Musí zůstat vybraný alespoň jeden kalendář.';
+    });
+  });
+}
+
+window.isRakShiftCalendarSettingsRow = isRakShiftCalendarSettingsRow;
+window.normalizeRakGoogleCalendarUrl = normalizeRakGoogleCalendarUrl;
+window.isRakAllowedGoogleCalendarUrl = isRakAllowedGoogleCalendarUrl;
+window.getRakShiftCalendarSettings = getRakShiftCalendarSettings;
+window.getRakShiftCalendarsForTeam = getRakShiftCalendarsForTeam;
+window.getRakAllShiftCalendars = getRakAllShiftCalendars;
+window.getRakVacationReportCalendarContext = getRakVacationReportCalendarContext;
+window.getRakSelectedCalendarKeys = getRakSelectedCalendarKeys;
+window.setRakSelectedCalendarKeys = setRakSelectedCalendarKeys;
+window.getRakActiveShiftCalendarContext = getRakActiveShiftCalendarContext;
+window.getRakActiveShiftCalendarDisplayContext = getRakActiveShiftCalendarDisplayContext;
+window.buildRakCalendarSelectionSettingsHtml = buildRakCalendarSelectionSettingsHtml;
+window.bindRakCalendarSelectionSettings = bindRakCalendarSelectionSettings;
+
+
+function makeRakShiftCalendarSettingsRow(settings) {
+  const safe = normalizeRakShiftCalendarSettings(settings);
+  return {
+    machine_key: RAK_SHIFT_CALENDAR_SETTINGS_KEY,
+    machine_code: 'APP',
+    machine_index: 'shift_calendars',
+    label: 'Kalendáře podle směny',
+    category: RAK_SHIFT_CALENDAR_SETTINGS_CATEGORY,
+    cycle_time: '',
+    speed: '',
+    dress_time: '',
+    dress_count: '',
+    settings_json: Object.assign({ machine: 'APP', index: 'shift_calendars' }, safe)
+  };
+}
+
+function mergeRakShiftCalendarSettingsRows(settings) {
+  const base = (typeof app !== 'undefined' && app && Array.isArray(app.machineSettingsRows)) ? app.machineSettingsRows : [];
+  const rows = base.filter((row) => !isRakShiftCalendarSettingsRow(row));
+  rows.push(makeRakShiftCalendarSettingsRow(settings));
+  return rows;
+}
+
+function buildAdminShiftCalendarRowHtml(team, entry) {
+  const safeTeam = RAK_SHIFT_CALENDAR_TEAMS.includes(String(team || '').toUpperCase()) ? String(team).toUpperCase() : 'D';
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  const key = String(safe.key || '').trim();
+  const isManagedKalirna = key === 'kalirna-' + safeTeam;
+  return [
+    '<div class="appMenuInlineField adminShiftCalendarRow" data-shift-calendar-row data-calendar-team="' + escapeHtml(safeTeam) + '" data-calendar-key="' + escapeHtml(key) + '">',
+    '  <input class="appMenuInlineInput" data-shift-calendar-field="label" value="' + escapeHtml(String(safe.label || '')) + '" placeholder="Název kalendáře"' + (isManagedKalirna ? ' readonly' : '') + '>',
+    '  <input class="appMenuInlineInput appMenuWideInput" data-shift-calendar-field="url" value="' + escapeHtml(String(safe.url || '')) + '" inputmode="url" placeholder="Google embed nebo public/basic.ics"' + (isManagedKalirna ? ' readonly' : '') + '>',
+    '  <div class="adminShiftCalendarRowActions">',
+    isManagedKalirna ? '    <span class="smallText">spravováno bezpečně</span>' : '    <button type="button" class="appMenuAction adminShiftCalendarRemove" data-admin-action="remove-shift-calendar" aria-label="Odebrat kalendář">×</button>',
+    '    <button type="button" class="appMenuAction adminShiftCalendarAdd" data-admin-action="add-shift-calendar" data-calendar-team="' + escapeHtml(safeTeam) + '">+ Přidat kalendář</button>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+function buildAdminShiftCalendarsSettingsHtml() {
+  const settings = getRakShiftCalendarSettings();
+  const allCalendars = RAK_SHIFT_CALENDAR_TEAMS.flatMap((team) => (settings.teams[team] || []).map((entry) => Object.assign({ team }, entry)));
+  const reportCalendarKey = String(settings.vacationReportCalendarKey || 'obrabeni-D');
+  const reportOptions = allCalendars.map((entry) => '<option value="' + escapeHtml(entry.key) + '"' + (entry.key === reportCalendarKey ? ' selected' : '') + '>' + escapeHtml(entry.label) + '</option>').join('');
+  const reportPicker = [
+    '<div class="appMenuCard adminVacationReportCalendarCard">',
+    '  <div class="appMenuSubTitle">Report dovolených</div>',
+    '  <div class="smallText uMb10">Vyber kalendář, ze kterého Report dovolené načítá absence. Výchozí zůstává Obrábění D; tato volba nemění Dashboard ani generátor rozpisu.</div>',
+    '  <label class="appMenuFieldLabel">Kalendář pro report dovolených<select class="appMenuInlineInput appMenuWideInput" data-vacation-report-calendar-key>' + reportOptions + '</select></label>',
+    '</div>'
+  ].join('');
+  return reportPicker + RAK_SHIFT_CALENDAR_TEAMS.map((team) => {
+    const entries = Array.isArray(settings.teams[team]) ? settings.teams[team] : [];
+    const rows = entries.map((entry) => buildAdminShiftCalendarRowHtml(team, entry)).join('')
+      + buildAdminShiftCalendarRowHtml(team, {});
+    return [
+      '<div class="appMenuCard adminShiftCalendarTeam" data-shift-calendar-team-block="' + team + '">',
+      '  <div class="appMenuSubTitle">Směna ' + team + '</div>',
+      '  <div class="adminShiftCalendarRows" data-shift-calendar-rows>' + rows + '</div>',
+      '</div>'
+    ].join('');
+  }).join('');
+}
+
+function readAdminShiftCalendarsSettingsFromDom() {
+  const teams = { A: [], B: [], C: [], D: [] };
+  const seen = { A: new Set(), B: new Set(), C: new Set(), D: new Set() };
+  document.querySelectorAll('#appMenuBody [data-shift-calendar-row]').forEach((row) => {
+    const team = String(row.getAttribute('data-calendar-team') || '').trim().toUpperCase();
+    if (!RAK_SHIFT_CALENDAR_TEAMS.includes(team)) return;
+    const label = String(row.querySelector('[data-shift-calendar-field="label"]')?.value || '').trim();
+    const url = String(row.querySelector('[data-shift-calendar-field="url"]')?.value || '').trim();
+    if (!label && !url) return;
+    if (!url) throw new Error('U kalendáře směny ' + team + ' doplň Google Calendar odkaz.');
+    const normalizedUrl = normalizeRakGoogleCalendarUrl(url);
+    if (!normalizedUrl) {
+      throw new Error('Kalendář směny ' + team + ' musí být Google Calendar embed odkaz nebo veřejný public/basic.ics. Soukromé private ICS odkazy se neukládají.');
+    }
+    if (seen[team].has(normalizedUrl)) throw new Error('Stejný kalendář je u směny ' + team + ' zadaný vícekrát.');
+    if (teams[team].length >= 8) throw new Error('Na jednu směnu lze nastavit nejvýše 8 kalendářů.');
+    seen[team].add(normalizedUrl);
+    const key = String(row.getAttribute('data-calendar-key') || '').trim();
+    teams[team].push({ key, label: label || ('Kalendář ' + String(teams[team].length + 1)), url: normalizedUrl });
+  });
+  const vacationReportCalendarKey = String(document.querySelector('#appMenuBody [data-vacation-report-calendar-key]')?.value || '').trim();
+  return normalizeRakShiftCalendarSettings({ teams, vacationReportCalendarKey });
+}
+
+window.isRakShiftCalendarSettingsRow = isRakShiftCalendarSettingsRow;
+window.normalizeRakGoogleCalendarUrl = normalizeRakGoogleCalendarUrl;
+window.isRakAllowedGoogleCalendarUrl = isRakAllowedGoogleCalendarUrl;
+window.getRakShiftCalendarSettings = getRakShiftCalendarSettings;
+window.getRakShiftCalendarsForTeam = getRakShiftCalendarsForTeam;
+window.getRakActiveShiftCalendarContext = getRakActiveShiftCalendarContext;
+window.mergeRakShiftCalendarSettingsRows = mergeRakShiftCalendarSettingsRows;
+window.buildAdminShiftCalendarRowHtml = buildAdminShiftCalendarRowHtml;
+window.buildAdminShiftCalendarsSettingsHtml = buildAdminShiftCalendarsSettingsHtml;
+window.readAdminShiftCalendarsSettingsFromDom = readAdminShiftCalendarsSettingsFromDom;
+
 
 function makeRakWorkerRosterSettingsRow(settings) {
   const safe = normalizeRakWorkerRosterSettings(settings);
@@ -826,11 +1399,15 @@ function buildAdminWorkerRosterStatusHtml(workers) {
 
 function buildAdminApplicationAccountRowHtml(entry) {
   const safe = entry && typeof entry === 'object' ? entry : {};
+  const current = normalizeRakCalendarAssignmentKey(safe.calendarAssignment || '', safe.shiftTeam || 'D');
+  const options = RAK_SHIFT_CALENDAR_TEAMS.flatMap((team) => ['obrabeni-' + team, 'kalirna-' + team])
+    .map((key) => '<option value="' + escapeHtml(key) + '"' + (current === key ? ' selected' : '') + '>' + escapeHtml(rakCalendarAssignmentLabel(key)) + '</option>')
+    .join('');
   return [
     '<tr data-app-account-row>',
     '  <td><input class="appMenuInlineInput adminAppAccountNameInput" data-app-account-field="name" value="' + escapeHtml(String(safe.name || '')) + '" placeholder="Jméno"></td>',
     '  <td><input class="appMenuInlineInput adminAppAccountLoginInput" data-app-account-field="loginNumber" value="' + escapeHtml(String(safe.loginNumber || '')) + '" placeholder="0000" inputmode="numeric" maxlength="4"></td>',
-    '  <td><select class="appMenuInlineInput" data-app-account-field="shiftTeam" aria-label="Směna pracovníka">' + ['A','B','C','D'].map(team => '<option value="' + team + '"' + (String(safe.shiftTeam || 'D') === team ? ' selected' : '') + '>Směna ' + team + '</option>').join('') + '</select><small class="adminAppAccountScope">Mimo rozpis</small></td>',
+    '  <td><select class="appMenuInlineInput" data-app-account-field="calendarAssignment" aria-label="Zařazení pracovníka">' + options + '</select><small class="adminAppAccountScope">Mimo rozpis</small></td>',
     '</tr>'
   ].join('');
 }
@@ -859,9 +1436,8 @@ function buildAdminWorkerRosterSettingsHtml() {
   const rows = workers.map(buildAdminWorkerRosterRowHtml).join('')
     + Array.from({ length: 3 }, () => buildAdminWorkerRosterRowHtml({ name: '', loginNumber: '', machines: [] })).join('');
   const appAccountRows = appAccounts.map(buildAdminApplicationAccountRowHtml).join('')
-    + Array.from({ length: 3 }, () => buildAdminApplicationAccountRowHtml({ name: '', loginNumber: '' })).join('');
+    + buildAdminApplicationAccountRowHtml({ name: '', loginNumber: '' });
   return [
-    buildAdminWorkerRosterStatusHtml(workers.map((w) => w.name)),
     '<div class="tableWrap appMenuTableWrap">',
     '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminWorkerRosterTable">',
     '    <colgroup><col class="adminWorkerNameCol"><col class="adminWorkerLoginCol"><col class="adminWorkerMachinesCol"></colgroup>',
@@ -871,7 +1447,7 @@ function buildAdminWorkerRosterSettingsHtml() {
     '</div>',
     '<div class="smallText uMt8">Pro přidání napiš jméno do prázdného řádku. Pro odebrání jméno smaž a ulož. Jméno musí přesně odpovídat tomu, jak je napsané v rozpisu. Přihlašovací číslo (poslední 4 číslice osobního čísla) použije pracovník k přihlášení do aplikace. Když u pracovníka nezaškrtneš žádný stroj, generátor ho bude nabízet na všechny stroje bez omezení.</div>',
     '<div class="appMenuSubTitle uMt16">Účty aplikace</div>',
-    '<div class="smallText uMb10">Pracovníci mimo rozpis: vyber směnu A/B/C/D. Nepřidají se do rozpisu ani statistik týmu D; směny A/B/C neuvidí Rotace, kalkulačky zůstávají.</div>',
+    '<div class="smallText uMb10">Pracovníci mimo rozpis: vyber Obrábění A–D nebo Kalírna A–D. Tím se určí jejich směna a jediný výchozí kalendář; další kalendáře si každý může přidat v Nastavení → Kalendář.</div>',
     '<div class="tableWrap appMenuTableWrap">',
     '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAppAccountsTable">',
     '    <colgroup><col class="adminAppAccountNameCol"><col class="adminAppAccountLoginCol"><col class="adminAppAccountScopeCol"></colgroup>',
@@ -881,6 +1457,23 @@ function buildAdminWorkerRosterSettingsHtml() {
     '</div>',
     '<div class="smallText uMt8">Vyplň jméno a poslední 4 číslice osobního čísla. Stejné přihlašovací číslo nemůže být u pracovníka i samostatného účtu.</div>'
   ].join('');
+}
+
+function ensureAdminAppAccountBlankRow(root, preferredRow) {
+  const scope = root && root.querySelector ? root : document;
+  const tbody = scope.querySelector('.adminAppAccountsTable tbody');
+  if (!tbody) return false;
+  const rows = Array.from(tbody.querySelectorAll('tr[data-app-account-row]'));
+  const isBlank = (row) => !String(row.querySelector('[data-app-account-field="name"]')?.value || '').trim()
+    && !String(row.querySelector('[data-app-account-field="loginNumber"]')?.value || '').trim();
+  const blanks = rows.filter(isBlank);
+  let keep = preferredRow && blanks.includes(preferredRow) ? preferredRow : (blanks[blanks.length - 1] || null);
+  blanks.forEach((row) => { if (row !== keep) row.remove(); });
+  if (!keep) {
+    tbody.insertAdjacentHTML('beforeend', buildAdminApplicationAccountRowHtml({ name: '', loginNumber: '' }));
+    keep = tbody.lastElementChild;
+  }
+  return !!keep;
 }
 
 function readAdminWorkerRosterSettingsFromDom() {
@@ -898,9 +1491,9 @@ function readAdminWorkerRosterSettingsFromDom() {
     const loginNumber = normalizeRakWorkerLoginNumber(tr.querySelector('[data-app-account-field="loginNumber"]')?.value || '');
     if (!name && !loginNumber) return;
     if (!name || !loginNumber) throw new Error('U účtu aplikace vyplň jméno i poslední 4 číslice osobního čísla.');
-    const shiftTeam = String(tr.querySelector('[data-app-account-field="shiftTeam"]')?.value || 'D').toUpperCase();
-    if (!['A','B','C','D'].includes(shiftTeam)) throw new Error('Vyber směnu A/B/C/D.');
-    appAccounts.push({ name, loginNumber, shiftTeam });
+    const calendarAssignment = normalizeRakCalendarAssignmentKey(tr.querySelector('[data-app-account-field="calendarAssignment"]')?.value || '', 'D');
+    const shiftTeam = rakCalendarAssignmentTeam(calendarAssignment);
+    appAccounts.push({ name, loginNumber, shiftTeam, calendarAssignment });
   });
   const settings = normalizeRakWorkerRosterSettings({ workers, appAccounts });
   const knownLoginNumbers = new Set();
@@ -915,6 +1508,7 @@ function readAdminWorkerRosterSettingsFromDom() {
 
 window.getRakWorkerRosterSettings = getRakWorkerRosterSettings;
 window.buildAdminWorkerRosterSettingsHtml = buildAdminWorkerRosterSettingsHtml;
+window.ensureAdminAppAccountBlankRow = ensureAdminAppAccountBlankRow;
 window.readAdminWorkerRosterSettingsFromDom = readAdminWorkerRosterSettingsFromDom;
 
 function getSpecialWorkInfo(now) {
@@ -946,7 +1540,7 @@ function getSpecialWorkInfo(now) {
 
 const DEFAULT_VACATION_COUNTDOWN_PERIODS = [
   { key: 'czd-2026', label: 'CZD', workLabel: 'CZD', start: '2026-07-19T14:00', end: '2026-08-02T18:00' },
-  { key: 'vanoce-2026', label: 'Vánoce', countdownLabel: 'Vánocům', workLabel: 'Vánoční dovolená', start: '2026-12-23T18:00', end: '2027-01-02T06:00' }
+  { key: 'vanoce-2026', label: 'Vánoce', countdownLabel: 'Vánoc', workLabel: 'Vánoční dovolená', start: '2026-12-23T18:00', end: '2027-01-02T06:00' }
 ];
 
 const CZD_PERIODS = DEFAULT_VACATION_COUNTDOWN_PERIODS.map((period) => ({
@@ -1226,7 +1820,8 @@ function getVacationCountdown(now) {
   const start = new Date(upcoming.start);
   start.setHours(0, 0, 0, 0);
   const diffDays = Math.max(0, Math.round((start.getTime() - today.getTime()) / 86400000));
-  const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : ('k ' + String(upcoming.countdownLabel || upcoming.label || 'dovolené'));
+  const isChristmasCountdown = String(upcoming.key || '').toLowerCase().startsWith('vanoce');
+  const targetLabel = active ? String(upcoming.workLabel || upcoming.label || 'Dovolená') : (isChristmasCountdown ? 'do Vánoc' : ('k ' + String(upcoming.countdownLabel || upcoming.label || 'dovolené')));
   const countdownTeam = getRakActiveAccountShiftTeam();
   const shiftCount = active ? 0 : getVacationCountdownTeamShiftCount(sourceDate, upcoming.start, countdownTeam);
   return {

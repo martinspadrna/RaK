@@ -4,23 +4,30 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
-    // RAK_170_ABOUT_START
+    // RAK_180_ABOUT_START
+// RAK_181_ABOUT_COMPACT: RaK 1.8 keeps the same coverage in a shorter five-point user-facing summary.
     {
-      range: 'RaK 1.7',
-      title: 'Výroba, bezpečnost a práce bez internetu',
+      range: 'RaK 1.8',
+      title: 'Local-first, kalendáře a přesnější provoz',
       lines: [
-        'Výrobní přehledy jsou přesnější: Kalírna se už nepočítá na původní stroj, osobní statistiky ukazují samostatné frézky a dvojici na soustruzích a report směny umí MO volné kusy i TTKW01/TTKW02.',
-        'Úkoly MSKC01 se při obsazení jen MSKC03 + MSKC04 správně sdílí na oba soustruhy, včetně úkolů upravených v administraci.',
-        'Přihlášení, role správců, pracovní zápisy, veřejná API a exporty mají přísnější serverové kontroly a oddělené soukromé údaje.',
-        'Rotace se ukládá do odolné místní kopie a na ověřeném iPhonu se po úplném restartu načetla i bez internetu; při návratu online se porovnává revize, čas a obsah dat.',
-        'Start a PWA jsou lehčí: proběhl úklid stylů, bezpečné odložené načítání, omezení zbytečných překreslení, optimalizace obrázků a pevné výkonové rozpočty.',
-        'Report směny lze sdílet jako sjednocený text i obrázek a rozložení se přizpůsobuje množství výrobních údajů.',
-        'Běžný ZIP export už nesmí převzít otevřený osobní nebo administrátorský obsah ze stránky a při chybě bezpečně skončí bez vytvoření archivu.',
-        'Celkový audit přinesl přesnější diagnostiku, nové bezpečnostní a regresní kontroly a odstraněné zbytky Her.',
-        'Administrace má Úplnou zálohu RaK na jeden klik: ukládá přesný zdroj, nasazenou PWA, data a strukturu Supabase, sanitizovaný Auth přehled, Storage a návod k obnově.'
+        'RaK startuje skutečně local-first: Home, Rozpisy/Rotace, Kalkulačky i Více jsou dostupné hned z lokálních dat a online synchronizace je jen aktualizuje na pozadí.',
+        'Rozpisy, absence a neplánované změny mají přesnější staffing a práci s Kalírnou; Administrace je rychlejší a na iPhonu přehlednější a kompaktnější.',
+        'Dashboardový kalendář podporuje Obrábění i Kalírnu A–D, uložený výběr a legendu; bez aktivního zdroje zobrazí lokální prázdný měsíc bez Google cookie brány.',
+        'Korekce Frézek a Brusů mají sjednocené mobilní ovládání. Offline/PWA, konflikty a zálohy mají přísnější diagnostiku, CAS ochranu a obnovu.',
+        'Release pipeline hlídá reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a oddělení TESTu od produkce; opravy míří do skutečných vlastníků funkcí.'
       ]
     },
-    // RAK_170_ABOUT_END
+    // RAK_180_ABOUT_END
+    {
+      range: 'RaK 1.7',
+      title: 'Stabilizace a local-first základ',
+      lines: [
+        'Rychlejší PWA s odolným offline startem, bezpečnějším přihlášením a synchronizací pracovních dat.',
+        'Rozpisy, absence, pracovníci, správci a report směny dostaly sjednocenější mobilní ovládání a přesnější výrobní logiku.',
+        'Kalkulačky korekcí, zálohy, diagnostika a regresní kontroly se výrazně rozšířily; odstraněné zbytky Her zůstaly pryč.',
+        'Vznikl základ směnových kalendářů a účtového nastavení, na kterém navazuje generace 1.8.'
+      ]
+    },
     {
       range: 'RaK 1.6',
       title: 'Rychlejší, čistší a přesnější',
@@ -80,12 +87,13 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.7').trim();
+      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.8.1').trim();
+      const displayParts = displayVersion.split('.');
+      const aboutDisplayVersion = displayParts.length >= 2 ? displayParts.slice(0, 2).join('.') : displayVersion;
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
-        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(displayVersion)) + '</div>',
-        '  <div class="appMenuText">RaK spojuje pracovní rotace, osobní směnu, výrobní úkoly, směnové reporty, dovolené a dílenské kalkulačky do jedné instalovatelné aplikace.</div>',
+        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(aboutDisplayVersion)) + '</div>',
         '  ' + buildAppMenuAboutHistoryHtml(),
         '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
         '</div>'
@@ -119,6 +127,21 @@ function renderAppMenuContactPage(body, versionText) {
 function renderAppMenuSettingsPage(body, versionText) {
       bindAppMenuHandlers(body);
       const profileCard = buildRakProfileSettingsHtml();
+      const calendarCard = typeof buildRakCalendarSelectionSettingsHtml === 'function' ? buildRakCalendarSelectionSettingsHtml() : '';
+      const canChangePassword = typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport();
+      const passwordCard = canChangePassword ? [
+        '<details class="appMenuCard appMenuSettingsCard rakAccountPasswordCard">',
+        '  <summary class="appMenuCardTitle">Heslo</summary>',
+        '  <div class="smallText">Změníš pouze heslo svého aktuálního účtu. Minimálně 6 znaků.</div>',
+        '  <div class="rakAccountPasswordGrid">',
+        '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
+        '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="new"></label>',
+        '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="confirm"></label>',
+        '  </div>',
+        '  <div class="smallText" id="rakAccountPasswordStatus" role="status" aria-live="polite"></div>',
+        '  <button type="button" class="appMenuAction isActive" data-menu-action="change-account-password">Změnit moje heslo</button>',
+        '</details>'
+      ].join('') : '';
       const privacyCard = [
         '<details class="appMenuCard appMenuSettingsCard">',
         '  <summary class="appMenuCardTitle">Soukromí a data</summary>',
@@ -131,11 +154,16 @@ function renderAppMenuSettingsPage(body, versionText) {
       const themeCards = buildThemeSystemSettingsHtml();
       body.innerHTML = [
         profileCard,
+        calendarCard,
+        passwordCard,
         privacyCard,
         performanceCard,
         themeCards,
         '<button type="button" class="appMenuAction appMenuBack appMenuStandaloneBack" data-menu-back="1">Zpět</button>'
       ].join('');
+      if (typeof bindRakCalendarSelectionSettings === 'function') {
+        try { bindRakCalendarSelectionSettings(body); } catch (err) {}
+      }
       if (typeof renderThemeSettingsCards === 'function') {
         try { renderThemeSettingsCards(); } catch (err) {}
       }

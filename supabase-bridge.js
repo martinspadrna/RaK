@@ -8,6 +8,8 @@
     announcements: [],
     rotationSnapshot: null,
     machineSettingsSnapshot: [],
+    machineSettingsRevision: null,
+    rotationMonthRevisions: {},
     lastError: null,
     realtimeChannel: null,
     realtimeStatus: 'idle',
@@ -337,6 +339,14 @@
     if (!client) return { ok: true };
     const { error } = await client.auth.signOut({ scope: 'local' });
     return error ? { ok: false, error } : { ok: true };
+  }
+
+  async function getSignedAdminAccessToken() {
+    const client = getClient();
+    if (!client || !hasSignedAdminRoleContext()) return '';
+    const { data, error } = await client.auth.getSession();
+    if (error) return '';
+    return String(data && data.session && data.session.access_token || '');
   }
 
   async function getAdminAccessToken() {
@@ -2067,6 +2077,18 @@
 
   async function loadBestOfflineRotationState(options) {
     const opts = options && typeof options === 'object' ? options : {};
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.loadBestOfflineRotationState === 'function') {
+      const selected = await window.RakRotationLocalStore.loadBestOfflineRotationState(opts);
+      const diag = typeof window.RakRotationLocalStore.getRotationOfflineDiagnostics === 'function'
+        ? await window.RakRotationLocalStore.getRotationOfflineDiagnostics()
+        : null;
+      state.cacheGuard.rotationOfflineReady = !!(diag && diag.offlineReady);
+      state.cacheGuard.rotationOfflineCopies = Math.max(0, Number(diag && diag.copies || 0) || 0);
+      state.cacheGuard.rotationOfflineSelection = String(diag && diag.selectedSource || '');
+      state.cacheGuard.rotationOfflineSelectionAt = Date.now();
+      state.cacheGuard.rotationOfflineError = state.cacheGuard.rotationOfflineCopies >= 2 ? '' : (selected ? 'rotation-offline-single-copy' : 'rotation-offline-missing');
+      return selected;
+    }
     let local = loadCachedRotationState(), durable = await loadDurableRotationState();
     const candidates = [local, durable].filter(item => item && item.payload);
     if (!candidates.length) {
@@ -2109,6 +2131,16 @@
   }
 
   async function persistRotationOfflineSnapshot(rotation, metadata) {
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.persistRotationOfflineSnapshot === 'function') {
+      const result = await window.RakRotationLocalStore.persistRotationOfflineSnapshot(rotation, metadata);
+      state.cacheGuard.rotationOfflineReady = !!(result && result.ok);
+      state.cacheGuard.rotationOfflineCopies = Math.max(0, Number(result && result.copies || 0) || 0);
+      state.cacheGuard.rotationOfflineVerifiedAt = Date.now();
+      state.cacheGuard.rotationOfflineSelection = result && result.durable ? 'durable-cache' : (result && result.local ? 'local-cache' : '');
+      state.cacheGuard.rotationOfflineSelectionAt = Date.now();
+      state.cacheGuard.rotationOfflineError = result && result.ok ? (result.copies >= 2 ? '' : 'rotation-offline-single-copy') : 'rotation-offline-write-failed';
+      return result;
+    }
     if (!rotation || typeof rotation !== 'object' || !rotation.months) {
       state.cacheGuard.rotationOfflineReady = false;
       state.cacheGuard.rotationOfflineCopies = 0;
@@ -2136,6 +2168,17 @@
   }
 
   async function getRotationOfflineDiagnostics() {
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.getRotationOfflineDiagnostics === 'function') {
+      const diag = await window.RakRotationLocalStore.getRotationOfflineDiagnostics();
+      const review = typeof getRakPendingSyncReview === 'function' ? getRakPendingSyncReview() : null;
+      return Object.assign({}, diag || {}, {
+        queue: review ? {
+          total: Number(review.total || 0), held: Number(review.held || 0), retryable: Number(review.retryable || 0),
+          unrecognized: Number(review.unrecognized || 0), storageIssue: !!review.storageIssue,
+          labels: Array.isArray(review.labels) ? review.labels.slice(0, 8) : []
+        } : null
+      });
+    }
     const local = loadCachedRotationState(), durable = await loadDurableRotationState();
     const candidates = [local, durable].filter(item => item && item.payload);
     let selected = candidates[0] || null;
@@ -2519,6 +2562,8 @@
       || key === 'FHB_CORRECTION_CALIBRATION_SETTINGS'
       || category === 'external_links_settings'
       || key === 'EXTERNAL_LINKS_SETTINGS'
+      || category === 'shift_calendar_settings'
+      || key === 'SHIFT_CALENDAR_SETTINGS'
       || category === 'app_contact_settings'
       || key === 'APP_CONTACT_SETTINGS'
       || category === 'payroll_settings'
@@ -2574,13 +2619,31 @@
     });
   }
 
+  function hasSignedAdminRoleContext() {
+    const context = state.adminAuth && state.adminAuth.context;
+    return !!(context && context.authenticated === true && context.account_id
+      && ['owner', 'admin', 'deputy'].includes(String(context.role || '')));
+  }
+
   function hasSecureAdminContext() {
     const context = state.adminAuth && state.adminAuth.context;
-    return !!(context && context.authenticated === true && context.account_id && (context.role === 'owner' || context.role === 'admin'));
+    return !!(hasSignedAdminRoleContext() && (context.role === 'owner' || context.role === 'admin'));
   }
 
   function hasAdminWriteCredential() {
     return hasSecureAdminContext();
+  }
+
+  function rakRevisionConflictError(message, code) {
+    const err = new Error(message);
+    err.code = code || 'RAK_REVISION_CONFLICT';
+    err.conflict = true;
+    return err;
+  }
+
+  function rakIsSqlRevisionConflict(err) {
+    const code = String(err && (err.code || err.sqlstate || err.statusCode) || '').trim();
+    return code === '40001' || /changed on another device|revision/i.test(String(err && err.message || ''));
   }
 
   async function trySaveMachineSettingsViaRpc(client, payloads, options) {
@@ -2588,19 +2651,40 @@
     try {
       if (!hasSecureAdminContext()) throw new Error('admin authentication required');
       const operationalPayloads = payloads.filter((payload) => !isCredentialOrBackupMachineSettingsPayload(payload));
-      if (!operationalPayloads.length) return { ok: true, rpc: true, secure: true, savedCount: 0 };
-      const { data, error } = await client.rpc('rak_admin_save_machine_settings_v2', {
+      if (!operationalPayloads.length) return { ok: true, rpc: true, secure: true, savedCount: 0, revision: state.machineSettingsRevision };
+      if (!Number.isSafeInteger(state.machineSettingsRevision) || state.machineSettingsRevision < 0) {
+        throw rakRevisionConflictError(
+          'Revize nastavení strojů není ověřena. Nejdřív použij Načíst online a teprve potom upravuj a ukládej.',
+          'RAK_MACHINE_SETTINGS_REVISION_UNVERIFIED'
+        );
+      }
+      const { data, error } = await client.rpc('rak_admin_save_machine_settings_v3', {
         p_rows: operationalPayloads,
-        p_reason: String(options && options.reason || 'app-save')
+        p_reason: String(options && options.reason || 'app-save'),
+        p_expected_revision: state.machineSettingsRevision
       });
-      if (error) throw error;
+      if (error) {
+        if (rakIsSqlRevisionConflict(error)) {
+          throw rakRevisionConflictError(
+            'Nastavení strojů mezitím změnilo jiné zařízení. Tvoje změny jsem nepřepsal přes novější data. Načti online stav a změnu proveď znovu.',
+            'RAK_MACHINE_SETTINGS_REVISION_CONFLICT'
+          );
+        }
+        throw error;
+      }
+      if (!data || !Number.isSafeInteger(Number(data.revision))) {
+        throw new Error('Server po uložení nastavení nevrátil platnou revizi.');
+      }
+      state.machineSettingsRevision = Number(data.revision);
       return {
         ok: true,
         rpc: true,
         secure: true,
+        revision: state.machineSettingsRevision,
         savedCount: Number(data && data.saved_count || operationalPayloads.length) || operationalPayloads.length
       };
     } catch (err) {
+      if (err && err.conflict) throw err;
       if (isSupabaseRpcUnavailableError(err)) {
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableAt = new Date().toISOString();
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableMessage = String(err && err.message ? err.message : err);
@@ -2677,8 +2761,16 @@
   }
 
   async function upsertRotationMonthEntriesDirect(client, monthStart, label, rows) {
-    // RAK_17063_MONTH_RPC_ONLY_GUARD: authenticated RPC, never direct table DELETE/INSERT.
+    // RAK_17102_MONTH_CAS: authenticated RPC + baseline revision, never direct table DELETE/INSERT.
     if (!hasSecureAdminContext()) throw new Error('Měsíční rozpis lze uložit pouze ověřeným administrátorem přes RPC.');
+    const monthKey = String(monthStart || '').trim();
+    const expectedRevision = state.rotationMonthRevisions && state.rotationMonthRevisions[monthKey];
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+      throw rakRevisionConflictError(
+        'Revize měsíčního rozpisu není ověřena. Nejdřív načti tento měsíc online a teprve potom ho upravuj a ukládej.',
+        'RAK_ROTATION_MONTH_REVISION_UNVERIFIED'
+      );
+    }
     const payloadRows = (Array.isArray(rows) ? rows : []).map((row, idx) => ({
       employee_name: String(row && row.employee_name ? row.employee_name : '').trim(),
       target_machine: String(row && row.target_machine ? row.target_machine : '').trim() || null,
@@ -2687,13 +2779,30 @@
       note: String(row && row.note ? row.note : '').trim() || null,
       row_order: Number.isFinite(Number(row && row.row_order)) ? Number(row.row_order) : idx
     }));
-    const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v2', {
-      p_month_start: monthStart,
+    const { data, error } = await client.rpc('rak_admin_save_rotation_month_entries_v3', {
+      p_month_start: monthKey,
       p_label: String(label || '').trim() || null,
-      p_rows: payloadRows
+      p_rows: payloadRows,
+      p_expected_revision: expectedRevision
     });
-    if (error) throw error;
-    return { months: 1, entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length };
+    if (error) {
+      if (rakIsSqlRevisionConflict(error)) {
+        throw rakRevisionConflictError(
+          'Tento měsíční rozpis mezitím změnilo jiné zařízení. Novější online data jsem nepřepsal. Načti měsíc znovu a svou změnu zopakuj.',
+          'RAK_ROTATION_MONTH_REVISION_CONFLICT'
+        );
+      }
+      throw error;
+    }
+    if (!data || !Number.isSafeInteger(Number(data.revision))) {
+      throw new Error('Server po uložení měsíčního rozpisu nevrátil platnou revizi.');
+    }
+    state.rotationMonthRevisions[monthKey] = Number(data.revision);
+    return {
+      months: 1,
+      entries: data && data.inserted !== null && Number.isSafeInteger(Number(data.inserted)) ? Number(data.inserted) : payloadRows.length,
+      revision: state.rotationMonthRevisions[monthKey]
+    };
   }
 
   async function upsertGomokuWinDirect(client, entry) {
@@ -2743,6 +2852,17 @@
     const text = String(source.text || source.message || '').trim().slice(0, 4000);
     const route = [String(source.page || '').trim(), String(source.game || '').trim()].filter(Boolean).join(' · ').slice(0, 300);
     const legacyAppearanceId = String(source.theme || source.background || '').trim();
+    const screenshotSource = source.screenshot && typeof source.screenshot === 'object' ? source.screenshot : null;
+    const screenshotBase64 = screenshotSource ? String(screenshotSource.base64 || '').trim() : '';
+    const screenshotMime = screenshotSource ? String(screenshotSource.mime || '').trim().toLowerCase() : '';
+    const screenshotWidth = screenshotSource ? Math.max(0, Math.floor(Number(screenshotSource.width || 0) || 0)) : 0;
+    const screenshotHeight = screenshotSource ? Math.max(0, Math.floor(Number(screenshotSource.height || 0) || 0)) : 0;
+    const screenshot = screenshotBase64 ? {
+      base64: screenshotBase64.slice(0, 1000000),
+      mime: screenshotMime,
+      width: screenshotWidth,
+      height: screenshotHeight
+    } : null;
     const deviceInfo = {
       appearanceId: String(source.appearanceId || source.appearance || legacyAppearanceId || '').slice(0, 80),
       appearanceLabel: String(source.appearanceLabel || '').slice(0, 120),
@@ -2760,6 +2880,7 @@
       route: route || null,
       user_agent: String(source.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : '') || '').slice(0, 1000) || null,
       device_info: deviceInfo,
+      screenshot,
       status: 'new'
     };
   }
@@ -2767,7 +2888,8 @@
   async function saveBugReportDirect(client, entry) {
     const row = normalizeBugReportPayload(entry);
     if (!client || typeof client.rpc !== 'function') throw new Error('bug report RPC unavailable');
-    const { data: rpcData, error: rpcError } = await runSupabaseOperation('bug_reports.rpc_insert_v2', () => client.rpc('rak_submit_bug_report_v2', {
+    const screenshot = row.screenshot && typeof row.screenshot === 'object' ? row.screenshot : null;
+    const { data: rpcData, error: rpcError } = await runSupabaseOperation('bug_reports.rpc_insert_v3', () => client.rpc('rak_submit_bug_report_v3', {
       p_account_number: row.account_number,
       p_player_name: row.player_name,
       p_report_type: row.report_type,
@@ -2775,10 +2897,14 @@
       p_app_version: row.app_version,
       p_route: row.route,
       p_user_agent: row.user_agent,
-      p_device_info: row.device_info
+      p_device_info: row.device_info,
+      p_screenshot_base64: screenshot ? screenshot.base64 : null,
+      p_screenshot_mime: screenshot ? screenshot.mime : null,
+      p_screenshot_width: screenshot ? screenshot.width : null,
+      p_screenshot_height: screenshot ? screenshot.height : null
     }), { mode: 'write', attempts: 1 });
     if (rpcError) throw rpcError;
-    return Object.assign({ ok: true, row }, rpcData || {});
+    return Object.assign({ ok: true, row: Object.assign({}, row, { screenshot: screenshot ? { mime: screenshot.mime, width: screenshot.width, height: screenshot.height } : null }) }, rpcData || {});
   }
 
   function isBugReportUuid(value) {
@@ -2803,6 +2929,17 @@
     }), { mode: 'read', attempts: 1 });
     if (error) throw error;
     return { ok: true, rows: Array.isArray(data) ? data : [] };
+  }
+
+  async function loadBugReportScreenshotDirect(client, id) {
+    const reportId = String(id || '').trim();
+    if (!reportId || !isBugReportUuid(reportId)) return { ok: false, reason: 'invalid-report-id' };
+    if (!hasSecureAdminContext()) throw new Error('admin authentication required');
+    const { data, error } = await runSupabaseOperation('bug_reports.rpc_screenshot_v3', () => client.rpc('rak_admin_get_bug_report_screenshot_v3', {
+      p_id: reportId
+    }), { mode: 'read', attempts: 1 });
+    if (error) throw error;
+    return data && typeof data === 'object' ? data : { ok: false, reason: 'invalid-response' };
   }
 
   async function updateBugReportStatusDirect(client, id, status, note = '') {
@@ -3503,28 +3640,43 @@
               state.syncGuard.queueConflictHolds = Number(state.syncGuard.queueConflictHolds || 0) + 1;
               continue;
             }
-            const profile = await runSupabaseOperation('queue.game_ui.version', () => client.from('game_stats').select('account_number,wins,losses,points,last_played_at,updated_at').eq('account_number', account).eq('game_type', GAME_UI_SETTINGS_TYPE).order('updated_at', { ascending: false }).limit(1), { mode: 'read', attempts: 1 });
-            if (profile.error) throw profile.error;
-            const remoteRow = profile.data && profile.data[0] ? decodeGameUiSettingsRow(profile.data[0]) : null;
-            const queuedUi = normalizeGameUiSettings(task.entry || {});
-            const sameAppearance = !!(remoteRow
-              && queuedUi.theme_id === remoteRow.theme_id
-              && queuedUi.background_id === remoteRow.background_id);
-            // RAK_17071_SEMANTIC_UI_RECONCILIATION: timestamps alone must not create
-            // a conflict when both sides already contain the same appearance.
-            if (sameAppearance) {
+            const queuedUi = normalizeGameUiSettings(entry);
+            const remoteUi = await loadGameAccountUiSettingsDirect(client, account);
+            const sameAppearance = !!(remoteUi && queuedUi.appearance_id === remoteUi.appearance_id);
+            const sameCalendars = queuedUi.calendar_keys === null || !!(remoteUi && JSON.stringify(queuedUi.calendar_keys) === JSON.stringify(remoteUi.calendar_keys || []));
+            const sameHiddenCalendars = queuedUi.calendar_hidden_keys === null || !!(remoteUi && JSON.stringify(queuedUi.calendar_hidden_keys) === JSON.stringify(remoteUi.calendar_hidden_keys || []));
+            if (sameAppearance && sameCalendars && sameHiddenCalendars) {
+              writeTimedCache(gameUiSettingsCacheKey(account), [remoteUi], 'ui');
               flushed += 1;
               continue;
             }
-            const remoteAt = Date.parse(String(remoteRow && remoteRow.updated_at || ''));
-            if (Number.isFinite(remoteAt) && remoteAt > queuedAt) {
-              // Appearance is a non-critical preference. A newer verified server value wins
-              // and an older automatic/offline preference must never become a global conflict.
-              writeTimedCache(gameUiSettingsCacheKey(account), [remoteRow], 'ui');
-              state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
-              flushed += 1;
-              continue;
-            }            await saveGameAccountUiSettingsDirect(client, task.entry);
+
+            const localAt = Date.parse(String(queuedUi.updated_at || '')) || queuedAt;
+            const remoteAt = Date.parse(String(remoteUi && remoteUi.updated_at || '')) || 0;
+            const remoteRevision = Math.max(0, Number(remoteUi && remoteUi.revision || 0) || 0);
+            if (remoteUi && remoteRevision > queuedUi.expected_revision) {
+              if (localAt <= remoteAt) {
+                writeTimedCache(gameUiSettingsCacheKey(account), [remoteUi], 'ui');
+                state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
+                flushed += 1;
+                continue;
+              }
+              queuedUi.expected_revision = remoteRevision;
+            }
+
+            let savedUi = await saveGameAccountUiSettingsDirect(client, queuedUi);
+            if (savedUi && savedUi.conflict === true) {
+              const conflictAt = Date.parse(String(savedUi.updated_at || '')) || 0;
+              const conflictRevision = Math.max(0, Number(savedUi.revision || 0) || 0);
+              if (localAt > conflictAt && conflictRevision > queuedUi.expected_revision) {
+                queuedUi.expected_revision = conflictRevision;
+                savedUi = await saveGameAccountUiSettingsDirect(client, queuedUi);
+              }
+              if (savedUi && savedUi.conflict === true) {
+                writeTimedCache(gameUiSettingsCacheKey(account), [savedUi], 'ui');
+                state.syncGuard.uiSettingsRemoteWins = Number(state.syncGuard.uiSettingsRemoteWins || 0) + 1;
+              }
+            }
             flushed += 1;
           } else if (task.type === 'game_session') {
             const code = task.inviteCode || task.code;
@@ -3847,6 +3999,25 @@
     const client = getClient();
     try {
       if (client && navigator.onLine) {
+        if (hasSecureAdminContext()) {
+          const { data, error } = await runSharedSupabaseRead('machine_settings.load.cas_v3', () => runSupabaseOperation(
+            'machine_settings.load.cas_v3',
+            () => client.rpc('rak_admin_load_machine_settings_v3'),
+            { mode: 'read', attempts: 1 }
+          ));
+          if (error) throw error;
+          const revision = Number(data && data.revision);
+          if (!data || !Array.isArray(data.rows) || !Number.isSafeInteger(revision) || revision < 0) {
+            throw new Error('Server nevrátil ověřenou revizi nastavení strojů.');
+          }
+          const rows = data.rows.filter((row) => !isDeletedMachineSettingsRow(row));
+          state.machineSettingsRevision = revision;
+          state.machineSettingsSnapshot = rows;
+          state.lastError = null;
+          saveLocalSnapshot(state.rotationSnapshot || null, rows);
+          return rows;
+        }
+        state.machineSettingsRevision = null;
         const { data, error } = await runSharedSupabaseRead('machine_settings.load', () => runSupabaseOperation('machine_settings.load', () => client
           .from('machine_settings')
           .select('*')
@@ -3862,9 +4033,11 @@
         }
       }
     } catch (err) {
+      state.machineSettingsRevision = null;
       state.lastError = err;
       console.error('Supabase machine settings load failed', err);
     }
+    state.machineSettingsRevision = null;
     const cached = readLocalSnapshot();
     if (cached && Array.isArray(cached.machineSettingsRows) && cached.machineSettingsRows.length) {
       const rows = cached.machineSettingsRows.filter((row) => !isDeletedMachineSettingsRow(row));
@@ -3885,37 +4058,56 @@
     try {
       if (client && navigator.onLine) {
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required', savedCount: 0 };
-        const savedCount = await runOptimizedSupabaseWrite('machine_settings.save', rows, () => runSupabaseOperation('machine_settings.save', () => upsertMachineSettingsDirect(client, rows, options || {}), { mode: 'write' }));
+        const savedCount = await runOptimizedSupabaseWrite('machine_settings.save', rows, () => runSupabaseOperation('machine_settings.save', () => upsertMachineSettingsDirect(client, rows, options || {}), { mode: 'write', attempts: 1 }));
         state.machineSettingsSnapshot = Array.isArray(rows) ? rows : [];
         saveLocalSnapshot(state.rotationSnapshot || null, rows);
         await flushPendingWrites();
-        return { ok: true, savedCount, queued: false };
+        return { ok: true, savedCount, queued: false, revision: state.machineSettingsRevision };
       }
       return { ok: false, queued: false, reason: 'admin-online-required', savedCount: 0 };
     } catch (err) {
       state.lastError = err;
       console.error('Supabase machine settings save failed', err);
-      return { ok: false, error: err };
+      return { ok: false, conflict: !!(err && err.conflict), reason: err && err.conflict ? 'revision-conflict' : 'save-failed', error: err };
     }
   }
 
   async function loadRotationMonthEntries(monthStart) {
     const client = getClient();
+    const monthKey = String(monthStart || '').trim();
     try {
       if (client && navigator.onLine) {
-        const { data, error } = await runSharedSupabaseRead('rotation_entries.load:' + String(monthStart || ''), () => runSupabaseOperation('rotation_entries.load', () => client
+        if (hasSecureAdminContext()) {
+          const { data, error } = await runSharedSupabaseRead('rotation_entries.load.cas_v3:' + monthKey, () => runSupabaseOperation(
+            'rotation_entries.load.cas_v3',
+            () => client.rpc('rak_admin_load_rotation_month_entries_v3', { p_month_start: monthKey }),
+            { mode: 'read', attempts: 1 }
+          ));
+          if (error) throw error;
+          const revision = Number(data && data.revision);
+          if (!data || !Array.isArray(data.rows) || !Number.isSafeInteger(revision) || revision < 0) {
+            throw new Error('Server nevrátil ověřenou revizi měsíčního rozpisu.');
+          }
+          state.rotationMonthRevisions[monthKey] = revision;
+          state.lastError = null;
+          return data.rows;
+        }
+        delete state.rotationMonthRevisions[monthKey];
+        const { data, error } = await runSharedSupabaseRead('rotation_entries.load:' + monthKey, () => runSupabaseOperation('rotation_entries.load', () => client
           .from('rotation_entries')
           .select('*')
-          .eq('month_start', monthStart)
+          .eq('month_start', monthKey)
           .order('row_order', { ascending: true })
           .order('employee_name', { ascending: true }), { mode: 'read' }));
         if (error) throw error;
         return Array.isArray(data) ? data : [];
       }
     } catch (err) {
+      delete state.rotationMonthRevisions[monthKey];
       state.lastError = err;
       console.error('Supabase rotation entries load failed', err);
     }
+    delete state.rotationMonthRevisions[monthKey];
     return [];
   }
 
@@ -3924,15 +4116,15 @@
     try {
       if (client && navigator.onLine) {
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required', months: 0, entries: 0 };
-        const summary = await runOptimizedSupabaseWrite('rotation_entries.save:' + String(monthStart || ''), { monthStart, label, rows }, () => runSupabaseOperation('rotation_entries.save', () => upsertRotationMonthEntriesDirect(client, monthStart, label, rows), { mode: 'write' }), { windowMs: 2200 });
+        const summary = await runOptimizedSupabaseWrite('rotation_entries.save:' + String(monthStart || ''), { monthStart, label, rows }, () => runSupabaseOperation('rotation_entries.save', () => upsertRotationMonthEntriesDirect(client, monthStart, label, rows), { mode: 'write', attempts: 1 }), { windowMs: 2200 });
         await flushPendingWrites();
-        return { ok: true, queued: false, months: summary.months, entries: summary.entries };
+        return { ok: true, queued: false, months: summary.months, entries: summary.entries, revision: summary.revision };
       }
       return { ok: false, queued: false, reason: 'admin-online-required', months: 0, entries: 0 };
     } catch (err) {
       state.lastError = err;
       console.error('Supabase rotation entries save failed', err);
-      return { ok: false, error: err };
+      return { ok: false, conflict: !!(err && err.conflict), reason: err && err.conflict ? 'revision-conflict' : 'save-failed', error: err };
     }
   }
 
@@ -4584,122 +4776,109 @@
     return String(defs[idx] && defs[idx].id || fallback || '').trim();
   }
 
+  function normalizeGameCalendarKeys(value) {
+    if (!Array.isArray(value)) return null;
+    return Array.from(new Set(value.map((key) => String(key || '').trim()).filter((key) => /^(obrabeni|kalirna)-[ABCD]$/.test(key)))).slice(0, 8);
+  }
+
   function normalizeGameUiSettings(entry) {
     const accountNumber = String(entry && (entry.account_number || entry.accountNumber) || '').trim();
-    const themeDefs = Array.isArray(window.RAK_THEME_DEFS) ? window.RAK_THEME_DEFS : [];
-    const bgDefs = Array.isArray(window.RAK_BACKGROUND_DEFS) ? window.RAK_BACKGROUND_DEFS : [];
-    const themeIdRaw = String(entry && (entry.theme_id || entry.themeId || entry.theme) || '').trim();
-    const backgroundIdRaw = String(entry && (entry.background_id || entry.backgroundId || entry.background) || '').trim();
-    const themeIndex = getGameUiDefinitionIndex(themeDefs, themeIdRaw, 'default');
-    const backgroundIndex = getGameUiDefinitionIndex(bgDefs, backgroundIdRaw, 'ios-mesh');
-    const themeId = getGameUiDefinitionId(themeDefs, themeIndex, 'default') || 'default';
-    const backgroundId = getGameUiDefinitionId(bgDefs, backgroundIndex, 'ios-mesh') || 'ios-mesh';
+    const appearanceRaw = String(entry && (entry.appearance_id || entry.appearanceId || entry.theme_id || entry.themeId || entry.background_id || entry.backgroundId) || '').trim();
+    const appearance = appearanceRaw || 'obsidian';
+    const calendarKeys = normalizeGameCalendarKeys(entry && (entry.calendar_keys ?? entry.calendarKeys));
+    const calendarHiddenKeys = normalizeGameCalendarKeys(entry && (entry.calendar_hidden_keys ?? entry.calendarHiddenKeys));
     return {
       account_number: accountNumber,
-      theme_id: themeId,
-      background_id: backgroundId,
-      theme_index: themeIndex,
-      background_index: backgroundIndex,
-      encoded_points: (themeIndex * 1000) + backgroundIndex,
-      updated_at: entry && (entry.updated_at || entry.updatedAt) ? String(entry.updated_at || entry.updatedAt) : new Date().toISOString()
+      appearance_id: appearance,
+      theme_id: appearance,
+      background_id: appearance,
+      calendar_keys: calendarKeys,
+      calendar_hidden_keys: calendarHiddenKeys,
+      expected_revision: Math.max(0, Number(entry && (entry.expected_revision ?? entry.serverRevision ?? entry.revision) || 0) || 0),
+      revision: Math.max(0, Number(entry && (entry.revision ?? entry.serverRevision ?? entry.expected_revision) || 0) || 0),
+      updated_at: String(entry && (entry.updated_at || entry.updatedAt) || new Date().toISOString())
     };
   }
 
   function decodeGameUiSettingsRow(row) {
-    if (!row) return null;
-    const themeDefs = Array.isArray(window.RAK_THEME_DEFS) ? window.RAK_THEME_DEFS : [];
-    const bgDefs = Array.isArray(window.RAK_BACKGROUND_DEFS) ? window.RAK_BACKGROUND_DEFS : [];
-    const encoded = Number(row.points || 0) || 0;
-    const themeIndex = Number.isFinite(Number(row.wins)) ? Number(row.wins) : Math.floor(encoded / 1000);
-    const backgroundIndex = Number.isFinite(Number(row.losses)) ? Number(row.losses) : (encoded % 1000);
+    if (!row || typeof row !== 'object') return null;
+    const appearance = String(row.appearance_id || row.appearanceId || row.theme_id || row.themeId || row.background_id || row.backgroundId || '').trim();
+    if (!appearance) return null;
     return {
-      account_number: String(row.account_number || '').trim(),
-      theme_id: getGameUiDefinitionId(themeDefs, themeIndex, 'default') || 'default',
-      background_id: getGameUiDefinitionId(bgDefs, backgroundIndex, 'ios-mesh') || 'ios-mesh',
-      updated_at: row.updated_at || row.last_played_at || null,
-      source: 'game_stats_profile_ui'
+      ok: row.ok !== false,
+      conflict: row.conflict === true,
+      reason: String(row.reason || ''),
+      account_number: String(row.account_number || row.accountNumber || '').trim(),
+      appearance_id: appearance,
+      theme_id: appearance,
+      background_id: appearance,
+      calendar_keys: normalizeGameCalendarKeys(row.calendar_keys ?? row.calendarKeys) || [],
+      calendar_hidden_keys: normalizeGameCalendarKeys(row.calendar_hidden_keys ?? row.calendarHiddenKeys),
+      revision: Math.max(0, Number(row.revision || 0) || 0),
+      updated_at: row.updated_at || row.updatedAt || null,
+      source: 'account_ui_preferences_rpc'
     };
   }
 
   async function loadGameAccountUiSettingsDirect(client, accountNumber) {
     const account = String(accountNumber || '').trim();
     if (!account) return null;
-    const cacheKey = gameUiSettingsCacheKey(account);
-    const cache = readTimedCache(cacheKey, SUPABASE_GAME_CACHE_TTL_MS);
-    if (cache && cache.fresh && cache.rows && cache.rows[0]) {
-      rememberTimedCacheHit('ui', cache);
-      return cache.rows[0];
-    }
-    try {
-      const { data, error } = await runSharedSupabaseRead('game_ui_settings.load:' + account, () => runSupabaseOperation('game_ui_settings.load', () => client
-        .from('game_stats')
-        .select('id,account_number,game_type,games_played,wins,losses,draws,points,last_played_at,updated_at')
-        .eq('account_number', account)
-        .eq('game_type', GAME_UI_SETTINGS_TYPE)
-        .order('updated_at', { ascending: false })
-        .limit(1), { mode: 'read' }));
-      if (error) throw error;
-      const row = Array.isArray(data) && data.length ? decodeGameUiSettingsRow(data[0]) : null;
-      if (row) writeTimedCache(cacheKey, [row], 'ui');
-      state.cacheGuard.uiSettingsLoads += 1;
-      return row;
-    } catch (err) {
-      if (cache && cache.rows && cache.rows[0]) {
-        state.cacheGuard.uiSettingsLoadFallbacks += 1;
-        rememberTimedCacheHit('ui', cache);
-        return cache.rows[0];
-      }
-      throw err;
-    }
+    const { data, error } = await runSharedSupabaseRead('account_ui_preferences.load:' + account, () => runSupabaseOperation('account_ui_preferences.load', () => client
+      .rpc('rak_load_account_ui_preferences', { p_account_number: account }), { mode: 'read' }));
+    if (error) throw error;
+    const row = decodeGameUiSettingsRow(data);
+    if (row) writeTimedCache(gameUiSettingsCacheKey(account), [row], 'ui');
+    state.cacheGuard.uiSettingsLoads += 1;
+    return row;
   }
 
-
-  async function trySaveGameUiSettingsViaRpc(client, normalized) {
-    if (!client || typeof client.rpc !== 'function' || !normalized || !normalized.account_number) return null;
+  async function saveGameAccountUiSettingsDirect(client, entry) {
+    const normalized = normalizeGameUiSettings(entry);
+    if (!normalized.account_number) throw new Error('Chybí účet pro uložení vzhledu.');
     try {
       rememberGameUiRpcSmoke('attempt');
-      const { data, error } = await runSupabaseOperation('game_ui_settings.rpc_save', () => client.rpc('rak_save_game_ui_settings', {
-        p_account_number: normalized.account_number,
-        p_theme_index: Math.max(0, Math.min(999, Math.round(getSafeGameStatNumber(normalized.theme_index, 0)))),
-        p_background_index: Math.max(0, Math.min(999, Math.round(getSafeGameStatNumber(normalized.background_index, 0)))),
-        p_points: Math.max(0, Math.min(999999, Math.round(getSafeGameStatNumber(normalized.encoded_points, 0))))
-      }), { mode: 'write', attempts: 1 });
+      const { data, error } = await runSupabaseOperation('account_ui_preferences.save', () => normalized.calendar_hidden_keys !== null
+        ? client.rpc('rak_save_account_ui_preferences_v3', {
+            p_account_number: normalized.account_number,
+            p_appearance_id: normalized.appearance_id,
+            p_calendar_keys: normalized.calendar_keys,
+            p_calendar_hidden_keys: normalized.calendar_hidden_keys,
+            p_expected_revision: normalized.expected_revision
+          })
+        : normalized.calendar_keys === null
+          ? client.rpc('rak_save_account_ui_preferences', {
+              p_account_number: normalized.account_number,
+              p_appearance_id: normalized.appearance_id,
+              p_expected_revision: normalized.expected_revision
+            })
+          : client.rpc('rak_save_account_ui_preferences_v2', {
+              p_account_number: normalized.account_number,
+              p_appearance_id: normalized.appearance_id,
+              p_calendar_keys: normalized.calendar_keys,
+              p_expected_revision: normalized.expected_revision
+            }), { mode: 'write', attempts: 1 });
       if (error) throw error;
+      const decoded = decodeGameUiSettingsRow(data);
+      if (!decoded) throw new Error('Uložení vzhledu nevrátilo platný stav.');
+      if (decoded.conflict || decoded.ok === false) {
+        rememberGameUiRpcSmoke('fallback', 'cas-conflict');
+        writeTimedCache(gameUiSettingsCacheKey(normalized.account_number), [decoded], 'ui');
+        return decoded;
+      }
       rememberGameUiRpcSmoke('success');
-      return data || null;
+      writeTimedCache(gameUiSettingsCacheKey(normalized.account_number), [decoded], 'ui');
+      state.cacheGuard.uiSettingsSaves += 1;
+      return decoded;
     } catch (err) {
       if (isSupabaseRpcUnavailableError(err)) {
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableAt = new Date().toISOString();
         SUPABASE_RPC_HARDENING_STATUS.lastUnavailableMessage = String(err && err.message ? err.message : err);
         rememberGameUiRpcSmoke('fallback', 'rpc-unavailable');
-        return null;
+      } else {
+        rememberGameUiRpcSmoke('fallback', err && err.message ? err.message : err);
       }
-      rememberGameUiRpcSmoke('fallback', err && err.message ? err.message : err);
-      console.warn('rak_save_game_ui_settings failed; direct game_stats __profile_ui fallback should be blocked after v824', err);
-      return null;
+      throw err;
     }
-  }
-
-  async function saveGameAccountUiSettingsDirect(client, entry) {
-    const normalized = normalizeGameUiSettings(entry);
-    if (!normalized.account_number) throw new Error('Chybí herní účet pro uložení vzhledu.');
-    const rpcSaved = await trySaveGameUiSettingsViaRpc(client, normalized);
-    if (rpcSaved) {
-      const decodedRpc = decodeGameUiSettingsRow(rpcSaved) || {
-        account_number: normalized.account_number,
-        theme_id: normalized.theme_id,
-        background_id: normalized.background_id,
-        updated_at: rpcSaved.updated_at || rpcSaved.last_played_at || new Date().toISOString(),
-        source: 'game_stats_profile_ui_rpc'
-      };
-      writeTimedCache(gameUiSettingsCacheKey(normalized.account_number), [decodedRpc], 'ui');
-      state.cacheGuard.uiSettingsSaves += 1;
-      return decodedRpc;
-    }
-
-    // RaK 1.2 (1.155): profile UI fallback do game_stats už nespouštět.
-    // DB má pro vzhled profilu vlastní RPC rak_save_game_ui_settings; přímý zápis je po v824 správně blokovaný RLS.
-    throw createGameUiSettingsRpcRequiredError(normalized.account_number);
   }
 
   async function loadRotationState() {
@@ -4787,7 +4966,7 @@
     try {
       if (client && navigator.onLine) {
         if (shouldDeferOnlineWrite()) return { ok: false, queued: false, deferred: true, reason: 'admin-online-required' };
-        const row = await runOptimizedSupabaseWrite('rotation_state.save', { rotation, meta }, () => runSupabaseOperation('rotation_state.save', () => upsertRotationStateDirect(client, rotation, meta, options || {}), { mode: 'write' }), { windowMs: 2200 });
+        const row = await runOptimizedSupabaseWrite('rotation_state.save', { rotation, meta }, () => runSupabaseOperation('rotation_state.save', () => upsertRotationStateDirect(client, rotation, meta, options || {}), { mode: 'write', attempts: 1 }), { windowMs: 2200 });
         state.rotationSnapshot = rotation && typeof rotation === 'object' ? rotation : null;
         state.lastError = null;
         state.rotationSync.lastWriteAt = new Date().toISOString();
@@ -4812,6 +4991,145 @@
       state.rotationSync.lastError = err;
       console.warn('Supabase rotation save failed', err);
       return { ok: false, error: err };
+    }
+  }
+
+
+  function diagnoseSupabaseRejection(operation, error) {
+    try {
+      if (window.RAK_DIAGNOSTICS && typeof window.RAK_DIAGNOSTICS.diagnoseRejectedOperation === 'function') {
+        return window.RAK_DIAGNOSTICS.diagnoseRejectedOperation(operation, error || {});
+      }
+    } catch (_) {}
+    return Object.freeze({ operation: 'other', reason: 'operation-rejected', codeClass: 'none', httpStatus: 0 });
+  }
+
+  async function applyUnplannedAbsenceChange(rotation, options) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const client = getClient();
+    if (!hasAdminWriteCredential() || !hasSecureAdminContext()) {
+      return { ok: false, reason: 'admin-auth-required', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'authentication-required', codeClass: 'authorization', httpStatus: 0 }) };
+    }
+    if (!client || !navigator.onLine) return { ok: false, reason: 'admin-online-required' };
+    if (!Number.isSafeInteger(state.rotationRevision) || state.rotationRevision < 0) {
+      return { ok: false, reason: 'revision-unverified', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'revision-conflict', codeClass: 'revision-conflict', httpStatus: 0 }) };
+    }
+    const operationId = String(opts.operationId || '').trim();
+    const monthKey = String(opts.monthKey || '').trim();
+    const person = String(opts.person || '').trim();
+    const reason = String(opts.reason || '').trim();
+    const allowedDateLabels = Array.isArray(opts.allowedDateLabels) ? opts.allowedDateLabels.map((value) => String(value || '').trim()).filter(Boolean) : [];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
+        || !monthKey || !person || !reason || !allowedDateLabels.length) {
+      return { ok: false, reason: 'invalid-request', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'invalid-request', codeClass: 'application', httpStatus: 0 }) };
+    }
+    try {
+      const { data, error } = await runSupabaseOperation('rotation.unplanned-absence-v1', () => client.rpc('rak_admin_apply_unplanned_absence_v1', {
+        p_key: 'main',
+        p_payload: rotation && typeof rotation === 'object' ? rotation : null,
+        p_meta: { source: 'unplanned-absence-generator', monthKey },
+        p_expected_revision: state.rotationRevision,
+        p_operation_id: operationId,
+        p_month_key: monthKey,
+        p_person: person,
+        p_reason: reason,
+        p_allowed_date_labels: allowedDateLabels
+      }), { mode: 'write', attempts: 1, timeoutMs: 18000 });
+      if (error) throw error;
+      const row = data && typeof data === 'object' ? data : null;
+      if (!row || !row.payload || !Number.isFinite(Number(row.revision))) throw new Error('Server nevrátil ověřený rozpis po neplánované změně.');
+      state.rotationRevision = Number(row.revision);
+      state.rotationSnapshot = row.payload;
+      state.lastError = null;
+      state.rotationSync.lastWriteAt = new Date().toISOString();
+      state.rotationSync.lastWriteRevision = state.rotationRevision;
+      state.rotationSync.lastError = null;
+      state.rotationSync.lastSource = 'remote-write';
+      state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(row.payload, {
+        revision: state.rotationRevision,
+        remoteUpdatedAt: row.updated_at || '',
+        source: 'unplanned-absence-write'
+      });
+      return {
+        ok: true,
+        payload: row.payload,
+        revision: state.rotationRevision,
+        updatedAt: row.updated_at || '',
+        idempotentReplay: row.idempotent_replay === true
+      };
+    } catch (err) {
+      state.lastError = err;
+      state.rotationSync.lastError = err;
+      const diagnostic = diagnoseSupabaseRejection('unplanned-absence', err);
+      try { if (window.RAK_DIAGNOSTICS) window.RAK_DIAGNOSTICS.safeLog('warn', 'rotation unplanned change rejected', diagnostic); } catch (_) {}
+      return { ok: false, reason: diagnostic.reason, diagnostic };
+    }
+  }
+
+  async function applyUnplannedChange(rotation, options) {
+    const opts = options && typeof options === 'object' ? options : {};
+    const client = getClient();
+    if (!hasAdminWriteCredential() || !hasSecureAdminContext()) {
+      return { ok: false, reason: 'admin-auth-required', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'authentication-required', codeClass: 'authorization', httpStatus: 0 }) };
+    }
+    if (!client || !navigator.onLine) return { ok: false, reason: 'admin-online-required' };
+    if (!Number.isSafeInteger(state.rotationRevision) || state.rotationRevision < 0) {
+      return { ok: false, reason: 'revision-unverified', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'revision-conflict', codeClass: 'revision-conflict', httpStatus: 0 }) };
+    }
+    const operationId = String(opts.operationId || '').trim();
+    const monthKey = String(opts.monthKey || '').trim();
+    const person = String(opts.person || '').trim();
+    const changeKind = String(opts.changeKind || '').trim();
+    const reason = String(opts.reason || '').trim();
+    const allowedDateLabels = Array.isArray(opts.allowedDateLabels) ? opts.allowedDateLabels.map((value) => String(value || '').trim()).filter(Boolean) : [];
+    const reasonAllowed = changeKind === 'absence'
+      ? ['D','NV','§','LEK'].includes(reason)
+      : (changeKind === 'daymod' && reason === 'kalirnaOut');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
+        || !monthKey || !person || !reasonAllowed || !allowedDateLabels.length) {
+      return { ok: false, reason: 'invalid-request', diagnostic: Object.freeze({ operation: 'unplanned-absence', reason: 'invalid-request', codeClass: 'application', httpStatus: 0 }) };
+    }
+    try {
+      const { data, error } = await runSupabaseOperation('rotation.unplanned-change-v2', () => client.rpc('rak_admin_apply_unplanned_change_v2', {
+        p_key: 'main',
+        p_payload: rotation && typeof rotation === 'object' ? rotation : null,
+        p_meta: { source: 'unplanned-change-v2', monthKey, changeKind },
+        p_expected_revision: state.rotationRevision,
+        p_operation_id: operationId,
+        p_month_key: monthKey,
+        p_person: person,
+        p_change_kind: changeKind,
+        p_reason: reason,
+        p_allowed_date_labels: allowedDateLabels
+      }), { mode: 'write', attempts: 1, timeoutMs: 18000 });
+      if (error) throw error;
+      const row = data && typeof data === 'object' ? data : null;
+      if (!row || !row.payload || !Number.isFinite(Number(row.revision))) throw new Error('Server nevrátil ověřený rozpis po neplánované změně.');
+      state.rotationRevision = Number(row.revision);
+      state.rotationSnapshot = row.payload;
+      state.lastError = null;
+      state.rotationSync.lastWriteAt = new Date().toISOString();
+      state.rotationSync.lastWriteRevision = state.rotationRevision;
+      state.rotationSync.lastError = null;
+      state.rotationSync.lastSource = 'remote-write';
+      state.rotationSync.offlinePersistence = await persistRotationOfflineSnapshot(row.payload, {
+        revision: state.rotationRevision,
+        remoteUpdatedAt: row.updated_at || '',
+        source: 'unplanned-change-v2-write'
+      });
+      return {
+        ok: true,
+        payload: row.payload,
+        revision: state.rotationRevision,
+        updatedAt: row.updated_at || '',
+        idempotentReplay: row.idempotent_replay === true
+      };
+    } catch (err) {
+      state.lastError = err;
+      state.rotationSync.lastError = err;
+      const diagnostic = diagnoseSupabaseRejection('unplanned-absence', err);
+      try { if (window.RAK_DIAGNOSTICS) window.RAK_DIAGNOSTICS.safeLog('warn', 'rotation unplanned change v2 rejected', diagnostic); } catch (_) {}
+      return { ok: false, reason: diagnostic.reason, diagnostic };
     }
   }
 
@@ -5301,6 +5619,7 @@
     signInAdminAccount,
     restoreAdminAuthSession,
     signOutAdminAccount,
+    getSignedAdminAccessToken,
     getAdminAccessToken,
     // RAK_SECURE_DIRECTORY_17027: same authenticated client as the admin console.
     listApplicationAccountsSecure: async () => {
@@ -5328,6 +5647,8 @@
     persistRotationOfflineSnapshot,
     getRotationOfflineDiagnostics,
     saveRotationState,
+    applyUnplannedAbsenceChange,
+    applyUnplannedChange,
     listRotationBackups,
     restoreRotationBackup,
     loadGomokuWins,
@@ -5502,16 +5823,21 @@
     },
     submitBugReport: async (payload) => {
       const client = getClient();
-      if (!client || !navigator.onLine) return await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload });
+      const hasScreenshot = !!(payload && payload.screenshot && String(payload.screenshot.base64 || '').trim());
+      if (!client || !navigator.onLine) {
+        if (hasScreenshot) return { ok: false, queued: false, reason: 'screenshot-online-required' };
+        return await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload });
+      }
       try {
-        if (shouldDeferOnlineWrite()) return Object.assign(await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload }), { deferred: true });
-        const result = await runOptimizedSupabaseWrite('bug_report.save:' + String(payload && payload.id || Date.now()), payload, () => saveBugReportDirect(client, payload), { windowMs: 500 });
+        if (shouldDeferOnlineWrite() && !hasScreenshot) return Object.assign(await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload }), { deferred: true });
+        const result = await runOptimizedSupabaseWrite('bug_report.save:' + String(payload && payload.id || Date.now()), payload, () => saveBugReportDirect(client, payload), { windowMs: hasScreenshot ? 0 : 500 });
         state.lastError = null;
         await flushPendingWrites();
         return Object.assign({ ok: true, queued: false }, result || {});
       } catch (err) {
         state.lastError = err;
         console.error('Bug report save failed', err);
+        if (hasScreenshot) return { ok: false, queued: false, reason: 'screenshot-upload-failed', error: err };
         if (isLikelyTransientError(err)) return await enqueueAndMaybeFlush({ type: 'bug_report', entry: payload });
         return { ok: false, error: err };
       }
@@ -5527,6 +5853,19 @@
         state.lastError = err;
         console.error('Bug reports load failed', err);
         return { ok: false, error: err, rows: [] };
+      }
+    },
+    loadBugReportScreenshot: async (id) => {
+      const client = getClient();
+      if (!client || !navigator.onLine) return { ok: false, reason: 'offline-or-missing-client' };
+      try {
+        const result = await loadBugReportScreenshotDirect(client, id);
+        state.lastError = null;
+        return result;
+      } catch (err) {
+        state.lastError = err;
+        console.error('Bug report screenshot load failed', err);
+        return { ok: false, error: err };
       }
     },
     updateBugReportStatus: async (id, status, note = '') => {
@@ -5738,6 +6077,217 @@
       return true;
     } catch (_) { return false; }
   }
+
+  // RAK_17101_SINGLE_CONFLICT_RESCUE: parse top-level queue objects without
+  // reserializing them, so a private export can contain the original stored bytes.
+  const rakQueueConflictExportReceipts = new Map();
+  const rakQueueConflictReviewReceipts = new Map();
+
+  function rakQueueRawObjectSlices(raw) {
+    const text = String(raw || '');
+    const slices = [];
+    let arrayDepth = 0, objectDepth = 0, inString = false, escaped = false, start = -1;
+    for (let i = 0; i < text.length; i += 1) {
+      const ch = text[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === '\\') escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') { inString = true; continue; }
+      if (ch === '[') { arrayDepth += 1; continue; }
+      if (ch === ']') { arrayDepth -= 1; continue; }
+      if (arrayDepth !== 1) continue;
+      if (ch === '{') {
+        if (objectDepth === 0) start = i;
+        objectDepth += 1;
+      } else if (ch === '}') {
+        objectDepth -= 1;
+        if (objectDepth === 0 && start >= 0) {
+          slices.push({ start, end: i + 1, raw: text.slice(start, i + 1) });
+          start = -1;
+        }
+      }
+    }
+    return slices;
+  }
+
+  function rakQueueConflictSignature(rawItem, queueIndex) {
+    const source = String(queueIndex) + '\u0000' + String(rawItem || '');
+    let hash = 2166136261;
+    for (let i = 0; i < source.length; i += 1) hash = Math.imul(hash ^ source.charCodeAt(i), 16777619);
+    return (hash >>> 0).toString(16) + ':' + source.length;
+  }
+
+  function rakRemoveRawQueueItem(raw, queueIndex) {
+    const text = String(raw || '');
+    let queue;
+    try { queue = JSON.parse(text); } catch (_) { return { ok: false, reason: 'queue-unreadable' }; }
+    const slices = rakQueueRawObjectSlices(text);
+    const index = Number(queueIndex);
+    if (!Array.isArray(queue) || slices.length !== queue.length || !Number.isSafeInteger(index) || index < 0 || index >= queue.length) {
+      return { ok: false, reason: 'queue-changed' };
+    }
+    let nextRaw;
+    if (queue.length === 1) nextRaw = '[]';
+    else if (index < queue.length - 1) nextRaw = text.slice(0, slices[index].start) + text.slice(slices[index + 1].start);
+    else nextRaw = text.slice(0, slices[index - 1].end) + text.slice(slices[index].end);
+    try {
+      const next = JSON.parse(nextRaw);
+      if (!Array.isArray(next) || next.length !== queue.length - 1) return { ok: false, reason: 'rewrite-verification-failed' };
+      return { ok: true, nextRaw, next };
+    } catch (_) { return { ok: false, reason: 'rewrite-verification-failed' }; }
+  }
+
+  function rakQueueConflictCategory(type) {
+    const value = String(type || '');
+    if (value === 'rotation_state' || value === 'rotation_month_entries') return 'rozpis';
+    if (value === 'machine_settings') return 'stroj';
+    return 'ostatní';
+  }
+
+  function getRakQueueConflictItems() {
+    let raw, queue;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); queue = raw ? JSON.parse(raw) : []; }
+    catch (_) { return { ok: false, reason: 'queue-unreadable', items: [] }; }
+    if (!Array.isArray(queue)) return { ok: false, reason: 'queue-invalid', items: [] };
+    const slices = rakQueueRawObjectSlices(raw || '[]');
+    if (slices.length !== queue.length) return { ok: false, reason: 'raw-layout-unverified', items: [] };
+    const items = [];
+    queue.forEach((task, index) => {
+      if (!task || typeof task !== 'object' || !task.conflict) return;
+      const type = String(task.type || 'unknown');
+      const summary = summarizeQueuedSyncTask(task);
+      const category = rakQueueConflictCategory(type);
+      items.push({
+        index,
+        type,
+        category,
+        label: summary.label,
+        reason: String(task.conflict || 'conflict').slice(0, 80),
+        retries: summary.retries,
+        signature: rakQueueConflictSignature(slices[index].raw, index),
+        discardSupported: category !== 'ostatní'
+      });
+    });
+    return { ok: true, items, total: items.length };
+  }
+
+  function downloadRakQueueConflictItem(queueIndex, expectedSignature) {
+    try {
+      const raw = localStorage.getItem(LOCAL_QUEUE_KEY);
+      if (!raw) return { ok: false, reason: 'queue-empty' };
+      const queue = JSON.parse(raw);
+      const slices = rakQueueRawObjectSlices(raw);
+      const index = Number(queueIndex);
+      if (!Array.isArray(queue) || !Number.isSafeInteger(index) || index < 0 || index >= queue.length || slices.length !== queue.length) {
+        return { ok: false, reason: 'queue-changed' };
+      }
+      const task = queue[index];
+      if (!task || !task.conflict) return { ok: false, reason: 'not-conflict' };
+      const signature = rakQueueConflictSignature(slices[index].raw, index);
+      if (!expectedSignature || signature !== expectedSignature) return { ok: false, reason: 'queue-changed' };
+      const blob = new Blob([slices[index].raw], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'RaK_konflikt_' + rakQueueConflictCategory(task.type) + '_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      rakQueueConflictExportReceipts.set(signature, Date.now());
+      return { ok: true, signature, byteLength: new TextEncoder().encode(slices[index].raw).byteLength };
+    } catch (_) { return { ok: false, reason: 'export-failed' }; }
+  }
+
+  async function reviewRakQueueConflictOnDemand(queueIndex, expectedSignature) {
+    const blocked = reason => ({ ok: false, reason, readOnly: true, atomicWritePerformed: false, serverContentCompared: false });
+    if (typeof navigator === 'undefined' || !navigator.onLine) return blocked('offline');
+    if (!hasSecureAdminContext()) return blocked('admin-auth-required');
+    if (flushPromise) return blocked('queue-busy');
+    let raw, queue, slices;
+    try { raw = localStorage.getItem(LOCAL_QUEUE_KEY); queue = raw ? JSON.parse(raw) : []; slices = rakQueueRawObjectSlices(raw || '[]'); }
+    catch (_) { return blocked('queue-unreadable'); }
+    const index = Number(queueIndex);
+    if (!Array.isArray(queue) || slices.length !== queue.length || !Number.isSafeInteger(index) || index < 0 || index >= queue.length) return blocked('queue-changed');
+    const task = queue[index];
+    if (!task || !task.conflict) return blocked('not-conflict');
+    const signature = rakQueueConflictSignature(slices[index].raw, index);
+    if (!expectedSignature || signature !== expectedSignature) return blocked('queue-changed');
+    const category = rakQueueConflictCategory(task.type);
+    if (category === 'ostatní') return Object.assign(blocked('manual-review-required'), { ok: true, signature, category, discardSupported: false });
+
+    const client = getClient();
+    if (!client || !client.auth || typeof client.auth.getUser !== 'function') return blocked('missing-auth-client');
+    try {
+      const verified = await client.auth.getUser();
+      if (verified.error || !verified.data || !verified.data.user) return blocked('identity-not-verified');
+      const auth = await client.rpc('rak_admin_context');
+      const context = auth && auth.data;
+      if (auth.error || !context || context.authenticated !== true || !['owner','admin'].includes(context.role)
+        || !state.adminAuth.context || context.account_id !== state.adminAuth.context.account_id) return blocked('admin-auth-required');
+
+      let serverState = 'checked';
+      if (task.type === 'rotation_state') {
+        const result = await client.from('rotation_state').select('revision').eq('key', 'main').maybeSingle();
+        if (result.error) throw result.error;
+        serverState = result.data ? 'rotation-exists' : 'rotation-missing';
+      } else if (task.type === 'rotation_month_entries') {
+        const monthStart = String(task.monthStart || task.month_start || '').trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(monthStart)) return blocked('month-unverified');
+        const result = await client.from('rotation_entries').select('id', { count: 'exact', head: true }).eq('month_start', monthStart);
+        if (result.error) throw result.error;
+        serverState = 'month-rows:' + Math.max(0, Number(result.count || 0));
+      } else if (task.type === 'machine_settings') {
+        const result = await client.from('machine_settings').select('id', { count: 'exact', head: true });
+        if (result.error) throw result.error;
+        serverState = 'machine-rows:' + Math.max(0, Number(result.count || 0));
+      }
+      rakQueueConflictReviewReceipts.set(signature, { at: Date.now(), serverState, category });
+      return { ok: true, signature, category, discardSupported: true, readOnly: true, serverState,
+        serverContentCompared: false, atomicWritePerformed: false, checkedAt: new Date().toISOString() };
+    } catch (_) { return blocked('server-check-failed'); }
+  }
+
+  function discardRakQueueConflictItem(queueIndex, expectedSignature) {
+    const denied = reason => ({ ok: false, reason, removed: 0 });
+    if (!hasSecureAdminContext()) return denied('admin-auth-required');
+    if (flushPromise) return denied('queue-busy');
+    const exportAt = Number(rakQueueConflictExportReceipts.get(expectedSignature) || 0);
+    const review = rakQueueConflictReviewReceipts.get(expectedSignature);
+    if (!exportAt || Date.now() - exportAt > 5 * 60 * 1000) return denied('private-export-required');
+    if (!review || Date.now() - Number(review.at || 0) > 5 * 60 * 1000) return denied('server-review-required');
+    if (review.category === 'ostatní') return denied('manual-review-required');
+
+    try {
+      const raw = localStorage.getItem(LOCAL_QUEUE_KEY);
+      const queue = raw ? JSON.parse(raw) : [];
+      const slices = rakQueueRawObjectSlices(raw || '[]');
+      const index = Number(queueIndex);
+      if (!Array.isArray(queue) || slices.length !== queue.length || !Number.isSafeInteger(index) || index < 0 || index >= queue.length) return denied('queue-changed');
+      const task = queue[index];
+      if (!task || !task.conflict) return denied('not-conflict');
+      const signature = rakQueueConflictSignature(slices[index].raw, index);
+      if (signature !== expectedSignature) return denied('queue-changed');
+
+      const removed = rakRemoveRawQueueItem(raw, index);
+      if (!removed.ok) return denied(removed.reason || 'rewrite-verification-failed');
+      localStorage.setItem(LOCAL_QUEUE_KEY, removed.nextRaw);
+      if (localStorage.getItem(LOCAL_QUEUE_KEY) !== removed.nextRaw) throw new Error('queue-verification');
+      rakQueueConflictExportReceipts.delete(signature);
+      rakQueueConflictReviewReceipts.delete(signature);
+      rememberQueueHealth(removed.next);
+      return { ok: true, removed: 1, remaining: removed.next.length, category: rakQueueConflictCategory(task.type) };
+    } catch (_) { return denied('storage-write-failed'); }
+  }
+
+  window.getRakQueueConflictItems = getRakQueueConflictItems;
+  window.downloadRakQueueConflictItem = downloadRakQueueConflictItem;
+  window.reviewRakQueueConflictOnDemand = reviewRakQueueConflictOnDemand;
+  window.discardRakQueueConflictItem = discardRakQueueConflictItem;
 
   // RAK_17063_MANUAL_REVISION_GUARD: on-demand owner/admin only, read the
   // server revision without fetching content. Equal revisions never authorize replay.

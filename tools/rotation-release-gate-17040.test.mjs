@@ -15,7 +15,7 @@ function fixture() {
     'supabase/history/non-production-migrations/20260919111542_rak_rotation_archive_import_provenance.sql':'private.rak_rotation_import_metadata_v1',
     'tools/security-rotation-minimization-17040.sql':'ROLLBACK;',
     'PUBLIC_ROTATION_MINIMIZATION_17040.md':'offline',
-    'RAK_PLAN_13.md':'OS číslo 0/13 importMeta\n'+tasks.map(id=>`| ${id} | item |`).join('\n')
+    'RAK_HANDOFF.md':'OS číslo 0/13 importMeta\n'+tasks.map(id=>`| ${id} | item |`).join('\n')
   };
 }
 test('release markers, minimal column projection, OS-only and thirteen tasks pass',()=>{
@@ -30,7 +30,7 @@ test('stale service worker fails closed',()=>{
   assert.throws(()=>assertRotationRelease(f),/Missing release marker/);
 });
 test('missing roadmap task fails closed',()=>{
-  const f=fixture();f['RAK_PLAN_13.md']=f['RAK_PLAN_13.md'].replace(/^\| P2\.4 \|.*$/m,'');
+  const f=fixture();f['RAK_HANDOFF.md']=f['RAK_HANDOFF.md'].replace(/^\| P2\.4 \|.*$/m,'');
   assert.throws(()=>assertRotationRelease(f));
 });
 test('accidentally widened SELECT fails closed',()=>{

@@ -123,6 +123,11 @@
           "path": "tools/pwa-start-bench-17068.mjs",
           "marker": "export const ROUNDS=3;",
           "runner": "workflow:node tools/pwa-start-bench-17068.mjs"
+        },
+        {
+          "path": "tools/performance-parity-17069.mjs",
+          "marker": "rak-performance-parity-evidence-v1",
+          "runner": "workflow:node tools/performance-parity-17069.mjs"
         }
       ]
     }

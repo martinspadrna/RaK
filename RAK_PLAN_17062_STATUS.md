@@ -1,6 +1,6 @@
 # RaK – stav plánu 13 bodů po kandidátu 1.7.62 (20. 9. 2026)
 
-Větev výhradně `development`, pouze TEST Supabase `cgshssdjgzzuprlwnabl`, technická verze `1.7.0`. Stav "nasazeno" platí teprve po úspěchu nezávislých GitHub Actions, kontrole odpovídajícího SHA a Vercel READY. Fyzické iOS Safari nelze nahradit Chromiem. Nemaž data PWA ani lokální čekající změny. Výchozí audit a historický kontext jsou v `RAK_PLAN_13.md` a ve stavech 1.7.60/61.
+Větev výhradně `development`, pouze TEST Supabase `cgshssdjgzzuprlwnabl`, technická verze `1.7.0`. Stav "nasazeno" platí teprve po úspěchu nezávislých GitHub Actions, kontrole odpovídajícího SHA a Vercel READY. Fyzické iOS Safari nelze nahradit Chromiem. Nemaž data PWA ani lokální čekající změny. Výchozí audit a historický kontext jsou v `RAK_HANDOFF.md` a ve stavech 1.7.60/61.
 
 | Bod | Stav | Nový důkaz / zbývá |
 |---|---|---|

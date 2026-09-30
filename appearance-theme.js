@@ -205,6 +205,19 @@ const rakProfileUiRemoteSaveTimers = new Map();
 const rakProfileUiRemoteSavePromises = new Map();
 const rakProfileUiRemoteLoadPromises = new Map();
 const rakProfileUiLastRemoteSaveSignatures = new Map();
+
+function normalizeProfileCalendarKeys(value) {
+  if (!Array.isArray(value)) return null;
+  const keys = Array.from(new Set(value.map((key) => String(key || '').trim()).filter((key) => /^(obrabeni|kalirna)-[ABCD]$/.test(key))));
+  return keys.slice(0, 8);
+}
+
+function sameProfileCalendarKeys(a, b) {
+  const left = normalizeProfileCalendarKeys(a);
+  const right = normalizeProfileCalendarKeys(b);
+  if (left === null || right === null) return left === right;
+  return left.length === right.length && left.every((key, index) => key === right[index]);
+}
 const rakProfileUiSyncGuard = {
   remoteLoads: 0,
   remoteApplies: 0,
@@ -224,10 +237,15 @@ const rakProfileUiSyncGuard = {
 
 function getProfileUiPayloadSignature(payload) {
   if (!payload || typeof payload !== 'object') return '';
+  const calendarKeys = normalizeProfileCalendarKeys(payload.calendar_keys ?? payload.calendarKeys);
+  const calendarHiddenKeys = normalizeProfileCalendarKeys(payload.calendar_hidden_keys ?? payload.calendarHiddenKeys);
   return [
     String(payload.account_number || payload.accountNumber || '').trim(),
     normalizeThemePreferenceId(payload.theme_id || payload.themeId || payload.theme || 'default', 'default'),
-    normalizeBackgroundPreferenceId(payload.background_id || payload.backgroundId || payload.background || 'ios-mesh', 'ios-mesh')
+    normalizeBackgroundPreferenceId(payload.background_id || payload.backgroundId || payload.background || 'ios-mesh', 'ios-mesh'),
+    calendarKeys === null ? '~' : calendarKeys.join(','),
+    calendarHiddenKeys === null ? '~' : calendarHiddenKeys.join(','),
+    Math.max(0, Number(payload.expected_revision ?? payload.serverRevision ?? payload.revision ?? 0) || 0)
   ].join('|');
 }
 
@@ -238,6 +256,10 @@ function getProfileUiSyncStatus() {
     account: account ? String(account.name || account.id || '').trim() : '',
     themeId: ui && ui.themeId ? ui.themeId : getLocalThemePreference(),
     backgroundId: ui && ui.backgroundId ? ui.backgroundId : getLocalBackgroundPreference(),
+    calendarKeys: ui && Array.isArray(ui.calendarKeys) ? ui.calendarKeys.slice() : [],
+    calendarHiddenKeys: ui && Array.isArray(ui.calendarHiddenKeys) ? ui.calendarHiddenKeys.slice() : [],
+    serverRevision: ui ? Math.max(0, Number(ui.serverRevision || 0) || 0) : 0,
+    dirty: !!(ui && ui.dirty === true),
     remoteLoadActive: rakProfileUiRemoteLoadPromises.size > 0,
     remoteSaveActive: rakProfileUiRemoteSavePromises.size > 0,
     guard: Object.assign({}, rakProfileUiSyncGuard)
@@ -298,7 +320,14 @@ function ensureAccountUiSettings(account) {
   if (!account.uiSettings.backgroundId && (account.backgroundId || account.uiBackground)) account.uiSettings.backgroundId = String(account.backgroundId || account.uiBackground || '').trim();
   account.uiSettings.themeId = account.uiSettings.themeId ? normalizeThemePreferenceId(account.uiSettings.themeId, '') : '';
   account.uiSettings.backgroundId = account.uiSettings.backgroundId ? normalizeBackgroundPreferenceId(account.uiSettings.backgroundId, '') : '';
+  const rawCalendarKeys = Object.prototype.hasOwnProperty.call(account.uiSettings, 'calendarKeys') ? account.uiSettings.calendarKeys : account.calendarKeys;
+  account.uiSettings.calendarKeys = normalizeProfileCalendarKeys(rawCalendarKeys);
+  const rawCalendarHiddenKeys = Object.prototype.hasOwnProperty.call(account.uiSettings, 'calendarHiddenKeys') ? account.uiSettings.calendarHiddenKeys : account.calendarHiddenKeys;
+  account.uiSettings.calendarHiddenKeys = normalizeProfileCalendarKeys(rawCalendarHiddenKeys) || [];
   account.uiSettings.updatedAt = Number(account.uiSettings.updatedAt || 0) || 0;
+  account.uiSettings.serverRevision = Math.max(0, Number(account.uiSettings.serverRevision || 0) || 0);
+  account.uiSettings.serverUpdatedAt = String(account.uiSettings.serverUpdatedAt || '');
+  account.uiSettings.dirty = account.uiSettings.dirty === true;
   return account.uiSettings;
 }
 
@@ -312,6 +341,15 @@ function getProfileBackgroundPreference() {
   const account = getActiveProfileUiAccount();
   const ui = ensureAccountUiSettings(account);
   return ui && ui.backgroundId ? normalizeBackgroundPreferenceId(ui.backgroundId, '') : '';
+}
+
+function persistProfileUiState(profile, account, ui) {
+  if (!profile || !account || !ui) return false;
+  account.updatedAt = Math.max(Number(account.updatedAt || 0) || 0, Number(ui.updatedAt || 0) || 0);
+  if (typeof GAMES_PROFILE_RESET_VERSION !== 'undefined') profile.profileVersion = GAMES_PROFILE_RESET_VERSION;
+  if (typeof gamesSaveProfile === 'function') gamesSaveProfile(profile);
+  try { if (typeof app === 'object' && app) app.gamesProfile = profile; } catch (err) {}
+  return true;
 }
 
 function saveActiveAccountUiSettings(partial, options = {}) {
@@ -328,12 +366,24 @@ function saveActiveAccountUiSettings(partial, options = {}) {
     const nextBg = normalizeBackgroundPreferenceId(partial.backgroundId, ui.backgroundId || getLocalBackgroundPreference());
     if (ui.backgroundId !== nextBg) { ui.backgroundId = nextBg; changed = true; }
   }
+  if (Object.prototype.hasOwnProperty.call(partial || {}, 'calendarKeys')) {
+    const nextKeys = normalizeProfileCalendarKeys(partial.calendarKeys);
+    if (nextKeys && nextKeys.length && !sameProfileCalendarKeys(ui.calendarKeys, nextKeys)) {
+      ui.calendarKeys = nextKeys;
+      changed = true;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(partial || {}, 'calendarHiddenKeys')) {
+    const nextHiddenKeys = normalizeProfileCalendarKeys(partial.calendarHiddenKeys);
+    if (nextHiddenKeys !== null && !sameProfileCalendarKeys(ui.calendarHiddenKeys, nextHiddenKeys)) {
+      ui.calendarHiddenKeys = nextHiddenKeys;
+      changed = true;
+    }
+  }
   if (changed || !ui.updatedAt) {
     ui.updatedAt = Date.now();
-    account.updatedAt = Math.max(Number(account.updatedAt || 0) || 0, ui.updatedAt);
-    profile.profileVersion = GAMES_PROFILE_RESET_VERSION;
-    gamesSaveProfile(profile);
-    app.gamesProfile = profile;
+    ui.dirty = true;
+    persistProfileUiState(profile, account, ui);
   }
   if (!options.skipRemote) scheduleActiveAccountUiRemoteSave(options.reason || 'profile-ui-local-save');
   return true;
@@ -344,10 +394,16 @@ function getAccountUiRemotePayload(accountId) {
   const ui = ensureAccountUiSettings(account);
   if (!account || !ui) return null;
   const appearance = normalizeThemePreferenceId(ui.themeId || ui.backgroundId || RAK_DEFAULT_APPEARANCE_ID, RAK_DEFAULT_APPEARANCE_ID);
+  const localCalendarKeys = normalizeProfileCalendarKeys(ui.calendarKeys);
+  const fallbackCalendarKeys = typeof getRakSelectedCalendarKeys === 'function' ? normalizeProfileCalendarKeys(getRakSelectedCalendarKeys()) : null;
+  const localCalendarHiddenKeys = normalizeProfileCalendarKeys(ui.calendarHiddenKeys) || [];
   return {
     account_number: String(account.id || '').trim(),
     theme_id: appearance,
     background_id: appearance,
+    calendar_keys: localCalendarKeys && localCalendarKeys.length ? localCalendarKeys : fallbackCalendarKeys,
+    calendar_hidden_keys: localCalendarHiddenKeys,
+    expected_revision: Math.max(0, Number(ui.serverRevision || 0) || 0),
     updated_at: new Date(Number(ui.updatedAt || Date.now()) || Date.now()).toISOString()
   };
 }
@@ -355,6 +411,57 @@ function getAccountUiRemotePayload(accountId) {
 function getActiveAccountUiRemotePayload() {
   const account = getActiveProfileUiAccount();
   return account ? getAccountUiRemotePayload(account.id) : null;
+}
+
+function getProfileUiAccountState(accountId) {
+  const id = String(accountId || '').trim();
+  const profile = typeof gamesGetProfile === 'function' ? gamesGetProfile() : null;
+  const account = profile && profile.accounts ? profile.accounts[id] : null;
+  const ui = ensureAccountUiSettings(account);
+  return profile && account && ui ? { profile, account, ui } : null;
+}
+
+function applyRemoteAccountUiState(accountId, remote, reason) {
+  const id = String(accountId || '').trim();
+  if (!id || !remote || typeof remote !== 'object' || !isProfileUiAccountActive(id)) return false;
+  const state = getProfileUiAccountState(id);
+  if (!state) return false;
+  const appearance = normalizeThemePreferenceId(remote.appearance_id || remote.theme_id || remote.background_id || '', '');
+  if (!appearance) return false;
+  const remoteCalendarKeys = normalizeProfileCalendarKeys(remote.calendar_keys ?? remote.calendarKeys);
+  const remoteCalendarHiddenKeys = normalizeProfileCalendarKeys(remote.calendar_hidden_keys ?? remote.calendarHiddenKeys);
+  const remoteRevision = Math.max(0, Number(remote.revision || remote.serverRevision || 0) || 0);
+  const remoteUpdatedAt = String(remote.updated_at || remote.updatedAt || '');
+  const remoteTs = Date.parse(remoteUpdatedAt) || 0;
+  const calendarChanged = !!(remoteCalendarKeys && remoteCalendarKeys.length && !sameProfileCalendarKeys(state.ui.calendarKeys, remoteCalendarKeys));
+  const calendarHiddenChanged = remoteCalendarHiddenKeys !== null && !sameProfileCalendarKeys(state.ui.calendarHiddenKeys, remoteCalendarHiddenKeys);
+  const changed = state.ui.themeId !== appearance || state.ui.backgroundId !== appearance || calendarChanged || calendarHiddenChanged;
+  state.ui.themeId = appearance;
+  state.ui.backgroundId = appearance;
+  if (remoteCalendarKeys && remoteCalendarKeys.length) state.ui.calendarKeys = remoteCalendarKeys;
+  if (remoteCalendarHiddenKeys !== null) state.ui.calendarHiddenKeys = remoteCalendarHiddenKeys;
+  state.ui.serverRevision = remoteRevision;
+  state.ui.serverUpdatedAt = remoteUpdatedAt;
+  state.ui.dirty = false;
+  if (remoteTs > 0) state.ui.updatedAt = remoteTs;
+  else if (!state.ui.updatedAt) state.ui.updatedAt = Date.now();
+  persistProfileUiState(state.profile, state.account, state.ui);
+  rakProfileUiLastRemoteSaveSignatures.set(id, getProfileUiPayloadSignature(getAccountUiRemotePayload(id)));
+  if (changed) {
+    rakProfileUiSyncGuard.remoteApplies += 1;
+    rakProfileUiSyncGuard.lastApplyAt = Date.now();
+  } else {
+    rakProfileUiSyncGuard.remoteSameSkips += 1;
+  }
+  applyAppearancePreference(appearance, true, { skipProfile: true, skipRemote: true });
+  if (remoteCalendarKeys && remoteCalendarKeys.length && typeof window.applyRakRemoteCalendarSelection === 'function') {
+    window.applyRakRemoteCalendarSelection(remoteCalendarKeys, id);
+  }
+  if (remoteCalendarHiddenKeys !== null && typeof window.applyRakRemoteCalendarHiddenKeys === 'function') {
+    window.applyRakRemoteCalendarHiddenKeys(remoteCalendarHiddenKeys, id);
+  }
+  if (typeof renderThemeSettingsCards === 'function') renderThemeSettingsCards();
+  return true;
 }
 
 function scheduleActiveAccountUiRemoteSave(reason) {
@@ -395,6 +502,50 @@ function scheduleActiveAccountUiRemoteSave(reason) {
   return true;
 }
 
+function markSuccessfulAccountUiRemoteSave(accountId, result) {
+  const id = String(accountId || '').trim();
+  const state = getProfileUiAccountState(id);
+  if (state && isProfileUiAccountActive(id)) {
+    state.ui.serverRevision = Math.max(0, Number(result && result.revision || state.ui.serverRevision || 0) || 0);
+    state.ui.serverUpdatedAt = String(result && (result.updated_at || result.updatedAt) || state.ui.serverUpdatedAt || '');
+    state.ui.dirty = false;
+    persistProfileUiState(state.profile, state.account, state.ui);
+    rakProfileUiLastRemoteSaveSignatures.set(id, getProfileUiPayloadSignature(getAccountUiRemotePayload(id)));
+  }
+  rakProfileUiSyncGuard.remoteSaves += 1;
+  rakProfileUiSyncGuard.lastSaveAt = Date.now();
+  return result;
+}
+
+async function resolveAccountUiSaveResult(accountId, result, reason, bridge) {
+  const id = String(accountId || '').trim();
+  if (result && (result.queued || result.deferred)) {
+    rakProfileUiSyncGuard.remoteSaveQueued += 1;
+    return result;
+  }
+  if (result && result.ok !== false) return markSuccessfulAccountUiRemoteSave(id, result);
+  if (result && result.conflict === true && isProfileUiAccountActive(id)) {
+    const state = getProfileUiAccountState(id);
+    const remoteRevision = Math.max(0, Number(result.revision || 0) || 0);
+    const remoteTs = Date.parse(String(result.updated_at || result.updatedAt || '')) || 0;
+    const localTs = state ? Math.max(0, Number(state.ui.updatedAt || 0) || 0) : 0;
+    const canRetry = state && state.ui.dirty === true && localTs > remoteTs && !String(reason || '').includes(':cas-retry');
+    if (canRetry) {
+      state.ui.serverRevision = remoteRevision;
+      state.ui.serverUpdatedAt = String(result.updated_at || result.updatedAt || '');
+      persistProfileUiState(state.profile, state.account, state.ui);
+      const retryPayload = getAccountUiRemotePayload(id);
+      const retryResult = retryPayload && bridge && typeof bridge.saveGameAccountUiSettings === 'function'
+        ? await bridge.saveGameAccountUiSettings(Object.assign({ reason: String(reason || 'profile-ui-save') + ':cas-retry' }, retryPayload))
+        : null;
+      return await resolveAccountUiSaveResult(id, retryResult, String(reason || 'profile-ui-save') + ':cas-retry', bridge);
+    }
+    applyRemoteAccountUiState(id, result, 'profile-ui-cas-conflict');
+  }
+  rakProfileUiSyncGuard.remoteSaveErrors += 1;
+  return result || { ok: false, reason: 'empty-save-result' };
+}
+
 async function pushAccountUiRemoteSettings(accountId, reason) {
   const id = String(accountId || '').trim();
   const bridge = window.RotationSupabaseBridge;
@@ -413,17 +564,7 @@ async function pushAccountUiRemoteSettings(accountId, reason) {
   }
   let savePromise;
   savePromise = bridge.saveGameAccountUiSettings(Object.assign({ reason: reason || 'profile-ui-save' }, payload))
-    .then((result) => {
-      if (result && result.ok !== false) {
-        rakProfileUiLastRemoteSaveSignatures.set(id, signature);
-        rakProfileUiSyncGuard.remoteSaves += 1;
-        rakProfileUiSyncGuard.lastSaveAt = Date.now();
-        if (result.queued || result.deferred) rakProfileUiSyncGuard.remoteSaveQueued += 1;
-      } else {
-        rakProfileUiSyncGuard.remoteSaveErrors += 1;
-      }
-      return result;
-    })
+    .then((result) => resolveAccountUiSaveResult(id, result, reason, bridge))
     .catch((err) => {
       rakProfileUiSyncGuard.remoteSaveErrors += 1;
       console.warn('Profile UI remote save failed', err);
@@ -458,63 +599,78 @@ async function loadActiveAccountUiRemoteSettings(accountId) {
         rakProfileUiSyncGuard.remoteUnavailableSkips = Number(rakProfileUiSyncGuard.remoteUnavailableSkips || 0) + 1;
         return { ok: true, skipped: true, reason: String(remote.reason || 'remote-unavailable') };
       }
+      if (!isProfileUiAccountActive(id)) return { ok: true, skipped: true, reason: 'account-switched' };
+      const state = getProfileUiAccountState(id);
+      if (!state) return null;
+
       if (!remote || typeof remote !== 'object') {
         rakProfileUiSyncGuard.remoteMissingCreates += 1;
-        if (!isProfileUiAccountActive(id)) return { ok: true, skipped: true, reason: 'account-switched' };
-        const profile = typeof gamesGetProfile === 'function' ? gamesGetProfile() : null;
-        const account = profile && profile.accounts ? profile.accounts[id] : null;
-        const ui = ensureAccountUiSettings(account);
-        if (!profile || !account || !ui) return null;
-        if (!ui.themeId && !ui.backgroundId) {
-          ui.themeId = RAK_DEFAULT_APPEARANCE_ID;
-          ui.backgroundId = RAK_DEFAULT_APPEARANCE_ID;
-          ui.updatedAt = Date.now();
-          account.updatedAt = Math.max(Number(account.updatedAt || 0) || 0, ui.updatedAt);
-          profile.profileVersion = GAMES_PROFILE_RESET_VERSION;
-          gamesSaveProfile(profile);
-          app.gamesProfile = profile;
-          applyAppearancePreference(RAK_DEFAULT_APPEARANCE_ID, true, { skipProfile: true });
-        }
-        void pushAccountUiRemoteSettings(id, 'profile-ui-create-missing-remote');
-        return null;
+        const appearance = normalizeThemePreferenceId(state.ui.themeId || state.ui.backgroundId || RAK_DEFAULT_APPEARANCE_ID, RAK_DEFAULT_APPEARANCE_ID);
+        state.ui.themeId = appearance;
+        state.ui.backgroundId = appearance;
+        const seedCalendarKeys = typeof getRakSelectedCalendarKeys === 'function' ? normalizeProfileCalendarKeys(getRakSelectedCalendarKeys()) : null;
+        const seedCalendarHiddenKeys = typeof getRakCalendarHiddenKeys === 'function' ? normalizeProfileCalendarKeys(getRakCalendarHiddenKeys()) : [];
+        if (seedCalendarKeys && seedCalendarKeys.length) state.ui.calendarKeys = seedCalendarKeys;
+        state.ui.calendarHiddenKeys = seedCalendarHiddenKeys || [];
+        if (!state.ui.updatedAt) state.ui.updatedAt = Date.now();
+        state.ui.serverRevision = 0;
+        state.ui.serverUpdatedAt = '';
+        state.ui.dirty = true;
+        persistProfileUiState(state.profile, state.account, state.ui);
+        applyAppearancePreference(appearance, true, { skipProfile: true, skipRemote: true });
+        return await pushAccountUiRemoteSettings(id, 'profile-ui-create-missing-remote');
       }
-      const remoteTheme = normalizeThemePreferenceId(remote.theme_id || remote.themeId || remote.theme || '', '');
-      const remoteBg = normalizeBackgroundPreferenceId(remote.background_id || remote.backgroundId || remote.background || '', '');
-      const remoteAppearance = remoteTheme || remoteBg;
+
+      const remoteAppearance = normalizeThemePreferenceId(remote.appearance_id || remote.theme_id || remote.background_id || '', '');
       if (!remoteAppearance) return null;
-      if (!isProfileUiAccountActive(id)) return { ok: true, skipped: true, reason: 'account-switched' };
-      const profile = typeof gamesGetProfile === 'function' ? gamesGetProfile() : null;
-      const account = profile && profile.accounts ? profile.accounts[id] : null;
-      const ui = ensureAccountUiSettings(account);
-      if (!profile || !account || !ui) return null;
-      const localTs = Number(ui.updatedAt || 0) || 0;
+      const remoteRevision = Math.max(0, Number(remote.revision || 0) || 0);
       const remoteTs = Date.parse(String(remote.updated_at || remote.updatedAt || '')) || 0;
-      const remoteIsOlder = localTs > 0 && remoteTs > 0 && remoteTs + 1000 < localTs;
-      if (remoteIsOlder) {
-        rakProfileUiSyncGuard.remoteOlderSkips += 1;
-        void pushAccountUiRemoteSettings(id, 'profile-ui-remote-older-push-local');
-        return Object.assign({ ok: true, skipped: true, reason: 'remote-older' }, remote);
+      const localRevision = Math.max(0, Number(state.ui.serverRevision || 0) || 0);
+      const localTs = Math.max(0, Number(state.ui.updatedAt || 0) || 0);
+      const localAppearance = normalizeThemePreferenceId(state.ui.themeId || state.ui.backgroundId || RAK_DEFAULT_APPEARANCE_ID, RAK_DEFAULT_APPEARANCE_ID);
+      const remoteCalendarKeys = normalizeProfileCalendarKeys(remote.calendar_keys ?? remote.calendarKeys) || [];
+      const remoteCalendarHiddenKeys = normalizeProfileCalendarKeys(remote.calendar_hidden_keys ?? remote.calendarHiddenKeys);
+      const storedLocalCalendarKeys = normalizeProfileCalendarKeys(state.ui.calendarKeys);
+      const fallbackLocalCalendarKeys = typeof getRakSelectedCalendarKeys === 'function' ? normalizeProfileCalendarKeys(getRakSelectedCalendarKeys()) : null;
+      const localCalendarKeys = storedLocalCalendarKeys && storedLocalCalendarKeys.length ? storedLocalCalendarKeys : (fallbackLocalCalendarKeys || []);
+      const localCalendarHiddenKeys = normalizeProfileCalendarKeys(state.ui.calendarHiddenKeys) || [];
+
+      if (!remoteCalendarKeys.length && localCalendarKeys.length) {
+        state.ui.calendarKeys = localCalendarKeys;
+        state.ui.serverRevision = remoteRevision;
+        state.ui.serverUpdatedAt = String(remote.updated_at || remote.updatedAt || '');
+        state.ui.updatedAt = Math.max(localTs, Date.now());
+        state.ui.dirty = true;
+        persistProfileUiState(state.profile, state.account, state.ui);
+        return await pushAccountUiRemoteSettings(id, 'calendar-selection-seed');
       }
-      let changed = false;
-      if (ui.themeId !== remoteAppearance) { ui.themeId = remoteAppearance; changed = true; }
-      if (ui.backgroundId !== remoteAppearance) { ui.backgroundId = remoteAppearance; changed = true; }
-      ui.updatedAt = Math.max(localTs, remoteTs || Date.now());
-      if (changed) {
-        rakProfileUiSyncGuard.remoteApplies += 1;
-        rakProfileUiSyncGuard.lastApplyAt = Date.now();
-        account.updatedAt = Math.max(Number(account.updatedAt || 0) || 0, ui.updatedAt);
-        profile.profileVersion = GAMES_PROFILE_RESET_VERSION;
-        gamesSaveProfile(profile);
-        app.gamesProfile = profile;
-        applyAppearancePreference(ui.themeId || RAK_DEFAULT_APPEARANCE_ID, true, { skipProfile: true });
-        if (remoteTheme !== remoteAppearance || remoteBg !== remoteAppearance) scheduleActiveAccountUiRemoteSave('profile-ui-locked-remote-normalized');
-        if (typeof renderThemeSettingsCards === 'function') renderThemeSettingsCards();
-      } else {
+
+      if (remoteRevision < localRevision) {
+        rakProfileUiSyncGuard.remoteOlderSkips += 1;
+        return Object.assign({ ok: true, skipped: true, reason: 'remote-revision-older' }, remote);
+      }
+      if (remoteRevision >= localRevision
+          && localAppearance === remoteAppearance
+          && sameProfileCalendarKeys(localCalendarKeys, remoteCalendarKeys)
+          && (remoteCalendarHiddenKeys === null || sameProfileCalendarKeys(localCalendarHiddenKeys, remoteCalendarHiddenKeys))) {
+        state.ui.serverRevision = remoteRevision;
+        state.ui.serverUpdatedAt = String(remote.updated_at || remote.updatedAt || '');
+        state.ui.dirty = false;
+        persistProfileUiState(state.profile, state.account, state.ui);
+        rakProfileUiLastRemoteSaveSignatures.set(id, getProfileUiPayloadSignature(getAccountUiRemotePayload(id)));
         rakProfileUiSyncGuard.remoteSameSkips += 1;
-        if (remoteTheme || remoteBg) {
-          rakProfileUiLastRemoteSaveSignatures.set(id, getProfileUiPayloadSignature({ account_number: id, theme_id: remoteAppearance, background_id: remoteAppearance }));
+        return remote;
+      }
+      if (state.ui.dirty === true) {
+        if (remoteRevision === localRevision) return await pushAccountUiRemoteSettings(id, 'profile-ui-dirty-same-base');
+        if (remoteRevision > localRevision && localTs > remoteTs) {
+          state.ui.serverRevision = remoteRevision;
+          state.ui.serverUpdatedAt = String(remote.updated_at || remote.updatedAt || '');
+          persistProfileUiState(state.profile, state.account, state.ui);
+          return await pushAccountUiRemoteSettings(id, 'profile-ui-local-newer-after-remote');
         }
       }
+      applyRemoteAccountUiState(id, remote, 'profile-ui-remote-newer');
       return remote;
     } catch (err) {
       console.warn('Profile UI remote load failed', err);
@@ -522,11 +678,8 @@ async function loadActiveAccountUiRemoteSettings(accountId) {
     }
   })();
   rakProfileUiRemoteLoadPromises.set(id, loadPromise);
-  try {
-    return await loadPromise;
-  } finally {
-    if (rakProfileUiRemoteLoadPromises.get(id) === loadPromise) rakProfileUiRemoteLoadPromises.delete(id);
-  }
+  try { return await loadPromise; }
+  finally { if (rakProfileUiRemoteLoadPromises.get(id) === loadPromise) rakProfileUiRemoteLoadPromises.delete(id); }
 }
 
 function applyProfileUiPreferencesForActiveAccount(options = {}) {
@@ -536,16 +689,12 @@ function applyProfileUiPreferencesForActiveAccount(options = {}) {
   if (!profile || !account || !ui) return false;
   const defaultTheme = RAK_DEFAULT_APPEARANCE_ID;
   const hasStoredAppearance = !!(ui.themeId || ui.backgroundId);
-
-  // Účet bez vlastního nastavení nikdy nesmí zdědit vzhled předchozího účtu ze
-  // společného localStorage. Do načtení serverové volby zobrazíme Noční laser.
   if (!hasStoredAppearance) {
-    applyAppearancePreference(defaultTheme, true, { skipProfile: true });
+    applyAppearancePreference(defaultTheme, true, { skipProfile: true, skipRemote: true });
     if (typeof renderThemeSettingsCards === 'function') renderThemeSettingsCards();
     if (options.loadRemote !== false) void loadActiveAccountUiRemoteSettings(account.id);
     return true;
   }
-
   let changed = false;
   const appearanceToApply = normalizeThemePreferenceId(ui.themeId || ui.backgroundId || defaultTheme, defaultTheme);
   if (!ui.themeId) { ui.themeId = appearanceToApply; changed = true; }
@@ -554,18 +703,12 @@ function applyProfileUiPreferencesForActiveAccount(options = {}) {
   if (ui.backgroundId !== appearanceToApply) { ui.backgroundId = appearanceToApply; changed = true; }
   if (changed || !ui.updatedAt) {
     ui.updatedAt = Date.now();
-    account.updatedAt = Math.max(Number(account.updatedAt || 0) || 0, ui.updatedAt);
-    profile.profileVersion = GAMES_PROFILE_RESET_VERSION;
-    gamesSaveProfile(profile);
-    app.gamesProfile = profile;
+    ui.dirty = true;
+    persistProfileUiState(profile, account, ui);
   }
-  applyAppearancePreference(appearanceToApply, true, { skipProfile: true });
+  applyAppearancePreference(appearanceToApply, true, { skipProfile: true, skipRemote: true });
   if (typeof renderThemeSettingsCards === 'function') renderThemeSettingsCards();
-  // RAK_17071_OFFLINE_PROFILE_READ_ONLY: startup normalization is not a user edit.
-  // While offline, keep it local and reconcile by reading the server after the online event.
-  if (changed && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
-    scheduleActiveAccountUiRemoteSave('profile-ui-normalized-local');
-  }
+  if (changed && (typeof navigator === 'undefined' || navigator.onLine !== false)) scheduleActiveAccountUiRemoteSave('profile-ui-normalized-local');
   if (options.loadRemote !== false) void loadActiveAccountUiRemoteSettings(account.id);
   return true;
 }
@@ -573,6 +716,58 @@ function applyProfileUiPreferencesForActiveAccount(options = {}) {
 window.applyProfileUiPreferencesForActiveAccount = applyProfileUiPreferencesForActiveAccount;
 window.pushActiveAccountUiRemoteSettings = pushActiveAccountUiRemoteSettings;
 window.loadActiveAccountUiRemoteSettings = loadActiveAccountUiRemoteSettings;
+
+function saveActiveAccountCalendarSelection(keys) {
+  const normalized = normalizeProfileCalendarKeys(keys);
+  if (!normalized || !normalized.length) return false;
+  const saved = saveActiveAccountUiSettings({ calendarKeys: normalized }, { reason: 'calendar-selection-change', skipRemote: true });
+  if (!saved) return false;
+  const pushNow = () => {
+    try { void pushActiveAccountUiRemoteSettings('calendar-selection-change-immediate'); }
+    catch (err) { console.warn('Calendar preference remote save failed', err); }
+  };
+  if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.saveGameAccountUiSettings === 'function') pushNow();
+  else if (typeof window.rakEnsureFeature === 'function') {
+    void window.rakEnsureFeature('sync').then(pushNow).catch((err) => console.warn('Calendar preference sync load failed', err));
+  } else scheduleActiveAccountUiRemoteSave('calendar-selection-change');
+  return true;
+}
+
+window.saveActiveAccountCalendarSelection = saveActiveAccountCalendarSelection;
+try {
+  const pending = window.__rakPendingCalendarSelectionForAccount;
+  const account = getActiveProfileUiAccount();
+  if (pending && account && String(pending.accountId || '') === String(account.id || '')) {
+    saveActiveAccountCalendarSelection(pending.keys);
+    delete window.__rakPendingCalendarSelectionForAccount;
+  }
+} catch (err) {}
+function saveActiveAccountCalendarHiddenKeys(keys) {
+  const normalized = normalizeProfileCalendarKeys(keys);
+  if (normalized === null) return false;
+  const saved = saveActiveAccountUiSettings({ calendarHiddenKeys: normalized }, { reason: 'calendar-hidden-change', skipRemote: true });
+  if (!saved) return false;
+  const pushNow = () => {
+    try { void pushActiveAccountUiRemoteSettings('calendar-hidden-change-immediate'); }
+    catch (err) { console.warn('Calendar hidden preference remote save failed', err); }
+  };
+  if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.saveGameAccountUiSettings === 'function') pushNow();
+  else if (typeof window.rakEnsureFeature === 'function') {
+    void window.rakEnsureFeature('sync').then(pushNow).catch((err) => console.warn('Calendar hidden preference sync load failed', err));
+  } else scheduleActiveAccountUiRemoteSave('calendar-hidden-change');
+  return true;
+}
+
+window.saveActiveAccountCalendarHiddenKeys = saveActiveAccountCalendarHiddenKeys;
+try {
+  const pendingHidden = window.__rakPendingCalendarHiddenForAccount;
+  const account = getActiveProfileUiAccount();
+  if (pendingHidden && account && String(pendingHidden.accountId || '') === String(account.id || '')) {
+    saveActiveAccountCalendarHiddenKeys(pendingHidden.keys);
+    delete window.__rakPendingCalendarHiddenForAccount;
+  }
+} catch (err) {}
+
 
 function getThemePreference() {
   const account = getActiveProfileUiAccount();

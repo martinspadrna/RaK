@@ -92,17 +92,19 @@
       const feature = String(ACTION_FEATURE[String(nav.dataset.action || '').trim()] || '');
       return feature ? { element: nav, feature } : null;
     }
-    const admin = source.closest('#appMenuBody [data-menu-action="admin"]');
-    if (admin && document.documentElement.contains(admin)) return { element: admin, feature: 'admin' };
+    // RAK_17127_ADMIN_CLICK_OWNER: Admin is handled by app-menu itself so the
+    // click can paint an immediate loading state while the guarded admin feature loads.
     return null;
   }
 
   function ensureFeatureWithAuthOrder(feature) {
     if (typeof window.rakEnsureFeature !== 'function') return Promise.resolve(feature || '');
     const key = String(feature || '').trim();
-    if (key === 'menu' || key === 'admin') {
-      return window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature(key));
-    }
+    // RAK_17125_MENU_LOCAL_FIRST: the ordinary More menu is local UI and must
+    // not wait for Supabase/network bootstrap. Privileged Admin still preserves
+    // the authenticated sync-before-admin order.
+    if (key === 'menu') return window.rakEnsureFeature('menu');
+    if (key === 'admin') return window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('admin'));
     return window.rakEnsureFeature(key);
   }
 
@@ -222,7 +224,10 @@
   }
 
   window.runRakSafeManualSyncV1588 = runSafeManualSync;
-  window.runDashboardManualSync = runSafeManualSync;
+  // RAK_17138_DASHBOARD_RESCUE_ROUTING: never replace the full Dashboard manual-sync
+  // implementation. It owns conflict diagnostics/rescue; this safe runner remains
+  // the fallback and the Admin-service sync path only.
+  if (typeof window.runDashboardManualSync !== 'function') window.runDashboardManualSync = runSafeManualSync;
 
   function handleManualSyncClick(event) {
     const source = event && event.target && typeof event.target.closest === 'function' ? event.target : null;
@@ -231,8 +236,12 @@
     if (!button) return false;
     event.preventDefault();
     event.stopImmediatePropagation();
-    void runSafeManualSync(button.id === 'dashboardSyncBadge' ? 'dashboard-click' : 'admin-service-sync').then((result) => {
-      if (button.id !== 'dashboardSyncBadge') {
+    const dashboardBadge = button.id === 'dashboardSyncBadge';
+    const runner = dashboardBadge && typeof window.runDashboardManualSync === 'function'
+      ? window.runDashboardManualSync
+      : runSafeManualSync;
+    void runner(dashboardBadge ? 'dashboard-click' : 'admin-service-sync').then((result) => {
+      if (!dashboardBadge) {
         const status = document.getElementById('adminOnlineSaveStatus');
         if (status) status.textContent = result && result.ok ? 'Synchronizace hotová.' : 'Synchronizace doběhla s chybou.';
       }
@@ -247,7 +256,10 @@
     if (!badge) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    void runSafeManualSync('dashboard-keyboard');
+    const runner = typeof window.runDashboardManualSync === 'function'
+      ? window.runDashboardManualSync
+      : runSafeManualSync;
+    void runner('dashboard-keyboard');
   }
 
   function makeCorrectionFold(group, label, detail, nodes) {
@@ -342,6 +354,22 @@
       return;
     }
 
+    // RAK_17127_NAVIGATE_FIRST: bottom-nav clicks must never be swallowed while
+    // a lazy feature loads. pointerdown already started the preload; the normal
+    // bubble handler changes page immediately and hydration completes behind it.
+    if (el && el.closest && el.closest('nav.bottomNav')) {
+      const pending = startFeature(target);
+      if (pending && typeof pending.then === 'function') {
+        pending.then(() => {
+          try { el.classList.remove('rakFeatureLoading'); el.removeAttribute('aria-busy'); } catch (_) {}
+        }).catch((err) => {
+          try { el.classList.remove('rakFeatureLoading'); el.removeAttribute('aria-busy'); } catch (_) {}
+          if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, feature);
+        });
+      }
+      return;
+    }
+
     event.preventDefault();
     event.stopImmediatePropagation();
     if (el.dataset.rakFeatureReplay === '1') return;
@@ -369,18 +397,26 @@
 
   let warmupQueued = false;
   let warmupStarted = false;
+
+  function canWarmVerifiedAdminCode() {
+    return typeof window.rakEnsureFeature === 'function'
+      && typeof rakAdminCanOpenAdmin === 'function'
+      && rakAdminCanOpenAdmin();
+  }
+
   function startBackgroundWarmup() {
-    if (warmupStarted || typeof window.rakEnsureFeature !== 'function') return;
+    if (warmupStarted || !canWarmVerifiedAdminCode()) return;
     warmupStarted = true;
-    Promise.allSettled(['rotation', 'calculators'].map((feature) => window.rakEnsureFeature(feature))).catch(() => {});
-    scheduleIdle(() => {
-      window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('menu')).catch((err) => {
-        console.warn('Boot v2 sync/menu warmup failed', err);
-      });
-    }, 1500, 650);
-    scheduleIdle(() => {
-      ensureFeatureWithAuthOrder('admin').catch((err) => console.warn('Boot v2 admin warmup failed', err));
-    }, 3600, 2400);
+    // RAK_17134_ROLE_DRIVEN_ADMIN_WARMUP: only the tiny secure shell is
+    // prewarmed for an already verified owner/admin. Heavy Admin tools are
+    // intentionally user-driven so they cannot compete with ordinary startup.
+    window.rakEnsureFeature('admin-shell')
+      .catch((err) => console.warn('Boot v2 admin shell warmup failed', err));
+  }
+
+  function scheduleVerifiedAdminWarmup() {
+    if (!canWarmVerifiedAdminCode() || warmupStarted) return;
+    scheduleIdle(startBackgroundWarmup, 700, 180);
   }
 
   function queueBackgroundWarmup() {
@@ -390,12 +426,33 @@
       return;
     }
     warmupQueued = true;
-    scheduleIdle(startBackgroundWarmup, 900, 350);
+    scheduleVerifiedAdminWarmup();
   }
   setTimeout(queueBackgroundWarmup, 0);
+  window.addEventListener('rak-admin-access-changed', scheduleVerifiedAdminWarmup);
 
   window.addEventListener('rak:feature-ready', (event) => {
     const feature = String(event && event.detail && event.detail.feature || '');
+    if (feature === 'rotation') {
+      try {
+        const page = document.getElementById('rotace');
+        if (page && page.classList.contains('active')) {
+          if (typeof setRotaceView === 'function') setRotaceView((typeof app !== 'undefined' && app && app.rotationView) || 'names');
+          if (typeof renderRotace === 'function') renderRotace();
+        }
+      } catch (err) { console.warn('Rotation hydrate-after-nav failed', err); }
+      return;
+    }
+    if (feature === 'menu') {
+      try {
+        const page = document.getElementById('menu');
+        if (page && page.classList.contains('active') && page.dataset.rakEarlyMenuShell === '1' && typeof openAppMenu === 'function') {
+          delete page.dataset.rakEarlyMenuShell;
+          openAppMenu('menu');
+        }
+      } catch (err) { console.warn('Menu hydrate-after-nav failed', err); }
+      return;
+    }
     if (feature !== 'admin') return;
     try {
       if (typeof window.adminBindRotationZoomGuard === 'function' && !window.adminBindRotationZoomGuard.__rakBootV2Stub) {

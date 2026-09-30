@@ -95,8 +95,9 @@ try{
     assert(data[key].shift>=32&&data[key].reason>=36,'[17061-browser] columns crushed');
     assert(data[key].visibleDate,'[17061-browser] actual date text clipped: '+key);
   }
-  const releasePatch=Number(String(RELEASE_METADATA.displayVersion).split('.').at(-1));
-  const narrow=Number.isInteger(releasePatch)&&releasePatch>=65;
+  const releaseParts=String(RELEASE_METADATA.displayVersion).split('.').map(Number);
+  const narrow=releaseParts.length===3&&releaseParts.every(Number.isInteger)
+    && (releaseParts[0]>1 || (releaseParts[0]===1 && (releaseParts[1]>7 || (releaseParts[1]===7 && releaseParts[2]>=65))));
   if(narrow)assert(data.rotDate.width>=81&&data.rotDate.width<=83&&data.rotCell>=83,
     '[17065+-browser] MO/TO date width regression '+JSON.stringify(data.rotDate));
   else assert(data.rotDate.width>=85&&data.rotCell>=87,'[17061-browser] editable hard/soft date too narrow');

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+const RELEASE_METADATA=(await import('../rak-release-metadata.js')).default;
 const conn=read('app-pwa-connectivity.js'),sw=read('sw.js'),releaseMetadata=read('rak-release-metadata.js');
 test('release version rather than historical APP_VERSION drives SW matching',()=>{
  const begin=conn.indexOf('  const getAppVersionTag ='),end=conn.indexOf('  const scheduleVersionMismatchUpdateCheck =',begin);
@@ -31,7 +32,7 @@ function worker(failShell=false){
  const self={location:{href:url+'sw.js',origin:url.slice(0,-1)},addEventListener:(t,f)=>{listeners[t]=f;},skipWaiting:()=>{skipWaiting++;},clients:{claim:async()=>{},matchAll:async()=>[]},registration:{navigationPreload:{enable:async()=>{}}}};
  let context;
  const importScripts=source=>{
-  assert.equal(source,'./rak-release-metadata.js','service worker must load the canonical release metadata');
+  assert.equal(source,'./rak-release-metadata.js?sw='+RELEASE_METADATA.displayVersion,'service worker must load versioned canonical release metadata');
   vm.runInContext(releaseMetadata,context,{filename:'rak-release-metadata.js'});
   self.RAK_RELEASE_METADATA=context.RAK_RELEASE_METADATA;
  };
@@ -61,11 +62,12 @@ test('offline navigation uses current release only; update requires approval',as
 
 
 test('offline package prewarms Rotation and sync feature modules',()=>{
+ const v=RELEASE_METADATA.moduleCacheVersion;
  for(const asset of [
   './supabase-vendor-2.110.7.js',
-  './stats.js?v=1.7.0','./rotace.js?v=1.7.0','./rotation-tasks.js?v=1.7.0',
-  './admin-daymods.js?v=1.7.0','./app-rotation-controls.js?v=1.7.0',
-  './supabase-bridge.js?v=1.7.0','./app-rotation-sync.js?v=1.7.0'
+  './stats.js?v='+v,'./rotace.js?v='+v,'./rotation-tasks.js?v='+v,
+  './admin-daymods.js?v='+v,'./app-rotation-controls.js?v='+v,
+  './supabase-bridge.js?v='+v,'./app-rotation-sync.js?v='+v
  ]) assert(sw.includes(asset),asset+' must be available before offline navigation');
  assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict'"));
 });

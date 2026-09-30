@@ -298,53 +298,76 @@ function buildAdminRotationGeneratorSettingsHtml() {
     '</tr>'
   ].join('')).join('');
   return [
+    '<div class="adminGeneratorCompactSections">',
+    '  <details class="adminGeneratorFold">',
+    '    <summary>Kontrola a souhrn pravidel</summary>',
+    '    <div class="adminGeneratorFoldBody adminGeneratorOverviewBody">',
     buildAdminRotationGeneratorStatusHtml(settings),
     buildAdminRotationGeneratorImpactHtml(),
     buildAdminRotationGeneratorRuleSummaryHtml(),
-    '<div class="appMenuSettingsList adminGeneratorSettingsList">',
-    '  <div class="appMenuSubTitle">Lidé a pořadí</div>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftPreferred">Základ měkoty</label>',
-    '  <textarea id="adminGeneratorSoftPreferred" class="appMenuTextarea" data-generator-settings-field rows="5">' + escapeHtml(adminRotationGeneratorListValue(settings.softPreferred)) + '</textarea>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorHardPreferred">Základ tvrdoty</label>',
-    '  <textarea id="adminGeneratorHardPreferred" class="appMenuTextarea" data-generator-settings-field rows="5">' + escapeHtml(adminRotationGeneratorListValue(settings.hardPreferred)) + '</textarea>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftCore">Trojice s vlastním TNKS/TPKW cyklem</label>',
-    '  <textarea id="adminGeneratorSoftCore" class="appMenuTextarea" data-generator-settings-field rows="3">' + escapeHtml(adminRotationGeneratorListValue(settings.softCore)) + '</textarea>',
-    '  <div class="appMenuSubTitle">Cykly strojů</div>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftHardCycle">Cyklus trojice na tvrdotě</label>',
-    '  <textarea id="adminGeneratorSoftHardCycle" class="appMenuTextarea" data-generator-settings-field rows="3">' + escapeHtml(adminRotationGeneratorListValue(settings.softHardCycle)) + '</textarea>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftHardBlockLength">Kolik dní držet jeden stroj v cyklu</label>',
-    '  <input id="adminGeneratorSoftHardBlockLength" class="appMenuInput" data-generator-settings-field type="number" min="1" max="12" step="1" value="' + escapeHtml(String(settings.softHardBlockLength || 3)) + '">',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorHardCycle">Tvrdotový cyklus strojů</label>',
-    '  <textarea id="adminGeneratorHardCycle" class="appMenuTextarea" data-generator-settings-field rows="5">' + escapeHtml(adminRotationGeneratorListValue(settings.hardCycle)) + '</textarea>',
-    '  <div class="appMenuSubTitle">Jemná pravidla</div>',
-    '  <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorAvoidLatheWhenTwoLathesOneMillEnabled" type="checkbox" data-generator-settings-field ' + (settings.avoidLatheWhenTwoLathesOneMillEnabled !== false ? 'checked' : '') + '><span>Vyhýbat se soustruhům při 2 soustruhy + 1 fréza</span></label>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorAvoidLatheWhenTwoLathesOneMillNames">Jména, která mají být spíš mimo soustruhy v režimu 2+1</label>',
-    '  <textarea id="adminGeneratorAvoidLatheWhenTwoLathesOneMillNames" class="appMenuTextarea" data-generator-settings-field rows="2">' + escapeHtml(adminRotationGeneratorListValue(settings.avoidLatheWhenTwoLathesOneMillNames)) + '</textarea>',
-    '  <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorSoloMillBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.soloMillBalanceEnabled !== false ? 'checked' : '') + '><span>Vyrovnávat samostatné frézky</span></label>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoloMillMaxSpread">Maximální rozdíl samostatných frézek v měsíci</label>',
-    '  <input id="adminGeneratorSoloMillMaxSpread" class="appMenuInput" data-generator-settings-field type="number" min="0" max="6" step="1" value="' + escapeHtml(String(settings.soloMillMaxSpread ?? 1)) + '">',
-    '  <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorSoftTotalBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.softTotalBalanceEnabled !== false ? 'checked' : '') + '><span>Vyrovnávat počet směn na měkotě u vybraných lidí</span></label>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftTotalBalanceNames">Jména pro vyrovnání měkoty</label>',
-    '  <textarea id="adminGeneratorSoftTotalBalanceNames" class="appMenuTextarea" data-generator-settings-field rows="2">' + escapeHtml(adminRotationGeneratorListValue(settings.softTotalBalanceNames)) + '</textarea>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftTotalMaxSpread">Maximální rozdíl směn na měkotě v měsíci</label>',
-    '  <input id="adminGeneratorSoftTotalMaxSpread" class="appMenuInput" data-generator-settings-field type="number" min="0" max="6" step="1" value="' + escapeHtml(String(settings.softTotalMaxSpread ?? 1)) + '">',
-    '  <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorHardPeopleSoftKindBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.hardPeopleSoftKindBalanceEnabled !== false ? 'checked' : '') + '><span>Vyrovnávat soustruhy a frézky na měkotě</span></label>',
-    '  <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorSoftKindGlobalBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.softKindGlobalBalanceEnabled !== false ? 'checked' : '') + '><span>Počítat do toho celou měkotu</span></label>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorHardPeopleSoftKindBalanceNames">Jména pro vyrovnání soustruhy / frézky, když není zapnutá celá měkota</label>',
-    '  <textarea id="adminGeneratorHardPeopleSoftKindBalanceNames" class="appMenuTextarea" data-generator-settings-field rows="2">' + escapeHtml(adminRotationGeneratorListValue(settings.hardPeopleSoftKindBalanceNames)) + '</textarea>',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorHardPeopleSoftKindMaxSpread">Maximální rozdíl soustruhy vs frézky v měsíci</label>',
-    '  <input id="adminGeneratorHardPeopleSoftKindMaxSpread" class="appMenuInput" data-generator-settings-field type="number" min="0" max="6" step="1" value="' + escapeHtml(String(settings.hardPeopleSoftKindMaxSpread ?? 1)) + '">',
-    '  <label class="appMenuFieldLabel" for="adminGeneratorSoftKindMixedMinimumShifts">Od kolika směn na měkotě musí mít člověk oba typy práce</label>',
-    '  <input id="adminGeneratorSoftKindMixedMinimumShifts" class="appMenuInput" data-generator-settings-field type="number" min="1" max="12" step="1" value="' + escapeHtml(String(settings.softKindMixedMinimumShifts ?? 3)) + '">',
-    '  <div class="appMenuSubTitle">Základní soustruhy měkoty</div>',
-    '  <div class="smallText">Jména musí odpovídat seznamu výše. Stroj použij například MSKC01, MSKC03 nebo MSKC04.</div>',
-    '  <div class="tableWrap appMenuTableWrap uMt12">',
-    '    <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminGeneratorBaseTable">',
-    '      <colgroup><col class="adminGeneratorBaseNameCol"><col class="adminGeneratorBaseMachineCol"></colgroup>',
-    '      <thead><tr><th>Jméno</th><th>Stroj</th></tr></thead>',
-    '      <tbody>' + baseRows + '</tbody>',
-    '    </table>',
-    '  </div>',
+    '    </div>',
+    '  </details>',
+    '  <details class="adminGeneratorFold">',
+    '    <summary>Lidé a pořadí</summary>',
+    '    <div class="adminGeneratorFoldBody adminGeneratorSettingsList">',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorSoftPreferred">Základ měkoty</label>',
+    '      <textarea id="adminGeneratorSoftPreferred" class="appMenuTextarea" data-generator-settings-field rows="4">' + escapeHtml(adminRotationGeneratorListValue(settings.softPreferred)) + '</textarea>',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorHardPreferred">Základ tvrdoty</label>',
+    '      <textarea id="adminGeneratorHardPreferred" class="appMenuTextarea" data-generator-settings-field rows="4">' + escapeHtml(adminRotationGeneratorListValue(settings.hardPreferred)) + '</textarea>',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorSoftCore">Trojice s vlastním TNKS/TPKW cyklem</label>',
+    '      <textarea id="adminGeneratorSoftCore" class="appMenuTextarea" data-generator-settings-field rows="3">' + escapeHtml(adminRotationGeneratorListValue(settings.softCore)) + '</textarea>',
+    '    </div>',
+    '  </details>',
+    '  <details class="adminGeneratorFold">',
+    '    <summary>Cykly strojů</summary>',
+    '    <div class="adminGeneratorFoldBody adminGeneratorSettingsList">',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorSoftHardCycle">Cyklus trojice na tvrdotě</label>',
+    '      <textarea id="adminGeneratorSoftHardCycle" class="appMenuTextarea" data-generator-settings-field rows="3">' + escapeHtml(adminRotationGeneratorListValue(settings.softHardCycle)) + '</textarea>',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorSoftHardBlockLength">Kolik dní držet jeden stroj v cyklu</label>',
+    '      <input id="adminGeneratorSoftHardBlockLength" class="appMenuInput" data-generator-settings-field type="number" min="1" max="12" step="1" value="' + escapeHtml(String(settings.softHardBlockLength || 3)) + '">',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorHardCycle">Tvrdotový cyklus strojů</label>',
+    '      <textarea id="adminGeneratorHardCycle" class="appMenuTextarea" data-generator-settings-field rows="4">' + escapeHtml(adminRotationGeneratorListValue(settings.hardCycle)) + '</textarea>',
+    '    </div>',
+    '  </details>',
+    '  <details class="adminGeneratorFold">',
+    '    <summary>Vyrovnávací pravidla</summary>',
+    '    <div class="adminGeneratorFoldBody adminGeneratorSettingsList">',
+    '      <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorAvoidLatheWhenTwoLathesOneMillEnabled" type="checkbox" data-generator-settings-field ' + (settings.avoidLatheWhenTwoLathesOneMillEnabled !== false ? 'checked' : '') + '><span>Vyhýbat se soustruhům při 2 soustruhy + 1 fréza</span></label>',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorAvoidLatheWhenTwoLathesOneMillNames">Jména mimo soustruhy v režimu 2+1</label>',
+    '      <textarea id="adminGeneratorAvoidLatheWhenTwoLathesOneMillNames" class="appMenuTextarea" data-generator-settings-field rows="2">' + escapeHtml(adminRotationGeneratorListValue(settings.avoidLatheWhenTwoLathesOneMillNames)) + '</textarea>',
+    '      <div class="adminGeneratorInlineRule">',
+    '        <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorSoloMillBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.soloMillBalanceEnabled !== false ? 'checked' : '') + '><span>Vyrovnávat samostatné frézky</span></label>',
+    '        <label class="appMenuFieldLabel adminGeneratorNumberField" for="adminGeneratorSoloMillMaxSpread"><span>Max. rozdíl</span><input id="adminGeneratorSoloMillMaxSpread" class="appMenuInput" data-generator-settings-field type="number" min="0" max="6" step="1" value="' + escapeHtml(String(settings.soloMillMaxSpread ?? 1)) + '"></label>',
+    '      </div>',
+    '      <div class="adminGeneratorInlineRule">',
+    '        <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorSoftTotalBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.softTotalBalanceEnabled !== false ? 'checked' : '') + '><span>Vyrovnávat počet směn na měkotě</span></label>',
+    '        <label class="appMenuFieldLabel adminGeneratorNumberField" for="adminGeneratorSoftTotalMaxSpread"><span>Max. rozdíl</span><input id="adminGeneratorSoftTotalMaxSpread" class="appMenuInput" data-generator-settings-field type="number" min="0" max="6" step="1" value="' + escapeHtml(String(settings.softTotalMaxSpread ?? 1)) + '"></label>',
+    '      </div>',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorSoftTotalBalanceNames">Jména pro vyrovnání měkoty</label>',
+    '      <textarea id="adminGeneratorSoftTotalBalanceNames" class="appMenuTextarea" data-generator-settings-field rows="2">' + escapeHtml(adminRotationGeneratorListValue(settings.softTotalBalanceNames)) + '</textarea>',
+    '      <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorHardPeopleSoftKindBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.hardPeopleSoftKindBalanceEnabled !== false ? 'checked' : '') + '><span>Vyrovnávat soustruhy a frézky na měkotě</span></label>',
+    '      <label class="adminRotationOvertimeSwitch"><input id="adminGeneratorSoftKindGlobalBalanceEnabled" type="checkbox" data-generator-settings-field ' + (settings.softKindGlobalBalanceEnabled !== false ? 'checked' : '') + '><span>Počítat do toho celou měkotu</span></label>',
+    '      <label class="appMenuFieldLabel" for="adminGeneratorHardPeopleSoftKindBalanceNames">Jména pro vyrovnání soustruhy / frézky</label>',
+    '      <textarea id="adminGeneratorHardPeopleSoftKindBalanceNames" class="appMenuTextarea" data-generator-settings-field rows="2">' + escapeHtml(adminRotationGeneratorListValue(settings.hardPeopleSoftKindBalanceNames)) + '</textarea>',
+    '      <div class="adminGeneratorNumberPair">',
+    '        <label class="appMenuFieldLabel adminGeneratorNumberField" for="adminGeneratorHardPeopleSoftKindMaxSpread"><span>Max. rozdíl S/F</span><input id="adminGeneratorHardPeopleSoftKindMaxSpread" class="appMenuInput" data-generator-settings-field type="number" min="0" max="6" step="1" value="' + escapeHtml(String(settings.hardPeopleSoftKindMaxSpread ?? 1)) + '"></label>',
+    '        <label class="appMenuFieldLabel adminGeneratorNumberField" for="adminGeneratorSoftKindMixedMinimumShifts"><span>Mix od směn</span><input id="adminGeneratorSoftKindMixedMinimumShifts" class="appMenuInput" data-generator-settings-field type="number" min="1" max="12" step="1" value="' + escapeHtml(String(settings.softKindMixedMinimumShifts ?? 3)) + '"></label>',
+    '      </div>',
+    '    </div>',
+    '  </details>',
+    '  <details class="adminGeneratorFold">',
+    '    <summary>Základní soustruhy měkoty</summary>',
+    '    <div class="adminGeneratorFoldBody">',
+    '      <div class="smallText">Jména musí odpovídat seznamu výše. Stroj například MSKC01, MSKC03 nebo MSKC04.</div>',
+    '      <div class="tableWrap appMenuTableWrap adminGeneratorBaseTableWrap">',
+    '        <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminGeneratorBaseTable">',
+    '          <colgroup><col class="adminGeneratorBaseNameCol"><col class="adminGeneratorBaseMachineCol"></colgroup>',
+    '          <thead><tr><th>Jméno</th><th>Stroj</th></tr></thead>',
+    '          <tbody>' + baseRows + '</tbody>',
+    '        </table>',
+    '      </div>',
+    '    </div>',
+    '  </details>',
     '</div>'
   ].join('');
 }
@@ -484,12 +507,17 @@ function adminBuildRotationGenerationModel(targetMonthKey) {
     for (let rowIdx = 0; rowIdx < maxRows; rowIdx += 1) {
       const hardRow = hardRows[rowIdx] || null;
       const softRow = softRows[rowIdx] || null;
-      const hardCells = Array.from({ length: HARD_MACHINE_HEADERS.length }, (_, idx) => adminRotationCanonicalName(hardRow && hardRow.cells ? hardRow.cells[idx] : '', knownNames));
-      const softCells = Array.from({ length: SOFT_MACHINE_HEADERS.length }, (_, idx) => adminRotationCanonicalName(softRow && softRow.cells ? softRow.cells[idx] : '', knownNames));
       const dateLabel = String(hardRow && hardRow.date || softRow && softRow.date || '');
+      const historyUnavailable = dateLabel ? adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) : new Set();
+      const historyPhysicalName = (value) => {
+        const name = adminRotationCanonicalName(value, knownNames);
+        return name && !historyUnavailable.has(name) ? name : '';
+      };
+      const hardCells = Array.from({ length: HARD_MACHINE_HEADERS.length }, (_, idx) => historyPhysicalName(hardRow && hardRow.cells ? hardRow.cells[idx] : ''));
+      const softCells = Array.from({ length: SOFT_MACHINE_HEADERS.length }, (_, idx) => historyPhysicalName(softRow && softRow.cells ? softRow.cells[idx] : ''));
       const historyNotes = adminRotationGeneratorDateNotes(month, dateLabel);
       if (dateLabel && !adminRotationGeneratorIsDayBlocked(historyNotes)) {
-        replaySoftCoreSkippedAbsence(adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames));
+        replaySoftCoreSkippedAbsence(historyUnavailable);
       }
       const hasAny = hardCells.concat(softCells).some((name) => adminRotationIsRealName(name, knownNames));
       if (!hasAny) continue;
@@ -858,7 +886,7 @@ function adminRotationGeneratorSoftCoreFutureAvailability(month, knownNames, row
     if (!dateLabel) continue;
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
     if (adminRotationGeneratorIsDayBlocked(dayNotes)) continue;
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     if (!absenceNames.has(candidate)) score += 1;
   }
   return score;
@@ -876,7 +904,7 @@ function adminRotationGeneratorRemainingSoftCoreWorkDays(month, knownNames, rowI
     if (!dateLabel) continue;
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
     if (adminRotationGeneratorIsDayBlocked(dayNotes)) continue;
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     if (core.some((name) => !absenceNames.has(name))) count += 1;
   }
   return count;
@@ -1023,7 +1051,7 @@ function adminRotationGeneratorHardTarget(knownNames, available) {
   return adminRotationGeneratorThreeAbsences(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);
 }
 
-function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey) {
+function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey, dayOptions) {
   const knownNames = model.knownNames;
   const generatorRules = getAdminRotationGeneratorRules();
   const softPreferred = generatorRules.softPreferred.filter((name) => knownNames.includes(name));
@@ -1035,6 +1063,23 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   const softCells = Array(SOFT_MACHINE_HEADERS.length).fill('');
   const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
   const softTargetCount = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTargetCount));
+  const requestedHardCells = dayOptions && Array.isArray(dayOptions.preserveHardCells)
+    ? dayOptions.preserveHardCells.slice(0, HARD_MACHINE_HEADERS.length)
+    : null;
+  const preserveHardActive = !!(requestedHardCells && requestedHardCells.length === HARD_MACHINE_HEADERS.length && (() => {
+    const seen = new Set();
+    let count = 0;
+    for (let idx = 0; idx < HARD_MACHINE_HEADERS.length; idx += 1) {
+      const name = adminRotationCanonicalName(requestedHardCells[idx], knownNames);
+      if (!name) continue;
+      const machineName = HARD_MACHINE_HEADERS[idx] || '';
+      if (!available.includes(name) || seen.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
+      if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
+      seen.add(name);
+      count += 1;
+    }
+    return count === hardTargetCount;
+  })());
 
   if (!available.length) return { hardCells, softCells, filledCells: 0, emptyProtected: 0 };
 
@@ -1064,9 +1109,19 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     return true;
   };
 
+  if (preserveHardActive) {
+    requestedHardCells.forEach((value, machineIdx) => {
+      const name = adminRotationCanonicalName(value, knownNames);
+      if (!name) return;
+      hardCells[machineIdx] = name;
+      usedNames.add(name);
+      adminRotationGeneratorMarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[machineIdx] || '', name);
+    });
+  }
+
   // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
   // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
-  hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
+  if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
     if (usedNames.size >= hardTargetCount) return;
     const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
     const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, wantedMachine);
@@ -1084,13 +1139,15 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   let cycleMachine = softCoreBlock.machine;
   let cycleIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycleMachine);
   let exchangeSoft = '';
-  if (counters.softCoreGapPending) {
-    counters.softCoreGapPending = false;
-  } else {
-    exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
-      ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
-      : '';
-    if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
+  if (!preserveHardActive) {
+    if (counters.softCoreGapPending) {
+      counters.softCoreGapPending = false;
+    } else {
+      exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
+        ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
+        : '';
+      if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
+    }
   }
   const displacedToSoft = [];
   if (exchangeSoft && cycleIdx >= 0 && available.includes(exchangeSoft) && !usedNames.has(exchangeSoft)) {
@@ -1109,7 +1166,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     .filter((name) => adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey));
 
   // 3) Doplnění zbytku Tvrdoty až po základním rozepsání a výměně.
-  HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
+  if (!preserveHardActive) HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
     if (hardCells[machineIdx] || hardCells.filter((cell) => String(cell || '').trim()).length >= hardTargetCount) return;
     const historicalCandidates = (model.dayTemplates[rowIdx % model.dayTemplates.length] && model.dayTemplates[rowIdx % model.dayTemplates.length].hardCells) || [];
     const suggested = adminRotationCanonicalName(historicalCandidates[machineIdx] || '', knownNames);
@@ -1503,7 +1560,7 @@ function adminRotationGeneratorFindSoftCoreSequenceIssues(month, monthKey, known
     let completedBySkippedAbsence = false;
     if (assigned.size) {
       const dateLabel = String(row && row.date || '');
-      const absences = adminRotationNamesForAbsenceDate(month.notes, dateLabel, names);
+      const absences = adminRotationUnavailableNamesForDate(month, dateLabel, names);
       const remaining = core.filter((name) => !assigned.has(name));
       if (remaining.length && remaining.every((name) => absences.has(name))) {
         const ordered = core.slice(personCursor).concat(core.slice(0, personCursor));
@@ -2768,7 +2825,7 @@ function adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey) {
     if (!dateLabel || adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) return;
     const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells : [];
     if (!hardCells.length) return;
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     const available = knownNames.filter((name) => !absenceNames.has(name));
     const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
     let hardFilled = hardCells.filter((cell) => adminRotationCanonicalName(cell, knownNames)).length;

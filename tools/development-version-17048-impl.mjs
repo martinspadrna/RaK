@@ -23,7 +23,7 @@ for(const marker of ['rak_admin_devices_user_session_device_key','rak_current_ad
  assert(sql1.includes(marker),'[17048] primary migration missing '+marker);
 assert(sql2.includes('ON CONFLICT ON CONSTRAINT rak_admin_devices_user_session_device_key') && matrix.includes('ROLLBACK;'), '[17048] correction / rollback fixture missing');
 // Live roadmap is a moving plan; validate structure and risk disposition, never an obsolete sentence.
-const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
 assert.equal(progress.length,13);
 assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
 assert(read('EMPLOYEE_AUTH_CUTOVER.md').includes('OS_ONLY_POLICY_20260919'),'[17048] OS-only decision missing');

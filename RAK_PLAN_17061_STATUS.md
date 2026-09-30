@@ -1,6 +1,6 @@
 # RaK — stav plánu po verzi 1.7.61 (20. 9. 2026)
 
-Pracovní větev výhradně `development`; technická verze `1.7.0`; jen TEST Supabase `cgshssdjgzzuprlwnabl`. Navazuje na `RAK_PLAN_13.md` a `RAK_PLAN_17060_STATUS.md`. Nový stav označit za nasazený až po GitHub Actions SUCCESS a Vercel READY pro stejné SHA. Chromium není skutečný iPhone a automatické testy nesmějí nahrazovat uživatelskou kontrolu rozpisu. Nevymazávat lokální neodeslaná data.
+Pracovní větev výhradně `development`; technická verze `1.7.0`; jen TEST Supabase `cgshssdjgzzuprlwnabl`. Navazuje na `RAK_HANDOFF.md` a `RAK_PLAN_17060_STATUS.md`. Nový stav označit za nasazený až po GitHub Actions SUCCESS a Vercel READY pro stejné SHA. Chromium není skutečný iPhone a automatické testy nesmějí nahrazovat uživatelskou kontrolu rozpisu. Nevymazávat lokální neodeslaná data.
 
 | Bod | Stav | Doložené kroky / zbývá |
 |---|---|---|

@@ -65,7 +65,7 @@ test('historical two-pass build, headless mobile, HTTP privacy and CRC remain CI
 });
 test('historic shadow-restore milestone stays separate from live plan',()=>{
  assert(read('tools/development-version-17055.mjs').includes(VERSION));
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert(progress.some(item=>item.id==='P1.5'));
  assert(read('tools/restore-shadow-17055.sql').includes('no independent Supabase project'));

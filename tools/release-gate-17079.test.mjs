@@ -6,7 +6,8 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.79 identifies the verified offline arbitration release',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.79');
-  assert.equal(metadata.technicalVersion,'1.7.0');
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
   assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
 });

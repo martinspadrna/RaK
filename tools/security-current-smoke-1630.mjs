@@ -24,8 +24,14 @@ assert(csp && csp.value.includes("frame-ancestors 'none'"), 'CSP frame protectio
 assert(csp.value.includes("object-src 'none'"), 'CSP object-src protection missing');
 assert(csp.value.includes("connect-src 'self' https://*.supabase.co wss://*.supabase.co"), 'Supabase connect-src contract changed');
 
-assert(index.includes('supabase-vendor-2.110.7.js'), 'Self-hosted pinned Supabase client missing');
-assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
+const appJs = read('app.js');
+const swJs = read('sw.js');
+assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'), 'Supabase SDK must not parser-block the interactive shell');
+assert(appJs.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"), 'Self-hosted Supabase lazy client missing');
+assert(appJs.includes("const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"), 'Self-hosted Supabase integrity pin missing');
+assert(appJs.includes('script.integrity = RAK_SUPABASE_SDK_INTEGRITY'), 'Supabase lazy loader must enforce the integrity pin');
+assert(swJs.includes("'./supabase-vendor-2.110.7.js'"), 'Self-hosted Supabase client must remain PWA-cached');
+assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js') && !appJs.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
 assert(!index.includes('xlsx.full.min.js'), 'XLSX must stay lazy after build transforms');
 assert(!index.includes('jszip.min.js'), 'JSZip must stay lazy after build transforms');
 if (buildTarget === 'production') {
@@ -37,7 +43,8 @@ if (buildTarget === 'production') {
 }
 assert(!adminUnlock.includes('RAK_OWNER_ADMIN_PASSWORD'), 'Client contains owner password constant');
 assert(!bridge.includes('p_admin_pin'), 'Legacy admin PIN write path returned');
-assert(bridge.includes("client.rpc('rak_submit_bug_report_v2'"), 'Bug reports must use RPC');
+assert(bridge.includes("client.rpc('rak_submit_bug_report_v3'"), 'Bug reports must use bounded screenshot-aware RPC');
+assert(!/\.from\(['"]bug_reports['"]\)/.test(bridge), 'Direct bug_reports table access returned');
 assert(bridge.includes("client.rpc('rak_app_keepalive'"), 'Keepalive must use RPC');
 assert(!/\.from\(['"]app_keepalive['"]\)/.test(bridge), 'Direct app_keepalive table access returned');
 assert(migration.includes('revoke all privileges on table public.app_keepalive from anon, authenticated;'), 'Keepalive table grants are not revoked');
@@ -50,8 +57,24 @@ assert(!domAudit.includes("'home', 'rotace', 'kalkulacky', 'games', 'menu'"), 'R
 
 // P0: Retired server endpoints must never reactivate an old database access path.
 const apiFiles = fs.readdirSync('api').filter((name) => name.endsWith('.js')).sort();
-assert.deepEqual(apiFiles, ['_admin-auth.js', 'admin-users.js', 'rotation-absence-calendar.js'],
+assert.deepEqual(apiFiles, ['_admin-auth.js', 'admin-users.js', 'public-calendar.js', 'rotation-absence-calendar.js'],
   'New server API endpoint requires a security review');
+
+const publicCalendarApi = read('api/public-calendar.js');
+assert(publicCalendarApi.includes("const GOOGLE_CALENDAR_HOST = 'calendar.google.com'"),
+  'Public calendar endpoint must stay pinned to calendar.google.com');
+assert(publicCalendarApi.includes("'/public/basic.ics'") && !publicCalendarApi.includes('/private/'),
+  'Public calendar endpoint must only construct public/basic.ics paths');
+assert(publicCalendarApi.includes('MAX_ICS_BYTES = 2 * 1024 * 1024') &&
+  publicCalendarApi.includes('AbortSignal.timeout(12000)'),
+  'Public calendar endpoint must keep bounded response size and timeout');
+assert(publicCalendarApi.includes("req.method !== 'GET' && req.method !== 'HEAD'"),
+  'Public calendar endpoint must remain read-only');
+assert(!publicCalendarApi.includes('req.query.url') &&
+  !publicCalendarApi.includes('SUPABASE') &&
+  !publicCalendarApi.includes('service_role'),
+  'Public calendar endpoint must not become an arbitrary proxy or privileged data path');
+
 for (const file of ['api/admin-users.js', 'api/rotation-absence-calendar.js']) {
   const source = read(file);
   assert(/res\.status\(410\)\.json\(/.test(source), `${file} must return 410`);

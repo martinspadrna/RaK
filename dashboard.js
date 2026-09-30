@@ -936,8 +936,10 @@ function updateDashboard() {
   const calendarDate = typeof formatCalendarDateLabel === 'function'
     ? formatCalendarDateLabel(now)
     : new Intl.DateTimeFormat('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' }).format(now);
-  const calendarMeta = typeof getCalendarSpecialText === 'function' ? getCalendarSpecialText(now) : '';
-  setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', false, calendarIcon);
+  const calendarSpecial = typeof getCalendarSpecialText === 'function' ? getCalendarSpecialText(now) : '';
+  const calendarContext = typeof getRakActiveShiftCalendarContext === 'function' ? getRakActiveShiftCalendarContext() : { team: 'D', calendars: [] };
+  const calendarMeta = [calendarSpecial, 'Směna ' + String(calendarContext.team || 'D')].filter(Boolean).join(' · ');
+  setCard('dashCalendar', 'Kalendář', calendarDate, calendarMeta, '', true, calendarIcon);
   const shiftCountdownTitle = active ? 'Zbývá' : (nextWorkShift ? 'Začíná' : 'Zbývá');
   const shiftCountdownValue = active
     ? (active.end ? formatDuration(Math.max(0, active.end - now)) : '—')
@@ -1033,10 +1035,9 @@ function scheduleDashboardInitialPaint() {
 }
 
 function forceHomeRefresh() {
-  const activePage = document.querySelector('.page.active')?.id || "";
   if (isAnyModalOpen()) return;
-  if ((typeof app !== 'undefined' && app.homeBootSuppressed && activePage !== "home") || (window.__rotaceUserNavigated && activePage !== 'home')) return;
-  if (activePage !== 'home' && typeof showPage === 'function') showPage('home');
+  // RAK_17132_ROUTE_NEUTRAL_HOME_REFRESH: callers include background sync,
+  // hydration and recovery. Updating Home must never navigate to Home.
   if (typeof refreshHomeScreen === 'function') refreshHomeScreen();
   else if (typeof updateDashboard === 'function') updateDashboard();
   if (typeof updateFoodTile === 'function') updateFoodTile();
@@ -1296,9 +1297,11 @@ window.__rotaceBootHomeRefreshLate = bootHomeRefreshLate;
       } catch (checkErr) {
         renderDashboardFallback(checkErr);
       }
+      try { if (typeof window.rakMarkFirstUsableRender === 'function') window.rakMarkFirstUsableRender('dashboard'); } catch (err) {}
       return result;
     } catch (err) {
       renderDashboardFallback(err);
+      try { if (typeof window.rakMarkFirstUsableRender === 'function') window.rakMarkFirstUsableRender('dashboard-fallback'); } catch (metricErr) {}
       return null;
     }
   };
@@ -1343,6 +1346,15 @@ async function runDashboardManualSync(source) {
   RAK_DASHBOARD_MANUAL_SYNC_STATE.running = true;
   const started = Date.now();
   setDashboardManualSyncBadge('⟳ Synchronizuji…', 'pending');
+  const diagnosticTap = source === 'dashboard-click' || source === 'dashboard-keyboard';
+  let conflictDiag = null, conflictBefore = null;
+  if (diagnosticTap) try {
+    const diagnosticVersion=String(window.RAK_RELEASE_METADATA&&(window.RAK_RELEASE_METADATA.moduleCacheVersion||window.RAK_RELEASE_METADATA.displayVersion)||'').trim();
+    const diagnosticUrl='./rak-conflict-diagnostics.js'+(diagnosticVersion?'?v='+encodeURIComponent(diagnosticVersion):'');
+    await import(diagnosticUrl);
+    conflictDiag = window.RAKConflictDiagnostics || null;
+    conflictBefore = conflictDiag && conflictDiag.capture();
+  } catch (_) {}
   const result = { ok: true, source: source || 'dashboard-sync-badge', steps: [] };
   const step = async (name, fn) => {
     try {
@@ -1379,24 +1391,30 @@ async function runDashboardManualSync(source) {
     if (typeof updateDashboard === 'function') updateDashboard();
     // RAK_17057_MANUAL_TRUTH_GUARD: successful steps are not proof of an online rotation read.
     const actual = typeof getSupabaseSyncStatus === 'function' ? getSupabaseSyncStatus() : null;
-    if (!actual || actual.kind !== 'online' || actual.queued !== 0 || actual.verified !== true) result.ok = false;
+    // RAK_17138_MANUAL_RESCUE_FRESH_QUEUE_GUARD: the sync status may briefly lag the durable queue.
+    // Read exact held conflicts directly before deciding green state or whether rescue should be offered.
+    const rescueConflicts = typeof window.getRakQueueConflictItems === 'function'
+      ? window.getRakQueueConflictItems()
+      : null;
+    const rescueConflictCount = rescueConflicts && rescueConflicts.ok && Array.isArray(rescueConflicts.items)
+      ? rescueConflicts.items.length
+      : Math.max(0, Number(actual && actual.conflictCount || 0) || 0);
+    if (!actual || actual.kind !== 'online' || actual.queued !== 0 || actual.verified !== true || rescueConflictCount > 0) result.ok = false;
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastAt = Date.now();
     RAK_DASHBOARD_MANUAL_SYNC_STATE.lastText = result.ok ? 'Synchronizace hotová.' : 'Synchronizace doběhla s chybou.';
     setDashboardManualSyncBadge(result.ok ? '🟢 Synchronizováno teď' : '🔴 Sync s chybou', result.ok ? 'online' : 'error');
-    // RAK_17059_DIAGNOSTIC_DIALOG_GUARD: shown only after an intentional badge tap.
-    if (actual && actual.queued > 0 && (source === 'dashboard-click' || source === 'dashboard-keyboard') && typeof window.alert === 'function') {
-      // RAK_17062_READONLY_DIALOG_GUARD: counts only; no raw queue values or server overwrite.
-      const review = typeof window.getRakPendingSyncReview === 'function' ? window.getRakPendingSyncReview() : null;
-      const issue = actual.queueIssue || {};
-      const names = ['starší rozpis','nastavení strojů','měsíční rozpis','výsledek hry','herní statistika','vzhled profilu','rozehraná hra','hlášení chyby','neznámá položka'];
-      const label = names.includes(issue.label) ? issue.label : 'neznámá položka';
-      const reasons = ['oprávnění','časový limit','připojení','omezení serveru','nepotvrzené uložení'];
-      const reason = reasons.includes(issue.failure) ? issue.failure : 'nepotvrzené uložení';
-      window.alert(['RaK 1.7.59 – diagnostika synchronizace', 'Čeká: ' + Number(actual.queued || 0), 'Zadržené: ' + Number(review && review.held || 0), 'Ostatní: ' + Number(review && review.retryable || 0), 'Online načtení: ' + (review && review.remoteVerified ? 'ověřeno' : 'neověřeno'), 'Obsah serveru a telefonu nebyl porovnán.', 'Typ: ' + label, 'Předchozí neúspěšné pokusy: ' + Math.max(0, Number(issue.retries || 0)), 'Důvod: ' + reason, actual.conflictCount ? 'Zadržený konflikt: vyžaduje bezpečnou kontrolu.' : 'Lokální změna zůstává zachována.'].join('\n'));
+    // RAK_17136_SANITIZED_CONFLICT_DIALOG: loaded only after an intentional badge tap.
+    let conflictDiagnosticShown = false;
+    if (diagnosticTap && conflictDiag && typeof window.alert === 'function') {
+      const diagnostic = conflictBefore && conflictBefore.hasIssue ? conflictBefore : conflictDiag.capture();
+      if (diagnostic && diagnostic.hasIssue) {
+        window.alert(conflictDiag.format(diagnostic));
+        conflictDiagnosticShown = true;
+      }
     }
     // RAK_17063_MANUAL_REVISION_DIALOG_GUARD: explicit badge tap and separate
     // approval; comparison is read-only, no payload, ID, token or automatic replay.
-    if (actual && actual.conflictCount > 0
+    if (rescueConflictCount > 0
       && (source === 'dashboard-click' || source === 'dashboard-keyboard')
       && typeof app !== 'undefined' && app && app.adminUnlocked === true
       && typeof window.confirm === 'function' && typeof window.reviewRakRotationRevisionOnDemand === 'function'
@@ -1423,7 +1441,45 @@ async function runDashboardManualSync(source) {
       const saved = typeof window.downloadRakPendingSyncBackup === 'function' && window.downloadRakPendingSyncBackup();
       if (!saved && typeof window.alert === 'function') window.alert('Zálohu se nepodařilo vytvořit. Neodstraňuj data aplikace.');
     }
-    if (actual && actual.storageIssue && !actual.queued && (source === 'dashboard-click' || source === 'dashboard-keyboard')
+    // RAK_17101_EXACT_CONFLICT_DISCARD_GUARD: one conflict only, original bytes exported first,
+    // server check stays read-only, "ostatní" is never discardable.
+    if (rescueConflictCount > 0
+      && (source === 'dashboard-click' || source === 'dashboard-keyboard')
+      && typeof app !== 'undefined' && app && app.adminUnlocked === true
+      && typeof window.getRakQueueConflictItems === 'function'
+      && typeof window.reviewRakQueueConflictOnDemand === 'function'
+      && typeof window.downloadRakQueueConflictItem === 'function'
+      && typeof window.discardRakQueueConflictItem === 'function'
+      && typeof window.confirm === 'function') {
+      const conflicts = rescueConflicts && rescueConflicts.ok ? rescueConflicts : window.getRakQueueConflictItems();
+      const first = conflicts && conflicts.ok && Array.isArray(conflicts.items) ? conflicts.items[0] : null;
+      if (first && window.confirm('Bezpečně zkontrolovat první zadržený konflikt (' + first.label + ')? Kontrola nic nezapíše na server.')) {
+        const checked = await window.reviewRakQueueConflictOnDemand(first.index, first.signature);
+        if (!checked || checked.ok !== true) {
+          if (typeof window.alert === 'function') window.alert('Konflikt se nepodařilo bezpečně ověřit. Nic nebylo odstraněno.');
+        } else if (checked.discardSupported !== true) {
+          if (typeof window.alert === 'function') window.alert('Tento typ konfliktu patří do kategorie „ostatní“. RaK ho automaticky neodstraní; položka zůstává ve frontě.');
+        } else if (window.confirm('Nejdřív uložit soukromou kopii původních bajtů této jediné položky? Bez tohoto exportu RaK odstranění nepovolí.')) {
+          const exported = window.downloadRakQueueConflictItem(first.index, first.signature);
+          if (!exported || exported.ok !== true) {
+            if (typeof window.alert === 'function') window.alert('Soukromý export selhal. Konflikt zůstává beze změny.');
+          } else {
+            const consequence = first.category === 'rozpis'
+              ? 'Odstraní se pouze tato lokální konfliktní změna rozpisu. Online rozpis se nepřepíše.'
+              : 'Odstraní se pouze tato lokální konfliktní změna nastavení stroje. Online nastavení se nepřepíše.';
+            if (window.confirm(consequence + '\n\nOstatní fronta zůstane zachovaná. Pokračovat?')) {
+              const discarded = window.discardRakQueueConflictItem(first.index, first.signature);
+              if (typeof window.alert === 'function') {
+                window.alert(discarded && discarded.ok
+                  ? 'Odstraněna byla přesně 1 lokální konfliktní položka. Soukromý export zůstal v zařízení; server nebyl změněn.'
+                  : 'Položku se nepodařilo bezpečně odstranit. Fronta zůstala zachovaná.');
+              }
+            }
+          }
+        }
+      }
+    }
+    if (actual && actual.storageIssue && !actual.queued && diagnosticTap && !conflictDiagnosticShown
       && typeof window.alert === 'function') window.alert('Lokální frontu nelze ověřit. Neodstraňuj data aplikace a použij zálohu přes nabídku.');
     const restore = () => { try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {} };
     if (typeof registerTimeout === 'function') registerTimeout(restore, 1800); else setTimeout(restore, 1800);

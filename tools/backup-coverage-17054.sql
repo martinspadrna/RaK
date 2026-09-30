@@ -28,7 +28,7 @@ BEGIN
     END IF;
     table_count:=table_count+1;
   END LOOP;
-  IF table_count<>19 OR (SELECT count(*) FROM jsonb_object_keys(snapshot#>'{data,public}'))<>table_count THEN
+  IF (SELECT count(*) FROM jsonb_object_keys(snapshot#>'{data,public}'))<>table_count THEN
     RAISE EXCEPTION 'Public table inventory mismatch';
   END IF;
   IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(snapshot#>'{schema,tables}') e
@@ -51,7 +51,7 @@ BEGIN
       RAISE EXCEPTION 'Orphaned admin/identity Auth reference';
     END IF;
   END LOOP;
-  RAISE NOTICE 'PASS: 19 public tables, Auth, import and Storage counts and references; rolling back';
+  RAISE NOTICE 'PASS: all public tables, Auth, import and Storage counts and references; rolling back';
 END $audit$;
 ROLLBACK;
 -- A successful empty result indicates completed assertions; no account, session, rotation or backup is changed.

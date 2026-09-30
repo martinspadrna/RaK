@@ -178,6 +178,7 @@ function buildAdminReportsHtml() {
       '    <div class="adminReportMessage">' + escapeHtml(row.message || '') + '</div>',
       meta ? '    <div class="smallText">' + escapeHtml(meta) + '</div>' : '',
       row.user_agent ? '    <div class="smallText adminReportDevice">' + escapeHtml(row.user_agent) + '</div>' : '',
+      row.has_screenshot && isAdminReportUuid(row.id) ? '    <button type="button" class="appMenuAction adminReportScreenshotBtn" data-admin-action="report-screenshot" data-report-id="' + id + '">Zobrazit screenshot</button>' : '',
       '    <div class="appMenuActionRow adminReportActions">',
       '      <button type="button" class="appMenuAction" data-admin-action="report-seen" data-report-id="' + id + '">Viděno</button>',
       '      <button type="button" class="appMenuAction isActive" data-admin-action="report-done" data-report-id="' + id + '">Hotovo</button>',
@@ -325,6 +326,7 @@ function normalizeLocalBugReportsForAdmin() {
         local_only: true,
         handled_at: report.handledAt || '',
         handled_note: report.handledNote || '',
+        has_screenshot: !!report.hasScreenshot && !!report.uploadedOnline,
         adminDeleted: !!report.adminDeleted
       };
     }).filter((row, idx) => String(row.message || '').trim() && !isAdminReportMarkedDeleted(row, idx));
@@ -489,6 +491,55 @@ function updateLocalBugReportRecord(reportId, patch) {
   }
 }
 
+async function openAdminBugReportScreenshot(reportId) {
+  const id = String(reportId || '').trim();
+  if (!isAdminReportUuid(id)) return { ok: false, reason: 'invalid-report-id' };
+  const bridge = window.RotationSupabaseBridge;
+  if (!bridge || typeof bridge.loadBugReportScreenshot !== 'function') return { ok: false, reason: 'missing-bridge' };
+  const result = await bridge.loadBugReportScreenshot(id);
+  if (!result || result.ok === false) return result || { ok: false, reason: 'load-failed' };
+  if (!result.found) return { ok: false, reason: 'not-found' };
+  const mime = String(result.mime_type || '').toLowerCase();
+  const base64 = String(result.base64 || '').trim();
+  if (!['image/jpeg','image/png','image/webp'].includes(mime) || !base64 || base64.length > 1000000) {
+    return { ok: false, reason: 'invalid-image-response' };
+  }
+
+  document.getElementById('adminReportScreenshotViewer')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'adminReportScreenshotViewer';
+  overlay.className = 'adminReportScreenshotViewer';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Screenshot reportu');
+  const card = document.createElement('div');
+  card.className = 'adminReportScreenshotCard';
+  const top = document.createElement('div');
+  top.className = 'adminReportScreenshotTop';
+  const title = document.createElement('strong');
+  title.textContent = 'Screenshot reportu';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'appMenuAction adminReportScreenshotClose';
+  close.textContent = 'Zavřít';
+  const image = document.createElement('img');
+  image.className = 'adminReportScreenshotImage';
+  image.alt = 'Screenshot přiložený k reportu';
+  image.src = 'data:' + mime + ';base64,' + base64;
+  const meta = document.createElement('div');
+  meta.className = 'smallText';
+  meta.textContent = String(result.width || '—') + '×' + String(result.height || '—') + ' · ' + Math.max(0, Number(result.byte_size || 0) || 0).toLocaleString('cs-CZ') + ' B';
+  top.append(title, close);
+  card.append(top, image, meta);
+  overlay.append(card);
+  const dismiss = () => overlay.remove();
+  close.addEventListener('click', dismiss);
+  overlay.addEventListener('click', (event) => { if (event.target === overlay) dismiss(); });
+  document.body.appendChild(overlay);
+  close.focus();
+  return { ok: true, shown: true };
+}
+
 async function updateAdminBugReportStatus(reportId, status) {
   if (!reportId) return { ok: false, reason: 'missing-id' };
   const rows = getAdminReportsCache();
@@ -570,6 +621,7 @@ window.markLocalBugReportStatusByAdmin = markLocalBugReportStatusByAdmin;
 window.mergeAdminBugReports = mergeAdminBugReports;
 window.downloadAdminBugReports = downloadAdminBugReports;
 window.loadAdminBugReportsFromSupabase = loadAdminBugReportsFromSupabase;
+window.openAdminBugReportScreenshot = openAdminBugReportScreenshot;
 window.updateLocalBugReportRecord = updateLocalBugReportRecord;
 window.updateAdminBugReportStatus = updateAdminBugReportStatus;
 window.deleteAdminBugReport = deleteAdminBugReport;

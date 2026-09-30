@@ -12,7 +12,10 @@ const sha=run('git',['rev-parse','HEAD']);
 assert(/^[0-9a-f]{40}$/.test(sha),'[17051] missing exact Git commit');
 const expectedBranch=BUILD_TARGET==='production'?'main':'development';
 for(const [name,value] of [['GitHub',process.env.GITHUB_REF_NAME],['Vercel',process.env.VERCEL_GIT_COMMIT_REF]]){
- if(value)assert.equal(value,expectedBranch,`[17051] ${name} branch must match ${BUILD_TARGET} target`);
+ if(!value)continue;
+ if(name==='GitHub'&&process.env.GITHUB_EVENT_NAME==='pull_request'){
+   assert(BUILD_TARGET==='production'&&String(process.env.GITHUB_HEAD_REF||'').startsWith('release/'),`[17051] production candidate PR must originate release/*`);
+ }else assert.equal(value,expectedBranch,`[17051] ${name} branch must match ${BUILD_TARGET} target`);
 }
 if(process.env.GITHUB_SHA)assert.equal(process.env.GITHUB_SHA,sha,'[17051] workflow SHA mismatch');
 if(process.env.VERCEL_GIT_COMMIT_SHA)assert.equal(process.env.VERCEL_GIT_COMMIT_SHA,sha,'[17051] deployment SHA mismatch');

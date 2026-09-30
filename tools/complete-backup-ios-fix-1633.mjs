@@ -79,23 +79,31 @@ function finalize() {
 
   moduleJs = moduleJs.replace(/\n  function rawRepoUrl\(path\) \{[\s\S]*?\n  \}\n\n  async function fetchArrayBuffer/, '\n  async function fetchArrayBuffer');
 
-  const repoFn = `  async function addRepositorySnapshot(zip, progress) {
+  const repoFn = `  function validateExactSourceArchive(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer || new ArrayBuffer(0));
+    if (bytes.byteLength < 100000 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) throw new Error('Zdrojový Git archiv se nestáhl celý. Záloha byla bezpečně zastavena.');
+    const min = Math.max(0, bytes.length - 65557);
+    let eocd = -1;
+    for (let index = Math.max(0, bytes.length - 22); index >= min; index -= 1) {
+      if (bytes[index] === 0x50 && bytes[index + 1] === 0x4b && bytes[index + 2] === 0x05 && bytes[index + 3] === 0x06) { eocd = index; break; }
+    }
+    if (eocd < 0) throw new Error('Zdrojový Git archiv je neúplný (chybí konec ZIPu). Záloha byla bezpečně zastavena.');
+    const commentLength = bytes[eocd + 20] | (bytes[eocd + 21] << 8);
+    if (eocd + 22 + commentLength !== bytes.length) throw new Error('Zdrojový Git archiv má neplatnou délku. Záloha byla bezpečně zastavena.');
+    return bytes;
+  }
+
+  async function addRepositorySnapshot(zip, progress) {
     if (!/^[0-9a-f]{40}$/i.test(RAK_COMPLETE_BACKUP_BUILD_SHA)) throw new Error('Chybí přesný Git SHA tohoto buildu.');
     const expected = Array.from(RAK_COMPLETE_BACKUP_REPO_FILES || []);
     if (!expected.length) throw new Error('Build neobsahuje seznam souborů repozitáře.');
-    progress('Načítám lokální zdrojový archiv…');
+    progress('Načítám přesný zdrojový archiv…');
     const archiveUrl = new URL('/' + RAK_COMPLETE_BACKUP_SOURCE_ARCHIVE + '?v=' + encodeURIComponent(RAK_COMPLETE_BACKUP_BUILD_SHA), window.location.origin).toString();
     const archiveData = await fetchArrayBuffer(archiveUrl, 'lokálního zdrojového archivu');
-    const sourceZip = await window.JSZip.loadAsync(archiveData);
-    const missing = expected.filter((path) => !sourceZip.files[path] || sourceZip.files[path].dir);
-    if (missing.length) throw new Error('Zdrojový archiv není kompletní. Chybí: ' + missing.slice(0, 5).join(', ') + (missing.length > 5 ? '…' : ''));
-    let done = 0;
-    for (const path of expected) {
-      const data = await sourceZip.files[path].async('uint8array');
-      zip.file('repository/' + path, data, { binary: true });
-      done += 1;
-      if (done === expected.length || done % 15 === 0) progress('Zdrojové soubory: ' + done + '/' + expected.length);
-    }
+    const exactBytes = validateExactSourceArchive(archiveData);
+    zip.file('repository/source-exact.zip', exactBytes, { binary: true, compression: 'STORE' });
+    zip.file('repository/README-ZDROJ.txt', 'Git SHA: ' + RAK_COMPLETE_BACKUP_BUILD_SHA + '\\nOčekávaných Git souborů: ' + expected.length + '\\nRozbal source-exact.zip.');
+    progress('Zdrojový snapshot připraven: ' + expected.length + ' souborů');
     return expected.length;
   }
 `;
@@ -105,7 +113,8 @@ function finalize() {
   moduleJs = moduleJs.replace(repoFnRe, repoFn + '\n  function deployedFileInventory');
   assert(!moduleJs.includes('raw.githubusercontent.com'), 'raw GitHub dependency still present');
   assert(moduleJs.includes("new URL('/' + RAK_COMPLETE_BACKUP_SOURCE_ARCHIVE"), 'same-origin archive URL missing');
-  assert(moduleJs.includes('window.JSZip.loadAsync(archiveData)'), 'source archive expansion missing');
+  assert(!moduleJs.includes('window.JSZip.loadAsync(archiveData)'), 'nested source archive must not be parsed on iOS');
+  assert(moduleJs.includes("zip.file('repository/source-exact.zip'"), 'exact source archive embedding missing');
   write('rak-complete-backup.js', moduleJs);
 
   let sw = read('sw.js');

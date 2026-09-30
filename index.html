@@ -15,6 +15,7 @@
 <title>Rotace a Kalkulačky</title>
 <!-- RAK_DEV_17001_UPDATE_PROMPT_RESET -->
 <script src="rak-release-metadata.js"></script>
+<script src="rak-runtime-diagnostics.js?v=1.8.8"></script>
 <script id="rak-dev-17001-update-unblock">
 (function(){
   try {
@@ -99,6 +100,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-inline-legacy.css">
 
+
 </head>
 
 <body>
@@ -107,7 +109,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 <button type="button" id="importBtn" hidden aria-hidden="true" tabindex="-1"></button>
 <button type="button" id="exportBtn" hidden aria-hidden="true" tabindex="-1"></button>
 
-<!-- HOME -->
+
 <div id="home" class="page active">
   <div class="dashboardShell">
     <div class="dashboardAppTitleRow">
@@ -357,7 +359,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </details>
 </div>
 
-<!-- ROTACE -->
+
 <div id="rotace" class="page">
   <div class="headerBar rotaceHeaderBar">
     <div></div>
@@ -408,7 +410,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </div>
 </div>
 
-<!-- SOUSTRUHY -->
+
 <div id="soustruhy" class="page calcPage calcPage--soustruhy">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -564,7 +566,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </div>
 </div>
 
-<!-- JÍDELNÍ LÍSTEK -->
+
 <div id="jidlo" class="page">
   <div class="headerBar">
     <div></div>
@@ -584,7 +586,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </div>
 </div>
 
-<!-- FREZKY -->
+
 <div id="frezky" class="page calcPage">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -618,7 +620,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </details>
 </div>
 
-<!-- BRUSY -->
+
 <div id="brusy" class="page calcPage">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -690,7 +692,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 </div>
 
 
-<!-- KOREKCE SOUSTRUHY -->
+
 <div id="korekce-soustruhy" class="page calcPage calcCorrectionPage calcCorrectionPage--soustruhy">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -738,7 +740,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </details>
 </div>
 
-<!-- KOREKCE FREZKY -->
+
 <div id="korekce-frezky" class="page calcPage calcCorrectionPage calcCorrectionPage--frezky">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -824,7 +826,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 
 </div>
 
-<!-- KOREKCE BRUSY -->
+
 <div id="korekce-brusy" class="page calcPage calcCorrectionPage calcCorrectionPage--brusy">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -841,7 +843,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </div>
 </div>
 
-<!-- PRAČKA -->
+
 <div id="pracka" class="page calcPage calcPage--pracka">
   <div class="headerBar calcHeaderBar">
     <div></div>
@@ -877,16 +879,19 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </details>
 </div>
 
-<script src="supabase-vendor-2.110.7.js" integrity="sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD" onload="rakNoteExternalDependency('supabase','loaded',this.src)" onerror="rakNoteExternalDependency('supabase','failed',this.src)"></script>
-<script src="app.js?v=1.7.0"></script>
+<div id="menu" class="page appMenuPage"><div class="headerBar appMenuPageTitleBar"><div></div><h3>Více</h3><div class="appMenuTitleSpacer"></div></div><div class="card appMenuPageCard"><div class="appMenuBody" id="appMenuBody"><div class="appMenuGrid"><button class="appMenuAction" data-rak-preboot-menu-view="settings">Nastavení</button><button class="appMenuAction" data-rak-preboot-menu-view="about">O aplikaci</button><button class="appMenuAction" data-rak-preboot-menu-view="contact">Kontakt</button><button class="appMenuAction" data-rak-preboot-menu-view="bug-report">Pošli mi chybu</button></div></div></div></div>
 <nav class="bottomNav" aria-label="Spodní navigace">
   <div class="bottomNavScroll" id="bottomNavScroll">
     <button class="bottomNavBtn active" data-page="home" data-action="home"><span class="bottomNavIcon" aria-hidden="true"><img class="bottomNavIconImg bottomNavIconImg--off" src="assets/nav-icons/home-gray.png" alt="" decoding="async" loading="eager"><img class="bottomNavIconImg bottomNavIconImg--on" src="assets/nav-icons/home-green.png" alt="" decoding="async" loading="eager"></span><div class="bottomNavLabel">Home</div></button>
-    <button class="bottomNavBtn" data-page="rotace" data-action="rotace"><span class="bottomNavIcon" aria-hidden="true"><img class="bottomNavIconImg bottomNavIconImg--off" src="assets/nav-icons/rotace-gray.png" alt="" decoding="async" loading="eager"><img class="bottomNavIconImg bottomNavIconImg--on" src="assets/nav-icons/rotace-green.png" alt="" decoding="async" loading="eager"></span><div class="bottomNavLabel">Rotace</div></button>
-    <button class="bottomNavBtn" data-page="kalkulacky" data-action="kalkulacky"><span class="bottomNavIcon" aria-hidden="true"><img class="bottomNavIconImg bottomNavIconImg--off" src="assets/nav-icons/kalkulacky-gray.png" alt="" decoding="async" loading="eager"><img class="bottomNavIconImg bottomNavIconImg--on" src="assets/nav-icons/kalkulacky-green.png" alt="" decoding="async" loading="eager"></span><div class="bottomNavLabel">Kalkulačky</div></button>
+    <button class="bottomNavBtn" data-page="rotace" data-action="rotace"><span class="bottomNavIcon" aria-hidden="true"><img class="bottomNavIconImg bottomNavIconImg--off" src="assets/nav-icons/rotace-gray.png" alt="" decoding="async" loading="eager" fetchpriority="low"><img class="bottomNavIconImg bottomNavIconImg--on" src="assets/nav-icons/rotace-green.png" alt="" decoding="async" loading="eager" fetchpriority="low"></span><div class="bottomNavLabel">Rotace</div></button>
+    <button class="bottomNavBtn" data-page="kalkulacky" data-action="kalkulacky"><span class="bottomNavIcon" aria-hidden="true"><img class="bottomNavIconImg bottomNavIconImg--off" src="assets/nav-icons/kalkulacky-gray.png" alt="" decoding="async" loading="eager" fetchpriority="low"><img class="bottomNavIconImg bottomNavIconImg--on" src="assets/nav-icons/kalkulacky-green.png" alt="" decoding="async" loading="eager" fetchpriority="low"></span><div class="bottomNavLabel">Kalkulačky</div></button>
     <button class="bottomNavBtn bottomNavMenuBtn" data-page="menu" data-action="menu" type="button" aria-label="Více"><svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="2.15"></circle><circle cx="12" cy="12" r="2.15"></circle><circle cx="12" cy="16" r="2.15"></circle></svg><div class="bottomNavLabel">Více</div></button>
   </div>
 </nav>
+<script>
+(function installRakPrebootNavigation(){'use strict';var nav=document.querySelector('nav.bottomNav');if(!nav||nav.dataset.rakPrebootBound==='1')return;nav.dataset.rakPrebootBound='1';window.__rakPrebootNavBound=true;function authUnlocked(){return document.documentElement.dataset.rakAuthState==='unlocked'}function setActive(p){document.querySelectorAll('.bottomNavBtn').forEach(function(b){b.classList.toggle('active',String(b.dataset.page||'')===p)})}function activatePage(p){var e=document.getElementById(p);if(!e)return false;document.querySelectorAll('.page').forEach(function(n){n.classList.remove('active')});e.classList.add('active');setActive(p);window.__rakUserNavigated=true;return true}function earlyMenuHtml(){return '<div class="appMenuGrid"><button class="appMenuAction" data-rak-preboot-menu-view="settings">Nastavení</button><button class="appMenuAction" data-rak-preboot-menu-view="about">O aplikaci</button><button class="appMenuAction" data-rak-preboot-menu-view="contact">Kontakt</button><button class="appMenuAction" data-rak-preboot-menu-view="bug-report">Pošli mi chybu</button></div>'}function ensureEarlyMenu(){var p=document.getElementById('menu');if(!p){p=document.createElement('div');p.id='menu';p.className='page appMenuPage';p.innerHTML='<div class="headerBar appMenuPageTitleBar"><div></div><h3>Více</h3><div class="appMenuTitleSpacer"></div></div><div class="card appMenuPageCard"><div class="appMenuBody" id="appMenuBody"></div></div>';document.body.insertBefore(p,nav)}var d=p.querySelector('#appMenuBody,.appMenuBody');if(d){if(!d.id)d.id='appMenuBody';d.dataset.adminView='';d.innerHTML=earlyMenuHtml()}activatePage('menu');return p}function remember(a,v){window.__rakPrebootPendingNav={action:String(a||''),view:String(v||''),at:Date.now()}}window.__rakConsumePrebootNav=function(){var p=window.__rakPrebootPendingNav;if(!p||!authUnlocked()||typeof window.rakEnsureFeature!=='function')return false;window.__rakPrebootPendingNav=null;var a=String(p.action||'');if(a==='menu'){window.rakEnsureFeature('menu').then(function(){if(typeof window.openAppMenu==='function')window.openAppMenu(p.view||'menu')}).catch(function(e){if(typeof window.rakHandleFeatureLoadError==='function')window.rakHandleFeatureLoadError(e,'menu')});return true}var f=a==='kalkulacky'?'calculators':a==='rotace'?'rotation':'';if(f){window.rakEnsureFeature(f).then(function(){if(a==='kalkulacky'&&typeof window.openKalkulacky==='function')window.openKalkulacky();else if(a==='rotace'&&typeof window.openRotaceNames==='function')window.openRotaceNames()}).catch(function(e){if(typeof window.rakHandleFeatureLoadError==='function')window.rakHandleFeatureLoadError(e,f)});return true}return false};nav.addEventListener('click',function(e){if(nav.__rotaceBound===true)return;var b=e.target&&e.target.closest?e.target.closest('button[data-action]'):null;if(!b||!nav.contains(b)||!authUnlocked())return;e.preventDefault();var a=String(b.dataset.action||'');if(a==='menu'){ensureEarlyMenu();remember('menu','menu');return}if(a==='home'){window.__rakPrebootPendingNav=null;activatePage('home');return}if(a==='kalkulacky'){if(activatePage('kalkulacky'))remember('kalkulacky','');return}if(a==='rotace'&&activatePage('rotace'))remember('rotace','')},false);document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('[data-rak-preboot-menu-view]'):null;if(!b||!authUnlocked())return;e.preventDefault();var v=String(b.getAttribute('data-rak-preboot-menu-view')||'menu');remember('menu',v);if(typeof window.openAppMenu==='function'){window.__rakPrebootPendingNav=null;window.openAppMenu(v)}else if(typeof window.__rakConsumePrebootNav==='function')window.__rakConsumePrebootNav()},false)})();
+</script>
+<script defer src="app.js?v=1.8.8"></script>
 
 <link rel="stylesheet" href="styles-calc-panels.css">
 

@@ -43,7 +43,7 @@ test('OS-only employee access and accepted public-rotation risk are not reinterp
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
  assert(read('rak-account-access.js').includes('Zadej 4 číslice.'));
  assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
  assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));

@@ -526,7 +526,7 @@ function renderUpcomingShiftsPreview(limit = 10) {
     '<div class="rotacePersonHeader rotaceOverviewHeader">',
     '  <div class="rotacePersonTitle">' + escapeHtml(headerText) + '</div>',
     '</div>',
-    '<div class="rotacePersonMeta rotaceOverviewMeta">Přítomno ' + String(presentCount) + ' z ' + String(totalPeople) + ' lidí · ' + escapeHtml(missingText) + '<br><span class="rotaceTaskHint">3× klepni na kartu člověka pro jeho úkol.</span></div>',
+    '<div class="rotacePersonMeta rotaceOverviewMeta">Přítomno ' + String(presentCount) + ' z ' + String(totalPeople) + ' lidí · ' + escapeHtml(missingText) + '<br></div>',
     '<div class="rotaceQuickCards rotacePreviewGrid rotaceOverviewGrid">',
     presentEntries.length ? presentEntries.map(entry => [
       '<div class="rotaceMiniCard rotaceOverviewCard rotaceShiftTaskCard" role="button" tabindex="0" data-rotation-task-person="' + escapeHtml(entry.name || '') + '" data-rotation-task-date="' + escapeHtml(entry.dateLabel || '') + '" data-rotation-task-shift="' + escapeHtml(entry.shift || '') + '" data-rotation-task-machine="' + escapeHtml(entry.target || '') + '" aria-label="3× klepni pro úkol: ' + escapeHtml(entry.name || '') + '">',
@@ -677,10 +677,12 @@ function renderMonth(monthKey) {
         const titleAttr = tip ? " title='" + escapeHtml(tip) + "'" : "";
         const infoAttr = tip ? " data-daymod-info='" + escapeHtml(tip) + "'" : "";
         const markHtml = badge ? " <span class='rakDayModMark'>" + escapeHtml(badge) + "</span>" : "";
+        const dayModClass = mod ? " rakDayModCell" : "";
+        const kalirnaClass = mod && mod.type === 'kalirnaOut' ? " rakKalirnaOutCell" : "";
         if (val) {
-          out += "<td" + (mod ? " class='rakDayModCell'" : "") + titleAttr + infoAttr + ">" + escapeHtml(val) + markHtml + "</td>";
+          out += "<td class='" + (dayModClass + kalirnaClass).trim() + "'" + titleAttr + infoAttr + ">" + escapeHtml(val) + markHtml + "</td>";
         } else {
-          out += "<td class='missingCell" + (mod ? " rakDayModCell" : "") + "'" + titleAttr + infoAttr + ">" + (badge ? escapeHtml(badge) : "—") + "</td>";
+          out += "<td class='missingCell" + dayModClass + kalirnaClass + "'" + titleAttr + infoAttr + ">" + (badge ? escapeHtml(badge) : "—") + "</td>";
         }
       });
       out += "</tr>";
@@ -1419,9 +1421,12 @@ function buildRotationExportRows(section, sectionKey, month) {
     const metaRow = [null];
     machines.forEach((_, idx) => {
       const rawWorker = String((row && row.cells ? row.cells[idx] : '') || '').trim();
-      cells.push(rawWorker && activeNames && !activeNames.has(rawWorker) ? '' : rawWorker);
+      const visibleWorker = rawWorker && activeNames && !activeNames.has(rawWorker) ? '' : rawWorker;
       let mod = null;
       try { if (typeof rakDayModForCell === 'function') mod = rakDayModForCell(month, sectionKey, row && row.date, idx); } catch (e) { mod = null; }
+      // Kalírna zůstává v exportu viditelná i když ji activeNames správně nepočítá do fyzické práce.
+      const exportWorker = mod && mod.type === 'kalirnaOut' && rawWorker ? rawWorker : visibleWorker;
+      cells.push(exportWorker);
       metaRow.push(mod ? {
         badge: typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '',
         tooltip: typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : ''

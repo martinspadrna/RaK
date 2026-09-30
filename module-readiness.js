@@ -7,8 +7,10 @@
         const parsed = JSON.parse(localStorage.getItem(key) || 'null');
         const accountNumber = String(parsed && parsed.accountNumber || '').trim();
         const fullName = String(parsed && parsed.fullName || '').trim();
+        const requestedTeam = String(parsed && parsed.shiftTeam || '').trim().toUpperCase();
+        const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
         if (!accountNumber || !fullName) return null;
-        return { accountNumber, fullName, updatedAt: Number(parsed.updatedAt || 0) || 0 };
+        return { accountNumber, fullName, shiftTeam, updatedAt: Number(parsed.updatedAt || 0) || 0 };
       } catch (err) {
         return null;
       }
@@ -128,7 +130,7 @@
 
 // RaK 1.6 – srozumitelna validace hesla pri pridani noveho spravce.
 (function setupRakAdminPasswordGuard() {
-  const MIN_PASSWORD_LENGTH = 12;
+  const MIN_PASSWORD_LENGTH = 6;
 
   function patchSaveHandler() {
     const original = window.rakAdminSaveSecureAccounts;
@@ -138,7 +140,7 @@
       const rows = typeof reader === 'function' ? reader(root) : [];
       const invalid = rows.find((entry) => entry && entry.password && String(entry.password).length < MIN_PASSWORD_LENGTH);
       if (invalid) {
-        return { ok: false, error: new Error('Heslo nového správce musí mít alespoň 12 znaků.') };
+        return { ok: false, error: new Error('Heslo nového správce musí mít alespoň 6 znaků.') };
       }
       return original(root);
     };
@@ -150,9 +152,9 @@
   function hintPasswordInput(target) {
     if (!target || !target.matches || !target.matches('[data-admin-account-password]')) return;
     target.minLength = MIN_PASSWORD_LENGTH;
-    target.title = 'Heslo nového správce musí mít alespoň 12 znaků.';
+    target.title = 'Heslo nového správce musí mít alespoň 6 znaků.';
     if (!target.value && String(target.placeholder || '').toLowerCase() === 'heslo') {
-      target.placeholder = 'heslo min. 12 znaků';
+      target.placeholder = 'heslo min. 6 znaků';
     }
   }
 
@@ -165,18 +167,18 @@
   else document.addEventListener('DOMContentLoaded', () => { patchSaveHandler(); }, { once: true });
 })();
 
-// RaK 1.6 – generátor: chrání konkrétní runtime chybu `monthKey is not defined` v solo-mill balance.
+// RaK 1.7.121 – generátor: monthKey wrapper musí zachovat i scoped generationOptions z Neplánované změny.
 // Obalí celý běh generátoru přes přesný monthKey z jeho argumentu a po návratu globální kontext zase odstraní.
 (function setupRakGeneratorMonthKeyHotfix() {
   function patchGenerator() {
     const original = window.adminGenerateRotationMonthDraft;
     if (typeof original !== 'function' || original.__rakGeneratorMonthKeyHotfixWrapped) return false;
-    const wrapped = function adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth) {
+    const wrapped = function adminGenerateRotationMonthDraftWithMonthKeyContext(monthKey, preparedMonth, generationOptions) {
       const hadOwnMonthKey = Object.prototype.hasOwnProperty.call(window, 'monthKey');
       const previousMonthKey = window.monthKey;
       try {
         window.monthKey = String(monthKey || '').trim();
-        return original(monthKey, preparedMonth);
+        return original(monthKey, preparedMonth, generationOptions);
       } finally {
         try {
           if (hadOwnMonthKey) window.monthKey = previousMonthKey;

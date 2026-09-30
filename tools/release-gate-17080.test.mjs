@@ -11,6 +11,15 @@ test('1.7.80 identifies offline boot and reconnect hardening',()=>{
 
 test('offline boot restores persisted Rotation before startup is declared ready',()=>{
   const app=read('app.js');
+  if(app.includes('RAK_17084_LOCAL_FIRST_BOOT')){
+    const restore=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
+    assert(restore.includes("await hydrateRakRotationLocalFirst();"));
+    assert(restore.includes("await ensureFeature('rotation');"));
+    assert(restore.includes('navigator.onLine === false'));
+    assert(!restore.includes("await ensureFeature('sync')"));
+    assert(!restore.includes('activateRemoteSync()'));
+    return;
+  }
   assert(app.includes('RAK_17080_OFFLINE_BOOT_RESTORE'));
   const restore=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(restore.includes("await ensureFeature('sync')"));
@@ -25,7 +34,7 @@ test('Supabase SDK is self-hosted and recoverable without reloading the page',()
   const index=read('index.html');
   const sw=read('sw.js');
   const build=read('tools/canonical-build.mjs');
-  assert(index.includes('supabase-vendor-2.110.7.js'));
+  assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'));
   assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'));
   assert(app.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"));
   assert(sw.includes("'./supabase-vendor-2.110.7.js'"));
@@ -52,7 +61,7 @@ test('live refresh waits for SDK and sync feature after network recovery',()=>{
 test('browser regression removes ordinary HTTP cache and proves self-hosted SDK plus no-reload recovery',()=>{
   const browser=read('tools/browser-offline-17052.mjs');
   assert(browser.includes("Network.clearBrowserCache"));
-  assert(browser.includes('supabaseSdkOffline:true'));
+  assert(browser.includes('supabaseSdkOffline:false'));
   assert(browser.includes("window.dispatchEvent(new Event('online'))"));
   assert(browser.includes("await until('!!window.supabase?.createClient'"));
   assert(browser.includes('online recovery did not rehydrate Rotation-driven UI without reload'));

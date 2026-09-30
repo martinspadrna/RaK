@@ -55,7 +55,7 @@ test('rollback SQL exercises two sessions, owner authorization, revocation and b
 });
 
 test('owner OS-only decision is risk acceptance, never mistaken for technical security',()=>{
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
  const policy=read('EMPLOYEE_AUTH_CUTOVER.md');

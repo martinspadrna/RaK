@@ -194,6 +194,8 @@ Tento dokumentační commit má mít prvního rodiče aktuální `development` a
 9. Uživatel fyzicky ověří na iPhonu online přihlášení běžného uživatele, owner/admin přihlášení a zařízení, stránku „O aplikaci“, načtení Rotace a jeden restart instalované PWA bez mazání dat. Chromium se za tento test nevydává.
 10. Během přejímky se **fáze B neprovádí**. Při chybě se produkční alias vrátí na `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1`; fáze A zachovává legacy čtení, takže tento rollback cíl zůstává kompatibilní. Pokud problém souvisí s Edge Function, znovu se nasadí níže uložený zdroj verze 7.
 11. Teprve po fyzickém PASS a druhém výslovném potvrzení se aplikují soubory fáze B, které uzavřou staré veřejné čtecí cesty a přidají privacy guardy. Po této fázi už starý deployment není automaticky bezpečný aplikační rollback; návrat vyžaduje nejdřív obnovu zachycených grantů/policies/funkcí, nikdy mazání dat.
+
+**Doplněk produkčního preflightu 24. 9. 2026:** čtecí katalogová kontrola zjistila v `public.gomoku_wins` 101 historických řádků z období 26. 5.–23. 6. 2026. Vlastník potvrdil, že jde o historii odstraněných Her. Původní guard správně odmítl pokračovat, protože očekával prázdnou tabulku. Revidovaný soubor `20260918193324...` žádný řádek nemaže ani nemění; před uzavřením SELECT fail-closed ověří, že `anon` ani `authenticated` nemají zápisový grant ani EXECUTE na legacy zápisové RPC, a že už proběhl privacy cutover adresáře účtů. Historické řádky zůstávají zachované pro service-role/owner zálohu. Produkční aplikace 1.7.83 herní UI neobsahuje; kompatibilní bridge není aktivním volajícím. Fáze B se přesto nesmí provést bez úplného fyzického iPhone PASS a výslovného potvrzení vlastníka.
 12. Vytvořit strojový release evidence artefakt s main SHA, Actions runem, dvěma buildy, DB migracemi a jejich hashy, Edge verzí/hash, Vercel deployment ID/READY/SHA, HTTP metadaty, aliasem a konkrétními rollback cíli. Neúplný nebo neznámý stav je FAIL.
 
 Povinný SQL guard před změnou role constraintu:
@@ -302,7 +304,7 @@ ALTER TABLE public.rak_admin_profiles
     },
     {
       "path": "supabase/history/non-production-migrations/20260918193324_rak_close_retired_gomoku_public_read.sql",
-      "sha256": "e5a08c40b66681bb548c64738cf320a3799f9374c081b76dc5158e7e1ffd1843"
+      "sha256": "dd8ebf4e9f40c835f32373155e5e52bf20bf324f97bdaf675d3f6e756ca23431"
     },
     {
       "path": "supabase/history/non-production-migrations/20260918195107_rak_stage_verified_employee_rotation_reader.sql",
@@ -597,3 +599,31 @@ export default {
 };
 
 ~~~
+
+## Vlastníkem schválený úklid vyřazeného Gomoku – aplikováno po zeleném CI
+
+Produkční fáze B uzavřela veškerý klientský přístup k historické tabulce `gomoku_wins` a zachovala 101 řádků. Vlastník 24. 9. 2026 následně výslovně povolil jejich smazání, protože Hry už v RaK nejsou. Samostatná migrace je fail-closed: očekává přesně 101 řádků, nulový anon/authenticated SELECT i zápis, nulové klientské EXECUTE na legacy zápisový RPC a žádnou RLS policy; smaže pouze řádky `public.gomoku_wins`, zachová uzamčenou tabulku a ověří nezměněný počet `public.game_accounts`.
+
+~~~json
+{
+  "schema": "rak.retired-gomoku-cleanup.v1",
+  "status": "APPLIED_VERIFIED",
+  "source_development_sha": "8956893f160c05805b2cad7eb7467bed8e42f3e8",
+  "actions_run": 35989913390,
+  "production_migration_version": "20260924105811",
+  "authorized_at": "2026-09-24",
+  "production_project": "bkqamcbkiwumsvelahxr",
+  "path": "supabase/history/non-production-migrations/20260924110000_rak_delete_retired_gomoku_history.sql",
+  "sha256": "57e1f5e42d04112a8e4df575f5cc8c1865edf366c49539ec751f044e9139461d",
+  "expected_rows": 101,
+  "deleted_rows": 101,
+  "remaining_rows": 0,
+  "game_accounts_after": 11,
+  "preserve_table": true,
+  "preserve_game_accounts": true
+}
+~~~
+
+
+
+**Důkaz aplikace:** [Actions #269](https://github.com/martinspadrna/RaK/actions/runs/35989913390) je SUCCESS na přesném SHA `8956893f160c05805b2cad7eb7467bed8e42f3e8`. Produkční migrace `20260924105811_rak_delete_retired_gomoku_history_17083` skončila úspěšně. SQL postkontrola: `gomoku_wins=0`, `game_accounts=11`, anon/authenticated SELECT i zápisy uzavřené, žádná klientská policy. Produkční Vercel, alias a `main` nebyly změněny.

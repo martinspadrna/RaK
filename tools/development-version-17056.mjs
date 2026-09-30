@@ -27,8 +27,13 @@ const panel=[
 change(renderer,'  const serviceHtml = buildAdminServiceHtml();',panel,'service diagnostic panel');
 const helper=read('tools/auth-role-diagnostic-17056.js');
 assert(helper.includes('async function rakRunLiveAuthDiagnostic()'),'[17056] helper missing');
-if(!read(renderer).includes('// RaK 1.7.56. Injected into the built admin renderer')){
- fs.appendFileSync(renderer,'\n\n'+helper+'\n','utf8');
+const helperMarker='// RaK 1.7.56. Injected into the built admin renderer by the development stage.';
+const rendererSource=read(renderer);
+const embeddedHelperStart=rendererSource.lastIndexOf(helperMarker);
+if(embeddedHelperStart>=0){
+ fs.writeFileSync(renderer,rendererSource.slice(0,embeddedHelperStart).replace(/\s*$/,'')+'\n\n'+helper.trim()+'\n','utf8');
+}else{
+ fs.appendFileSync(renderer,'\n\n'+helper.trim()+'\n','utf8');
 }
 const menu='app-menu.js';
 const clickGuard=[

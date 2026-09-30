@@ -13,17 +13,25 @@ export function assertSupabaseTarget(config,label='release'){
     assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),label+' must use TEST Supabase only');
 }
 
-function patch(version){
-  const match=String(version||'').match(/^1\.7\.(\d+)$/);
-  assert(match,'invalid display version');
-  return Number(match[1]);
+function semverParts(version){
+  const match=String(version||'').trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
+  assert(match,'invalid release version');
+  return match.slice(1).map(Number);
+}
+
+function compareSemver(left,right){
+  const a=semverParts(left),b=semverParts(right);
+  for(let i=0;i<3;i+=1){
+    if(a[i]!==b[i]) return a[i]-b[i];
+  }
+  return 0;
 }
 
 export function assertCurrentReleaseIdentity(read,minimumVersion){
   const metadata=RELEASE_METADATA;
-  assert(patch(metadata.displayVersion)>=patch(minimumVersion),'release regressed below '+minimumVersion);
-  assert.equal(metadata.technicalVersion,'1.7.0');
-  assert.equal(metadata.moduleCacheVersion,'1.7.0');
+  assert(compareSemver(metadata.displayVersion,minimumVersion)>=0,'release regressed below '+minimumVersion);
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
   assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
   assert(metadata.buildId.startsWith('v'+metadata.displayVersion+'-'));
   assert.equal(JSON.parse(read('package.json')).version,metadata.technicalVersion);
@@ -45,7 +53,7 @@ export function assertCurrentReleaseIdentity(read,minimumVersion){
   assertSupabaseTarget(config,'runtime configuration');
 
   const sw=read('sw.js');
-  assert(sw.indexOf("importScripts('./rak-release-metadata.js')")<sw.indexOf('const CACHE_VERSION'));
+  assert(sw.indexOf("importScripts('./rak-release-metadata.js?sw=")<sw.indexOf('const CACHE_VERSION'));
   assert(sw.includes('const CACHE_VERSION = RELEASE_METADATA.cacheVersion;'));
   assert(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;'));
   assert(sw.includes('const DEVELOPMENT_BUILD_ID = RELEASE_METADATA.buildId;'));

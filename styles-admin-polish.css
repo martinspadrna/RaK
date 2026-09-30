@@ -867,16 +867,16 @@
 .adminSpecialDaysDateCol{width:104px;}
 .adminSpecialDaysTypeCol{width:110px;}
 .adminSpecialDaysNameCol{width:149px;}
-.adminWorkerRosterTable{min-width:520px !important;}
-.adminWorkerNameCol{width:120px;}
-.adminWorkerLoginCol{width:90px;}
+.adminWorkerRosterTable{min-width:457px !important;}
+.adminWorkerNameCol{width:84px;}
+.adminWorkerLoginCol{width:63px;}
 .adminWorkerMachinesCol{width:310px;}
 .adminWorkerMachineChecks{display:flex;flex-wrap:wrap;gap:4px 10px;}
 .adminWorkerMachineCheck{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;}
 .adminWorkerMachineCheck input{width:16px;height:16px;flex:0 0 auto;}
-.adminAppAccountsTable{width:240px !important;min-width:240px !important;max-width:100%;table-layout:fixed;}
-.adminAppAccountNameCol{width:90px;}
-.adminAppAccountLoginCol{width:45px;}
+.adminAppAccountsTable{width:285px !important;min-width:285px !important;max-width:100%;table-layout:fixed;}
+.adminAppAccountNameCol{width:126px;}
+.adminAppAccountLoginCol{width:54px;}
 .adminAppAccountScopeCol{width:105px;}
 .adminAppAccountsTable .appMenuInlineInput{width:100% !important;min-width:0 !important;padding:6px 4px;}
 .adminAppAccountLoginInput{text-align:center;}
@@ -2409,4 +2409,483 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
 }
 html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="rotace"] {
   display:none !important;
+}
+
+
+/* RaK 1.7.88 – směnové kalendáře: kompaktní mobilní editor */
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarTeam + .adminShiftCalendarTeam{
+  margin-top:12px !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRows{
+  display:grid !important;
+  gap:10px !important;
+  margin-top:8px !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRow{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:8px !important;
+  min-width:0 !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRowActions{
+  display:grid !important;
+  grid-template-columns:54px minmax(0,1fr) !important;
+  gap:8px !important;
+  align-items:stretch !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRowActions .appMenuAction{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  min-height:46px !important;
+  margin:0 !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarRemove{
+  padding:0 !important;
+  font-size:18px !important;
+  line-height:1 !important;
+  display:grid !important;
+  place-items:center !important;
+  text-align:center !important;
+}
+#appMenuBody[data-admin-view="calendars"] .adminShiftCalendarAdd{
+  text-align:left !important;
+}
+
+
+/* RaK 1.7.96 – sjednocená mobilní hierarchie hlavních provozních admin karet. */
+#appMenuBody .adminOpsUnifiedCard{
+  display:grid !important;
+  gap:10px !important;
+}
+#appMenuBody .adminOpsUnifiedCard > .appMenuCardTitle{
+  margin:0 !important;
+}
+#appMenuBody .adminOpsUnifiedCard > .appMenuText{
+  margin:0 0 2px !important;
+}
+#appMenuBody .adminOpsUnifiedCard > .appMenuActionRow{
+  margin-top:4px !important;
+  padding-top:10px !important;
+  border-top:1px solid rgba(255,255,255,.10) !important;
+}
+@media(max-width:560px){
+  #appMenuBody .adminOpsUnifiedCard > .appMenuActionRow{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:7px !important;
+  }
+  #appMenuBody .adminOpsUnifiedCard > .appMenuActionRow .appMenuAction{
+    width:100% !important;
+    min-height:40px !important;
+    margin:0 !important;
+  }
+}
+
+
+/* RaK 1.7.111 – Neplánovaná změna: stabilní mobilní quick menu + izolovaný formulář. */
+.adminRotationQuickRemove{
+  min-width:214px !important;
+  max-width:calc(100vw - 16px) !important;
+}
+.adminRotationQuickRemoveActions{
+  display:flex !important;
+  gap:6px !important;
+  margin-top:5px !important;
+}
+.adminRotationQuickRemoveActions button{
+  min-height:34px !important;
+  border-radius:10px !important;
+  white-space:nowrap !important;
+}
+.adminUnplannedChangeOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:2147483647 !important;
+  display:grid !important;
+  place-items:center !important;
+  padding:12px !important;
+  background:rgba(0,0,0,.68) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.adminUnplannedChangeDialog{
+  width:min(430px,100%) !important;
+  max-height:min(720px,calc(100dvh - 24px)) !important;
+  overflow:auto !important;
+  display:grid !important;
+  gap:12px !important;
+  padding:18px !important;
+  border-radius:24px !important;
+  background:var(--surface,#17191c) !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  box-shadow:0 24px 70px rgba(0,0,0,.45) !important;
+}
+.adminUnplannedRange{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:10px !important;
+  min-width:0 !important;
+}
+.adminUnplannedChangeDialog .appMenuFieldLabel{
+  display:grid !important;
+  gap:6px !important;
+  min-width:0 !important;
+}
+.adminUnplannedChangeDialog .appMenuSelect,
+.adminUnplannedChangeDialog .appMenuInput{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+
+/* RaK 1.7.140 point 1 refinement – one local-drafts card with breathing room around actions. */
+#appMenuBody .rakAdminLocalDraftsCard{
+  display:grid !important;
+  gap:6px !important;
+  margin:10px 0 !important;
+}
+#appMenuBody .rakAdminLocalDraftsCard .rakAdminLocalDraftDownload{
+  margin:6px 0 !important;
+}
+#appMenuBody .rakAdminLocalDraftCleanupSection{
+  display:grid !important;
+  gap:5px !important;
+  margin-top:4px !important;
+}
+#appMenuBody .rakAdminLocalDraftsCard .rakAdminLocalDraftDelete{
+  margin:8px 0 !important;
+}
+#appMenuBody .rakAdminLocalDraftsCard #rakAdminLocalDraftCleanupStatus:empty{
+  display:none !important;
+}
+
+
+/* RaK 1.7.143 – neuložené místní návrhy jsou po načtení zabalené. */
+#appMenuBody details.rakAdminLocalDraftsCard{
+  display:block !important;
+}
+#appMenuBody details.rakAdminLocalDraftsCard > summary{
+  list-style:none !important;
+  cursor:pointer !important;
+  position:relative !important;
+  padding-right:28px !important;
+}
+#appMenuBody details.rakAdminLocalDraftsCard > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody details.rakAdminLocalDraftsCard > summary::after{
+  content:'›' !important;
+  position:absolute !important;
+  right:4px !important;
+  top:50% !important;
+  transform:translateY(-50%) rotate(90deg) !important;
+  opacity:.8 !important;
+}
+#appMenuBody details.rakAdminLocalDraftsCard[open] > summary::after{
+  transform:translateY(-50%) rotate(-90deg) !important;
+}
+#appMenuBody .rakAdminLocalDraftsBody{
+  display:grid !important;
+  gap:6px !important;
+  margin-top:8px !important;
+}
+
+
+/* RaK 1.7.144 – Pravidla generátoru: kompaktní skládací editor pro mobil. */
+#appMenuBody .adminGeneratorSettingsCard{
+  gap:7px !important;
+}
+#appMenuBody .adminGeneratorSettingsCard .adminGeneratorIntro{
+  margin:0 0 2px !important;
+  gap:2px !important;
+  font-size:11.5px !important;
+  line-height:1.2 !important;
+}
+#appMenuBody .adminGeneratorCompactSections{
+  display:grid !important;
+  gap:6px !important;
+  margin:2px 0 !important;
+}
+#appMenuBody .adminGeneratorFold{
+  border:1px solid rgba(180,255,190,.18) !important;
+  border-radius:9px !important;
+  background:rgba(255,255,255,.025) !important;
+  overflow:hidden !important;
+  margin:0 !important;
+}
+#appMenuBody .adminGeneratorFold > summary{
+  list-style:none !important;
+  cursor:pointer !important;
+  position:relative !important;
+  padding:9px 32px 9px 10px !important;
+  font-size:12.5px !important;
+  font-weight:900 !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminGeneratorFold > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody .adminGeneratorFold > summary::after{
+  content:'›' !important;
+  position:absolute !important;
+  right:11px !important;
+  top:50% !important;
+  transform:translateY(-50%) rotate(90deg) !important;
+  opacity:.75 !important;
+  font-size:17px !important;
+}
+#appMenuBody .adminGeneratorFold[open] > summary::after{
+  transform:translateY(-50%) rotate(-90deg) !important;
+}
+#appMenuBody .adminGeneratorFoldBody{
+  display:grid !important;
+  gap:5px !important;
+  padding:0 8px 8px !important;
+  min-width:0 !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatus,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpact,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRulesSummary{
+  margin:0 !important;
+  gap:4px !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusGrid,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactGrid,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRulesGrid{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:4px !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard{
+  min-height:0 !important;
+  padding:5px 6px !important;
+  gap:2px !important;
+  border-radius:7px !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem span,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem span,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard span{
+  font-size:9px !important;
+  line-height:1.05 !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem b,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem b,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard b{
+  font-size:11px !important;
+  line-height:1.08 !important;
+}
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorSettingsStatusItem small,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorImpactItem small,
+#appMenuBody .adminGeneratorOverviewBody .adminGeneratorRuleCard small{
+  font-size:8.5px !important;
+  line-height:1.12 !important;
+}
+#appMenuBody .adminGeneratorFoldBody.adminGeneratorSettingsList{
+  margin:0 !important;
+  gap:4px !important;
+}
+#appMenuBody .adminGeneratorFoldBody .appMenuFieldLabel{
+  margin:1px 0 0 !important;
+  gap:3px !important;
+  font-size:10.5px !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminGeneratorFoldBody .appMenuTextarea{
+  min-height:44px !important;
+  max-height:70px !important;
+  padding:5px 7px !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+}
+#appMenuBody .adminGeneratorFoldBody .appMenuInput{
+  min-height:31px !important;
+  padding:4px 6px !important;
+  font-size:11px !important;
+}
+#appMenuBody .adminGeneratorFoldBody .adminRotationOvertimeSwitch{
+  min-height:30px !important;
+  margin:1px 0 !important;
+  padding:4px 6px !important;
+  font-size:10.5px !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminGeneratorInlineRule{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 82px !important;
+  gap:6px !important;
+  align-items:end !important;
+}
+#appMenuBody .adminGeneratorNumberPair{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:6px !important;
+}
+#appMenuBody .adminGeneratorNumberField{
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  gap:2px !important;
+  margin:0 !important;
+}
+#appMenuBody .adminGeneratorBaseTableWrap{
+  margin-top:2px !important;
+}
+#appMenuBody .adminGeneratorBaseTable th,
+#appMenuBody .adminGeneratorBaseTable td{
+  padding:3px !important;
+}
+#appMenuBody .adminGeneratorBaseTable .appMenuInlineInput{
+  min-height:29px !important;
+  padding:3px 5px !important;
+  font-size:10.5px !important;
+}
+#appMenuBody .adminGeneratorSettingsCard > .appMenuActionRow{
+  margin-top:2px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:5px !important;
+}
+#appMenuBody .adminGeneratorSettingsCard > .appMenuActionRow .appMenuAction{
+  width:100% !important;
+  min-height:34px !important;
+  padding:5px 3px !important;
+  font-size:10.5px !important;
+}
+
+
+/* RaK 1.7.145 – Kantýna / jídelna: kompaktní skládací mobilní editor. */
+#appMenuBody .adminFoodScheduleCard{
+  gap:7px !important;
+}
+#appMenuBody .adminFoodScheduleCard .adminFoodIntro{
+  margin:0 0 2px !important;
+  gap:2px !important;
+  font-size:11.5px !important;
+  line-height:1.2 !important;
+}
+#appMenuBody .adminFoodCompactSections{
+  display:grid !important;
+  gap:6px !important;
+  margin:2px 0 !important;
+}
+#appMenuBody .adminFoodFold{
+  border:1px solid rgba(180,255,190,.18) !important;
+  border-radius:9px !important;
+  background:rgba(255,255,255,.025) !important;
+  overflow:hidden !important;
+  margin:0 !important;
+}
+#appMenuBody .adminFoodFold > summary{
+  list-style:none !important;
+  cursor:pointer !important;
+  position:relative !important;
+  padding:9px 32px 9px 10px !important;
+  font-size:12.5px !important;
+  font-weight:900 !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminFoodFold > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody .adminFoodFold > summary::after{
+  content:'›' !important;
+  position:absolute !important;
+  right:11px !important;
+  top:50% !important;
+  transform:translateY(-50%) rotate(90deg) !important;
+  opacity:.75 !important;
+  font-size:17px !important;
+}
+#appMenuBody .adminFoodFold[open] > summary::after{
+  transform:translateY(-50%) rotate(-90deg) !important;
+}
+#appMenuBody .adminFoodFoldBody{
+  display:grid !important;
+  gap:5px !important;
+  padding:0 7px 7px !important;
+  min-width:0 !important;
+}
+#appMenuBody .adminFoodHint{
+  margin:0 !important;
+  font-size:9.5px !important;
+  line-height:1.15 !important;
+}
+#appMenuBody .adminFoodTableWrap{
+  margin:0 !important;
+  border-radius:7px !important;
+}
+#appMenuBody .adminFoodScheduleTable{
+  margin:0 !important;
+  font-size:10px !important;
+}
+#appMenuBody .adminFoodScheduleTable th,
+#appMenuBody .adminFoodScheduleTable td{
+  padding:3px !important;
+  line-height:1.08 !important;
+  vertical-align:middle !important;
+}
+#appMenuBody .adminFoodScheduleTable .adminFoodColPlace{
+  width:64px !important;
+}
+#appMenuBody .adminFoodRegularTable .adminFoodColDay{
+  width:38px !important;
+}
+#appMenuBody .adminFoodScheduleTable .adminFoodWindowsInput{
+  min-height:29px !important;
+  height:29px !important;
+  padding:3px 5px !important;
+  font-size:10.5px !important;
+  line-height:1.1 !important;
+}
+#appMenuBody .adminFoodScheduleCard > .appMenuActionRow{
+  margin-top:2px !important;
+  padding-top:6px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:5px !important;
+}
+#appMenuBody .adminFoodScheduleCard > .appMenuActionRow .appMenuAction{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:34px !important;
+  padding:5px 3px !important;
+  margin:0 !important;
+  font-size:10.5px !important;
+  line-height:1.05 !important;
+}
+
+
+/* RaK 1.7.146 – compact Správci editor */
+#appMenuBody .adminAccountsCard .adminAccountsIntro{margin-bottom:6px !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatus{gap:5px !important;margin:7px 0 !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatusGrid{gap:5px !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatusItem{min-height:0 !important;gap:2px !important;padding:6px 7px !important;}
+#appMenuBody .adminAccountsCard .adminAccountsStatusItem b{font-size:15px !important;}
+#appMenuBody .adminAccountsCompactSections{display:grid !important;gap:6px !important;margin:7px 0 !important;}
+#appMenuBody .adminAccountsFold{margin:0 !important;border:1px solid rgba(175,210,255,.24) !important;border-radius:8px !important;background:rgba(255,255,255,.035) !important;overflow:hidden !important;}
+#appMenuBody .adminAccountsFold > summary{list-style:none !important;display:flex !important;align-items:center !important;justify-content:space-between !important;gap:8px !important;min-height:34px !important;padding:7px 9px !important;cursor:pointer !important;color:rgba(235,255,240,.92) !important;font-size:13px !important;font-weight:900 !important;line-height:1.15 !important;}
+#appMenuBody .adminAccountsFold > summary::-webkit-details-marker{display:none !important;}
+#appMenuBody .adminAccountsFold > summary::after{content:'›' !important;flex:0 0 auto !important;color:#b8d7ff !important;font-size:18px !important;line-height:1 !important;transform:rotate(0deg) !important;transition:transform .14s ease !important;}
+#appMenuBody .adminAccountsFold[open] > summary::after{transform:rotate(90deg) !important;}
+#appMenuBody .adminAccountsFoldBody{padding:7px 8px 8px !important;border-top:1px solid rgba(175,210,255,.16) !important;}
+#appMenuBody .adminAccountsFoldHint{margin:0 0 6px !important;}
+#appMenuBody .adminAccountsFold .adminAccountsRoleOverview,
+#appMenuBody .adminAccountsFold .adminAccountsSafety,
+#appMenuBody .adminAccountsFold .adminAccountsReadonlyNotice{margin:0 !important;}
+#appMenuBody .adminAccountsFold .adminAccountsSafety{margin-top:6px !important;}
+#appMenuBody .adminAccountsFold .adminAccountsRoleCard,
+#appMenuBody .adminAccountsFold .adminAccountsSafetyItem,
+#appMenuBody .adminAccountsFold .adminAccountsReadonlyNotice{min-height:0 !important;padding:7px !important;}
+#appMenuBody .adminAccountsTableWrap{margin-top:0 !important;}
+#appMenuBody .adminAccountsSessionBody{display:grid !important;gap:0 !important;}
+#appMenuBody .adminAccountsPasswordFold{margin-top:6px !important;}
+#appMenuBody .adminAccountsPasswordFold .adminOwnerPasswordPanel{margin:0 !important;padding-top:0 !important;border-top:0 !important;gap:7px !important;}
+#appMenuBody .adminAccountsCard > .appMenuActionRow{margin-top:8px !important;gap:5px !important;}
+@media (max-width:720px){
+  #appMenuBody .adminAccountsCard .adminAccountsStatusGrid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+  #appMenuBody .adminAccountsCard .adminAccountsStatusItem small{display:none !important;}
+  #appMenuBody .adminAccountsCard .adminAccountsStatusItem span{font-size:10px !important;}
+  #appMenuBody .adminAccountsCard .adminAccountsStatusItem b{font-size:14px !important;}
+  #appMenuBody .adminAccountsFoldBody{padding:6px !important;}
+  #appMenuBody .adminAccountsFold .adminAccountsRoleCard,
+  #appMenuBody .adminAccountsFold .adminAccountsSafetyItem,
+  #appMenuBody .adminAccountsFold .adminAccountsReadonlyNotice{padding:6px !important;}
+  #appMenuBody .adminAccountsPasswordFold .adminOwnerPasswordGrid{gap:6px !important;}
+  #appMenuBody .adminAccountsCard > .appMenuActionRow{display:flex !important;flex-wrap:nowrap !important;}
+  #appMenuBody .adminAccountsCard > .appMenuActionRow > .appMenuAction{flex:1 1 0 !important;min-width:0 !important;min-height:34px !important;padding:6px 3px !important;font-size:10px !important;}
 }

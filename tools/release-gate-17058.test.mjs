@@ -74,5 +74,5 @@ test('two-pass build, prior gates, real mobile Chromium and anon HTTP remain in 
  assert(replay.includes(`already17058?"var build='${BUILD}';":already17057?`));
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const s of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17058.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(s));
- assert.equal(verifyRoadmapProgress(read('RAK_PLAN_13.md')).length,13);
+ assert.equal(verifyRoadmapProgress(read('RAK_HANDOFF.md')).length,13);
 });

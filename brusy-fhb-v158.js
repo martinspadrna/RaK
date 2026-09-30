@@ -320,9 +320,16 @@
   }
 
   function adminPair(prefix, spindle, placeholder) {
+    const input = (side, label) => {
+      const suffix = spindle + (side === 'right' ? 'Right' : 'Left');
+      const field = prefix + suffix;
+      const id = 'brus1594_' + field.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+      const inputHtml = '<input id="' + esc(id) + '" class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(field) + '" data-brus-fhb-sign-input="1" placeholder="' + esc(placeholder || '') + '">';
+      const signLabel = prefix === 'correction' ? 'korekce' : (prefix === 'before' ? 'hodnoty před korekcí' : 'hodnoty po korekci');
+      return '<label>' + label + '<div class="calcSignedInput adminBrus1594SignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="' + esc(id) + '" aria-label="Přepnout znaménko ' + esc(signLabel) + '">+</button>' + inputHtml + '</div></label>';
+    };
     return '<div class="adminBrus1594Spindle"><strong>' + esc(spindle) + '</strong><div class="adminFhbCalibrationTwo">' +
-      '<label>L<input class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(prefix + spindle + 'Left') + '" placeholder="' + esc(placeholder || '') + '"></label>' +
-      '<label>P<input class="appMenuInput" inputmode="decimal" data-brus1594-field="' + esc(prefix + spindle + 'Right') + '" placeholder="' + esc(placeholder || '') + '"></label>' +
+      input('left', 'L') + input('right', 'P') +
       '</div></div>';
   }
 
@@ -506,6 +513,11 @@ html body #korekce-brusy .brus157ChoiceGroup[data-brus157-select="index"] .brus1
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Stage{display:flex;flex-direction:column;gap:8px;}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Spindle{display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:12px;background:rgba(4,18,39,.34);border:1px solid rgba(160,210,255,.12);}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Spindle>strong{font-size:12px;color:var(--green2,#a8ff61);}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:7px!important;align-items:center!important}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput .calcSignToggle{display:grid!important;place-items:center!important;width:42px!important;min-width:42px!important;max-width:42px!important;height:46px!important;min-height:46px!important;max-height:46px!important;padding:0!important;margin:0!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:15px!important;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.06))!important;color:rgba(255,255,255,.94)!important;font-family:inherit!important;font-size:22px!important;font-weight:950!important;line-height:1!important;box-shadow:0 10px 26px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.12)!important;visibility:visible!important;opacity:1!important}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput input{height:46px!important;min-height:46px!important;max-height:46px!important;box-sizing:border-box!important}
+.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput .calcSignToggle.isNegative{border-color:color-mix(in srgb,var(--rakThemeAccent,var(--green2)) 62%,rgba(255,255,255,.16))!important;background:linear-gradient(135deg,color-mix(in srgb,var(--rakThemeAccent,var(--green2)) 35%,rgba(255,255,255,.08)),rgba(255,255,255,.07))!important;color:rgba(255,255,255,.94)!important;}
+@media(max-width:360px){.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput{grid-template-columns:38px minmax(0,1fr)!important;gap:6px!important}.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput .calcSignToggle{width:38px!important;min-width:38px!important;max-width:38px!important;height:44px!important;min-height:44px!important;max-height:44px!important;font-size:20px!important;border-radius:14px!important}.adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594SignedInput input{height:44px!important;min-height:44px!important;max-height:44px!important}}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Record>div{gap:4px;}
 .adminBrusFhbCalibration[data-rak-brus-indexed="1"] .adminBrus1594Record>div>span{display:block;}
 .adminBrusSensitivityFold{padding:0 !important;overflow:hidden;}

@@ -17,7 +17,7 @@
     "PUBLIC_ROTATION_MINIMIZATION_17040.md",
     "PUBLIC_ROTATION_PRIVACY.md",
     "RAK_HANDOFF_CURRENT.md",
-    "RAK_PLAN_13.md",
+    "RAK_HANDOFF.md",
     "RAK_PLAN_17060_STATUS.md",
     "RAK_PLAN_17061_STATUS.md",
     "RAK_PLAN_17062_STATUS.md",
@@ -48,6 +48,7 @@
     "admin-service-usage.js",
     "api/_admin-auth.js",
     "api/admin-users.js",
+    "api/public-calendar.js",
     "api/rotation-absence-calendar.js",
     "app-actions.js",
     "app-admin-unlock.js",
@@ -120,6 +121,7 @@
     "package.json",
     "payroll.js",
     "qr.js",
+    "rak-qr-data.js",
     "rak-account-access.js",
     "rak-appsec-privacy-audit.js",
     "rak-audit-baseline.js",
@@ -491,9 +493,12 @@
     "ui.js",
     "vercel.json"
   ]);
-  const RPC_NAME = 'rak_owner_complete_backup_v1';
+  const MANIFEST_RPC_NAME = 'rak_owner_complete_backup_manifest_v2';
+  const TABLE_RPC_NAME = 'rak_owner_complete_backup_table_v2';
+  const LEGACY_RPC_NAME = 'rak_owner_complete_backup_v1';
   const STATUS_ID = 'adminCompleteBackupStatus';
   const MAX_PARALLEL_FETCHES = 5;
+  const MAX_PARALLEL_DB_FETCHES = 2;
 
   function status(text) {
     try {
@@ -546,16 +551,12 @@
     return token;
   }
 
-  async function fetchCompleteSnapshot(token) {
-    const cfg = window.SUPABASE_CONFIG || {};
-    const base = String(cfg.url || '').replace(/\/$/, '');
-    const key = String(cfg.publishableKey || '');
-    if (!base || !key) throw new Error('Chybí veřejná Supabase konfigurace.');
-    const response = await fetch(base + '/rest/v1/rpc/' + RPC_NAME, {
+  async function postBackupRpc(base, key, token, rpcName, body) {
+    const response = await fetch(base + '/rest/v1/rpc/' + rpcName, {
       method: 'POST',
       cache: 'no-store',
       headers: { apikey: key, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: '{}'
+      body: JSON.stringify(body || {})
     });
     let payload = null;
     try { payload = await response.json(); } catch (_) {}
@@ -563,8 +564,56 @@
       const message = payload && (payload.message || payload.error_description || payload.hint);
       throw new Error('Databázová záloha selhala' + (message ? ': ' + message : ' (HTTP ' + response.status + ')'));
     }
-    if (!payload || payload.format !== 'rak-complete-backup-v1') throw new Error('Supabase vrátila nečekaný formát úplné zálohy.');
     return payload;
+  }
+
+  async function fetchCompleteSnapshot(token) {
+    const cfg = window.SUPABASE_CONFIG || {};
+    const base = String(cfg.url || '').replace(/\/$/, '');
+    const key = String(cfg.publishableKey || '');
+    if (!base || !key) throw new Error('Chybí veřejná Supabase konfigurace.');
+
+    const manifest = await postBackupRpc(base, key, token, MANIFEST_RPC_NAME, {});
+    if (!manifest || manifest.format !== 'rak-complete-backup-manifest-v2') {
+      throw new Error('Supabase vrátila nečekaný manifest úplné zálohy.');
+    }
+    const tableNames = Array.isArray(manifest.public_tables) ? manifest.public_tables.map((name) => String(name || '').trim()) : [];
+    if (!tableNames.length
+      || new Set(tableNames).size !== tableNames.length
+      || tableNames.some((name) => !/^[a-z_][a-z0-9_]*$/i.test(name) || name === 'rak_admin_secrets')) {
+      throw new Error('Manifest úplné zálohy obsahuje neplatný seznam tabulek.');
+    }
+
+    const tableParts = new Array(tableNames.length);
+    let completed = 0;
+    await mapConcurrent(tableNames, MAX_PARALLEL_DB_FETCHES, async (tableName, index) => {
+      const part = await postBackupRpc(base, key, token, TABLE_RPC_NAME, { p_table: tableName });
+      if (!part || part.format !== 'rak-complete-backup-table-v2'
+        || part.table !== tableName || !Array.isArray(part.rows)) {
+        throw new Error('Supabase vrátila neplatnou část tabulky ' + tableName + '.');
+      }
+      tableParts[index] = part.rows;
+      completed += 1;
+      status('Supabase tabulky: ' + completed + '/' + tableNames.length);
+    });
+
+    const publicData = {};
+    tableNames.forEach((tableName, index) => { publicData[tableName] = tableParts[index]; });
+    const manifestData = manifest.data && typeof manifest.data === 'object' ? manifest.data : {};
+    return {
+      format: 'rak-complete-backup-v1',
+      generated_at: manifest.generated_at,
+      database: manifest.database,
+      data: {
+        public: publicData,
+        private: manifestData.private,
+        auth: manifestData.auth,
+        storage: manifestData.storage,
+        redacted: manifestData.redacted
+      },
+      schema: manifest.schema,
+      sensitive_exclusions: manifest.sensitive_exclusions
+    };
   }
 
   async function fetchArrayBuffer(url, label) {
@@ -586,23 +635,50 @@
     await Promise.all(runners);
   }
 
+  function validateExactSourceArchive(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer || new ArrayBuffer(0));
+    if (bytes.byteLength < 100000 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+      throw new Error('Zdrojový Git archiv se nestáhl celý. Záloha byla bezpečně zastavena.');
+    }
+    const min = Math.max(0, bytes.length - 65557);
+    let eocd = -1;
+    for (let index = Math.max(0, bytes.length - 22); index >= min; index -= 1) {
+      if (bytes[index] === 0x50 && bytes[index + 1] === 0x4b && bytes[index + 2] === 0x05 && bytes[index + 3] === 0x06) {
+        eocd = index;
+        break;
+      }
+    }
+    if (eocd < 0) {
+      throw new Error('Zdrojový Git archiv je neúplný (chybí konec ZIPu). Záloha byla bezpečně zastavena.');
+    }
+    const commentLength = bytes[eocd + 20] | (bytes[eocd + 21] << 8);
+    if (eocd + 22 + commentLength !== bytes.length) {
+      throw new Error('Zdrojový Git archiv má neplatnou délku. Záloha byla bezpečně zastavena.');
+    }
+    return bytes;
+  }
+
   async function addRepositorySnapshot(zip, progress) {
     if (!/^[0-9a-f]{40}$/i.test(RAK_COMPLETE_BACKUP_BUILD_SHA)) throw new Error('Chybí přesný Git SHA tohoto buildu.');
     const expected = Array.from(RAK_COMPLETE_BACKUP_REPO_FILES || []);
     if (!expected.length) throw new Error('Build neobsahuje seznam souborů repozitáře.');
-    progress('Načítám lokální zdrojový archiv…');
+    progress('Načítám přesný zdrojový archiv…');
     const archiveUrl = new URL('/' + RAK_COMPLETE_BACKUP_SOURCE_ARCHIVE + '?v=' + encodeURIComponent(RAK_COMPLETE_BACKUP_BUILD_SHA), window.location.origin).toString();
     const archiveData = await fetchArrayBuffer(archiveUrl, 'lokálního zdrojového archivu');
-    const sourceZip = await window.JSZip.loadAsync(archiveData);
-    const missing = expected.filter((path) => !sourceZip.files[path] || sourceZip.files[path].dir);
-    if (missing.length) throw new Error('Zdrojový archiv není kompletní. Chybí: ' + missing.slice(0, 5).join(', ') + (missing.length > 5 ? '…' : ''));
-    let done = 0;
-    for (const path of expected) {
-      const data = await sourceZip.files[path].async('uint8array');
-      zip.file('repository/' + path, data, { binary: true });
-      done += 1;
-      if (done === expected.length || done % 15 === 0) progress('Zdrojové soubory: ' + done + '/' + expected.length);
-    }
+    const exactBytes = validateExactSourceArchive(archiveData);
+    // Safari/iOS už tento ZIP znovu nerozbaluje přes JSZip. Build před deploymentem
+    // nezávisle ověřuje CRC a přesnou shodu inventory s Git indexem; vnější záloha
+    // proto bezpečně nese původní ověřené bajty jako jeden STORE záznam.
+    zip.file('repository/source-exact.zip', exactBytes, { binary: true, compression: 'STORE' });
+    zip.file('repository/README-ZDROJ.txt', [
+      'RaK – přesný zdrojový snapshot',
+      'Git SHA: ' + RAK_COMPLETE_BACKUP_BUILD_SHA,
+      'Očekávaných Git souborů: ' + expected.length,
+      '',
+      'Rozbal source-exact.zip. Jde o buildem ověřený git archive pro přesný SHA výše.',
+      'Na iPhonu se archiv při vytváření zálohy záměrně znovu nerozbaluje, aby nevznikala paměťová špička v JSZip.'
+    ].join('\n'));
+    progress('Zdrojový snapshot připraven: ' + expected.length + ' souborů');
     return expected.length;
   }
 
@@ -752,7 +828,7 @@
       '',
       'OBSAH',
       '-----',
-      'repository/            přesný zdrojový stav GitHub repozitáře pro uvedený SHA',
+      'repository/source-exact.zip  přesný buildem ověřený Git archiv pro uvedený SHA',
       'deployed-app/          skutečně nasazená/transformovaná PWA verze',
       'supabase/data/         veřejná aplikační data a oddělená soukromá metadata importů',
       'supabase/data/private/  soukromá metadata importů rotace pro obnovu',
@@ -764,7 +840,7 @@
       '',
       'OBNOVA – DOPORUČENÉ POŘADÍ',
       '---------------------------',
-      '1. Obnov repository/ do Git repozitáře na uvedeném SHA.',
+      '1. Rozbal repository/source-exact.zip a jeho obsah obnov do Git repozitáře na uvedeném SHA.',
       '2. V novém Supabase projektu aplikuj SQL migrace z repository/supabase/migrations/ v pořadí.',
       '3. Zkontroluj supabase/schema/schema-metadata.json proti nové DB (RLS, RPC, grants, triggery, extensions, realtime publikace).',
       // RAK_17055_RESTORE_ORDER_GUARD: FK dependencies and revoked sessions require manual sequencing.
@@ -861,7 +937,7 @@
 
   window.rakCreateCompleteBackup = createCompleteBackup;
   window.getRakCompleteBackupHealth = function getRakCompleteBackupHealth() {
-    return { ready: typeof window.rakCreateCompleteBackup === 'function', repositoryFileCount: RAK_COMPLETE_BACKUP_REPO_FILES.length, buildSha: RAK_COMPLETE_BACKUP_BUILD_SHA, rpc: RPC_NAME, secretRedaction: true, storageBytesRequired: true, mode: 'one-click-disaster-recovery-v1' };
+    return { ready: typeof window.rakCreateCompleteBackup === 'function', repositoryFileCount: RAK_COMPLETE_BACKUP_REPO_FILES.length, buildSha: RAK_COMPLETE_BACKUP_BUILD_SHA, rpc: MANIFEST_RPC_NAME, tableRpc: TABLE_RPC_NAME, legacyRpc: LEGACY_RPC_NAME, dbParallelism: MAX_PARALLEL_DB_FETCHES, secretRedaction: true, storageBytesRequired: true, mode: 'one-click-disaster-recovery-v1-chunked-v2' };
   };
 
   document.addEventListener('click', (event) => {

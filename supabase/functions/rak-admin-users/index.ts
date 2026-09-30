@@ -43,8 +43,9 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (req.method !== "POST") return jsonResponse(req, 405, { ok: false, error: "method_not_allowed" });
 
   const { data: actor, error: actorError } = await ctx.supabase.rpc("rak_admin_context");
-  // Deputy may use the shift report, but cannot administer users or passwords.
-  if (actorError || !actor || (actor.role !== "owner" && actor.role !== "admin")) {
+  // RaK 1.7.149: owner/admin/deputy may change only their own password.
+  // All management actions remain blocked for deputy below.
+  if (actorError || !actor || !["owner", "admin", "deputy"].includes(String(actor.role || ""))) {
     return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
   }
 
@@ -55,13 +56,17 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (action === "change-own-password") {
     const currentPassword = String(body.currentPassword || "");
     const newPassword = String(body.newPassword || "");
-    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 12 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 6 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
     if (currentPassword === newPassword) return jsonResponse(req, 400, { ok: false, error: "password_unchanged" });
     const accountEmail = `${String(actor.account_id || "").trim()}@admin.rak.local`;
     const { data: verified, error: verifyError } = await ctx.supabase.auth.signInWithPassword({ email: accountEmail, password: currentPassword });
     if (verifyError || String(verified?.user?.id || "") !== String(actor.user_id || "")) return jsonResponse(req, 403, { ok: false, error: "invalid_current_password" });
     const { error: updateError } = await ctx.supabaseAdmin.auth.admin.updateUserById(String(actor.user_id || ""), { password: newPassword });
     return updateError ? jsonResponse(req, 500, { ok: false, error: "password_update_failed" }) : jsonResponse(req, 200, { ok: true });
+  }
+
+  if (actor.role === "deputy") {
+    return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
   }
 
   if (action === "list-admin-directory") {
@@ -77,7 +82,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (action === "change-owner-password") {
     const currentPassword = String(body.currentPassword || "");
     const newPassword = String(body.newPassword || "");
-    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 12 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+    if (!currentPassword || currentPassword.length > 128 || newPassword.length < 6 || newPassword.length > 128) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
     if (currentPassword === newPassword) return jsonResponse(req, 400, { ok: false, error: "password_unchanged" });
     const ownerEmail = `${String(actor.account_id || "").trim()}@admin.rak.local`;
     const { data: verified, error: verifyError } = await ctx.supabase.auth.signInWithPassword({ email: ownerEmail, password: currentPassword });
@@ -93,7 +98,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   const role = String(body.role || "admin").trim();
   if (role !== "admin" && role !== "deputy") return jsonResponse(req, 400, { ok: false, error: "invalid_role" });
   if (!accountId || !displayName) return jsonResponse(req, 400, { ok: false, error: "invalid_admin_profile" });
-  if (password && (password.length < 12 || password.length > 128)) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
+  if (password && (password.length < 6 || password.length > 128)) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
 
   try {
     const { data: existing, error: lookupError } = await ctx.supabaseAdmin.from("rak_admin_profiles")

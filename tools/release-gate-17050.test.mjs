@@ -69,7 +69,7 @@ test('all inherited gates execute before bump on BOTH builds; final gate is stri
 });
 
 test('risk acceptance and owner-only backup are preserved, no false security completion',()=>{
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
  assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));

@@ -50,7 +50,7 @@ test('OS-only login and all existing employee rotation/offline paths stay intact
   assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
   // P0.2 is acceptance of exposure, not technical protection. The shared contract
   // checks this and computes current progress without freezing historical wording.
-  const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+  const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
   assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
   assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
 });

@@ -60,7 +60,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     var idx = Number(cellIndex);
     for (var i = 0; i < list.length; i += 1) {
       var m = list[i];
-      if (m && m.section === section && String(m.date || '').trim() === date && Number(m.cellIndex) === idx) return m;
+      if (!m || m.section !== section || String(m.date || '').trim() !== date || Number(m.cellIndex) !== idx) continue;
+      if (m.type === 'kalirnaOut' && String(m.person || '').trim()) {
+        var sec = month && month[section];
+        var rows = sec && Array.isArray(sec.rows) ? sec.rows : [];
+        var row = rows.find(function (item) { return String(item && item.date || '').trim() === date; });
+        var currentPerson = row && Array.isArray(row.cells) ? String(row.cells[idx] || '').trim() : '';
+        if (currentPerson !== String(m.person || '').trim()) continue;
+      }
+      return m;
     }
     return null;
   }
@@ -75,6 +83,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     var monthKey = typeof getAdminSelectedMonthKey === 'function' ? getAdminSelectedMonthKey() : (window.app ? app.selectedMonth : '');
     return window.rakDayModForCell(getMonth(monthKey), section, dateRaw, cellIndex);
   };
+
+  // RaK 1.7.148: Kalírna se znovu vykresluje jen z reálné buňky + stejného kalirnaOut záznamu.
+  // Neplánovaná změna ukládá člověka do chráněné prázdné MO buňky a daymod na ni přesměruje.
 
   // Krátká značka do buňky (vizuální upozornění i bez barvy).
   window.rakDayModBadge = function rakDayModBadge(mod) {

@@ -1,7 +1,35 @@
 // RaK – průvodce generátoru, návrh, kalendář absencí a export oddělené od engine.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-rotation-generator-wizard.js', 'loading', { source: 'dynamic-loader' }); } catch (err) {}
 
-const ADMIN_ROTATION_GENERATOR_ABSENCE_ICS_URL = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '').replace(/\/$/, '') + '/functions/v1/rak-absence-calendar';
+const ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API = '/api/public-calendar?src=';
+
+function adminRotationGeneratorActiveShiftCalendarSources() {
+  const context = typeof getRakActiveShiftCalendarContext === 'function'
+    ? getRakActiveShiftCalendarContext()
+    : { team: 'D', calendars: [] };
+  const team = ['A', 'B', 'C', 'D'].includes(String(context && context.team || '').toUpperCase())
+    ? String(context.team).toUpperCase()
+    : 'D';
+  const seen = new Set();
+  const sources = [];
+  (Array.isArray(context && context.calendars) ? context.calendars : []).forEach((entry) => {
+    const normalized = typeof normalizeRakGoogleCalendarUrl === 'function'
+      ? normalizeRakGoogleCalendarUrl(entry && entry.url)
+      : '';
+    if (!normalized) return;
+    try {
+      const url = new URL(normalized);
+      if (url.hostname !== 'calendar.google.com' || !/^\/calendar\/embed\/?$/.test(url.pathname)) return;
+      url.searchParams.getAll('src').forEach((source) => {
+        const value = String(source || '').trim();
+        if (!value || seen.has(value)) return;
+        seen.add(value);
+        sources.push(value);
+      });
+    } catch (err) {}
+  });
+  return { team, outside: !!(context && context.outside), sources: sources.slice(0, 64) };
+}
 
 function adminRotationGeneratorCanReadEditorDraftFromDom() {
   const body = document.getElementById('appMenuBody');
@@ -352,34 +380,47 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
   state.days = adminRotationGeneratorResolveWizardDays(state);
   state.absencesByDay = adminRotationGeneratorCollectAbsencesFromDom();
   const status = document.getElementById('adminOnlineSaveStatus');
-  if (status) status.textContent = 'Načítám dovolené z Google kalendáře...';
+  if (status) status.textContent = 'Načítám absence z kalendáře přiřazené směny...';
   try {
-    const bridge = window.RotationSupabaseBridge;
-    const accessToken = bridge && typeof bridge.getAdminAccessToken === 'function'
-      ? await bridge.getAdminAccessToken()
-      : '';
-    if (!accessToken) throw new Error('admin-auth-required');
-    const response = await fetch(ADMIN_ROTATION_GENERATOR_ABSENCE_ICS_URL, {
-      cache: 'no-store',
-      headers: {
-        Authorization: 'Bearer ' + accessToken,
-        apikey: String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.publishableKey || '')
-      }
+    const context = adminRotationGeneratorActiveShiftCalendarSources();
+    const team = String(context && context.team || 'D').trim().toUpperCase() || 'D';
+    const sources = Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
+    if (!sources.length) throw new Error('calendar-not-configured-for-shift-' + team);
+
+    const settled = await Promise.allSettled(sources.map(async (source) => {
+      const response = await fetch(ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API + encodeURIComponent(source), {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+      if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
+      return response.text();
+    }));
+    const texts = settled.filter((item) => item.status === 'fulfilled').map((item) => item.value);
+    if (!texts.length) throw new Error('calendar-unavailable-for-shift-' + team);
+
+    let imported = state.days.map((date) => ({ date, rows: [] }));
+    texts.forEach((text) => {
+      imported = adminRotationGeneratorMergeAbsences(
+        imported,
+        adminRotationGeneratorParseIcsAbsences(text, state.monthKey, state.days)
+      );
     });
-    if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
-    const text = await response.text();
-    const imported = adminRotationGeneratorParseIcsAbsences(text, state.monthKey, state.days);
-    const importedCount = imported.reduce((sum, day) => sum + (Array.isArray(day.rows) ? day.rows.length : 0), 0);
+    const importedCount = imported.reduce((sum, day) => sum + (Array.isArray(day.rows) ? day.rows.filter((row) => row.person || row.code).length : 0), 0);
     state.absencesByDay = adminRotationGeneratorMergeAbsences(state.absencesByDay, imported);
     adminRotationGeneratorRenderWizard('absences');
     const nextStatus = document.getElementById('adminOnlineSaveStatus');
-    if (nextStatus) nextStatus.textContent = importedCount
-      ? ('Načteno z kalendáře: ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.')
-      : 'V kalendáři jsem pro vybraný měsíc nenašel žádné známé absence.';
-    return { ok: true, importedCount };
+    if (nextStatus) {
+      const partial = settled.some((item) => item.status === 'rejected')
+        ? ' Část kalendářů směny se nepodařilo načíst.'
+        : '';
+      nextStatus.textContent = importedCount
+        ? ('Načteno z kalendáře směny ' + team + ': ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.' + partial)
+        : ('V kalendáři směny ' + team + ' jsem pro vybraný měsíc nenašel žádné známé absence.' + partial);
+    }
+    return { ok: true, importedCount, team, sourceCount: texts.length };
   } catch (err) {
     const failStatus = document.getElementById('adminOnlineSaveStatus');
-    if (failStatus) failStatus.textContent = 'Kalendář se nepodařilo načíst. Zkontroluj přihlášení nebo dostupnost Google kalendáře.';
+    if (failStatus) failStatus.textContent = 'Kalendář přiřazené směny se nepodařilo načíst. Zkontroluj nastavení Administrace → Kalendáře.';
     return { ok: false, error: err && err.message ? err.message : String(err || 'neznámá chyba') };
   }
 }
@@ -764,6 +805,755 @@ function adminBuildRotationGeneratorPreviewHtml(month, monthKey) {
     renderSection('Měkota', month.soft, SOFT_MACHINE_HEADERS),
     '</div>'
   ].join('');
+}
+
+
+function adminRotationUnplannedDateLabels(month) {
+  const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+  const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+  const maxRows = Math.max(hardRows.length, softRows.length);
+  const labels = [];
+  const seen = new Set();
+  for (let idx = 0; idx < maxRows; idx += 1) {
+    const label = String((hardRows[idx] && hardRows[idx].date) || (softRows[idx] && softRows[idx].date) || '').trim();
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+  }
+  return labels;
+}
+
+function adminRotationUnplannedDateIndex(labels, value) {
+  const wanted = String(value || '').trim();
+  let idx = labels.indexOf(wanted);
+  if (idx >= 0) return idx;
+  const base = typeof adminRotationDateBaseKey === 'function' ? adminRotationDateBaseKey(wanted) : wanted;
+  return labels.findIndex((label) => {
+    const candidate = typeof adminRotationDateBaseKey === 'function' ? adminRotationDateBaseKey(label) : label;
+    return candidate === base;
+  });
+}
+
+const ADMIN_UNPLANNED_REASON_OPTIONS = Object.freeze([
+  Object.freeze({ value: 'D', label: 'Dovolená', kind: 'absence' }),
+  Object.freeze({ value: 'NV', label: 'Náhradní volno', kind: 'absence' }),
+  Object.freeze({ value: '§', label: 'Paragraf', kind: 'absence' }),
+  Object.freeze({ value: 'LEK', label: 'Lékař', kind: 'absence' }),
+  Object.freeze({ value: 'kalirnaOut', label: 'Odešel na kalírnu', kind: 'daymod' })
+]);
+
+function adminRotationUnplannedReasonOption(value) {
+  const wanted = String(value || '').trim();
+  return ADMIN_UNPLANNED_REASON_OPTIONS.find((item) => item.value === wanted) || null;
+}
+
+function adminRotationUnplannedApplyAbsenceNotes(month, allowedDateLabels, person, reason) {
+  const clone = JSON.parse(JSON.stringify(month || {}));
+  const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
+  const knownNames = adminGetKnownNames();
+  const canonicalPerson = adminRotationCanonicalName(person, knownNames);
+  if (!canonicalPerson || !knownNames.includes(canonicalPerson)) throw new Error('Vyber platného pracovníka.');
+  const safeReason = String(reason || '').trim();
+  if (!safeReason) throw new Error('Vyplň důvod absence.');
+
+  const existing = Array.isArray(clone.notes) ? clone.notes : [];
+  clone.notes = existing.filter((note) => {
+    const date = String(note && note.date || '').trim();
+    const notePerson = adminRotationCanonicalName(note && note.person || '', knownNames);
+    return !(allowed.has(date) && notePerson === canonicalPerson);
+  });
+  for (const date of allowed) {
+    const parsed = typeof parseDateToken === 'function' ? parseDateToken(date) : null;
+    const shift = parsed && parsed.shift ? String(parsed.shift) : '';
+    clone.notes.push({
+      date,
+      person: canonicalPerson,
+      code: safeReason,
+      shift,
+      text: canonicalPerson + ' ' + safeReason
+    });
+  }
+  return clone;
+}
+
+function adminRotationUnplannedGenerationSeed(month) {
+  const clone = JSON.parse(JSON.stringify(month || {}));
+  for (const sectionKey of ['hard','soft']) {
+    const section = clone[sectionKey];
+    const rows = Array.isArray(section && section.rows) ? section.rows : [];
+    const machineCount = sectionKey === 'hard' ? HARD_MACHINE_HEADERS.length : SOFT_MACHINE_HEADERS.length;
+    rows.forEach((row) => { row.cells = Array(machineCount).fill(''); });
+  }
+  return clone;
+}
+
+function adminRotationUnplannedSpliceGeneratedDays(sourceMonth, generatedMonth, allowedDateLabels) {
+  const result = JSON.parse(JSON.stringify(sourceMonth || {}));
+  const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
+  for (const sectionKey of ['hard','soft']) {
+    const sourceRows = Array.isArray(result && result[sectionKey] && result[sectionKey].rows) ? result[sectionKey].rows : [];
+    const generatedRows = Array.isArray(generatedMonth && generatedMonth[sectionKey] && generatedMonth[sectionKey].rows)
+      ? generatedMonth[sectionKey].rows : [];
+    const generatedByDate = new Map(generatedRows.map((row) => [String(row && row.date || '').trim(), row]));
+    sourceRows.forEach((row) => {
+      const date = String(row && row.date || '').trim();
+      if (!allowed.has(date)) return;
+      const generated = generatedByDate.get(date);
+      if (!generated || !Array.isArray(generated.cells)) throw new Error('Generátor nevrátil vybraný den ' + date + '.');
+      row.cells = generated.cells.slice();
+    });
+  }
+  return result;
+}
+
+function adminRotationUnplannedAssertIsolation(beforeMonth, afterMonth, allowedDateLabels) {
+  const allowed = new Set((Array.isArray(allowedDateLabels) ? allowedDateLabels : []).map((value) => String(value || '').trim()).filter(Boolean));
+  for (const sectionKey of ['hard','soft']) {
+    const beforeRows = Array.isArray(beforeMonth && beforeMonth[sectionKey] && beforeMonth[sectionKey].rows) ? beforeMonth[sectionKey].rows : [];
+    const afterRows = Array.isArray(afterMonth && afterMonth[sectionKey] && afterMonth[sectionKey].rows) ? afterMonth[sectionKey].rows : [];
+    if (beforeRows.length !== afterRows.length) throw new Error('Částečný přepočet změnil počet řádků.');
+    beforeRows.forEach((beforeRow, idx) => {
+      const date = String(beforeRow && beforeRow.date || '').trim();
+      if (!allowed.has(date) && JSON.stringify(beforeRow) !== JSON.stringify(afterRows[idx])) {
+        throw new Error('Částečný přepočet sáhl na jiný den: ' + date + '.');
+      }
+    });
+  }
+  return true;
+}
+
+function adminRotationUnplannedIssueKey(issue) {
+  return [String(issue && issue.severity || ''), String(issue && issue.type || issue && issue.code || ''), String(issue && issue.message || '')].join('|');
+}
+
+// RaK 1.7.120: finální gate scoped změny smí řešit jen vybraný den/rozsah.
+function adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels) {
+  const haystack = [issue && issue.message, issue && issue.detail]
+    .map((value) => String(value || '').replace(/\s+/g, '').toLocaleLowerCase('cs-CZ'))
+    .join(' ');
+  return (Array.isArray(allowedDateLabels) ? allowedDateLabels : []).some((label) => {
+    const raw = String(label || '').replace(/\s+/g, '').toLocaleLowerCase('cs-CZ');
+    const base = (typeof adminRotationDateBaseKey === 'function' ? adminRotationDateBaseKey(label) : String(label || ''))
+      .replace(/\s+/g, '').toLocaleLowerCase('cs-CZ');
+    return !!((raw && haystack.includes(raw)) || (base && haystack.includes(base)));
+  });
+}
+
+function adminRotationUnplannedPreserveHardCellsByDate(originalMonth, preparedMonth, allowedDateLabels, person, knownNames) {
+  const result = Object.create(null);
+  const labels = Array.isArray(allowedDateLabels) ? allowedDateLabels : [];
+  labels.forEach((date) => {
+    let assignment = null;
+    try {
+      assignment = adminRotationUnplannedFindAssignment(originalMonth, date, person, knownNames);
+    } catch (_) {
+      return;
+    }
+    if (!assignment || assignment.section !== 'soft') return;
+
+    const hardRows = Array.isArray(originalMonth && originalMonth.hard && originalMonth.hard.rows) ? originalMonth.hard.rows : [];
+    const hardRow = hardRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells.slice(0, HARD_MACHINE_HEADERS.length) : [];
+    if (hardCells.length !== HARD_MACHINE_HEADERS.length) return;
+
+    const blocked = adminRotationUnavailableNamesForDate(preparedMonth, date, knownNames);
+    const available = knownNames.filter((name) => !blocked.has(name));
+    const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+    const seen = new Set();
+    let count = 0;
+    for (let idx = 0; idx < hardCells.length; idx += 1) {
+      const name = adminRotationCanonicalName(hardCells[idx], knownNames);
+      if (!name) continue;
+      if (blocked.has(name) || seen.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, HARD_MACHINE_HEADERS[idx] || '')) return;
+      seen.add(name);
+      count += 1;
+    }
+    if (count !== hardTarget) return;
+    result[date] = hardCells;
+  });
+  return result;
+}
+
+function adminRotationUnplannedAssertHardPreserved(beforeMonth, afterMonth, preserveHardCellsByDate) {
+  const wanted = preserveHardCellsByDate && typeof preserveHardCellsByDate === 'object' ? preserveHardCellsByDate : {};
+  Object.keys(wanted).forEach((date) => {
+    const beforeRows = Array.isArray(beforeMonth && beforeMonth.hard && beforeMonth.hard.rows) ? beforeMonth.hard.rows : [];
+    const afterRows = Array.isArray(afterMonth && afterMonth.hard && afterMonth.hard.rows) ? afterMonth.hard.rows : [];
+    const beforeRow = beforeRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const afterRow = afterRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    if (JSON.stringify(beforeRow && beforeRow.cells || []) !== JSON.stringify(afterRow && afterRow.cells || [])) {
+      throw new Error(String(date || '') + ': neplánovanou absenci šlo vyřešit jen na MO, ale TO se změnilo.');
+    }
+  });
+  return true;
+}
+
+function adminRotationUnplannedAssertSelectedDayStaffing(month, allowedDateLabels) {
+  const knownNames = adminGetKnownNames();
+  const labels = Array.isArray(allowedDateLabels) ? allowedDateLabels : [];
+  labels.forEach((date) => {
+    const blocked = adminRotationUnavailableNamesForDate(month, date, knownNames);
+    const kalirnaOut = typeof adminRotationKalirnaOutNamesForDate === 'function'
+      ? adminRotationKalirnaOutNamesForDate(month, date, knownNames)
+      : new Set();
+    const available = knownNames.filter((name) => !blocked.has(name));
+    const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+    const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+    const hardRow = hardRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const softRow = softRows.find((row) => String(row && row.date || '').trim() === String(date || '').trim()) || null;
+    const hardCells = Array.isArray(hardRow && hardRow.cells) ? hardRow.cells : [];
+    const softCells = Array.isArray(softRow && softRow.cells) ? softRow.cells : [];
+
+    const allAssigned = hardCells.concat(softCells).map((value) => adminRotationCanonicalName(value, knownNames)).filter(Boolean);
+    const duplicate = allAssigned.find((name, idx) => allAssigned.indexOf(name) !== idx);
+    if (duplicate) throw new Error(String(date || '') + ': ' + duplicate + ' je po přepočtu přiřazen dvakrát.');
+
+    const blockedAssigned = allAssigned.find((name) => blocked.has(name) && !kalirnaOut.has(name));
+    if (blockedAssigned) throw new Error(String(date || '') + ': ' + blockedAssigned + ' je nedostupný, ale po přepočtu zůstal ve stroji.');
+
+    const hardAssigned = hardCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter((name) => name && !blocked.has(name));
+    const softAssigned = softCells.map((value) => adminRotationCanonicalName(value, knownNames)).filter((name) => name && !blocked.has(name));
+    const activeAssigned = hardAssigned.concat(softAssigned);
+
+    const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+    const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
+    if (hardAssigned.length !== hardTarget || softAssigned.length !== softTarget || activeAssigned.length !== available.length) {
+      throw new Error(String(date || '') + ': přepočet nemá správný fyzický počet lidí na TO/MO.');
+    }
+
+    const fallbackSoftSlotPlan = (count) => {
+      const idx = {
+        MSKC01: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC01'),
+        MSKC03: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC03'),
+        MSKC04: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC04'),
+        MFKF06: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06'),
+        MFKF10: adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10')
+      };
+      if (count >= 5) return [idx.MSKC01, idx.MSKC03, idx.MSKC04, idx.MFKF06, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 4) return [idx.MSKC01, idx.MSKC03, idx.MSKC04, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 3) return [idx.MSKC03, idx.MSKC04, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 2) return [idx.MSKC03, idx.MFKF10].filter((n) => n >= 0);
+      if (count === 1) return [idx.MFKF10].filter((n) => n >= 0);
+      return [];
+    };
+    const plannedSoftSlots = new Set(typeof adminRotationGeneratorSoftSlotPlan === 'function'
+      ? adminRotationGeneratorSoftSlotPlan(softTarget)
+      : fallbackSoftSlotPlan(softTarget));
+
+    if (softTarget === 4) {
+      const latheIndexes = ['MSKC01','MSKC03','MSKC04'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const millIndexes = ['MFKF06','MFKF10'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const latheCount = latheIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      const millCount = millIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      if (latheCount !== 3 || millCount !== 1) {
+        throw new Error(String(date || '') + ': při čtyřech lidech na MO musí být 3 soustruhy a 1 fréza.');
+      }
+    }
+
+    if (softTarget === 3) {
+      const latheIndexes = ['MSKC01','MSKC03','MSKC04'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const millIndexes = ['MFKF06','MFKF10'].map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine));
+      const latheCount = latheIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      const millCount = millIndexes.filter((idx) => {
+        const name = idx >= 0 ? adminRotationCanonicalName(softCells[idx], knownNames) : '';
+        return !!(name && !blocked.has(name));
+      }).length;
+      if (latheCount !== 2 || millCount !== 1) {
+        throw new Error(String(date || '') + ': při třech lidech na MO musí být 2 soustruhy a 1 fréza.');
+      }
+    }
+
+    softCells.forEach((value, idx) => {
+      const name = adminRotationCanonicalName(value, knownNames);
+      const physicallyOccupied = !!(name && !blocked.has(name));
+      if (physicallyOccupied !== plannedSoftSlots.has(idx)) {
+        throw new Error(String(date || '') + ': fyzické MO neodpovídá plánu pro ' + String(softTarget) + ' lidí.');
+      }
+    });
+  });
+  return true;
+}
+
+function adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, input) {
+  const data = input && typeof input === 'object' ? input : {};
+  const labels = adminRotationUnplannedDateLabels(sourceMonth);
+  const fromIndex = adminRotationUnplannedDateIndex(labels, data.fromDate);
+  const toIndex = adminRotationUnplannedDateIndex(labels, data.toDate);
+  if (fromIndex < 0 || toIndex < 0) throw new Error('Vybraný den není v rozpisu.');
+  if (toIndex < fromIndex) throw new Error('Datum Do musí být stejné nebo pozdější než Datum Od.');
+  const allowedDateLabels = labels.slice(fromIndex, toIndex + 1);
+  if (!allowedDateLabels.length) throw new Error('Není vybraný žádný den.');
+
+  const knownNames = adminGetKnownNames();
+  const person = adminRotationCanonicalName(data.person, knownNames);
+  if (!person || !knownNames.includes(person)) throw new Error('Vyber platného pracovníka.');
+  const reason = String(data.reason || '').trim();
+  const reasonOption = adminRotationUnplannedReasonOption(reason);
+  if (!reasonOption || reasonOption.kind !== 'absence') throw new Error('Vyber platný důvod absence.');
+
+  const original = JSON.parse(JSON.stringify(sourceMonth || {}));
+  const withAbsence = adminRotationUnplannedApplyAbsenceNotes(original, allowedDateLabels, person, reason);
+  const preserveHardCellsByDate = adminRotationUnplannedPreserveHardCellsByDate(original, withAbsence, allowedDateLabels, person, knownNames);
+  const seed = adminRotationUnplannedGenerationSeed(withAbsence);
+  const generated = adminGenerateRotationMonthDraft(monthKey, seed, {
+    ignoreDom: true,
+    persistPending: false,
+    allowScopedRuleErrors: true,
+    scopedDateLabels: allowedDateLabels,
+    preserveHardCellsByDate
+  });
+  if (!generated || !generated.normalized) throw new Error('Částečný návrh se nepodařilo vygenerovat.');
+  const candidate = adminRotationUnplannedSpliceGeneratedDays(withAbsence, generated.normalized, allowedDateLabels);
+  adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels);
+  adminRotationUnplannedAssertHardPreserved(original, candidate, preserveHardCellsByDate);
+  adminRotationUnplannedAssertSelectedDayStaffing(candidate, allowedDateLabels);
+
+  const beforeCheck = adminRotationValidateMonthRules(original, monthKey, { source: 'generator' });
+  const afterCheck = adminRotationValidateMonthRules(candidate, monthKey, { source: 'generator' });
+  const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
+  const newErrors = (afterCheck.issues || []).filter((issue) => issue
+    && issue.severity === 'error'
+    && adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels)
+    && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
+  if (newErrors.length) {
+    throw new Error('Změnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
+  }
+  return {
+    month: candidate,
+    allowedDateLabels,
+    person,
+    reason,
+    reasonLabel: reasonOption.label,
+    changeKind: 'absence',
+    warnings: (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'warn')
+  };
+}
+
+function adminRotationUnplannedFindAssignment(month, dateLabel, person, knownNames) {
+  const matches = [];
+  for (const sectionKey of ['hard','soft']) {
+    const rows = Array.isArray(month && month[sectionKey] && month[sectionKey].rows) ? month[sectionKey].rows : [];
+    rows.forEach((row) => {
+      if (String(row && row.date || '').trim() !== String(dateLabel || '').trim()) return;
+      const cells = Array.isArray(row && row.cells) ? row.cells : [];
+      cells.forEach((value, cellIndex) => {
+        const canonical = adminRotationCanonicalName(value, knownNames);
+        if (canonical === person) matches.push({ section: sectionKey, cellIndex });
+      });
+    });
+  }
+  if (matches.length !== 1) {
+    throw new Error(matches.length
+      ? 'Pracovník je ve vybraném dni přiřazen vícekrát: ' + String(dateLabel || '') + '.'
+      : 'Pracovník není ve vybraném dni v rozpisu: ' + String(dateLabel || '') + '.');
+  }
+  return matches[0];
+}
+
+function adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, targetMonth, dateLabel, person, knownNames) {
+  let assignment = null;
+  try {
+    assignment = adminRotationUnplannedFindAssignment(sourceMonth, dateLabel, person, knownNames);
+  } catch (_) {
+    return false;
+  }
+  if (!assignment || assignment.section !== 'soft') return false;
+
+  const hardRows = Array.isArray(sourceMonth && sourceMonth.hard && sourceMonth.hard.rows) ? sourceMonth.hard.rows : [];
+  const sourceSoftRows = Array.isArray(sourceMonth && sourceMonth.soft && sourceMonth.soft.rows) ? sourceMonth.soft.rows : [];
+  const targetSoftRows = Array.isArray(targetMonth && targetMonth.soft && targetMonth.soft.rows) ? targetMonth.soft.rows : [];
+  const hardRow = hardRows.find((row) => String(row && row.date || '').trim() === String(dateLabel || '').trim()) || null;
+  const sourceSoftRow = sourceSoftRows.find((row) => String(row && row.date || '').trim() === String(dateLabel || '').trim()) || null;
+  const targetSoftRow = targetSoftRows.find((row) => String(row && row.date || '').trim() === String(dateLabel || '').trim()) || null;
+  if (!hardRow || !sourceSoftRow || !targetSoftRow) return false;
+
+  const blocked = adminRotationUnavailableNamesForDate(targetMonth, dateLabel, knownNames);
+  const available = knownNames.filter((name) => !blocked.has(name));
+  const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+  const hardCells = Array.isArray(hardRow.cells) ? hardRow.cells.slice(0, HARD_MACHINE_HEADERS.length) : [];
+  if (hardCells.length !== HARD_MACHINE_HEADERS.length) return false;
+
+  const hardNames = new Set();
+  let hardCount = 0;
+  for (let idx = 0; idx < hardCells.length; idx += 1) {
+    const name = adminRotationCanonicalName(hardCells[idx], knownNames);
+    if (!name) continue;
+    if (blocked.has(name) || hardNames.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, HARD_MACHINE_HEADERS[idx] || '')) return false;
+    hardNames.add(name);
+    hardCount += 1;
+  }
+  if (hardCount !== hardTarget) return false;
+
+  const sourceCells = Array.isArray(sourceSoftRow.cells) ? sourceSoftRow.cells.slice(0, SOFT_MACHINE_HEADERS.length) : [];
+  if (sourceCells.length !== SOFT_MACHINE_HEADERS.length) return false;
+  const sourcePerson = adminRotationCanonicalName(sourceCells[Number(assignment.cellIndex)], knownNames);
+  if (sourcePerson !== person) return false;
+
+  const originalIndexByName = new Map();
+  const remaining = [];
+  for (let idx = 0; idx < sourceCells.length; idx += 1) {
+    const name = adminRotationCanonicalName(sourceCells[idx], knownNames);
+    if (!name) continue;
+    if (originalIndexByName.has(name) || hardNames.has(name)) return false;
+    originalIndexByName.set(name, idx);
+    if (name === person) continue;
+    if (blocked.has(name)) return false;
+    remaining.push(name);
+  }
+
+  const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
+  if (remaining.length !== softTarget) return false;
+  const slots = adminRotationGeneratorSoftSlotPlan(softTarget);
+  if (!Array.isArray(slots) || slots.length !== softTarget || new Set(slots).size !== slots.length) return false;
+
+  let best = null;
+  const visit = (slotPos, pool, cells, movedPeople) => {
+    if (slotPos >= slots.length) {
+      const changedCells = cells.reduce((sum, value, idx) => {
+        const before = adminRotationCanonicalName(sourceCells[idx], knownNames);
+        const after = adminRotationCanonicalName(value, knownNames);
+        return sum + (before === after ? 0 : 1);
+      }, 0);
+      const movedLathePeople = remaining.reduce((sum, name) => {
+        const fromIdx = Number(originalIndexByName.get(name));
+        const toIdx = cells.findIndex((value) => adminRotationCanonicalName(value, knownNames) === name);
+        return sum + (fromIdx >= 0 && fromIdx < 3 && toIdx >= 0 && fromIdx !== toIdx ? 1 : 0);
+      }, 0);
+      if (!best
+        || movedPeople < best.movedPeople
+        || (movedPeople === best.movedPeople && movedLathePeople < best.movedLathePeople)
+        || (movedPeople === best.movedPeople && movedLathePeople === best.movedLathePeople && changedCells < best.changedCells)) {
+        best = { cells: cells.slice(), movedPeople, movedLathePeople, changedCells };
+      }
+      return;
+    }
+    const machineIdx = slots[slotPos];
+    const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
+    for (let idx = 0; idx < pool.length; idx += 1) {
+      const name = pool[idx];
+      if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) continue;
+      const nextCells = cells.slice();
+      nextCells[machineIdx] = name;
+      const nextPool = pool.slice(0, idx).concat(pool.slice(idx + 1));
+      const nextMoved = movedPeople + (Number(originalIndexByName.get(name)) === Number(machineIdx) ? 0 : 1);
+      if (best && nextMoved > best.movedPeople) continue;
+      visit(slotPos + 1, nextPool, nextCells, nextMoved);
+    }
+  };
+
+  visit(0, remaining.slice(), Array(SOFT_MACHINE_HEADERS.length).fill(''), 0);
+  if (!best) return false;
+  targetSoftRow.cells = best.cells;
+  return true;
+}
+
+function adminRotationUnplannedPlaceKalirnaDisplayCell(month, dateLabel, person, knownNames) {
+  const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+  const row = softRows.find((item) => String(item && item.date || '').trim() === String(dateLabel || '').trim()) || null;
+  if (!row) throw new Error('Chybí řádek MO pro Kalírnu: ' + String(dateLabel || '') + '.');
+  const cells = Array.isArray(row.cells) ? row.cells.slice(0, SOFT_MACHINE_HEADERS.length) : [];
+  while (cells.length < SOFT_MACHINE_HEADERS.length) cells.push('');
+
+  const blocked = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
+  const available = knownNames.filter((name) => !blocked.has(name));
+  const hardTarget = adminRotationGeneratorHardTarget(knownNames, available);
+  const softTarget = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTarget));
+  const activeSlots = new Set(adminRotationGeneratorSoftSlotPlan(softTarget));
+  const preferredMachines = softTarget >= 4 ? ['MFKF06', 'MSKC01'] : ['MSKC01', 'MFKF06'];
+  const candidates = preferredMachines
+    .map((machine) => adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machine))
+    .concat(SOFT_MACHINE_HEADERS.map((_, idx) => idx))
+    .filter((idx, pos, list) => idx >= 0 && list.indexOf(idx) === pos)
+    .filter((idx) => !activeSlots.has(idx))
+    .filter((idx) => !adminRotationCanonicalName(cells[idx], knownNames));
+  const cellIndex = candidates[0];
+  if (!Number.isFinite(cellIndex)) throw new Error('Pro evidenci Kalírny není volná chráněná MO buňka: ' + String(dateLabel || '') + '.');
+
+  cells[cellIndex] = person;
+  row.cells = cells;
+
+  const mod = (Array.isArray(month && month.dayMods) ? month.dayMods : []).find((item) =>
+    item
+    && item.type === 'kalirnaOut'
+    && String(item.date || '').trim() === String(dateLabel || '').trim()
+    && adminRotationCanonicalName(item.person || '', knownNames) === person
+  );
+  if (!mod) throw new Error('Chybí výjimka Kalírny pro ' + String(dateLabel || '') + '.');
+  mod.section = 'soft';
+  mod.cellIndex = Number(cellIndex);
+  return { section: 'soft', cellIndex, machine: SOFT_MACHINE_HEADERS[cellIndex] || '', softTarget };
+}
+
+function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input) {
+  const data = input && typeof input === 'object' ? input : {};
+  const labels = adminRotationUnplannedDateLabels(sourceMonth);
+  const fromIndex = adminRotationUnplannedDateIndex(labels, data.fromDate);
+  const toIndex = adminRotationUnplannedDateIndex(labels, data.toDate);
+  if (fromIndex < 0 || toIndex < 0) throw new Error('Vybraný den není v rozpisu.');
+  if (toIndex < fromIndex) throw new Error('Datum Do musí být stejné nebo pozdější než Datum Od.');
+  const allowedDateLabels = labels.slice(fromIndex, toIndex + 1);
+  if (!allowedDateLabels.length) throw new Error('Není vybraný žádný den.');
+
+  const knownNames = adminGetKnownNames();
+  const person = adminRotationCanonicalName(data.person, knownNames);
+  if (!person || !knownNames.includes(person)) throw new Error('Vyber platného pracovníka.');
+  const reasonOption = adminRotationUnplannedReasonOption(data.reason);
+  if (!reasonOption || reasonOption.kind !== 'daymod' || reasonOption.value !== 'kalirnaOut') {
+    throw new Error('Vyber platnou výjimku dne.');
+  }
+
+  const candidate = JSON.parse(JSON.stringify(sourceMonth || {}));
+  const allowed = new Set(allowedDateLabels);
+  const existing = Array.isArray(candidate.dayMods) ? candidate.dayMods : [];
+  candidate.dayMods = existing.filter((mod) => {
+    const modDate = String(mod && mod.date || '').trim();
+    const modPerson = adminRotationCanonicalName(mod && mod.person || '', knownNames);
+    return !(allowed.has(modDate) && modPerson === person);
+  });
+
+  allowedDateLabels.forEach((date) => {
+    const assignment = adminRotationUnplannedFindAssignment(sourceMonth, date, person, knownNames);
+    candidate.dayMods.push({
+      section: assignment.section,
+      date,
+      cellIndex: Number(assignment.cellIndex),
+      person,
+      type: 'kalirnaOut',
+      time: '',
+      restReason: '',
+      workedHours: null,
+      restHours: null,
+      overtime: null,
+      toSection: '',
+      toCellIndex: null,
+      note: ''
+    });
+  });
+
+  // Kalírna se nejdřív řeší nejmenším možným zásahem. Pokud pracovník
+  // odchází z MO a stávající TO je stále platné, zůstanou všichni ostatní
+  // pokud možno na svém stroji. Typický případ 5 -> 4 na MO tak znamená:
+  // člověk z MFKF06 nahradí odcházejícího na soustruhu a MFKF10 zůstane sám.
+  // Teprve když kvalifikace nebo staffing lokální řešení nedovolí, použije
+  // se stávající scoped generátor jen pro konkrétní nevyřešené dny.
+  let regenerated = JSON.parse(JSON.stringify(candidate));
+  const fallbackDateLabels = [];
+  allowedDateLabels.forEach((date) => {
+    const applied = adminRotationUnplannedTryMinimalKalirnaSoftReflow(sourceMonth, regenerated, date, person, knownNames);
+    if (!applied) fallbackDateLabels.push(date);
+  });
+
+  if (fallbackDateLabels.length) {
+    const seed = adminRotationUnplannedGenerationSeed(candidate);
+    const generated = adminGenerateRotationMonthDraft(monthKey, seed, { ignoreDom: true, persistPending: false, allowScopedRuleErrors: true, scopedDateLabels: fallbackDateLabels });
+    if (!generated || !generated.normalized) throw new Error('Přepočet dne s Kalírnou se nepodařilo vygenerovat.');
+    regenerated = adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels);
+  }
+
+  // Fyzický staffing je hotový. Teď vlož pouze evidenční buňku Kalírny do
+  // chráněného prázdného MO slotu a přesměruj na ni tentýž kalirnaOut daymod.
+  allowedDateLabels.forEach((date) => {
+    adminRotationUnplannedPlaceKalirnaDisplayCell(regenerated, date, person, knownNames);
+  });
+
+  adminRotationUnplannedAssertIsolation(sourceMonth, regenerated, allowedDateLabels);
+  adminRotationUnplannedAssertSelectedDayStaffing(regenerated, allowedDateLabels);
+
+  for (const date of allowedDateLabels) {
+    const assignment = adminRotationUnplannedFindAssignment(regenerated, date, person, knownNames);
+    if (!assignment || assignment.section !== 'soft') {
+      throw new Error('Kalírna není evidenčně v MO rozpisu: ' + date + '.');
+    }
+    const mod = (Array.isArray(regenerated.dayMods) ? regenerated.dayMods : []).find((item) =>
+      item && item.type === 'kalirnaOut'
+      && String(item.date || '').trim() === String(date || '').trim()
+      && adminRotationCanonicalName(item.person || '', knownNames) === person
+    );
+    if (!mod || mod.section !== 'soft' || Number(mod.cellIndex) !== Number(assignment.cellIndex)) {
+      throw new Error('Kalírna nemá stejnou buňku jako její →K výjimka: ' + date + '.');
+    }
+  }
+
+  const beforeCheck = adminRotationValidateMonthRules(sourceMonth, monthKey, { source: 'generator' });
+  const afterCheck = adminRotationValidateMonthRules(regenerated, monthKey, { source: 'generator' });
+  const previousErrors = new Set((beforeCheck.issues || []).filter((issue) => issue && issue.severity === 'error').map(adminRotationUnplannedIssueKey));
+  const newErrors = (afterCheck.issues || []).filter((issue) => issue
+    && issue.severity === 'error'
+    && adminRotationUnplannedIssueTouchesSelectedDate(issue, allowedDateLabels)
+    && !previousErrors.has(adminRotationUnplannedIssueKey(issue)));
+  if (newErrors.length) {
+    throw new Error('Kalírnu nejde bezpečně přepočítat bez zásahu do jiných dnů: ' + newErrors.slice(0, 2).map((issue) => issue.message).join(' · '));
+  }
+
+  return {
+    month: regenerated,
+    allowedDateLabels,
+    person,
+    reason: 'kalirnaOut',
+    reasonLabel: reasonOption.label,
+    changeKind: 'daymod',
+    warnings: (afterCheck.issues || []).filter((issue) => issue && issue.severity === 'warn')
+  };
+}
+
+function adminRotationUnplannedOperationId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+  if (!(window.crypto && typeof window.crypto.getRandomValues === 'function')) throw new Error('Bezpečný identifikátor operace není dostupný.');
+  const bytes = new Uint8Array(16);
+  window.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 15) | 64;
+  bytes[8] = (bytes[8] & 63) | 128;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+}
+
+
+function adminEnsureUnplannedChangePopupPageStyles() {
+  if (document.getElementById('rakUnplannedChangePopupPageStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'rakUnplannedChangePopupPageStyles';
+  style.textContent = [
+    '.adminUnplannedChangeOverlay{align-items:center!important;justify-items:center!important;padding:max(14px,env(safe-area-inset-top)) 10px max(14px,env(safe-area-inset-bottom))!important;box-sizing:border-box!important;overflow:hidden!important}',
+    '.adminUnplannedChangeDialog.adminUnplannedChangePage{width:min(520px,100%)!important;height:auto!important;max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;padding:0!important;overflow:hidden!important;grid-template-rows:auto minmax(0,1fr) auto!important;gap:0!important;border-radius:24px!important;box-sizing:border-box!important}',
+    '.adminUnplannedChangeHeader{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:13px 15px 10px!important;border-bottom:1px solid rgba(255,255,255,.10)!important}',
+    '.adminUnplannedClose{width:40px!important;min-width:40px!important;height:40px!important;display:grid!important;place-items:center!important;padding:0!important;border-radius:50%!important;font-size:26px!important;line-height:1!important}',
+    '.adminUnplannedChangeBody{min-height:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch!important;display:grid!important;align-content:start!important;gap:11px!important;padding:12px 15px 14px!important}',
+    '.adminUnplannedChangeBody .appMenuFieldLabel{gap:6px!important}',
+    '.adminUnplannedChangeFooter{display:grid!important;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;gap:8px!important;padding:10px 15px max(10px,env(safe-area-inset-bottom))!important;border-top:1px solid rgba(255,255,255,.10)!important;background:inherit!important}',
+    '.adminUnplannedChangeFooter .appMenuAction{min-width:0!important;min-height:48px!important;white-space:normal!important}'
+  ].join('');
+  document.head.appendChild(style);
+}
+
+function adminCloseUnplannedChangeDialog() {
+  const overlay = document.getElementById('adminUnplannedChangeOverlay');
+  if (overlay) overlay.remove();
+}
+
+function adminOpenUnplannedChangeDialog(input) {
+  adminEnsureUnplannedChangePopupPageStyles();
+  const body = document.getElementById('appMenuBody');
+  if (!body || body.dataset.adminView !== 'rotation') return;
+  if (app && app.adminRotationDirty === true) {
+    const status = document.getElementById('adminRotationDraftStatus') || document.getElementById('adminOnlineSaveStatus');
+    if (status) status.textContent = 'Nejdřív ulož nebo zahoď rozepsané ruční změny. Neplánovaná změna vyžaduje ověřený online základ.';
+    return;
+  }
+  const monthKey = String((body.querySelector('#adminMonthSelect') && body.querySelector('#adminMonthSelect').value) || getAdminSelectedMonthKey() || '').trim();
+  const sourceMonth = typeof readAdminRotationFromDom === 'function' && body.querySelector('#adminRotationEditor')
+    ? readAdminRotationFromDom(monthKey)
+    : (app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null);
+  if (!monthKey || !sourceMonth) throw new Error('Nejdřív načti měsíc rozpisu.');
+
+  const row = input && input.closest ? input.closest('tr[data-rotation-section]') : null;
+  const prefillDate = String(row && row.querySelector('[data-rot-field="date"]')?.value || adminRotationUnplannedDateLabels(sourceMonth)[0] || '').trim();
+  const prefillPerson = String(input && input.value || '').trim();
+  const labels = adminRotationUnplannedDateLabels(sourceMonth);
+  const knownNames = adminGetKnownNames();
+  const optionHtml = (values, selected) => values.map((value) => '<option value="' + escapeHtml(value) + '"' + (String(value) === String(selected) ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
+  const reasonOptionHtml = ADMIN_UNPLANNED_REASON_OPTIONS.map((item) => '<option value="' + escapeHtml(item.value) + '">' + escapeHtml(item.label) + '</option>').join('');
+
+  adminCloseUnplannedChangeDialog();
+  const overlay = document.createElement('div');
+  overlay.id = 'adminUnplannedChangeOverlay';
+  overlay.className = 'adminUnplannedChangeOverlay';
+  overlay.dataset.operationId = '';
+  overlay.innerHTML = [
+    '<div class="adminUnplannedChangeDialog adminUnplannedChangePage" role="dialog" aria-modal="true" aria-labelledby="adminUnplannedChangeTitle">',
+    '  <div class="adminUnplannedChangeHeader"><div><div class="appMenuCardTitle" id="adminUnplannedChangeTitle">Neplánovaná změna</div><div class="smallText">Generátor rozpisu</div></div><button type="button" class="adminUnplannedClose" data-unplanned-action="cancel" aria-label="Zavřít">×</button></div>',
+    '  <div class="adminUnplannedChangeBody">',
+    '  <div class="smallText">Přepočítá se jen vybraný den nebo rozsah. Ostatní dny zůstanou beze změny.</div>',
+    '  <label class="appMenuFieldLabel">Pracovník<select id="adminUnplannedPerson" class="appMenuSelect">' + optionHtml(knownNames, prefillPerson) + '</select></label>',
+    '  <label class="appMenuFieldLabel">Důvod<select id="adminUnplannedReason" class="appMenuSelect">' + reasonOptionHtml + '</select></label>',
+    '  <div class="adminUnplannedRange">',
+    '    <label class="appMenuFieldLabel">Od<select id="adminUnplannedFrom" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
+    '    <label class="appMenuFieldLabel">Do<select id="adminUnplannedTo" class="appMenuSelect">' + optionHtml(labels, prefillDate) + '</select></label>',
+    '  </div>',
+    '  <div class="smallText" id="adminUnplannedStatus" role="status" aria-live="polite">Změna se uloží přímo online až po potvrzení.</div>',
+    '  </div>',
+    '  <div class="adminUnplannedChangeFooter"><button type="button" class="appMenuAction" data-unplanned-action="manual">Ručně upravit</button><button type="button" class="appMenuAction isActive" data-unplanned-action="save">Uložit a přepočítat</button></div>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', async (event) => {
+    const actionButton = event.target && event.target.closest ? event.target.closest('[data-unplanned-action]') : null;
+    if (!actionButton) {
+      if (event.target === overlay) adminCloseUnplannedChangeDialog();
+      return;
+    }
+    const action = actionButton.getAttribute('data-unplanned-action');
+    if (action === 'cancel') {
+      adminCloseUnplannedChangeDialog();
+      return;
+    }
+    if (action === 'manual') {
+      adminCloseUnplannedChangeDialog();
+      window.setTimeout(() => {
+        try { if (input && input.isConnected) input.focus({ preventScroll: true }); } catch (_) { try { if (input && input.isConnected) input.focus(); } catch (_) {} }
+      }, 0);
+      return;
+    }
+    if (action !== 'save' || overlay.dataset.saving === '1') return;
+    const status = overlay.querySelector('#adminUnplannedStatus');
+    overlay.dataset.saving = '1';
+    actionButton.disabled = true;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Neplánovanou změnu lze uložit jen online.');
+      const fromDate = String(overlay.querySelector('#adminUnplannedFrom')?.value || '');
+      const toDate = String(overlay.querySelector('#adminUnplannedTo')?.value || '');
+      const person = String(overlay.querySelector('#adminUnplannedPerson')?.value || '');
+      const reason = String(overlay.querySelector('#adminUnplannedReason')?.value || '').trim();
+      const reasonOption = adminRotationUnplannedReasonOption(reason);
+      if (!reasonOption) throw new Error('Vyber důvod změny.');
+      if (status) status.textContent = reasonOption.kind === 'daymod'
+        ? 'Připravuji výjimku Kalírna…'
+        : 'Přepočítávám jen vybraný rozsah…';
+      const candidate = reasonOption.kind === 'daymod'
+        ? adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, { fromDate, toDate, person, reason })
+        : adminRotationBuildUnplannedChangeCandidate(monthKey, sourceMonth, { fromDate, toDate, person, reason });
+      const payload = JSON.parse(JSON.stringify(app.rotation || {}));
+      if (!payload.months || typeof payload.months !== 'object') throw new Error('Aktuální rozpis nemá měsíce.');
+      payload.months[monthKey] = candidate.month;
+
+      if (!overlay.dataset.operationId) overlay.dataset.operationId = adminRotationUnplannedOperationId();
+      const bridge = window.RotationSupabaseBridge;
+      if (!bridge || typeof bridge.applyUnplannedChange !== 'function') throw new Error('Bezpečné online uložení neplánované změny není připravené.');
+      if (status) status.textContent = 'Ověřuji serverový rozsah změny a ukládám…';
+      const result = await bridge.applyUnplannedChange(payload, {
+        operationId: overlay.dataset.operationId,
+        monthKey,
+        person: candidate.person,
+        changeKind: candidate.changeKind,
+        reason: candidate.reason,
+        allowedDateLabels: candidate.allowedDateLabels
+      });
+      if (!result || result.ok === false) {
+        const reasonLabel = result && result.diagnostic && result.diagnostic.reason ? result.diagnostic.reason : 'operation-rejected';
+        throw new Error('Server změnu odmítl (' + reasonLabel + ').');
+      }
+      if (result.payload && typeof applyRakRotationState === 'function') applyRakRotationState(result.payload, { force: true });
+      if (typeof adminRotationGeneratorClearPendingDraft === 'function') adminRotationGeneratorClearPendingDraft(monthKey);
+      adminCloseUnplannedChangeDialog();
+      renderAdminMenuBody(body, 'rotation');
+      const nextStatus = document.getElementById('adminOnlineSaveStatus') || document.getElementById('adminRotationDraftStatus');
+      if (nextStatus) nextStatus.textContent = 'Neplánovaná změna uložená online ✓ · ' + candidate.reasonLabel + ' · dnů: ' + String(candidate.allowedDateLabels.length) + '.';
+    } catch (err) {
+      if (status) status.textContent = err && err.message ? err.message : 'Neplánovaná změna se nepodařila.';
+    } finally {
+      overlay.dataset.saving = '0';
+      if (actionButton.isConnected) actionButton.disabled = false;
+    }
+  });
 }
 
 function adminOpenRotationGeneratorWizard(monthKey) {

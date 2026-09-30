@@ -100,14 +100,29 @@ function rakListPreservedAdminMonthDrafts(monthKey) {
 
 function rakAdminMonthDraftRecoveryHtml(monthKey) {
   const entries=rakListPreservedAdminMonthDrafts(monthKey);
-  if(!entries.length)return '';
-  return '<div class="appMenuCard" id="rakAdminPreservedDrafts" role="status">'
-    +'<b>Neuložené místní návrhy: '+String(entries.length)+'</b>'
+  const info=typeof window.rakLocalRotationDraftCleanupPreview==='function'
+    ?window.rakLocalRotationDraftCleanupPreview():null;
+  const valid=!!(info&&info.ok);
+  const drafts=valid?Number(info.drafts||0):entries.length;
+  const pending=valid?Number(info.rotationQueued||0):0;
+  const other=valid?Number(info.otherConflicts||0):0;
+  return '<details class="appMenuCard rakAdminLocalDraftsCard" id="rakAdminPreservedDrafts">'
+    +'<summary><b>Neuložené místní návrhy: '+String(entries.length)+'</b></summary>'
+    +'<div class="rakAdminLocalDraftsBody">'
     +'<div class="smallText">Mohou pocházet z dřívějšího neúspěšného uložení. Nepřepisuj je naslepo. Stáhni soukromou kopii a porovnej ručně.</div>'
-    +entries.map(item=>'<button type="button" class="appMenuAction" data-admin-action="download-unsynced-draft" data-draft-key="'
+    +entries.map(item=>'<button type="button" class="appMenuAction rakAdminLocalDraftDownload" data-admin-action="download-unsynced-draft" data-draft-key="'
       +escapeHtml(item.key)+'">Stáhnout návrh '+escapeHtml(item.monthKey)+' · '
       +escapeHtml(item.at?new Date(item.at).toLocaleString('cs-CZ'):'bez data')+'</button>').join('')
-    +'</div>';
+    +'<div class="rakAdminLocalDraftCleanupSection" id="rakAdminLocalDraftCleanup">'
+    +'<div class="smallText">V tomto zařízení: '+(valid?(drafts+' záloh návrhů · '+pending+' čekajících zápisů rozpisů'):'stav místního úložiště nelze bezpečně ověřit')
+    +(other?' · '+other+' jiných konfliktů zůstane zachováno':'')+'.</div>'
+    +'<div class="smallText">Smazání je nevratné. Nezasáhne online rozpis, ostatní místní frontu ani jiná nastavení.</div>'
+    +'<button type="button" class="appMenuAction rakAdminLocalDraftDelete" data-admin-action="discard-local-rotation-drafts"'
+    +(valid?'':' disabled')+'>Smazat všechny místní návrhy</button>'
+    +'<div id="rakAdminLocalDraftCleanupStatus" class="smallText" role="status" aria-live="polite"></div>'
+    +'</div>'
+    +'</div>'
+    +'</details>';
 }
 
 function rakDownloadPreservedAdminMonthDraft(key) {
@@ -145,7 +160,7 @@ function rakAdminLocalDraftCleanupHtml(){
     +(other?' · '+other+' jiných konfliktů zůstane zachováno':'')+'.</div>'
     +'<div class="smallText">Smazání je nevratné. Nezasáhne online rozpis, ostatní místní frontu ani jiná nastavení. Předem si můžeš stáhnout návrhy výše.</div>'
     +'<button type="button" class="appMenuAction" data-admin-action="discard-local-rotation-drafts"'
-    +(valid?'':' disabled')+'>Smazat neuložené místní návrhy</button>'
+    +(valid?'':' disabled')+'>Smazat všechny místní návrhy</button>'
     +'<div id="rakAdminLocalDraftCleanupStatus" class="smallText" role="status" aria-live="polite"></div>'
     +'</div>';
 }
@@ -907,12 +922,21 @@ function buildAdminAbsenceSummaryHtml(month) {
 }
 
 
+function adminRotationCompactMachineLabel(machine) {
+  const raw = String(machine || '').trim();
+  const key = raw.toUpperCase();
+  if (key === 'TNKS01' || key === 'TNKSO1') return 'TNK';
+  if (key === 'TPKW01') return 'W01';
+  if (key === 'TPKW02') return 'W02';
+  return raw;
+}
+
 function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines) {
   const renderSection = (title, rows, machines) => {
     const safeRows = Array.isArray(rows) ? rows : [];
     const safeMachines = Array.isArray(machines) ? machines : [];
     if (!safeRows.length) return '';
-    const head = '<tr><th>Den</th>' + safeMachines.map((m) => '<th>' + escapeHtml(String(m || '')) + '</th>').join('') + '</tr>';
+    const head = '<tr><th>Den</th>' + safeMachines.map((m) => '<th title="' + escapeHtml(String(m || '')) + '">' + escapeHtml(adminRotationCompactMachineLabel(m)) + '</th>').join('') + '</tr>';
     const body = safeRows.map((row) => {
       const date = adminRotationDateLabel(row && row.date ? row.date : '') || String(row && row.date ? row.date : '');
       const cells = Array.isArray(row && row.cells) ? row.cells : [];
@@ -997,7 +1021,6 @@ function buildAdminRotationTableHtml(monthKey) {
       ? 'Je zobrazený nový vygenerovaný návrh. Online rozpis se nezmění, dokud nekliknete na Uložit rozpis.'
       : 'Stejný rozpis, jen editovatelný. Změny zůstávají rozepsané lokálně a do Supabase jdou až po kliknutí na Uložit rozpis.') + '</div>',
     rakAdminMonthDraftRecoveryHtml(monthKey),
-    rakAdminLocalDraftCleanupHtml(),
     '  <div class="adminRotationSaveDock">',
     '    <div class="adminRotationSaveActions">',
     '      <button type="button" class="appMenuAction adminRotationSelectedRemoveBtn" data-admin-selected-remove hidden>Odebrat vybrané</button>',
@@ -1373,13 +1396,21 @@ function adminShowRotationQuickRemove(input) {
       box = document.createElement('div');
       box.id = 'adminRotationQuickRemove';
       box.className = 'adminRotationQuickRemove';
-      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button>';
+      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><div class="adminRotationQuickRemoveActions"><button type="button" class="adminRotationQuickUnplannedBtn">Neplánovaná dovolená</button><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button></div>';
       document.body.appendChild(box);
       box.addEventListener('click', (ev) => {
-        const btn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickRemoveBtn') : null;
-        if (!btn) return;
+        const unplannedBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickUnplannedBtn') : null;
+        const removeBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickRemoveBtn') : null;
+        if (!unplannedBtn && !removeBtn) return;
         ev.preventDefault();
         const target = window.__rakAdminRotationQuickRemoveInput;
+        if (unplannedBtn) {
+          if (target && target.isConnected && target.matches('[data-rot-field^="cell-"]') && typeof adminOpenUnplannedChangeDialog === 'function') {
+            adminCloseRotationQuickRemove();
+            adminOpenUnplannedChangeDialog(target);
+          }
+          return;
+        }
         if (target && target.isConnected) {
           target.value = '';
           target.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1393,12 +1424,38 @@ function adminShowRotationQuickRemove(input) {
     window.__rakAdminRotationQuickRemoveShownAt = Date.now();
     const txt = box.querySelector('.adminRotationQuickRemoveText');
     if (txt) txt.textContent = 'Jméno: ' + value;
+    const unplannedBtn = box.querySelector('.adminRotationQuickUnplannedBtn');
+    if (unplannedBtn) unplannedBtn.hidden = !input.matches('[data-rot-field^="cell-"]');
+    const actions = box.querySelector('.adminRotationQuickRemoveActions');
+    const removeBtn = box.querySelector('.adminRotationQuickRemoveBtn');
+    if (actions) {
+      actions.style.setProperty('display', 'grid', 'important');
+      actions.style.setProperty('grid-template-columns', '1fr', 'important');
+      actions.style.setProperty('width', '100%', 'important');
+      actions.style.setProperty('gap', '8px', 'important');
+    }
+    for (const button of [unplannedBtn, removeBtn]) {
+      if (!button) continue;
+      button.style.setProperty('display', 'block', 'important');
+      button.style.setProperty('width', '100%', 'important');
+      button.style.setProperty('min-width', '0', 'important');
+      button.style.setProperty('white-space', 'normal', 'important');
+      button.style.setProperty('box-sizing', 'border-box', 'important');
+    }
     const rect = input.getBoundingClientRect();
     const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
-    const top = Math.max(8, Math.round(rect.bottom + 6));
-    const left = Math.max(8, Math.min(vw - 196, Math.round(rect.left + (rect.width / 2) - 94)));
+    const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
+    const pickerHeight = input.matches('[data-rot-field^="cell-"]') ? 142 : 48;
+    let top = Math.round(rect.bottom + 6);
+    if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
+    const pickerWidth = input.matches('[data-rot-field^="cell-"]') ? Math.min(260, vw - 16) : 196;
+    const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
     box.style.top = String(top) + 'px';
     box.style.left = String(left) + 'px';
+    box.style.setProperty('display', 'grid', 'important');
+    box.style.setProperty('grid-template-columns', '1fr', 'important');
+    box.style.setProperty('align-items', 'stretch', 'important');
+    box.style.setProperty('justify-content', 'stretch', 'important');
     box.classList.add('isVisible');
   } catch (err) {
     console.warn('Admin quick remove failed', err);
@@ -1593,5 +1650,44 @@ function scheduleAdminRotationEditorMaintenance(body, reason, delayMs) {
     runAdminRotationEditorMaintenance(body, reason || 'fallback');
   }
 }
+
+
+function adminEnsureRotationNameActionMenuStyles() {
+  if (document.getElementById('rakRotationNameActionMenuStyles')) return;
+  const style = document.createElement('style');
+  style.id = 'rakRotationNameActionMenuStyles';
+  style.textContent = [
+    '.adminRotationQuickRemove{width:min(260px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;padding:12px!important;box-sizing:border-box!important}',
+    '.adminRotationQuickRemove.isVisible{display:grid!important;grid-template-columns:1fr!important;align-items:stretch!important;justify-content:stretch!important}',
+    '.adminRotationQuickRemoveActions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;margin-top:8px!important}',
+    '.adminRotationQuickRemoveActions button{width:100%!important;min-width:0!important;min-height:44px!important;padding:8px 12px!important;border-radius:12px!important;white-space:normal!important;line-height:1.15!important}',
+    '.adminRotationQuickRemoveText{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'
+  ].join('');
+  document.head.appendChild(style);
+}
+
+function adminBindRotationNameActionMenuRoute() {
+  if (window.__rakAdminRotationNameActionMenuBound) return;
+  window.__rakAdminRotationNameActionMenuBound = true;
+  adminEnsureRotationNameActionMenuStyles();
+  document.addEventListener('pointerdown', (event) => {
+    const body = document.getElementById('appMenuBody');
+    if (!body || body.dataset.adminView !== 'rotation') return;
+    const target = event.target && event.target.closest ? event.target.closest('[data-rot-field^="cell-"]') : null;
+    if (!target || !body.contains(target)) return;
+    const value = String(target.value || '').trim();
+    if (!value || (typeof adminRotationIsRemoveValue === 'function' && adminRotationIsRemoveValue(value))) return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const active = document.activeElement;
+      if (active && active !== document.body && typeof active.blur === 'function') active.blur();
+    } catch (_) {}
+    try { adminCloseAbsenceCodePicker(); } catch (_) {}
+    adminShowRotationQuickRemove(target);
+  }, true);
+}
+
+try { adminBindRotationNameActionMenuRoute(); } catch (_) {}
 
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-rotation-editor.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}

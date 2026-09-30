@@ -13,12 +13,20 @@ import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 const ROOT=path.resolve(process.cwd());
 const CHROME=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>{try{return fs.statSync(n).isFile();}catch{return false;}});
 assert(CHROME,'[17052-browser] Chrome/Chromium binary missing');
-assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'))).version,'1.7.0');
+assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'))).version,RELEASE_METADATA.technicalVersion);
+assert.equal(RELEASE_METADATA.technicalVersion,RELEASE_METADATA.displayVersion);
 const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
 const expected=RELEASE_METADATA.displayVersion;
-assert(/^1\.7\.\d+$/.test(expected),'[17052-browser] expected release missing from metadata');
+assert(/^\d+\.\d+\.\d+$/.test(expected),'[17052-browser] expected semver release missing from metadata');
 assertSupabaseTarget(config,'[17052-browser] runtime');
 const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml','.jpg':'image/jpeg','.woff2':'font/woff2','.ico':'image/x-icon'};
+const NETWORK_BUDGET=JSON.parse(fs.readFileSync(path.join(ROOT,'tools/network-resilience-17104.json'),'utf8'));
+assert.equal(NETWORK_BUDGET.schema,'rak-network-resilience-budget-v1');
+let ciSwGeneration=0;
+let delayStartupDashboard=true;
+let delayStartupBottomNav=true;
+let delayStartupSync=true;
+let heldStartupSync=[];
 const server=http.createServer((req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);}catch{res.writeHead(400);res.end();return;}
@@ -29,7 +37,17 @@ const server=http.createServer((req,res)=>{
   if(error||!stat.isFile()){res.writeHead(404);res.end();return;}
   res.writeHead(200,{'content-type':mime[path.extname(filename)]||'application/octet-stream','cache-control':'public,max-age=60','service-worker-allowed':'/'});
   if(req.method==='HEAD'){res.end();return;}
-  fs.createReadStream(filename).pipe(res);
+  if(pathname==='/sw.js'){
+   const worker=fs.readFileSync(filename,'utf8')+'\n// RAK_CI_SW_GENERATION='+ciSwGeneration+'\n';
+   res.end(worker);return;
+  }
+  const sendFile=()=>fs.createReadStream(filename).pipe(res);
+  if(pathname==='/dashboard.js'&&delayStartupDashboard){setTimeout(sendFile,1800);return;}
+  if(pathname==='/app-bottom-nav.js'&&delayStartupBottomNav){setTimeout(sendFile,1800);return;}
+  if(pathname==='/supabase-bridge.js'&&delayStartupSync){
+   heldStartupSync.push(sendFile);return;
+  }
+  sendFile();
  });
 });
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'rak-17052-chrome-'));
@@ -57,11 +75,18 @@ async function boot(label,expectedRelease){
  const start=Date.now();
  await until("document.readyState==='complete' && !!document.querySelector('.dashboardAppTitle') && !!document.querySelector('#home')");
  await until('!!window.__rakBootV2StartupReady');
- const data=await check(`(()=>({title:document.title,version:window.RAK_RELEASE_VERSION||'',build:window.RAK_PWA_BUILD||'',width:innerWidth,docWidth:document.documentElement.scrollWidth,home:!!document.querySelector('#home'),nav:!!document.querySelector('.bottomNav'),controller:!!navigator.serviceWorker?.controller,connection:document.documentElement.dataset.connection||'',updateToast:!!document.querySelector('.rakUpdateToast')}))()`);
+ const data=await check(`(()=>({title:document.title,version:window.RAK_RELEASE_VERSION||'',build:window.RAK_PWA_BUILD||'',width:innerWidth,docWidth:document.documentElement.scrollWidth,home:!!document.querySelector('#home'),nav:!!document.querySelector('.bottomNav'),navBound:document.querySelector('.bottomNav')?.__rotaceBound===true,firstInteractiveMs:Number(window.__rakFirstInteractiveMs||0),startupReadyMs:Number(window.__rakBootV2StartupReadyMs||0),controller:!!navigator.serviceWorker?.controller,connection:document.documentElement.dataset.connection||'',updateToast:!!document.querySelector('.rakUpdateToast')}))()`);
  assert.match(data.title,/Rotace a Kalkulačky/);assert.equal(data.version,expectedRelease,'[17052-browser] unexpected release');
  assert(data.home&&data.nav,'[17052-browser] mobile shell/nav missing');
+ assert.equal(data.navBound,true,'[17125-interactive] bottom navigation is visible but not bound');
+ assert(Number.isFinite(data.firstInteractiveMs)&&data.firstInteractiveMs>0,'[17125-interactive] first interactive marker missing');
+ assert(Number.isFinite(data.startupReadyMs)&&data.startupReadyMs>0,'[17125-interactive] startupReady marker missing');
+ assert(data.firstInteractiveMs<=data.startupReadyMs,`[17125-interactive] shell became interactive after startupReady: ${data.firstInteractiveMs} > ${data.startupReadyMs}`);
  assert(data.docWidth<=data.width+4,`[17052-browser] horizontal overflow ${data.docWidth} > ${data.width}`);
- console.log(`[17052-browser] ${label} PASS ${Date.now()-start}ms viewport=${data.width} document=${data.docWidth} SW=${data.controller}`);
+ const elapsedMs=Date.now()-start;
+ data.elapsedMs=elapsedMs;
+ console.log(`[17052-browser] ${label} PASS ${elapsedMs}ms viewport=${data.width} document=${data.docWidth} SW=${data.controller}`);
+ console.log(`[17125-interactive] ${label} PASS firstInteractive=${data.firstInteractiveMs}ms startupReady=${data.startupReadyMs}ms`);
  return data;
 }
 try{
@@ -99,12 +124,124 @@ try{
  });
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true});});
  await Promise.all([send('Page.enable'),send('Runtime.enable'),send('Network.enable')]);
+ await send('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('rotace_kalkulacky:user_profile_v1',JSON.stringify({accountNumber:'0000',fullName:'CI Returning User',shiftTeam:'D',updatedAt:Date.now()}));}catch(e){}"});
  // All remote HTTPS is blocked before navigation; synthetic anonymous tests only.
  await send('Fetch.enable',{patterns:[{urlPattern:'https://*',requestStage:'Request'}]});
- await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true});
+ await send('Emulation.setDeviceMetricsOverride',{width:NETWORK_BUDGET.profile.viewport.width,height:NETWORK_BUDGET.profile.viewport.height,deviceScaleFactor:NETWORK_BUDGET.profile.viewport.deviceScaleFactor,mobile:true});
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
  const navigation=await send('Page.navigate',{url:base});assert(!navigation.errorText,'[17052-browser] '+navigation.errorText);
- await boot('cold mobile',expected);
+ // RAK_17131_VISIBLE_NAV_PREBOOT_GATE: reproduce the physical iPhone path.
+ // The HTML nav is already visible, but app-bottom-nav.js is intentionally held.
+ // A real tap must work BEFORE __rotaceBound, startupReady and sync.
+ await until("window.__rakPrebootNavBound===true && !!document.querySelector('.bottomNavBtn[data-action=\"menu\"]')",3000);
+ assert.equal(await check("document.querySelector('.bottomNav')?.__rotaceBound===true"),false,'[17131-preboot-nav] full nav bound before physical preboot probe');
+ assert.equal(await check("document.documentElement.dataset.rakAuthState"),'unlocked','[17131-preboot-nav] returning profile did not unlock early shell');
+ assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17131-preboot-nav] startup finished before physical preboot probe');
+ // RAK_17132_LOCAL_FIRST_ROUTE_GATE: first visible nav already has final geometry.
+ const initialNavGeometry=await check("(()=>{const buttons=Array.from(document.querySelectorAll('nav.bottomNav .bottomNavBtn'));const widths=buttons.map(b=>Math.round(b.getBoundingClientRect().width*10)/10);const more=document.querySelector('.bottomNavMenuBtn .moreIcon');return {count:buttons.length,widths,moreIcon:Math.round((more?.getBoundingClientRect().width||0)*10)/10};})()");
+ assert.equal(initialNavGeometry.count,4,'[17132-local-first] bottom nav does not have four items');
+ assert(Math.max(...initialNavGeometry.widths)-Math.min(...initialNavGeometry.widths)<=1.5,'[17132-local-first] bottom nav geometry changes before hydration: '+JSON.stringify(initialNavGeometry));
+ assert(initialNavGeometry.moreIcon>=28,'[17132-local-first] More icon is still in the undersized pre-final state: '+initialNavGeometry.moreIcon);
+ const prebootMore=await check("(()=>{const n=document.querySelector('.bottomNav'),btn=document.querySelector('.bottomNavBtn[data-action=\"menu\"]');btn.click();const body=document.querySelector('#appMenuBody,.appMenuBody'),t=body&&body.textContent||'';return {items:['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(x=>t.includes(x)),active:document.querySelector('#menu')?.classList.contains('active')===true,bound:n?.__rotaceBound===true};})()");
+ assert.deepEqual(prebootMore,{items:true,active:true,bound:false},'[17131-preboot-nav] More must render synchronously before full nav binding');
+ await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
+ const prebootCalc=await check("(()=>{const n=document.querySelector('.bottomNav'),btn=document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]');btn.click();return {active:document.querySelector('#kalkulacky')?.classList.contains('active')===true,bound:n?.__rotaceBound===true};})()");
+ assert.deepEqual(prebootCalc,{active:true,bound:false},'[17131-preboot-nav] Calculators must activate synchronously before full nav binding');
+ await check("document.querySelector('.bottomNavBtn[data-action=\"home\"]').click();true");
+ delayStartupBottomNav=false;
+ console.log('[17131-preboot-nav] PASS visible nav accepted More and Calculators synchronously before full JS binding');
+
+ // RAK_17127_REAL_TAP_GATE: historical delayed-start gate remains active,
+ // now after the stricter visible-but-unbound 1.7.131 probe.
+ // Full interaction shell must still take over and preserve the existing root-cause gates.
+ await until("document.querySelector('.bottomNav')?.__rotaceBound===true",10000);
+ assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] startup finished before delayed interaction probe');
+
+ // RAK_17130_MORE_TOGGLE_RACE_GATE: reproduce the physical iPhone race.
+ // A legacy startup wrapper exists and can only show #menu. The bottom-nav path
+ // must ignore it and populate the local root itself before sync/startupReady.
+ await check("(()=>{window.__rak17130LegacyToggleCalls=0;window.toggleAppMenu=function(){window.__rak17130LegacyToggleCalls+=1;if(typeof showPage==='function')showPage('menu');};const p=document.getElementById('menu');const b=p&&p.querySelector('#appMenuBody,.appMenuBody');if(b)b.innerHTML='';return true;})()");
+ const moreStarted=Date.now();
+ const moreIssued=await check("(()=>{const b=document.querySelector('.bottomNavBtn[data-action=\"menu\"]');if(!b)return false;b.click();return true;})()");
+ assert.equal(moreIssued,true,'[17130-more-toggle-race] More button missing');
+ await until("(()=>{const body=document.querySelector('#appMenuBody,.appMenuBody');if(!body)return false;const t=body.textContent||'';return ['Nastavení','O aplikaci','Kontakt','Pošli mi chybu'].every(label=>t.includes(label));})()",600);
+ const moreMs=Date.now()-moreStarted;
+ const moreState=await check("(()=>({startup:!!window.__rakBootV2StartupReady,sync:typeof window.rakIsFeatureReady==='function'?window.rakIsFeatureReady('sync'):false,admin:!!document.querySelector('#appMenuBody [data-menu-action=\"admin\"]'),vacation:!!document.querySelector('#appMenuBody [data-admin-action=\"vacation-report\"]'),shiftReport:!!document.querySelector('#appMenuBody [data-rak-shift-report-entry=\"1\"]')}))()");
+ assert.equal(moreState.startup,false,'[17130-more-toggle-race] local More appeared only after startupReady');
+ assert.equal(moreState.sync,false,'[17130-more-toggle-race] local More waited for sync feature');
+ assert.equal(await check("window.__rak17130LegacyToggleCalls||0"),0,'[17130-more-toggle-race] early More delegated to legacy show-only toggle');
+ assert.deepEqual({admin:moreState.admin,vacation:moreState.vacation,shiftReport:moreState.shiftReport},{admin:false,vacation:false,shiftReport:false},'[17130-more-toggle-race] unverified early shell leaked privileged entries');
+ assert(moreMs<=600,'[17130-more-toggle-race] local More took '+moreMs+'ms');
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
+ console.log('[17130-more-toggle-race] PASS local More opened in '+moreMs+'ms before sync/startupReady without legacy toggle');
+ await check("document.documentElement.dataset.rakAuthState='unlocked'");
+ const tapStarted=Date.now();
+ const tapIssued=await check("(()=>{const b=document.querySelector('.bottomNavBtn[data-action=\"kalkulacky\"]');if(!b)return false;b.click();return true;})()");
+ assert.equal(tapIssued,true,'[17127-real-tap] calculators button missing');
+ await until("document.querySelector('#kalkulacky')?.classList.contains('active')===true",1200);
+ const earlyTapMs=Date.now()-tapStarted;
+ assert(earlyTapMs<=1200,'[17127-real-tap] real calculators navigation took '+earlyTapMs+'ms');
+ assert.equal(await check("!!window.__rakBootV2StartupReady"),false,'[17127-real-tap] navigation completed only after startupReady');
+ console.log('[17127-real-tap] PASS calculators opened in '+earlyTapMs+'ms before delayed startupReady');
+
+ // Leave More as the user's chosen route while the rest of startup and sync finish.
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"menu\"]')?.click();return true;})()");
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] More did not open before startup completion');
+ delayStartupDashboard=false;
+ await until('!!window.__rakBootV2StartupReady',10000);
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] startup completion replaced user route with Home');
+ const localCore=await check("(()=>({localReady:!!window.__rakBootV2LocalReady,rotation:window.rakIsFeatureReady?.('rotation')===true,calculators:window.rakIsFeatureReady?.('calculators')===true,menu:window.rakIsFeatureReady?.('menu')===true}))()");
+ assert.deepEqual(localCore,{localReady:true,rotation:true,calculators:true,menu:true},'[17132-local-first] ordinary local surfaces were not complete before remote sync');
+
+ // RAK_17134_ADMIN_FIRST_OPEN_GATE: simulate an already verified admin role while
+ // startup sync is still deliberately held. The root must paint from admin-shell
+ // without waiting for sync or the heavy admin tools.
+ await check("(()=>{app.adminAuthVersion=2;app.adminUnlocked=true;app.adminAccountId='0000';app.adminRole='admin';app.adminIsOwner=false;app.activeAccountId='0000';window.dispatchEvent(new Event('rak-admin-access-changed'));if(typeof openAppMenu==='function')openAppMenu('menu');return true;})()");
+ await until("!!document.querySelector('#appMenuBody [data-menu-action=\\\"admin\\\"]')",1800);
+ assert.equal(await check("window.rakIsFeatureReady?.('sync')===true"),false,'[17134-admin-first-open] sync unexpectedly finished before probe');
+ const adminStarted=Date.now();
+ const adminIssued=await check("(()=>{const b=document.querySelector('#appMenuBody [data-menu-action=\\\"admin\\\"]');if(!b)return false;b.click();return true;})()");
+ assert.equal(adminIssued,true,'[17134-admin-first-open] verified Admin entry missing');
+ let adminRootWaitError=null;
+ try {
+  await until("(()=>{const b=document.getElementById('appMenuBody');return b?.dataset.adminView==='home'&&(b.textContent||'').includes('Rychlý přístup');})()",900);
+ } catch(error) {
+  adminRootWaitError=error;
+ }
+ if(adminRootWaitError){
+  const adminDiag=await check("(()=>{const b=document.getElementById('appMenuBody');return {view:b?.dataset.adminView||'',text:(b?.textContent||'').slice(0,180),shell:window.rakIsFeatureReady?.('admin-shell')===true,full:window.rakIsFeatureReady?.('admin')===true,sync:window.rakIsFeatureReady?.('sync')===true,canOpen:typeof rakAdminCanOpenAdmin==='function'?rakAdminCanOpenAdmin():null,active:typeof rakAdminGetActiveAccountId==='function'?rakAdminGetActiveAccountId():'',account:String(app?.adminAccountId||''),role:String(app?.adminRole||''),unlocked:app?.adminUnlocked===true,renderer:typeof renderAdminMenuBody==='function',boot:window.getRakBootV2Status?.().features||{}};})()");
+  throw Error(adminRootWaitError.message+'; diag='+JSON.stringify(adminDiag)+'; exceptions='+exceptions.slice(-3).join(' | '));
+ }
+ const adminRootMs=Date.now()-adminStarted;
+ const adminRootState=await check("(()=>({shell:window.rakIsFeatureReady?.('admin-shell')===true,full:window.rakIsFeatureReady?.('admin')===true,sync:window.rakIsFeatureReady?.('sync')===true,view:document.getElementById('appMenuBody')?.dataset.adminView||''}))()");
+ assert.deepEqual(adminRootState,{shell:true,full:false,sync:false,view:'home'},'[17134-admin-first-open] Admin root still waited for full tools/sync');
+ assert(adminRootMs<=900,'[17134-admin-first-open] secure local Admin root took '+adminRootMs+'ms');
+ console.log('[17134-admin-first-open] PASS secure Admin root opened in '+adminRootMs+'ms while sync/full admin stayed pending');
+ await check("(()=>{if(typeof openAppMenu==='function')openAppMenu('menu');return true;})()");
+
+ // RAK_17133_ROTACE_TO_MORE_PORTAL_GATE: reproduce the physical iPhone bug.
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"rotace\"]')?.click();return true;})()");
+ await until("document.querySelector('#rotace')?.classList.contains('active')===true && document.querySelector('#namesGrid')?.getAttribute('data-rak-dock-portal')==='body-fixed'",2500);
+ const dockBeforeMore=await check("(()=>{const g=document.getElementById('namesGrid');return {parent:g?.parentElement?.tagName||'',portal:g?.getAttribute('data-rak-dock-portal')||'',root:document.documentElement.classList.contains('rakRotaceNamesDockActive'),body:document.body.classList.contains('rakRotaceNamesDockActive')};})()");
+ assert.deepEqual(dockBeforeMore,{parent:'BODY',portal:'body-fixed',root:true,body:true},'[17133-rotace-more] Rotation names dock was not actually portaled before transition');
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"menu\"]')?.click();return true;})()");
+ await until("document.querySelector('#menu')?.classList.contains('active')===true",1200);
+ const rotaceToMore=await check("(()=>{const g=document.getElementById('namesGrid');return {menu:document.getElementById('menu')?.classList.contains('active')===true,rotace:document.getElementById('rotace')?.classList.contains('active')===true,parent:g?.parentElement?.id||'',portal:g?.getAttribute('data-rak-dock-portal')||'',root:document.documentElement.classList.contains('rakRotaceNamesDockActive'),body:document.body.classList.contains('rakRotaceNamesDockActive')};})()");
+ assert.deepEqual(rotaceToMore,{menu:true,rotace:false,parent:'rotaceNamesPanel',portal:'',root:false,body:false},'[17133-rotace-more] direct Rotation -> More left the names dock visible/portaled');
+ console.log('[17133-rotace-more] PASS direct Rotation -> More cleans body-fixed names dock');
+
+ const heldDeadline=Date.now()+5000;
+ while(heldStartupSync.length===0&&Date.now()<heldDeadline)await delay(50);
+ assert(heldStartupSync.length>0,'[17132-local-first] background sync module was not requested after local-ready');
+ delayStartupSync=false;
+ heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
+ await until("window.rakIsFeatureReady?.('sync')===true",10000);
+ await delay(400);
+ assert.equal(await check("window.rakIsFeatureReady?.('admin')===true"),false,'[17134-admin-first-open] full Admin auto-warmed after sync without a tool request');
+ assert.equal(await check("document.querySelector('#menu')?.classList.contains('active')===true"),true,'[17132-local-first] later sync completion returned user from More to Home');
+ console.log('[17132-local-first] PASS final nav + local core + route preserved across background sync');
+ await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
+ const cold=await boot('cold mobile',expected);
  await until('!!navigator.serviceWorker?.controller',30000);
  await until('!!window.__rotacePwaBootstrapped');
  await check("window.__rotaceRequestPwaCacheStatus?.('ci-mobile-offline') || false");
@@ -153,9 +290,9 @@ try{
    const snapshot=JSON.parse(localStorage.getItem('rotace_supabase_local_state_v1')||'null');
    const canonicalMarker=Object.values(canonical?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'));
    const diag=await window.RotationSupabaseBridge.getRotationOfflineDiagnostics();
-   return {rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
+   return {rotationReady:window.rakIsFeatureReady('rotation'),localStoreReady:!!window.RakRotationLocalStore,marker,cached:!!cached?.payload,canonicalMarker,singleCopy:snapshot?.rotation===null,render:typeof renderRotace==='function',scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',selectedRevision:diag.selectedRevision,equivalent:diag.equivalent,supabaseSdkOffline:!!window.supabase?.createClient};
  })()`);
- assert.deepEqual(offlineRotation,{rotationReady:true,syncReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:true},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI before ready');
+ assert.deepEqual(offlineRotation,{rotationReady:true,localStoreReady:true,marker:true,cached:true,canonicalMarker:true,singleCopy:true,render:true,scheduleModel:true,dashboard:true,selectedRevision:17079,equivalent:true,supabaseSdkOffline:false},'[17052-browser] cold offline boot did not rehydrate Rotation-driven UI from local store before ready or loaded Supabase SDK unnecessarily');
  const offlineUi=await check(`(async()=>{
   const result=await window.RotationSupabaseBridge.loadGameAccountUiSettings('RAK-CI-OFFLINE-NOACCOUNT');
   const queue=JSON.parse(localStorage.getItem('rotace_supabase_queue_v1')||'[]');
@@ -168,12 +305,16 @@ try{
  assert(offlineIcons.count>=12,'[17052-browser] dashboard/navigation icons were not rendered');
  assert.deepEqual(offlineIcons.broken,[],'[17052-browser] offline dashboard/navigation icons missing');
  assert.equal(httpFailures.length,before,'[17052-browser] offline shell/rotation caused HTTP errors');
+ assert(offline.elapsedMs<=NETWORK_BUDGET.hardMs.offlineStart,`[17052-network] offline start ${offline.elapsedMs}ms exceeds ${NETWORK_BUDGET.hardMs.offlineStart}ms`);
+ const reconnectStart=Date.now();
  await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await check(`(()=>{window.dispatchEvent(new Event('online'));return true})()`);
  await until('!!window.supabase?.createClient',20000);
+ const reconnectMs=Date.now()-reconnectStart;
+ assert(reconnectMs<=NETWORK_BUDGET.hardMs.reconnectWithoutReload,`[17052-network] reconnect ${reconnectMs}ms exceeds ${NETWORK_BUDGET.hardMs.reconnectWithoutReload}ms`);
  const reconnectWithoutReload=await check(`(()=>({sdk:!!window.supabase?.createClient,rotationReady:window.rakIsFeatureReady('rotation'),syncReady:window.rakIsFeatureReady('sync'),scheduleModel:typeof getPersonScheduleEntries==='function',dashboard:typeof updateDashboard==='function',marker:Object.values(app.rotation?.months||{}).some(month=>(month.notes||[]).some(note=>note.text==='RAK-CI-OFFLINE-17079'))}))()`);
  assert.deepEqual(reconnectWithoutReload,{sdk:true,rotationReady:true,syncReady:true,scheduleModel:true,dashboard:true,marker:true},'[17052-browser] online recovery did not rehydrate Rotation-driven UI without reload');
- await send('Page.reload',{ignoreCache:false});await boot('online recovery',expected);
+ await send('Page.reload',{ignoreCache:false});const onlineRecovery=await boot('online recovery',expected);
  const recovered=await check(`(async()=>{
    await window.rakEnsureFeature('sync');
    await new Promise(resolve=>setTimeout(resolve,50));
@@ -182,11 +323,76 @@ try{
    return {conflictCount:Number(status.conflictCount||0),conflict:/Konflikt synchronizace/.test(String(status.label||'')),queueLength:queue.length};
  })()`);
  assert.deepEqual(recovered,{conflictCount:0,conflict:false,queueLength:0},'[17052-browser] online recovery created a false conflict');
+
+ // P2.1 network resilience: cached PWA under a bounded slow cellular profile.
+ const slow=NETWORK_BUDGET.profile.slowNetwork;
+ await send('Network.clearBrowserCache');
+ await send('Network.emulateNetworkConditions',{offline:false,latency:slow.latencyMs,downloadThroughput:slow.downloadBytesPerSec,uploadThroughput:slow.uploadBytesPerSec,connectionType:slow.connectionType});
+ await send('Page.reload',{ignoreCache:false});
+ const slowReload=await boot('slow cached reload',expected);
+ assert(slowReload.elapsedMs<=NETWORK_BUDGET.hardMs.slowCachedReload,`[17052-network] slow reload ${slowReload.elapsedMs}ms exceeds ${NETWORK_BUDGET.hardMs.slowCachedReload}ms`);
+ await send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+
+ // P2.1 service-worker update: serve changed worker bytes, require waiting state,
+ // visible confirmation, then activate via the app's actual update button.
+ ciSwGeneration+=1;
+ const swWaitStart=Date.now();
+ const updateResult=await check(`(async()=>{
+   const registration=await navigator.serviceWorker.getRegistration('./');
+   if(!registration)return {ok:false,reason:'missing-registration'};
+   await registration.update();
+   return {ok:true};
+ })()`);
+ assert.equal(updateResult?.ok,true,'[17052-network] service-worker update() unavailable');
+ await until(`(async()=>{const r=await navigator.serviceWorker.getRegistration('./');return !!r?.waiting;})()`,NETWORK_BUDGET.hardMs.serviceWorkerWaiting);
+ const swWaitingMs=Date.now()-swWaitStart;
+ assert(swWaitingMs<=NETWORK_BUDGET.hardMs.serviceWorkerWaiting,`[17052-network] SW waiting ${swWaitingMs}ms exceeds budget`);
+ await until("!!document.querySelector('.rakUpdateToast .rakUpdateToastAction')",5000);
+ const swActivateStart=Date.now();
+ const clicked=await check(`(()=>{const b=document.querySelector('.rakUpdateToast .rakUpdateToastAction');if(!b)return false;b.click();return true;})()`);
+ assert.equal(clicked,true,'[17052-network] update confirmation button missing');
+ await until(`(async()=>{
+   const r=await navigator.serviceWorker.getRegistration('./');
+   return document.readyState==='complete' && !!navigator.serviceWorker.controller && !!r?.active && !r?.waiting && !r?.installing;
+ })()`,NETWORK_BUDGET.hardMs.serviceWorkerActivation);
+ const swActivationMs=Date.now()-swActivateStart;
+ assert(swActivationMs<=NETWORK_BUDGET.hardMs.serviceWorkerActivation,`[17052-network] SW activation ${swActivationMs}ms exceeds budget`);
+ const afterUpdate=await boot('service worker updated',expected);
+ assert(afterUpdate.controller,'[17052-network] controller missing after SW update');
+
+ const networkEvidence={
+   schema:'rak-pwa-network-resilience-v1',
+   result:'PASS',
+   sourceCommit:String(process.env.GITHUB_SHA||''),
+   release:expected,
+   profile:NETWORK_BUDGET.profile,
+   hardMs:NETWORK_BUDGET.hardMs,
+   measurementsMs:{
+     coldStart:cold.elapsedMs,
+     offlineStart:offline.elapsedMs,
+     reconnectWithoutReload:reconnectMs,
+     onlineRecovery:onlineRecovery.elapsedMs,
+     slowCachedReload:slowReload.elapsedMs,
+     serviceWorkerWaiting:swWaitingMs,
+     serviceWorkerActivation:swActivationMs,
+     postUpdateBoot:afterUpdate.elapsedMs
+   },
+   serviceWorker:{generation:ciSwGeneration,waitingObserved:true,confirmationObserved:true,activationObserved:true},
+   conflict:{cleanRecoveryConflictCount:recovered.conflictCount,cleanRecoveryConflictFlag:!!recovered.conflict}
+ };
+ if(process.env.GITHUB_SHA)assert.equal(networkEvidence.sourceCommit,process.env.GITHUB_SHA,'[17052-network] evidence SHA mismatch');
+ const evidenceRoot=process.env.GITHUB_WORKSPACE?path.join(process.env.GITHUB_WORKSPACE,'.rak-canonical-build'):path.resolve(ROOT,'..');
+ fs.mkdirSync(evidenceRoot,{recursive:true});
+ fs.writeFileSync(path.join(evidenceRoot,'network-resilience.json'),JSON.stringify(networkEvidence,null,2)+'\n');
+ console.log('[17052-network] PASS '+JSON.stringify(networkEvidence));
+
  const severe=exceptions.filter(t=>!/NetworkError|Failed to fetch|fetch|Supabase|network|offline/i.test(t));
  assert(severe.length<=2,'[17052-browser] uncaught browser exceptions ('+severe.length+'/'+exceptions.length+'): '+severe.slice(0,5).join(' | '));
- console.log('[17052-browser] PASS mobile cold-start, canonical cached Rotation offline, semantic conflict-free recovery, cache version and viewport');
+ console.log('[17052-browser] PASS mobile cold-start, canonical cached Rotation offline, semantic conflict-free recovery, slow network, confirmed SW update, cache version and viewport');
 }catch(error){console.error('[17052-browser] FAIL '+error.stack);process.exitCode=1;
 }finally{
+ delayStartupSync=false;
+ heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
  for(const p of pending.values()){clearTimeout(p.timeout);p.reject(Error('Chrome closing'));}pending.clear();
  try{ws?.close();}catch{}try{chrome?.kill('SIGTERM');}catch{}
  await new Promise(resolve=>server.close(resolve));try{fs.rmSync(temp,{recursive:true,force:true});}catch{}

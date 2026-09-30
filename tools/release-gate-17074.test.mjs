@@ -30,6 +30,6 @@ test('strict CI runs the new regression after two clean canonical builds',()=>{
  const pkg=JSON.parse(read('package.json')),workflow=read('.github/workflows/rak-development-validation.yml');
  assert(pkg.scripts.check.includes('tools/release-gate-17074.test.mjs'));
  assert(workflow.includes('node --test tools/release-gate-17074.test.mjs'));
- assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
+ assert(workflow.includes('rak-current-isolated-build-'));
 });
 

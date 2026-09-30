@@ -1,151 +1,407 @@
-# RaK – kanonický předávací dokument pro nový chat
+# RaK – kanonický handoff a aktuální stav
 
-Tento soubor je povinný vstupní bod pro každé nové pokračování projektu `martinspadrna/RaK`. Obsahuje současný provozní stav, závazná omezení, pořadí práce a odkazy na úplné důkazy. Nový chat nemá vycházet z paměti, starého promptu ani místní kopie projektu.
+> **Toto je jediný živý řídicí dokument projektu RaK.**
+>
+> Stálý odkaz: https://github.com/martinspadrna/RaK/blob/development/RAK_HANDOFF.md
+>
+> Úplná historická chronologie před konsolidací zůstává v Git historii tohoto souboru, zejména v commitu `a31452ff0644899e4c46a7cce0d544b99da78755`. Staré průběžné FAIL/PARTIAL/PASS mezistavy se do tohoto dokumentu znovu nekopírují, pokud nejsou potřebné pro aktuální rozhodnutí.
 
 ## Nejkratší prompt pro nový chat
 
-> Pokračuj v projektu RaK podle `RAK_HANDOFF.md` na aktuálním HEAD větve `development`.
-
-Po této větě musí agent sám online zjistit aktuální SHA `development`, načíst tento soubor a níže uvedené kanonické dokumenty přesně z tohoto SHA a pokračovat podle nich.
+> Pokračuj v projektu RaK podle aktuálního `RAK_HANDOFF.md` na HEAD větve `development`. Všechno důležité je zapsané v tomto souboru.
 
 ## Povinný začátek každého pokračování
 
-1. Online načíst živý SHA větve `development`; SHA uložené v konverzaci nebo starém předání je pouze orientační.
-2. Ověřit, že `main` zůstal beze změny, pokud vlastník výslovně neschválil opak.
-3. Z přesného aktuálního SHA přečíst:
-   - `RAK_HANDOFF.md` – provozní vstup a poslední stav,
-   - `RAK_PLAN_13.md` – jediný kanonický plán, checkboxy, procenta a důkazy,
-   - `SECURITY_DEPLOYMENT.md` – bezpečnostní a release postupy,
-   - `rak-release-metadata.js` – skutečná viditelná a technická verze.
-4. Před každým zápisem znovu ověřit SHA `development`. Commit musí mít tento SHA jako rodiče; bez force a bez přepsání souběžných změn.
-5. Nikdy nepoužívat ani neprohlížet místní kopii RaK. Zdroj, commity, testy, Actions, Vercel a Supabase řešit online.
-6. Pokud si dokumenty odporují, aktuální `RAK_PLAN_13.md` a strojový release artefakt mají přednost; rozpor opravit dokumentačním commitem a nevydávat domněnku za fakt.
+1. Online zjistit živý SHA větve `development`; SHA v tomto souboru jsou pouze důkazní body.
+2. Načíst tento soubor z aktuálního HEAD a řídit se jím.
+3. Ověřit, že `main`, produkční Vercel a produkční Supabase zůstaly beze změny, pokud vlastník výslovně neschválil konkrétní produkční krok.
+4. Před každým zápisem znovu načíst živý `development` HEAD. Bez force, bez přepsání souběžné práce.
+5. Zdroj, GitHub Actions, Vercel a Supabase řešit online; místní kopii RaK nepoužívat jako autoritu.
+6. Rozpor mezi dokumentací a strojovým důkazem řešit fail-closed: nic neprohlásit za splněné bez důkazu.
 
 ## Závazné hranice
 
-- Pracovat pouze na aktuálním `development`.
-- `main`, produkční Vercel deployment/alias a produkční Supabase se nesmí měnit bez nového výslovného souhlasu vlastníka.
-- Produkční Supabase: `bkqamcbkiwumsvelahxr` – nikdy ji nepoužívat pro vývojové ověření.
-- TEST Supabase: `cgshssdjgzzuprlwnabl` – jediné povolené databázové prostředí pro vývojové testy.
-- Vlastník povolil pouze bezplatná řešení. Nový/placený Supabase projekt, placená větev, PITR nebo add-on vyžaduje předchozí souhlas.
-- Nevypisovat JWT, hesla, API klíče, osobní odpovědi ani tajný parametr Vercel shareable odkazu. Existující shareable odkaz nerotovat ani nerušit bez souhlasu.
-- Nemazat Safari/PWA, localStorage, CacheStorage, service worker, synchronizační frontu ani uživatelská data jako univerzální „opravu“.
-- Neoslabovat ani neobcházet testy. Opravovat skutečnou příčinu.
-- Technická/package verze zůstává `1.7.0`.
-- Současná viditelná verze je `1.7.83`; příští skutečný funkční release je `1.7.84`. Opravné commity před jeho deploymentem číslo znovu nezvyšují.
-- Dokumentační nebo čistě testovací změna bez změny aplikace nezvyšuje verzi a nevytváří Vercel deployment.
-- Větší tematické balíky, minimum commitů a jediný preview deployment až po úplně zeleném CI přesného SHA.
+- Běžná práce pouze na `development`.
+- `main`, produkční Vercel deployment/alias a produkční Supabase se nesmí měnit bez nového výslovného souhlasu vlastníka pro konkrétní krok.
+- TEST Supabase: `cgshssdjgzzuprlwnabl`.
+- Produkční Supabase: `bkqamcbkiwumsvelahxr`.
+- Vlastník povolil pouze bezplatná řešení; nový/placený Supabase projekt, branch, PITR nebo add-on vyžaduje předchozí souhlas.
+- Nikdy nelogovat JWT, hesla, API klíče, osobní odpovědi ani tajný Vercel share parametr.
+- Nemazat Safari/PWA, localStorage, CacheStorage, service worker, frontu ani uživatelská data jako univerzální opravu.
+- Testy neobcházet ani neoslabovat. Opravovat kořenovou příčinu.
+- Funkční release zvyšuje sjednocenou verzi právě jednou; dokumentační/CI-only změna runtime verzi nezvyšuje.
+- CI-only nebo dokumentační změna může vytvořit immutable Vercel preview podle workflow, ale nesmí sama přesunout produkční alias ani měnit produkci.
+- Preferovat tematické balíky, minimum commitů a jediný funkční deployment až po zeleném exact-SHA CI.
+- Fyzický iPhone test a Chromium test jsou dva různé důkazy; nikdy je nezaměňovat.
+- Když vlastník po právě vyžádaném fyzickém testu napíše jen **„ok“**, znamená to PASS tohoto testu. Poté zapsat PASS do handoffu.
+- Po větším balíku aktualizovat tento dokument; nevytvářet paralelní plánovací soubor.
 
-## Aktuální ověřený runtime
+## Aktuální stav k 30. 9. 2026
 
-- Poslední funkční runtime SHA: `7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`
-- Viditelná verze: `1.7.83`
-- Technická verze: `1.7.0`
-- Cache: `v1.7.83`
-- Build ID: `v1.7.83-about-release1`
-- GitHub Actions: run #254, ID `35917440681`, SUCCESS
-- Actions URL: https://github.com/martinspadrna/RaK/actions/runs/35917440681
-- Poslední funkční release deployment: `dpl_5h3ivfYu3U8C9iHEYxLPyavacL5i`, READY
-- Aktuální stabilní alias míří na tento funkční deployment se stejným SHA.
-- Deployment SHA odpovídá přesně runtime SHA.
-- Stabilní development alias: `skoda-spada-git-development-martinspadrnas-projects.vercel.app`
-- Strojový artefakt: `rak-release-evidence-7d6684d8027d0a08b8d8596d35fe73f3b0d1fbec`, ID `10775104700`, výsledek PASS.
-- Immutable i stabilní HTTP ověřily HTML, `sw.js`, metadata, kořenový Supabase vendor asset a TEST konfiguraci; produkční Supabase ID ve výstupu není.
-- `main` při releasu zůstal `ceca9f9644da3dc41059c5d232661d27bc6dba18`.
-- Produkční deployment zůstal při releasu beze změny.
-- Konkrétní nedestruktivní rollback cíl: READY `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`; před použitím znovu ověřit READY stav a projektovou identitu.
-- RaK 1.7.83 doplnila stránku „O aplikaci“ o stručný účel aplikace a doložené změny řady 1.7.
+### Development runtime
 
-Dokumentační commity nad tímto runtime standardně nemají vlastní nový Vercel deployment. Při prvním přidání tohoto dosud neznámého souboru fail-closed politika výjimečně vytvořila preview `dpl_4tYmv9R4sNHV6yq9LxQ7Y8zP9jPe`; vlastník tento jediný deployment výslovně povolil. Commit `15a78a85afec80170440f6ff1dc36b87a8451cb4` přidal `RAK_HANDOFF.md` do přesného dokumentačního allowlistu a kontraktního testu. Ruční Actions #250 / run `35914753211` na témže SHA prošel bez release jobu. Další samostatná změna `RAK_HANDOFF.md` proto musí skončit dokumentačním skipem. Živý `development` HEAD se vždy zjišťuje online a může být novější než runtime SHA.
+- Aktuální TEST runtime je **RaK 1.8.7**, build `v1.8.7-live-auth-source1`.
+- Exact runtime/test SHA: `3d919c88757ca75a20020eb2ae51901c922fdbbb`.
+- Actions run `36687768493`, attempt 1, je pro tento exact SHA **SUCCESS**: dvě canonical sestavy, npm/check + inherited release gates, rollback/backup, reálný Chromium mobile/offline/update průchod, tříkolový PWA budget, 20kolová parity proti immutable 1.7.69, quality thresholds, TEST HTTP/izolace a release proof. Výkonové limity nebyly uvolněny.
+- READY Vercel deployment: `dpl_BeDLm4ABrThiFG7EaFf3TV691msp`; stable development alias byl po exact-SHA ověření přesunut pouze na tento deployment.
+- TEST Supabase `cgshssdjgzzuprlwnabl` má aplikovanou migraci `rak_unplanned_kalirna_direct_cell_17148`; definice `rak_admin_apply_unplanned_change_v2` byla po migraci read-only ověřena přímo v DB.
+- Produkce i `main` zůstaly při release-preview beze změny.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 1 administrační série:** v Administrace → Rozpisy jsou neuložené místní návrhy, exporty a tlačítko „Smazat všechny místní návrhy“ v jednom rámečku, tlačítka mají požadovaný svislý odstup a blok „Statistické odchylky“ je odstraněný.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 2 administrační série:** přehled jména × skupiny strojů je výchozí rozbalený; TNK/W01/W02; Jméno 54 px; TO/MO i stroje 35 px se svislými čárami; panel místních návrhů je výchozí zabalený.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 3 administrační série:** Administrace → Pravidla generátoru je na 1.7.144 potvrzena jako kompaktní skládací editor s pěti výchozím způsobem zabalenými sekcemi; všechna původní pole a ukládací logika zůstávají zachované.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 4 administrační série:** Administrace → Kantýna / jídelna je na 1.7.145 potvrzena jako kompaktní editor se dvěma výchozím způsobem zabalenými sekcemi „Běžná otevírací doba“ a „Přesčasová doba“; časová pole a řádky jsou zhutněné a tři spodní akce jsou vedle sebe. Původní datové hooky a ukládací logika zůstávají zachované.
+- **Fyzický iPhone PASS 28. 9. 2026 – bod 5 administrační série:** Administrace → Správci je na 1.7.146 potvrzena jako kompaktní editor; stav je na mobilu 2×2 a sekce Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo jsou výchozím způsobem zabalené. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované. **Administrační série 1–5 je tím uzavřená.**
+- **Fyzický iPhone PASS 29. 9. 2026 – neplánovaná Kalírna 1.7.148:** člověk s „Odešel na kalírnu“ zůstává v rozpisu evidenčně jako růžová buňka `Jméno →K`, ale není započítán do fyzického MO staffingu. Bez jiné absence zůstává fyzicky 5 TO + 4 MO a evidence Kalírny je na volné MFKF06; s jednou další absencí zůstává fyzicky 5 TO + 3 MO a evidence Kalírny je na volné MSKC01. D/NV/§/Lékař zůstávají absencemi a neplánovaná změna se omezuje jen na vybraný den / rozsah. **Backlog „Kalírna → evidenční MFKF06“ je uzavřen.**
+- **Fyzický iPhone PASS 29. 9. 2026 – MO-only absence komplet:** Dovolená / Náhradní volno / Paragraf / Lékař jsou fyzicky potvrzené na iPhonu. Člověk původně na MO po neplánované absenci zmizí ze stroje a je v Absencích; pokud TO zůstává validní, zachová se úplně beze změny. MO se přepočítá jen na vybraném dni / rozsahu a jiné dny se nemění. **Cílený MO-only retest všech čtyř důvodů je uzavřen.**
+- **Fyzický iPhone PASS 30. 9. 2026 – Administrace → Kalendáře / Report dovolených 1.8.3:** samostatná volba kalendáře pro Report dovolených je funkční, výchozí/fallback zůstává Obrábění D a nový blok má potvrzený svislý odstup od „Směny A“. Report není svázaný se směnou přihlášeného účtu; Dashboard a generátor zůstávají beze změny. **Kalendářový follow-up je uzavřen.**
+- **Fyzický iPhone PASS 30. 9. 2026 – Více / diagnostika 1.8.4:** výchozí text „TEST diagnostika se spustí pouze klepnutím.“ je odstraněný.
+- **Fyzický iPhone PASS 30. 9. 2026 – RaK 1.8.7 / podepsaná relace zástupce:** změna vlastního hesla funguje a „Ověřit oprávnění“ na testovacím účtu po finální opravě správně používá podepsanou signed-role relaci. Runtime `app-menu.js` a diagnostický helper jsou sjednocené na `getSignedAdminAccessToken`; admin-write gate zůstává pouze owner/admin. **Auth regrese je uzavřená.**
 
-## Produkční připravenost 1.7.83
+### Produkce – neměnit bez souhlasu
 
-Vlastník chce po bezpečné přípravě zvážit vydání současných změn do `main`, produkčního Vercelu a produkční Supabase; po případném vydání mají další úpravy znovu probíhat pouze v TEST prostředí. Samotná otázka na vhodnost vydání není povolením obejít poslední explicitní kontrolu před produkčními zápisy.
+- GitHub `main`: `056bbaeb0cd91604588b1ed6dd3a7b3e1f5e768c`.
+- Produkční Vercel: `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, **READY**, target `production`, nasazený SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`.
+- Produkční Supabase `bkqamcbkiwumsvelahxr`: **ACTIVE_HEALTHY** při poslední kontrole 28. 9. 2026.
+- Produkční runtime zůstává historicky 1.7.83; development sjednocení verzí se do produkce bez souhlasu nepřenáší.
+- Rozdíl mezi novějším GitHub `main` a skutečně nasazeným produkčním SHA je známý a úmyslný.
 
-Čtecí audit 23. 9. 2026 zjistil:
+### Aktuální CI poznámka
 
-- `development` a `main` jsou divergovány: development byl při kontrole 401 commitů napřed a 5 commitů pozadu; prosté přepsání `main` je zakázané.
-- Pět main-only commitů je `18308f78`, `75f0672a`, `c8e220f2`, `def12642` a `ceca9f96`; před produkčním commitem je nutné doložit jejich zachování nebo vědomé nahrazení.
-- Produkční Vercel alias `skoda-spada.vercel.app` je READY na deploymentu `dpl_HhcLwjkTPvtuUCKANCF3zAsBEoR1` / SHA `e54e7e4909cb0f94b77b12aa2f60bbb4b6e64ca9`, tedy ani neodpovídá současnému `main` SHA `ceca9f9644da3dc41059c5d232661d27bc6dba18`.
-- `vercel.json` vypíná automatické deploymenty pouze pro `development`; obyčejný zápis do `main` může spustit produkční deployment bez nové produkční brány.
-- TEST Supabase má bezpečnostní migrace až po `20260923045532`, zatímco produkční projekt končí RaK migracemi `20260915193102`. Historie není totožná a nesmí se slepě kopírovat.
-- Současný klient volá `rak_admin_list_application_accounts_v1`, která byla v TEST katalogu nalezena, ale v produkčním katalogu při auditu chyběla.
-- TEST a produkční Edge Function `rak-admin-users` mají rozdílný obsah a digest; TEST varianta obsahuje novější pravidla rolí, hesel a povolených preview originů.
-- Produkční DB, Edge Functions, Vercel ani `main` nebyly auditem změněny.
+- Poslední funkční runtime 1.8.7 má zelený exact-SHA run `36687768493` (attempt 1) pro SHA `3d919c88757ca75a20020eb2ae51901c922fdbbb`. Výkonové limity nebyly uvolněny.
+- Stabilní TEST alias byl přesunut až po zeleném exact-SHA ověření a immutable HTTP kontrole deploymentu `dpl_BeDLm4ABrThiFG7EaFf3TV691msp`.
+- Při dalším funkčním releasu musí opět projít celý fail-closed řetězec na jeho exact SHA.
 
-Před produkčním zápisem musí vzniknout jediný verzovaný release postup: kompatibilní produkční migrace s reverzním postupem a zálohou, nasazení přesně ověřené Edge Function, produkční sestavení z reconciliovaného Git stromu, zákaz předčasného auto-deploye, kontrola přesného SHA a následný READY/HTTP/metadata/produkční-ID důkaz. Každý produkční zápis vyžaduje nové jednoznačné potvrzení vlastníka.
+## Stav 13 bodů – závěrečný audit 28. 9. 2026
 
-## Důležitý stav fyzického iPhonu
+Read-only audit na HEAD `a31452ff0644899e4c46a7cce0d544b99da78755` ověřil všech 13 kanonických sekcí: **všechny akceptační checkboxy jsou [x], žádný [ ] nezůstal**. Staré odstavce uvnitř těchto sekcí stále obsahovaly historické mezistavy 43/50/57/60/63/67/75/80/83 %; tato konsolidace je odstranila, aby se nový chat neřídil překonanou historií.
 
-RaK 1.7.82 prošla 23. 9. 2026 fyzickým acceptance testem bez mazání dat:
+| Bod | Oblast | Stav |
+|---|---|---:|
+| P0.1 | Účty a data pracovníků | **100 % (5/5)** |
+| P0.2 | Soukromí sdílené rotace | **100 % (5/5)** | Uzavřeno rozhodnutím o přijatém riziku; nejde o tvrzení o absolutní technické ochraně |
+| P0.3 | API, exporty a historické klienty | **100 % (5/5)** |
+| P0.4 | Role vlastníka a administrátorů | **100 % (5/5)** |
+| P1.1 | Databázová oprávnění, RLS a RPC | **100 % (5/5)** |
+| P1.2 | Administrátorské heslo, relace a zařízení | **100 % (5/5)** |
+| P1.3 | Reprodukovatelný build, testy a verze | **100 % (6/6)** |
+| P1.4 | CI před nasazením, rollout a rollback | **100 % (6/6)** |
+| P1.5 | Úplné zálohy a prokazatelná obnova | **100 % (7/7)** |
+| P2.1 | Výkon startu PWA | **100 % (5/5)** |
+| P2.2 | Rozložení, DOM, CSS a interakce | **100 % (5/5)** |
+| P2.3 | Offline, fronta, verze a konflikty | **100 % (8/8)** |
+| P2.4 | Diagnostika, soukromí telemetrie a kvalita | **100 % (6/6)** |
 
-- online přihlášení a TEST Supabase fungovaly,
-- cold offline start fungoval,
-- Dashboard „Kam jdu“ i Rotace byly aktuální offline,
-- aktuální rozpis byl dostupný offline,
-- návrat online fungoval bez restartu,
-- falešný konflikt se nevrátil.
+**Bilance: 13/13 uzavřeno.**
 
-Tato konkrétní mobilní offline/reconnect závada je vyřešená. Neotvírat ji znovu bez nové reprodukovatelné regrese. Zachovat dvojitou persistence Rotace, arbitráž `revision/savedAt/fingerprint`, quota-safe migraci, self-hosted pinovaný Supabase SDK, root vendor asset, offline name index, runtime hydration a přísné offline testy.
+## Finální důkazy a trvalá omezení 13 bodů
 
-P2.3 zůstává otevřené pouze kvůli třem jiným položkám: bezpečné vyřazení jediné konfliktní úlohy, typové zpracování konfliktů a serverově atomický CAS/revize pro souběh zařízení.
+### P0.1 – Účty a data pracovníků · 100 %
 
-## Stav 13bodového plánu
+- [x] Zabránit anonymnímu čtení celého adresáře zaměstnanců.
+- [x] Zachovat schválené OS-only přihlášení běžných pracovníků bez nových hesel/e-mailů/OTP.
+- [x] Auditovat staré exporty, cache a klientské cesty na osobní údaje.
+- [x] Ověřit povolené a zakázané datové cesty pro anonymní i privilegované role bez logování tokenů.
+- [x] Držet regresní kontroly rozsahu osobních polí v odpovědích a exportech.
 
-| Bod | Stav | Zbývá |
-|---|---:|---|
-| P0.1 | **100 % (5/5)** | Uzavřeno; privacy/export regrese jsou povinné a doložené na vydaném runtime. |
-| P0.2 | **100 % (5/5)** | Uzavřeno rozhodnutím o přijatém riziku, nikoli technickou důvěrností veřejné rotace. |
-| P0.3 | **80 % (4/5)** | Soukromé stažení a otevření owner backup ZIPu na skutečném iPhonu. |
-| P0.4 | **80 % (4/5)** | Fyzický Safari/PWA test správy rolí a odvolání zařízení. |
-| P1.1 | **80 % (4/5)** | Každou další nutnou politiku nasadit nejprve do TEST s migrací, testem a reverzním postupem. |
-| P1.2 | **80 % (4/5)** | Fyzický Safari/PWA test relace, znovuotevření, offline→online a UX odmítnutí. |
-| P1.3 | **100 % (6/6)** | Uzavřeno. |
-| P1.4 | **100 % (6/6)** | Uzavřeno; fail-closed release evidence je povinné. |
-| P1.5 | **43 % (3/7)** | Úplná izolovaná obnova a porovnání; bezplatné projektové sloty jsou obsazené. |
-| P2.1 | **20 % (1/5)** | Měřený výkon startu a skutečné mobilní/Safari limity. |
-| P2.2 | **40 % (2/5)** | Skutečné iPhone rozložení, role/interakce a stabilní vizuální regrese. |
-| P2.3 | **63 % (5/8)** | Tři konfliktové/CAS položky uvedené výše. |
-| P2.4 | **33 % (2/6)** | Sanitizovaná diagnostika, privacy audit logů a měřitelné PASS/FAIL prahy. |
+- Veřejné/anonymní cesty nevydávají celý adresář ani citlivá osobní pole.
+- Přihlášení běžných pracovníků zůstává OS-only podle schváleného modelu; nepřidávat jim hesla/e-mail/OTP/Auth účet.
+- Privilegované identity a exporty mají regresní privacy kontroly.
 
-Bilance: 4/13 oblastí uzavřeny, 9/13 otevřených. Přesné checkboxy, jejich důkazy a historie změn jsou výhradně v `RAK_PLAN_13.md`.
+### P0.2 – Sdílená rotace a soukromí · 100 % rozhodnutím
 
-## Nejbližší bezpečné pokračování
+- [x] Zdokumentovat rozsah veřejně čitelné společné rotace potřebný pro OS-only provoz.
+- [x] Vyhodnotit technické možnosti privatizace a jejich dopad na schválený model přihlášení.
+- [x] Výslovně oddělit technické zabezpečení od rozhodnutí vlastníka přijmout zbytkové riziko.
+- [x] Zachovat omezení ostatních osobních údajů mimo přijatý rozsah rotace.
+- [x] Udržovat rozhodnutí a jeho dopad jako trvalou součást handoffu.
 
-1. Vlastník zvažuje posun ověřené verze do `main`. Před zápisem do `main` znovu vyžádat jednoznačné konečné potvrzení.
-2. Produkční příprava musí nejprve sladit pět commitů, kterými se `main` od společného předka liší, a ověřit produkční build/configurační transformaci. `development` nesmí být do `main` prostě přepsán, protože vývojový zdroj je záměrně svázán s TEST Supabase.
-3. Produkční Supabase `bkqamcbkiwumsvelahxr` ani produkční Vercel alias/deployment neměnit bez samostatného výslovného souhlasu; žádnou TEST migraci automaticky nepřenášet do produkce.
-4. Po případném produkčním vydání pokračovat se všemi dalšími úpravami zase pouze v `development`, TEST Supabase a development preview.
-5. Neopakovat už uzavřenou offline hypotézu P2.3. Online lze pokračovat P2.4, zbývajícím konfliktním workflow P2.3 a bezplatnou přípravou P1.5.
-6. P0.3, P0.4 a P1.2 čekají na konkrétní fyzické iPhone/Safari scénáře. Chromium se nesmí vydávat za jejich splnění.
+- Vlastník vědomě přijal rozsah veřejně čitelné společné rotace potřebný pro OS-only provoz.
+- 100 % zde znamená dokončené a zdokumentované rozhodnutí o riziku, nikoli absolutní technickou privatizaci.
 
-## Povinná release brána
+### P0.3 – API, exporty a historické klienty · 100 %
 
-Před každým funkčním preview musí na přesném SHA projít minimálně syntax, `npm run check`, relevantní unit/integrace, critical runtime smoke, security/offline regrese, dva čisté kanonické buildy, ZIP/manifest/CRC, skutečný Chromium smoke, TEST HTTP, jednotná metadata a GitHub Actions SUCCESS. Až potom smí vzniknout jeden Vercel preview.
+- [x] Auditovat aktuální i historické API/exportní cesty a staré klienty.
+- [x] Omezit veřejné odpovědi na schválený rozsah a zachovat private/no-store ochrany.
+- [x] Udržet owner disaster-recovery export owner-only a fail-closed.
+- [x] Fyzicky stáhnout, rozbalit a otevřít úplný owner ZIP na skutečném iPhonu.
+- [x] Zdokumentovat, že dříve stažené soukromé kopie nelze vzdáleně odvolat.
 
-Po deploymentu ověřit READY, stejné SHA, viditelnou a technickou verzi, TEST Supabase, nepřítomnost produkčního ID, dostupnost HTML/`sw.js`/metadat/vendor assetu, stabilní development alias, nezměněný `main` a nezměněnou produkci. Uchovat strojový release artefakt a konkrétní rollback cíl.
+- Staré API/exportní cesty byly auditovány a veřejné odpovědi omezeny.
+- Owner disaster-recovery ZIP je soukromý owner-only artefakt; dříve stažené kopie nelze vzdáleně odvolat.
+- Fyzický iPhone PASS 27. 9. 2026: úplný ZIP stažen, rozbalen a otevřen soubor uvnitř.
 
-## Povinná údržba tohoto souboru
+### P0.4 – Role vlastníka a administrátorů · 100 %
 
-Po každém větším balíku musí stejný pracovní tok tento soubor zkontrolovat a aktualizovat, pokud se změnil kterýkoli z těchto údajů:
+- [x] Používat fail-closed secure role gate pro owner/admin/deputy oprávnění.
+- [x] Ověřit skutečné podepsané TEST role owner/admin/deputy/cizí účet.
+- [x] Ověřit chování odvolané admin relace a zařízení.
+- [x] Fyzicky projít role-gated UI na iPhonu.
+- [x] Zabránit automatickému návratu starého privilegovaného přístupu po revoke.
 
-- runtime SHA, verze, build ID nebo cache,
-- Actions run, Vercel deployment, alias, release artefakt nebo rollback,
-- stav TEST/produkční izolace,
-- checkbox nebo procento plánu,
-- fyzický iPhone výsledek,
-- otevřený blokátor, přijaté riziko nebo pořadí další práce,
-- závazné provozní omezení.
+- Secure role gate je fail-closed.
+- Podepsaná TEST role matrix ověřila owner/admin/deputy/cizí/odvolanou relaci.
+- Fyzický iPhone PASS 27. 9. 2026: změna role + revoke zařízení; starý privilegovaný přístup se po revoke neobnovil.
 
-Současně aktualizovat `RAK_PLAN_13.md`, pokud se změnil checkbox, procento nebo důkaz. Handoff nesmí tvrdit víc než plán a strojové důkazy. Čistě historické podrobnosti patří do odkazovaných dokumentů, nikoli do dalšího paralelního „kanonického“ plánu.
+### P1.1 – Databázová oprávnění, RLS a RPC · 100 %
 
-## Report uživateli po větším balíku
+- [x] Auditovat RLS, GRANT a RPC surface na TEST.
+- [x] Ověřit anonymní a authenticated zápisové/čtecí hranice fail-closed.
+- [x] Prověřit SECURITY DEFINER a veřejné RPC jako explicitní allowlist.
+- [x] Aplikovat schválenou produkční fázi B atomicky až po TEST/CI/fyzické přejímce.
+- [x] Udržovat nové DB změny nejprve na TEST a produkci měnit jen po explicitním souhlasu.
 
-V češtině uvést: co bylo dokončeno, změněné checkboxy, přesné SHA, číslo a odkaz Actions, Vercel ID/stav nebo výslovný dokumentační skip, viditelnou a technickou verzi, otevřené/neověřené položky, pouze relevantní fyzické iPhone kroky a přehled všech 13 procent.
+- RLS/GRANT/RPC surface byl auditován na TEST a schválená produkční fáze B byla aplikována atomicky.
+- Veřejné mutation cesty jsou omezené; privilegované operace vyžadují příslušný kontext.
+- Nové DB změny nejprve TEST, potom exact-SHA CI a teprve po explicitním souhlasu produkce.
+
+### P1.2 – Heslo, relace a zařízení · 100 %
+
+- [x] Sjednotit minimum admin/správce hesla na 6 znaků v klientu i serverové validační cestě.
+- [x] Ověřit online znovuotevření admin relace v PWA.
+- [x] Ověřit offline start a návrat offline→online bez mazání dat.
+- [x] Ověřit revoke zařízení a zákaz automatického obnovení staré relace.
+- [x] Zachovat role/session chování fail-closed při chybě ověření.
+
+- Minimum admin/správce hesla je **6 znaků**, konzistentně klient + TEST serverová validační cesta.
+- Fyzicky ověřeno: znovuotevření PWA, offline start, offline→online, revoke a zákaz automatického návratu staré admin relace.
+
+### P1.3 – Reprodukovatelný build a verze · 100 %
+
+- [x] Používat reprodukovatelný canonical build.
+- [x] Udržovat jeden zdroj release metadat a sjednocenou verzi runtime/cache/package.
+- [x] Provádět dvě čisté sestavy a porovnat jejich výstup.
+- [x] Uchovávat immutable 1.7.69 jako performance referenci.
+- [x] Fail-closed blokovat release při nesouladu buildů nebo metadat.
+- [x] Udržovat regresní testy build/version kontraktu v CI.
+
+- Canonical build je reprodukovatelný, release metadata jsou jediný zdroj verze.
+- Viditelná, technická, module cache, package verze a SW marker se u nových runtime release sjednocují.
+- Immutable 1.7.69 zůstává performance referencí.
+
+### P1.4 – CI, deployment a rollback · 100 %
+
+- [x] Spouštět povinné syntax/unit/integration/security/offline/browser kontroly před releasem.
+- [x] Vyžadovat dvě čisté canonical sestavy a ZIP/CRC důkaz.
+- [x] Vyžadovat performance budget a paritu bez oslabování limitů.
+- [x] Ověřit TEST HTTP/Supabase izolaci na exact SHA.
+- [x] Nasazení považovat za release až po READY + exact SHA + postdeploy kontrole.
+- [x] Udržovat konkrétní ověřený rollback cíl; produkci měnit pouze po explicitním souhlasu.
+
+- Funkční release musí projít syntax/unit/integrace, security/offline/browser, dvě čisté sestavy, ZIP/CRC, performance/parity a TEST HTTP.
+- Deployment se smí považovat za release až po READY, exact SHA a ověření TEST/produkční izolace.
+- Produkční release vyžaduje samostatný explicitní souhlas.
+- Rollback musí používat ověřený READY cíl; nikdy nehádat deployment.
+
+### P1.5 – Úplné zálohy a ověřitelná obnova · 100 %
+
+- [x] Záloha zdrojů a owner ZIP mají inventář, manifest/CRC a kontrolu zdrojových Git blobů.
+- [x] Je zpracovaný inventář DB schématu, Auth, Storage a rozdělení TEST/produkce.
+- [x] Je doložen nedestruktivní shadow/rollback kontrakt a jeho omezení.
+- [x] Všechna potřebná TEST data a schéma byla skutečně obnovena do odděleného ephemeral local Supabase.
+- [x] Byla ověřena obnova Auth, Storage, rolí/RLS, pořadí migrací a relevantních datových revizí.
+- [x] Úplný owner ZIP byl fyzicky stažen, rozbalen a otevřen na iPhonu.
+- [x] Restore byl porovnán počty, SHA-256 hashi a funkčními testy a má fail-closed teardown/rollback postup.
+
+Finální zero-cost isolated restore drill:
+- exact SHA `9dd8b3dfc0c38984a327ce2d0ab194c08de1e787`;
+- [Actions #539](https://github.com/martinspadrna/RaK/actions/runs/36454437940) **SUCCESS**;
+- export z TEST: 22 public tabulek, 62 přesných aplikovaných migrací, sanitizovaná Auth metadata se 3 účty;
+- ephemeral local Supabase provedl clean replay všech 62 migrací, obnovu dat, row counts + SHA-256, private rotation metadata, migration order/history a RLS kontrolu 19 policies;
+- Auth: 3 účty znovu vytvořeny s náhradními CI-only credentials, funkční login + `rak_admin_context` ověřen pro aktivní 1× owner a 2× admin;
+- původní hesla, tokeny a sessions se **nezálohují ani neobnovují**;
+- `rak_admin_devices`, `rak_admin_secrets` a ostatní privátní runtime security state se záměrně resetují;
+- živý TEST Storage měl 0 bucketů / 0 objektů, proto byl pouze do privátního CI snapshotu přidán synthetic canary bucket + soubor; local restore vytvořil bucket/object, soubor stáhl a ověřil SHA-256;
+- sanitized proof artifact: `rak-p15-restore-proof-9dd8b3dfc0c38984a327ce2d0ab194c08de1e787`, ID `10985561355`, digest `sha256:8d14b7c88340d38197350d69da14f5131245cb45736ec7636ab14bbe5a88d352`, retention do 27. 12. 2026;
+- každý PASS i FAIL target končí `supabase stop --no-backup` + smazáním privátního workspace;
+- produkce se při drillu nepoužívá ani nemění;
+- náklady 0 Kč: public GitHub-hosted runner + local Supabase/Docker, bez třetího Supabase projektu/branch/PITR/add-onu.
+
+Historické clean-replay normalizace jsou pouze explicitně whitelistované data-bound guard/verify bloky v migracích `20260918200612`, `20260918203159`, `20260918214441`, `20260918220817` a `20260919054241`; schema/policy změny se aplikují a konečný stav se následně ověřuje datovými, RLS a funkčními kontrolami.
+
+### P2.1 – Výkon startu PWA · 100 %
+
+- [x] CI měří cold start, offline reload a online recovery.
+- [x] CI vynucuje časové/velikostní budgety a paritu proti immutable 1.7.69.
+- [x] Je měřen první použitelný local-first stav, ne zelený online sync.
+- [x] Byl proveden opakovaný fyzický iPhone/PWA cold/warm test.
+- [x] Výsledky fyzického měření jsou zdokumentované včetně mediánu a maxima.
+
+- CI měří cold/offline/recovery a paritu proti immutable 1.7.69.
+- Fyzický iPhone/PWA PASS 27. 9. 2026: 5× cold = 1,4 / 1,1 / 1,2 / 1,2 / 1,1 s, medián 1,2 s, max 1,4 s; 5× warm = 0,1 s, medián/max 0,1 s.
+- Měřicí konec je stabilní local-first Home, ne zelený online sync.
+
+### P2.2 – Rozložení, DOM, CSS a interakce · 100 %
+
+- [x] Chromium hlídá kritické mobilní rooty, geometrii a horizontální overflow.
+- [x] Fyzicky projít podporované vzhledy a safe-area navigaci na iPhonu.
+- [x] Fyzicky ověřit administraci, tabulkovou editaci a iOS klávesnici.
+- [x] Fyzicky ověřit Report směny a exportní akce.
+- [x] Fyzicky ověřit role clickthrough owner/admin/deputy/běžný uživatel.
+
+- Chromium hlídá mobilní geometrii, overflow a kritické obrazovky.
+- Fyzický iPhone PASS: vzhledy, safe-area, navigace, administrace, klávesnice, Report/export.
+- Fyzický role clickthrough PASS: owner/admin/deputy/běžný uživatel; privilegované položky odpovídají role gate.
+
+### P2.3 – Offline, fronta, verze a konflikty · 100 %
+
+- [x] Zachovat pravdivý online/cache stav a neztrácet lokální frontu.
+- [x] Zachovat local-first offline/reconnect bez mazání dat.
+- [x] Chránit editované návrhy před opožděnou síťovou odpovědí.
+- [x] Používat revizní CAS a odmítnout stale zápis bez tichého přepsání serveru.
+- [x] Používat nereplayovatelný aplikační SQLSTATE P0001 pro očekávané RaK CAS konflikty.
+- [x] Fyzicky ověřit dvouzařízení stale-write scénář.
+- [x] Fyzicky ověřit přesný single-item conflict rescue se soukromým exportem a read-only server checkem.
+- [x] Zpracovat konflikty podle typu; kategorie „ostatní“ se nesmí automaticky mazat.
+
+- Local-first offline/reconnect funguje bez mazání dat a bez falešného konfliktu.
+- CAS je fail-closed a používá nereplayovatelný aplikační SQLSTATE `P0001`; nepoužívat `40001` pro očekávaný RaK stale konflikt, protože PostgREST jej retryuje.
+- Fyzický dvouzařízení TEST 28. 9. 2026: stale klient byl odmítnut bez přepsání novějšího serverového stavu.
+- Conflict rescue fyzicky ověřen: nejprve soukromý export přesně jedné lokální položky, read-only server check, potom explicitní odstranění právě jedné lokální položky; server se nesmí změnit. Kategorie „ostatní“ se automaticky nemaže.
+- Background sync nesmí měnit uživatelem zvolenou route.
+
+### P2.4 – Diagnostika a soukromí telemetrie · 100 %
+
+- [x] Mít sanitizovanou čtecí diagnostiku Auth/fronty/stavu bez syrových payloadů.
+- [x] Udržovat Chromium/offline/performance provozní signály s jednoznačným PASS/FAIL.
+- [x] Auditovat logy/reporty/screenshoty/exporty proti úniku tokenů, OS čísel, jmen a obsahu rozpisů.
+- [x] Ověřit skutečné role/JWT a odmítnuté operace bez vypsání přihlašovacích údajů.
+- [x] Fyzicky zobrazit na problematickém iPhonu konkrétní sanitizovanou příčinu konfliktu po vrstvách.
+- [x] Používat měřitelné quality thresholds a fail-closed blokovat nebezpečný release.
+
+- Browser/runtime diagnostika je centralizovaně sanitizovaná; žádné tokeny, OS čísla, jména ani obsah rozpisů v běžných logách.
+- Role/JWT diagnostika ověřuje identitu/session/role bez vypsání tokenu.
+- Fyzický iPhone PASS 28. 9. 2026: conflict diagnostika rozlišila stav aplikace, fronty, úložiště, typ a sanitizovanou příčinu bez zápisu na server.
+- 1.7.139 odstranila poslední natvrdo zapsanou 1.7.136 z diagnostického nadpisu/lazy-import cache a používá `RAK_RELEASE_METADATA`.
+
+## Trvalé funkční invariance
+
+### Local-first startup
+
+- Home, Rotace/Rozpisy, Kalkulačky a běžné Více musí být z lokálních dat/cache ve finálním vzhledu ovladatelné co nejdříve, bez čekání na Supabase sync.
+- Online sync pouze aktualizuje data na pozadí; nesmí vracet uživatele na Home ani měnit aktuální stránku.
+- Secure role prvky mohou čekat na bezpečné ověření, ale nesmí blokovat běžné lokální Více.
+- Rotace → Více nesmí ponechat names dock/panel nad menu.
+- První otevření Administrace používá malý secure admin shell; plný Admin se lazy-loaduje až při skutečné potřebě a nesmí být svázán se syncem.
+
+### Neplánované absence – MO-only preference
+
+Pro Dovolenou, Náhradní volno, Paragraf a Lékaře:
+- mění se pouze vybrané dny;
+- pokud chybějící pracovník byl původně na MO a původní TO po absenci zůstává bezpečně validní, **celé TO musí zůstat beze změny** a dopočítá se pouze MO;
+- zachované TO musí mít správný počet lidí, žádnou nedostupnou/duplicitní osobu, platné kvalifikace a musí respektovat pravidlo TPKW02 při 3 absencích;
+- pokud pracovník byl na TO nebo TO nelze bezpečně zachovat, smí se použít širší lokální přepočet pouze daného dne;
+- fail-closed kontrola musí odhalit jakoukoli nepovolenou změnu chráněného TO.
+- **Fyzický iPhone PASS 29. 9. 2026 – D / NV / § / Lékař:** všechny čtyři důvody fyzicky potvrzené v MO-only scénáři; při validním původním TO zůstává TO byte-identické, mění se pouze MO na vybraném dni / rozsahu a pracovník je v Absencích.
+
+### „Odešel na kalírnu“ – minimal reflow
+
+- Nejprve se hledá nejmenší bezpečný zásah do existujícího dne, zejména pokud pracovník odchází z MO a TO může zůstat beze změny.
+- Každá varianta musí respektovat kvalifikace.
+- Skóre: 1) minimum přesunutých lidí; 2) při shodě minimum přesunutých původních soustružníků; 3) minimum změněných buněk.
+- Typický stav 5→4 na MO při odchodu soustružníka: pracovník z MFKF06 přejde na uvolněný soustruh, MFKF06 zůstane prázdná a MFKF10 zůstane na místě.
+- Odchod z MFKF06 nevyžaduje další přesun. Odchod z MFKF10 preferuje MFKF06→MFKF10.
+- Pokud přímý přesun neumožní kvalifikace, smí se použít nejkratší nutný řetězec; až pokud žádná lokální permutace není validní, použít scoped generátor pro konkrétní den.
+- RaK 1.7.148 ukládá Kalírnu přímo do chráněné prázdné MO buňky se stejným `kalirnaOut` daymodem: viditelně `Jméno →K`, růžově, ale bez započtení do fyzického staffingu, statistik a historie generátoru.
+- Bez jiné absence: fyzicky 5 TO + 4 MO, evidence Kalírny na volné MFKF06. S jednou další absencí: fyzicky 5 TO + 3 MO, evidence Kalírny na volné MSKC01.
+- **Fyzický iPhone PASS 29. 9. 2026:** nové přímé evidenční zobrazení i staffing pravidla potvrzena; bod je uzavřen.
+
+## Dodatečný seznam vlastníka – reconciliace 28. 9. 2026
+
+Tento seznam byl po konsolidaci znovu porovnán s aktuálním `development`. Nevracet již implementované požadavky do kódu bez nové konkrétní regrese.
+
+- **Administrace → Rozpisy → místní návrhy – FYZICKY PASS 28. 9. 2026:** RaK 1.7.141 sjednocuje neuložené místní návrhy, jejich exporty a „Smazat všechny místní návrhy“ do jednoho rámečku; tlačítka mají svislý odstup. Mazání zůstává fail-closed a lokální, nezasahuje online rozpis ani jinou frontu. „Statistické odchylky“ byly z této obrazovky odstraněny.
+- **Rozpisy → přehled jména × skupiny strojů – FYZICKY PASS 28. 9. 2026:** přehled je výchozí rozbalený, používá TNK/W01/W02, Jméno 54 px, TO/MO i stroje 35 px a svislé oddělení sloupců. Další redesign jen při nové konkrétní fyzické připomínce.
+- **Administrace → Pravidla generátoru:** implementovaná sjednocená mobilní karta `adminOpsUnifiedCard`; vlastní obsah používá rule/status/impact cards. Neprovádět další redesign bez fyzické připomínky vlastníka.
+- **Administrace → Kantýna / jídelna – FYZICKY PASS 28. 9. 2026:** RaK 1.7.145 rozděluje editor do dvou kompaktních výchozím způsobem zabalených sekcí, zhutňuje tabulky a časová pole a drží tři spodní akce v jednom řádku. Ukládací logika zůstala beze změny; další redesign jen při nové konkrétní fyzické připomínce.
+- **Administrace → Správci – FYZICKY PASS 28. 9. 2026:** RaK 1.7.146 zhutňuje obrazovku do kompaktního stavu 2×2 a výchozím způsobem zabalených sekcí Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo. Secure role gate, revoke zařízení, role, hesla a minimum 6 znaků zůstávají zachované; další redesign jen při nové konkrétní fyzické připomínce.
+- **Owner 9811 při přesunu mimo rozpis:** architektonicky i automaticky ověřeno. TEST 28. 9. 2026 má `rak_admin_profiles.account_id=9811`, `role=owner`, `enabled=true`. `rak_admin_context` používá `rak_admin_profiles` a neodkazuje na `WORKER_ROSTER_SETTINGS` ani `machine_settings`. Gate `release-gate-17084` navíc synteticky přesouvá aktivní účet z rosteru mimo roster a ověřuje, že account/Auth identita zůstane stejná. **Přesun 9811 z pracovníků mezi účty mimo rozpis tedy sám o sobě owner oprávnění neodebere.**
+
+Původně příliš roztažené obrazovky Pravidla generátoru, Kantýna/jídelna a Správci byly postupně zhutněny a fyzicky potvrzeny na iPhonu v releasech 1.7.144–1.7.146. Administrační série 1–5 je uzavřená.
+
+## Jediný aktuální funkční backlog mimo uzavřených 13 bodů
+
+Tyto položky jsou produktové požadavky; **neotevírají znovu 13bodový audit**, dokud neodhalí regresi některé jeho akceptace.
+
+### Aktuální administrační série – řešit striktně po jednom
+
+1. **Bod 1 – místní návrhy / Statistické odchylky: UZAVŘENO, FYZICKY PASS na 1.7.141.**
+2. **Bod 2 – Administrace → Rozpisy → přehled jména × skupiny strojů: UZAVŘENO, FYZICKY PASS na 1.7.143.** Přehled je defaultně rozbalený; TNK/W01/W02; Jméno 54 px; TO, MO i strojové sloupce 35 px; TO/MO i stroje mají svislé oddělení. Panel „Neuložené místní návrhy“ je defaultně zabalený.
+3. **Bod 3 – Administrace → Pravidla generátoru: UZAVŘENO, FYZICKY PASS na 1.7.144.** Pět kompaktních skládacích sekcí je výchozí zabalených; všechna původní ID polí, data atributy a ukládací logika zůstávají zachované.
+4. **Bod 4 – Administrace → Kantýna/jídelna: UZAVŘENO, FYZICKY PASS na 1.7.145.** Dvě kompaktní výchozím způsobem zabalené sekce, zhutněné řádky/časy a tři spodní akce vedle sebe; původní datové hooky a ukládací logika zachované.
+5. **Bod 5 – Administrace → Správci: UZAVŘENO, FYZICKY PASS na 1.7.146.** Stav správců je na iPhonu kompaktní 2×2; Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo jsou výchozím způsobem zabalené. Secure role/revoke/password logika zůstává zachovaná.
+
+**Administrační série 1–5 je kompletně uzavřená.**
+
+Po každém bodu: zelený exact-SHA CI → TEST preview → fyzický iPhone test → teprve po „ok“ bod uzavřít a přejít na další.
+
+### Dashboard → Kalendář
+
+- **RaK 1.7.153 – FYZICKY PASS na iPhonu 29. 9. 2026:** originální Google Calendar iframe, barevná legenda zdrojů, zavření modalu při spodní navigaci a account-scoped synchronizace kalendářů vybraných v Nastavení mezi zařízeními potvrzeny.
+- **RaK 1.7.155 – FYZICKY PASS šířky legendy 29. 9. 2026:** štítky jsou jen na šířku krátkého popisku a řadí se vedle sebe.
+- **RaK 1.7.158 – FYZICKY PASS na iPhonu 29. 9. 2026:** po deaktivaci všech štítků už poslední aktivní kalendář nezůstává zobrazený.
+- Uložený výběr v Nastavení ovlivňuje pouze dashboard. Generátor rozpisu dál používá právě jeden pracovní kalendář podle zařazení účtu. Report dovolených od RaK 1.8.2 používá samostatně nastavený jeden kalendář v Administrace → Kalendáře; výchozí i bezpečný fallback je Obrábění D.
+- **Obrábění D používané směnou D pro dovolené je chráněná invarianta:** neměnit jeho zdroj, název ani události v rámci dashboardových úprav.
+- RaK 1.7.160 doplnila account-scoped `calendar_hidden_keys` pro přenos zapnuto/vypnuto legendy mezi zařízeními. Fyzický nulový stav ale FAIL: Google iframe bez zdroje na iPhonu zobrazil cookie bránu.
+- **RaK 1.7.161 – exact-SHA CI GREEN, fyzický iPhone test 29. 9. 2026 částečný PASS:** při nule aktivních štítků se správně zobrazí lokální prázdný měsíční kalendář bez událostí a bez Google cookie brány; po zapnutí zdroje se vrátí originální Google iframe. Account sync viditelnosti z 1.7.160 zůstává.
+- **RaK 1.7.163 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** při 0 aktivních kalendářích lokální prázdný měsíc vyplňuje stejnou šířku i výšku jako Google iframe a pravá mezera je odstraněná. Po zapnutí zdroje se vrací originální Google Calendar iframe. Výběr kalendářů, `calendar_hidden_keys`, account sync, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstaly beze změny. Produkce ani `main` nebyly změněny.
+
+### Ostatní produktový backlog
+
+Uzavřené položky:
+
+1. **RaK 1.7.166 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 29. 9. 2026:** Kalkulačky → Brusy a Administrace → Brusy jsou dorovnané na referenční vzhled Frézek; `+ / −` má správné rozměry, výšku, glass vzhled i centrování. Oprava je přímo ve skutečných vlastnících `brusy-fhb-v157.js` a `brusy-fhb-v158.js`; Administrace → Frézky zůstala beze změny.
+2. **RaK 1.8.1 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** popis nové generace v „O aplikaci“ je zkrácený přibližně na polovinu do pěti kratších bodů. Uživatelské označení zůstává `RaK 1.8`, historická 1.7 zůstává „Stabilizace a local-first základ“. Runtime SHA `5a5e655517b89deb19af2e7d4911c7a73aa0167d`; první parity běh měl dvě FCP špičky, čistý rerun stejného SHA prošel bez změny limitů.
+3. **RaK 1.8.3 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Administrace → Kalendáře má samostatný „Kalendář pro report dovolených“, uložený ve stávajícím `SHIFT_CALENDAR_SETTINGS`; výchozí/fallback je Obrábění D. Report už není svázaný se směnou přihlášeného účtu, Dashboard a generátor zůstávají beze změny. Finální fyzicky ověřený SHA `d964ff2da700423a1932cff9d42032ccbd0ecf39`; 1.8.3 navíc potvrzuje požadovaný odstup bloku od „Směny A“.
+4. **RaK 1.8.4 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** ve Více → Správce je odstraněný výchozí text „TEST diagnostika se spustí pouze klepnutím.“; stavový prvek zůstává zachovaný a po „Ověřit oprávnění“ dál zobrazí výsledek živé diagnostiky. Finální fyzicky ověřený SHA `8678cb313ecb84513f36b1339468c2c03a2fe4d5`.
+5. **RaK 1.8.5 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** Dashboard → Kantýna i Jídelna se při klepnutí na spodní navigaci včetně local-first „Více“ správně zavřou před změnou obrazovky. Oprava je ve společném teardownu spodní navigace; finální fyzicky ověřený SHA `aa2b26c35f7c866613d420c2dd8f93dfae7a0f6d`.
+
+6. **RaK 1.8.7 – exact-SHA CI GREEN + TEST preview READY + fyzický iPhone PASS 30. 9. 2026:** testovací účet může změnit vlastní heslo a „Ověřit oprávnění“ už nepíše, že podepsaná relace není dostupná. Kořen byl v duplicitním runtime zdroji: `app-menu.js` zůstal na admin-only `getAdminAccessToken`, i když helper a změna hesla už používaly signed-role token. Finální oprava sjednotila runtime i helper na `getSignedAdminAccessToken` a regresní test hlídá jejich shodu; admin-write oprávnění zůstává pouze owner/admin. Fyzicky ověřený SHA `3d919c88757ca75a20020eb2ae51901c922fdbbb`.
+
+**Aktuálně není evidovaný žádný otevřený produktový bod.**
+
+- Neplánovaná Kalírna 1.7.148: **FYZICKY PASS**.
+- MO-only Dovolená / Náhradní volno / Paragraf / Lékař: **FYZICKY PASS**.
+- Pokud se objeví nová konkrétní regrese nebo nový požadavek vlastníka, řešit jej jako nový samostatný bod; automaticky neotvírat znovu uzavřený 13bodový audit.
 
 
-## Připravený, ale neautorizovaný produkční balík 1.7.83
+## Kandidát pro budoucí `main` – aktuální stav
 
-Dne 24. 9. 2026 byl do `SECURITY_DEPLOYMENT.md` připraven dvoufázový produkční postup s přesnými SHA-256 migrací, fail-closed preflightem, Git reconciliací, CI-before-deploy pořadím, fyzickou iPhone přejímkou a konkrétním Vercel/Edge rollbackem. Dokumentační merge historicky připojuje dosavadní `main` jako druhého rodiče, ale strom aplikace zůstává development a samotný `main`, produkční Supabase i produkční Vercel zůstávají beze změny.
+- **RaK 1.8.8 je aktuální vývojový základ pro nový release kandidát.** Funkční/source HEAD: `eb7261f904e16666ae437ccab17470ef007efd2f`.
+- Důvod 1.8.8: produkční rollout audit odhalil, že pozdější migrace 1.7.148 znovu přepsala `rak_admin_apply_unplanned_change_v2` se SQLSTATE `40001`, čímž zrušila non-retryable CAS opravu 1.7.138. Nová forward-only TEST migrace `20260930112049_rak_unplanned_change_cas_nonretryable_188.sql` problém cíleně opravuje bez zpětné editace už aplikovaných migrací.
+- **Live TEST Supabase ověření po 1.8.8 migraci:** finální `rak_admin_apply_unplanned_change_v2` má 2× `P0001`, 0× `40001`, zůstává `SECURITY DEFINER`, `authenticated` má EXECUTE, `anon` ne a `search_path` zůstává prázdný.
+- **Exact-SHA CI GREEN:** GitHub Actions run **#776 / ID 36709295247** pro `eb7261f...` prošel kompletně včetně dvojitého canonical buildu, všech release/inherited gates, reálného Chromium offline/network testu, benchmarku, performance parity proti immutable 1.7.69, quality thresholds, TEST anonymous HTTP, canonical source kontroly a CI release proof.
+- **TEST preview READY:** Vercel deployment `dpl_6KM3C1toG7B8mE26RxETn8DRA2Lg`, source SHA `eb7261f...`, stable development alias byl přesunut až po immutable verification.
+- **Produkce zůstala beze změny:** production deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`, source SHA `de443b771bb7e7dd5fefa498883fdd220a78f07d`; production Supabase `bkqamcbkiwumsvelahxr` nebyla 1.8.8 přípravou změněna.
+- **Produkční Supabase blocker je připravený, ne provedený:** produkce má migration head `20260924105811`; do 1.8.8 je 17 pending aktivních migrací včetně nové 1.8.8 opravy. Aktuální frontend vyžaduje objekty, které produkce ještě nemá, proto nový frontend nesmí jít na produkci před koordinovaným backend rolloutem.
+- **Kalendář prerequisite:** před migrací `20260929022427_rak_calendar_private_feed_17149.sql` musí být v PROD nainstalovaný `http` extension ve schema `extensions` a bezpečně vytvořeny čtyři Vault secret names `rak_calendar_kalirna_[a-d]_ics`. Secret hodnoty nikdy neukládat do Git/chat/logů.
+- **Edge Function:** do produkce je potřeba nasadit pouze aktuální `supabase/functions/rak-admin-users/index.ts` z release kandidáta s `verify_jwt=true`. TEST deployment je bitově shodný s development zdrojem. `rak-p15-restore-export` je TEST-only a do produkce nesmí. Současný produkční `rak-admin-users` je bitově shodný se souborem na `main`, takže `main` je ověřený rollback source.
+- **Připravené produkční ops soubory:** `supabase/ops/production_preflight_188.sql`, `production_calendar_prerequisite_188.sql`, `production_postcheck_188.sql`, `rollback_188_restore_legacy_v2_writers.sql` a `PRODUCTION_ROLLOUT_188.md`.
+- Rollback v2 writerů byl na TESTu **úspěšně proveden uvnitř transakce a následně ROLLBACK**; po rollbacku zůstaly live TEST v2 writery v původním cutover stavu. Tím je rollback syntax i jeho vlastní postcheck ověřen bez trvalé změny TESTu.
+- Starý produkční frontend 1.7.83 používá `rak_admin_save_machine_settings_v2` a `rak_admin_save_rotation_month_entries_v2`; úplný backend rollout proto musí proběhnout v koordinovaném maintenance okně a následovat bezprostředně nový frontend. Samotný návrat Vercel aliasu po DB cutoveru nestačí — rollback musí případně obnovit i tyto dva kompatibilní v2 writery.
+- Draft PR #6 / `release/1.8.7-main-ready` je po objevení backendového blockeru **zastaralý a nesmí se mergovat**. Připravit nový `release/1.8.8-main-ready` z aktuálního development HEAD a aktuálního `main`, znovu production-target CI a tree-identity proof.
+- Žádný merge do `main`, produkční Supabase zásah, PROD Edge Function deployment ani přesun produkčního Vercel aliasu bez nového explicitního souhlasu vlastníka pro konkrétní produkční krok.
 
-První produkční souhlas může pokrýt pouze: fast-forward produkčního konfiguračního commitu do `main`, CI přesného SHA, kompatibilní Supabase fázi A, cílovou `rak-admin-users`, jeden ruční kandidátní deployment a přesun produkčního aliasu po úplném smoke. Fáze B, která uzavírá staré veřejné čtecí cesty, čeká na fyzický iPhone PASS a další výslovné potvrzení. Nezaměňovat připravený dokument s provedeným releasem.
+## Release / test checklist pro další funkční změnu
+
+Před commitem/releasem:
+- načíst živý `development` HEAD;
+- opravit kořen, ne přidat další compatibility/preboot záplatu;
+- syntax + relevantní unit/integrace;
+- security/privacy/offline/CAS regrese podle dotčené oblasti;
+- dvě čisté canonical sestavy a jednotná release metadata;
+- performance budget + parity bez uvolnění limitů;
+- TEST-only HTTP/DB ověření.
+
+Po CI:
+- exact SHA musí mít požadované PASS důkazy;
+- Vercel deployment musí být READY a odpovídat exact SHA;
+- ověřit, že konfigurace používá TEST Supabase a ne produkční ID;
+- produkci neměnit bez nového výslovného souhlasu;
+- pokud změna vyžaduje fyzický iPhone test, neoznačit ji za fyzicky uzavřenou před potvrzením vlastníka.
+
+## Údržba tohoto dokumentu
+
+- Udržovat pouze **současný stav, trvalé invariance, finální důkazy a skutečný otevřený backlog**.
+- Nevracet do něj chronologii všech mezikroků, neúspěšných CI pokusů a dávno překonaných procent.
+- Po uzavření backlog položky ji přesunout do jedné stručné finální věty k příslušné invariantě a odstranit starý průběh.
+- Pokud je potřeba historický detail, použít Git historii, Actions run nebo konkrétní artifact; tento soubor není deník.

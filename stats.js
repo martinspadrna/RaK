@@ -1541,9 +1541,8 @@ function getDashboardCalendarWorkNotes(now) {
   const d = now instanceof Date ? now : new Date();
   if (!isDashboardMorningShiftTime(d)) return [];
 
-  const prefs = typeof getRakCalendarNotesSettings === 'function' ? getRakCalendarNotesSettings() : { mondayBurn: true, firstMorningRivet: true };
+  const prefs = typeof getRakCalendarNotesSettings === 'function' ? getRakCalendarNotesSettings() : { firstMorningRivet: true };
   const notes = [];
-  if (prefs.mondayBurn && d.getDay() === 1) notes.push("Brusy- spálení");
 
   const firstMorning = getFirstMorningShiftDateInMonth(d);
   if (prefs.firstMorningRivet && isSameCalendarDay(d, firstMorning)) notes.push("Roznýtování- laborka");

@@ -95,10 +95,11 @@ test('network error cannot clear a protected draft or apply stale cache',async()
  assert.equal(await pending,null);assert.equal(f.app.adminRotationDirty,true);
  assert.deepEqual(f.counters(),{applied:0,cache:0,guarded:1,requests:1});
 });
-test('1.7.68 and verified successors keep release-target isolation and historical gates',()=>{
+test('1.7.68 and verified successors keep TEST-only release and historical gates',()=>{
   assertCurrentReleaseIdentity(read,'1.7.68');
   const pkg=JSON.parse(read('package.json'));
-  assert.equal(pkg.version,'1.7.0');
+  assert.equal(pkg.version,RELEASE_METADATA.technicalVersion);
+  assert.equal(pkg.version,RELEASE_METADATA.displayVersion);
   const config=read('supabase-config.js');assertSupabaseTarget(config,'1.7.68 gate');
   const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17067.mjs');"));assert(chain.includes("await import('./development-version-17068.mjs');"));
   if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
@@ -106,9 +107,9 @@ test('1.7.68 and verified successors keep release-target isolation and historica
     for(const marker of ['RAK_17068_TWO_PASS_GUARD','RAK_17068_HISTORICAL_GATE_COMPAT','RAK_17068_EQUALGRID_COMPAT','RAK_17068_SOFTGRID_COMPAT','RAK_17068_ABSENCE_COMPAT'])
       assert(compiler.includes(marker),marker+' missing from frozen compiler');
     assert(read('tools/browser-equal-grid-17067.mjs').includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
-    assert(read('tools/browser-equal-grid-17067.mjs').includes('releasePatch>=67'));
+    assert(read('tools/browser-equal-grid-17067.mjs').includes('atLeastEqualGrid'));
     assert(read('tools/browser-soft-grid-17066.mjs').includes("import RELEASE_METADATA from '../rak-release-metadata.js';"));
-    assert(read('tools/browser-soft-grid-17066.mjs').includes('releasePatch>=66'));
+    assert(read('tools/browser-soft-grid-17066.mjs').includes('atLeast(1,7,66)'));
   }else{
     const replay=read('tools/shift-report-mo-hotfix-170-smoke.mjs');assert(replay.includes('RAK_17068_TWO_PASS_GUARD'));
     const oldGate=read('tools/release-gate-17067.test.mjs');assert(oldGate.includes('RAK_17068_HISTORICAL_GATE_COMPAT'));

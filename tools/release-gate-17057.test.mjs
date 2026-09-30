@@ -88,6 +88,6 @@ test('two builds preserve prior authenticated diagnostic and inherited gates; cu
  assert(replay.includes(`already17057?"var build='${BUILD}';":already17056?`));
  const ci=read('.github/workflows/rak-development-validation.yml');
  for(const command of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17057.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(command));
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
 });

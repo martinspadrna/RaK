@@ -91,6 +91,6 @@ test('CI keeps historic gates, both builds, mobile offline, anonymous audit and 
  const smoke=read('tools/shift-report-mo-hotfix-170-smoke.mjs');assert(smoke.includes('RAK_17060_TWO_PASS_GUARD'));
  assert(smoke.includes(`already17060?"var build='${BUILD}';":already17059?`));
  const ci=read('.github/workflows/rak-development-validation.yml');for(const item of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17060.test.mjs','node tools/browser-offline-17052.mjs','node tools/http-anon-audit-17050.mjs','node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(item));
- assert.equal(verifyRoadmapProgress(read('RAK_PLAN_13.md')).length,13);
+ assert.equal(verifyRoadmapProgress(read('RAK_HANDOFF.md')).length,13);
  const progress=read('RAK_PLAN_17060_STATUS.md');for(const item of ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4','2/13'])assert(progress.includes(item));
 });

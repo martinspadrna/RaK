@@ -282,6 +282,22 @@
     ].join('');
   }
 
+  function toggleSignedInput(input, button) {
+    if (!input) return;
+    let raw = String(input.value || '').trim().replace(/[−–—]/g, '-');
+    if (raw.startsWith('-')) raw = raw.replace(/^-+/, '');
+    else if (raw.startsWith('+')) raw = '-' + raw.slice(1);
+    else raw = raw ? '-' + raw : '-';
+    input.value = raw;
+    const negative = raw.startsWith('-');
+    if (button) {
+      button.textContent = negative ? '−' : '+';
+      button.classList.toggle('isNegative', negative);
+      button.setAttribute('aria-pressed', negative ? 'true' : 'false');
+    }
+    try { input.focus({ preventScroll: true }); if (input.setSelectionRange) input.setSelectionRange(raw.length, raw.length); } catch (_) {}
+  }
+
   function choiceGroup(name, values, active) {
     return '<div class="brusFhbChoiceGroup" data-brus-fhb-select="' + esc(name) + '">' + values.map((value) =>
       '<button type="button" class="brusFhbChoice' + (value === active ? ' isActive' : '') + '" data-value="' + esc(value) + '">' + esc(value) + '</button>'
@@ -309,8 +325,8 @@
       '  <div class="brusFhbField"><span>Měření</span>' + choiceGroup('c', ['C1', 'C2'], 'C1') + '</div>',
       '  <div class="brusFhbKpo" id="brusFhbKpoTarget">' + targetSummary('AD') + '</div>',
       '  <div class="brusFhbInputs">',
-      '    <label><span>FHB vlevo</span><input id="brus_fhb_left" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 21"></label>',
-      '    <label><span>FHB vpravo</span><input id="brus_fhb_right" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 15"></label>',
+      '    <label><span>FHB vlevo</span><div class="calcSignedInput brusFhbSignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="brus_fhb_left" aria-label="Přepnout znaménko FHB vlevo">+</button><input id="brus_fhb_left" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 21"></div></label>',
+      '    <label><span>FHB vpravo</span><div class="calcSignedInput brusFhbSignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="brus_fhb_right" aria-label="Přepnout znaménko FHB vpravo">+</button><input id="brus_fhb_right" type="text" inputmode="decimal" autocomplete="off" placeholder="např. 15"></div></label>',
       '  </div>',
       '  <button type="button" class="calcPrimaryBtn calcCorrectionPrimaryBtn" id="brusFhbEvaluate">Vyhodnotit</button>',
       '  <div class="card calcResultCard calcCorrectionResultCard brusFhbResult" id="brusFhbResult"></div>',
@@ -401,7 +417,7 @@
       '<label>P<input class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="beforeRight" placeholder="pravé vřeteno"></label>',
       '</div></div>',
       '<div class="adminFhbCalibrationFieldset"><b>Provedená korekce</b>',
-      '<label>Korekce [µm]<input class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="correction" placeholder="např. +2"></label>',
+      '<label>Korekce [µm]<div class="calcSignedInput adminCorrectionSignedInput"><button type="button" class="calcSignToggle" data-brus-fhb-sign-target="admin_brus_fhb_correction" aria-label="Přepnout znaménko korekce brusů">+</button><input id="admin_brus_fhb_correction" class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="correction" placeholder="např. 2"></div></label>',
       '</div>',
       '<div class="adminFhbCalibrationFieldset"><b>Po korekci</b><div class="adminFhbCalibrationTwo">',
       '<label>L<input class="appMenuInput" inputmode="decimal" data-brus-fhb-cal-field="afterLeft" placeholder="levé vřeteno"></label>',
@@ -502,6 +518,7 @@
     }
   }
 
+  // RAK_17165_SIGN_FREZKY_PARITY: Brusy/admin sign controls mirror the proven Korekce Frézky control exactly on iPhone.
   function installStyles() {
     if (document.getElementById('brus-fhb-correction-styles')) return;
     const style = document.createElement('style');
@@ -523,6 +540,14 @@
 #korekce-brusy .brusFhbInputs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #korekce-brusy .brusFhbInputs label{display:flex;flex-direction:column;gap:5px;font-weight:800;font-size:13px}
 #korekce-brusy .brusFhbInputs input{width:100%;min-height:54px;border-radius:15px;border:1px solid rgba(180,255,190,.30);background:rgba(4,16,36,.68);color:#fff;font:900 22px/1 system-ui;text-align:center;box-sizing:border-box;padding:8px}
+#korekce-brusy,.adminFhbCalibration,.adminBrusFhbCalibration{--rakCorrectionSignButtonW:42px;--rakCorrectionSignedInputH:46px}
+#korekce-brusy .brusFhbSignedInput,.adminFhbCalibration .adminCorrectionSignedInput,.adminBrusFhbCalibration .adminCorrectionSignedInput{display:grid!important;grid-template-columns:var(--rakCorrectionSignButtonW) minmax(0,1fr)!important;align-items:center!important;gap:7px!important;width:100%!important;min-width:0!important}
+#korekce-brusy .brusFhbSignedInput .calcSignToggle,.adminFhbCalibration .adminCorrectionSignedInput .calcSignToggle,.adminBrusFhbCalibration .adminCorrectionSignedInput .calcSignToggle,
+#korekce-brusy .brusFhbSignedInput input,.adminFhbCalibration .adminCorrectionSignedInput input,.adminBrusFhbCalibration .adminCorrectionSignedInput input{height:var(--rakCorrectionSignedInputH)!important;min-height:var(--rakCorrectionSignedInputH)!important;max-height:var(--rakCorrectionSignedInputH)!important;align-self:center!important;box-sizing:border-box!important}
+#korekce-brusy .brusFhbSignedInput .calcSignToggle,.adminFhbCalibration .adminCorrectionSignedInput .calcSignToggle,.adminBrusFhbCalibration .adminCorrectionSignedInput .calcSignToggle{width:var(--rakCorrectionSignButtonW)!important;min-width:var(--rakCorrectionSignButtonW)!important;max-width:var(--rakCorrectionSignButtonW)!important;padding:0!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;top:auto!important;transform:none!important;visibility:visible!important;opacity:1!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:15px!important;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.06))!important;color:rgba(255,255,255,.94)!important;font-family:inherit!important;font-size:22px!important;font-weight:950!important;line-height:1!important;text-align:center!important;text-indent:0!important;box-shadow:0 10px 26px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.12)!important;-webkit-tap-highlight-color:transparent!important;appearance:none!important;-webkit-appearance:none!important}
+#korekce-brusy .brusFhbSignedInput .calcSignToggle.isNegative,.adminFhbCalibration .adminCorrectionSignedInput .calcSignToggle.isNegative,.adminBrusFhbCalibration .adminCorrectionSignedInput .calcSignToggle.isNegative{border-color:color-mix(in srgb,var(--rakThemeAccent,var(--green2)) 62%,rgba(255,255,255,.16))!important;background:linear-gradient(135deg,color-mix(in srgb,var(--rakThemeAccent,var(--green2)) 35%,rgba(255,255,255,.08)),rgba(255,255,255,.07))!important;color:rgba(255,255,255,.94)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--rakThemeAccent,var(--green2)) 24%,transparent) inset,0 12px 28px rgba(0,0,0,.26)!important}
+#korekce-brusy .brusFhbSignedInput input,.adminFhbCalibration .adminCorrectionSignedInput input,.adminBrusFhbCalibration .adminCorrectionSignedInput input{width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important;line-height:1.2!important}
+@media (max-width:360px){#korekce-brusy,.adminFhbCalibration,.adminBrusFhbCalibration{--rakCorrectionSignButtonW:38px;--rakCorrectionSignedInputH:44px}#korekce-brusy .brusFhbSignedInput,.adminFhbCalibration .adminCorrectionSignedInput,.adminBrusFhbCalibration .adminCorrectionSignedInput{gap:6px!important}#korekce-brusy .brusFhbSignedInput .calcSignToggle,.adminFhbCalibration .adminCorrectionSignedInput .calcSignToggle,.adminBrusFhbCalibration .adminCorrectionSignedInput .calcSignToggle{font-size:20px!important;border-radius:14px!important}}
 #korekce-brusy .brusFhbResult{display:flex;flex-direction:column;gap:9px;min-height:0!important}
 #korekce-brusy .brusFhbResult:empty{display:none}
 #korekce-brusy .brusFhbResultTitle{font-weight:900;font-size:14px;color:rgba(232,245,255,.78)}
@@ -547,6 +572,18 @@
   }
 
   document.addEventListener('click', (event) => {
+    const signButton = event.target && event.target.closest ? event.target.closest('[data-brus-fhb-sign-target]') : null;
+    if (signButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const input = document.getElementById(String(signButton.dataset.brusFhbSignTarget || ''));
+      toggleSignedInput(input, signButton);
+      if (input && input.closest('#korekce-brusy')) {
+        const out = document.getElementById('brusFhbResult');
+        if (out && String(out.innerHTML || '').trim()) evaluate();
+      }
+      return;
+    }
     const choice = event.target && event.target.closest ? event.target.closest('#korekce-brusy .brusFhbChoice') : null;
     if (choice) {
       const group = choice.closest('.brusFhbChoiceGroup');
@@ -573,6 +610,16 @@
         try { alert(err && err.message ? err.message : 'Uložení kalibrace brusů selhalo.'); } catch (_) {}
       });
     }
+  }, true);
+  document.addEventListener('input', (event) => {
+    const input = event.target && event.target.matches && event.target.matches('[data-brus-fhb-sign-input="1"],#brus_fhb_left,#brus_fhb_right,#admin_brus_fhb_correction') ? event.target : null;
+    if (!input || !input.id) return;
+    const button = document.querySelector('[data-brus-fhb-sign-target="' + input.id + '"]');
+    if (!button) return;
+    const negative = String(input.value || '').trim().replace(/[−–—]/g, '-').startsWith('-');
+    button.textContent = negative ? '−' : '+';
+    button.classList.toggle('isNegative', negative);
+    button.setAttribute('aria-pressed', negative ? 'true' : 'false');
   }, true);
 
   window.buildAdminBrusFhbCorrectionHtml = buildAdminHtml;

@@ -15,8 +15,11 @@ const git=args=>execFileSync('git',['-C',gitRoot,...args],{encoding:'utf8',maxBu
 const sha=git(['rev-parse','HEAD']);
 assert.match(sha,/^[a-f0-9]{40}$/,'exact Git SHA is required');
 const expectedBranch=BUILD_TARGET==='production'?'main':'development';
-for(const [environment,ref] of [['GitHub',process.env.GITHUB_REF_NAME],['Vercel',process.env.VERCEL_GIT_COMMIT_REF]]){
-  if(ref)assert.equal(ref,expectedBranch,`${environment}: branch must match ${BUILD_TARGET} target`);
+for(const [environment,refName] of [['GitHub',process.env.GITHUB_REF_NAME],['Vercel',process.env.VERCEL_GIT_COMMIT_REF]]){
+  if(!refName)continue;
+  if(environment==='GitHub'&&process.env.GITHUB_EVENT_NAME==='pull_request'){
+    assert(BUILD_TARGET==='production'&&String(process.env.GITHUB_HEAD_REF||'').startsWith('release/'),'production candidate PR must originate release/*');
+  }else assert.equal(refName,expectedBranch,`${environment}: branch must match ${BUILD_TARGET} target`);
 }
 if(process.env.GITHUB_SHA)assert.equal(process.env.GITHUB_SHA,sha,'workflow is not building its exact commit');
 if(process.env.VERCEL_GIT_COMMIT_SHA)assert.equal(process.env.VERCEL_GIT_COMMIT_SHA,sha,'Vercel build SHA mismatch');

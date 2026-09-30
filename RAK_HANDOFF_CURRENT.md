@@ -1,6 +1,6 @@
 # RaK – předávací dokument pro nové vlákno
 
-**Stav sestaven k 20. 9. 2026.** Toto je předávací souhrn, nikoli důkaz, že rozpracovaná verze prošla testy. Nejdříve vždy znovu ověř živé GitHub refs, Actions a Vercel: dokument může zastarat. Pro detailní 13bodový plán čti `RAK_PLAN_13.md` a nejnovější `RAK_PLAN_17066_STATUS.md` / `RAK_PLAN_17067_STATUS.md`; starší části plánu mohou zmiňovat již odstraněné hry a zastaralou verzi. Při rozporu má přednost ověřený aktuální stav a výslovná poslední instrukce Martina.
+**Stav sestaven k 20. 9. 2026.** Toto je předávací souhrn, nikoli důkaz, že rozpracovaná verze prošla testy. Nejdříve vždy znovu ověř živé GitHub refs, Actions a Vercel: dokument může zastarat. Pro detailní 13bodový plán čti `RAK_HANDOFF.md` a nejnovější `RAK_PLAN_17066_STATUS.md` / `RAK_PLAN_17067_STATUS.md`; starší části plánu mohou zmiňovat již odstraněné hry a zastaralou verzi. Při rozporu má přednost ověřený aktuální stav a výslovná poslední instrukce Martina.
 
 ## 1. Nejdůležitější pravdivý stav a první krok
 
@@ -63,7 +63,7 @@
 
 ## 6. Postup nového chatu – bez ztráty času
 
-1. Přečíst tento soubor, aktuální `RAK_PLAN_13.md`, `RAK_PLAN_17066_STATUS.md`, `RAK_PLAN_17067_STATUS.md` a relevantní release gate skripty. Nevěřit slepě SHA uloženým v dokumentu – ověřit refs.
+1. Přečíst tento soubor, aktuální `RAK_HANDOFF.md`, `RAK_PLAN_17066_STATUS.md`, `RAK_PLAN_17067_STATUS.md` a relevantní release gate skripty. Nevěřit slepě SHA uloženým v dokumentu – ověřit refs.
 2. GitHub: zjistit `development` HEAD, `main` HEAD, nejnovější Actions run a log konkrétního selhávajícího kroku. Vercel: ověřit poslední READY development preview a jeho commit. Rozlišit green 1.7.66 a red 1.7.67.
 3. Prohlédnout staged script WIP 1.7.67 a příslušné testy včetně historických očekávání MO/TO; opravit **skutečnou příčinu** selhání, zachovat uniformní geometrie a možnost bezpečného zachování/ruční obnovy rozepsaných změn. Nejen upravit test, pokud runtime stále nesplňuje požadavek.
 4. V rámci většího tematického balíku vytipovat alespoň jeden celý dokončitelný bod, primárně P1.4 preview rollback; pozor na nedestruktivnost a doložení skutečného výsledku. Pokud není možné bezpečné provedení, uvést konkrétní blokátor, nedeklarovat hotovo.

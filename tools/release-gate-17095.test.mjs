@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
+import {runNamedDeclarations} from './runtime-vm-fixture.mjs';
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+
+test('1.7.95 shift-calendar rendering milestone remains active in verified successors',()=>{
+  const metadata=assertCurrentReleaseIdentity(read,'1.7.95');
+  assert.equal(metadata.technicalVersion,metadata.displayVersion);
+  assert.equal(metadata.moduleCacheVersion,metadata.displayVersion);
+  assert.equal(metadata.cacheVersion,'v'+metadata.displayVersion);
+  assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
+  assert(read('index.html').includes('app.js?v='+metadata.displayVersion));
+  const sw=read('sw.js');
+  assert(sw.includes("importScripts('./rak-release-metadata.js?sw="+metadata.displayVersion+"');"));
+  assert(sw.includes("const SW_RELEASE_CACHE_MARKER = 'v"+metadata.displayVersion+"';"));
+});
+test('shift calendars combine into one Google embed with main-style controls',()=>{
+  const nav=read('app-navigation.js');
+  const {api}=runNamedDeclarations({
+    modules:[{source:nav,names:['rakShiftCalendarEmbedUrl']}],
+    globals:{URL,Set,normalizeRakGoogleCalendarUrl:(value)=>String(value||'')},
+    exports:{embed:'rakShiftCalendarEmbedUrl'}
+  });
+  const a='a@group.calendar.google.com';
+  const b='b@group.calendar.google.com';
+  const url=new URL(api.embed([
+    {url:'https://calendar.google.com/calendar/embed?src='+encodeURIComponent(a)},
+    {url:'https://calendar.google.com/calendar/embed?src='+encodeURIComponent(b)}
+  ]));
+  assert.equal(url.hostname,'calendar.google.com');
+  assert.equal(url.pathname,'/calendar/embed');
+  assert.deepEqual(url.searchParams.getAll('src'),[a,b]);
+  assert.equal(url.searchParams.get('ctz'),'Europe/Prague');
+  assert.equal(url.searchParams.get('wkst'),'2');
+  assert.equal(url.searchParams.get('showTitle'),'0');
+  assert.equal(url.searchParams.get('showCalendars'),'0');
+});
+
+test('calendar modal keeps a reusable renderer and successors may use native RaK calendar for merged sources',()=>{
+  const nav=read('app-navigation.js');
+  const start=nav.indexOf('function renderCalendarModalContent');
+  const end=nav.indexOf('function ensureCalendarModal',start);
+  const renderer=nav.slice(start,end);
+  assert(renderer.includes('content.dataset.calendarSignature'));
+  const iframeMode=renderer.includes('calendarModalFrame');
+  const nativeMode=renderer.includes('calendarNativeHost') && renderer.includes('rakNativeCalendarLoad(content, 0)');
+  assert(iframeMode || nativeMode);
+  if(nativeMode) assert(renderer.includes("content.dataset.calendarSignature === signature && existingNative"));
+});
+
+test('calendar rendering remains account-aware and starts only after explicit open',()=>{
+  const nav=read('app-navigation.js');
+  const core=read('core.js');
+  assert(nav.includes('function ensureCalendarModal(renderContent = true)'));
+  assert(nav.includes('if (renderContent) renderCalendarModalContent(overlay);'));
+  assert(!nav.includes('requestIdleCallback(prewarm'));
+  assert(!nav.includes('ensureCalendarModal(false);'));
+  const openStart=nav.indexOf('function openCalendarInRak()');
+  const openEnd=nav.indexOf('function bindCalendarTile()',openStart);
+  assert(nav.slice(openStart,openEnd).includes('const overlay = ensureCalendarModal();'));
+  assert(core.includes('function getRakActiveShiftCalendarContext()'));
+  assert(core.includes('function getRakActiveShiftCalendarDisplayContext()'));
+  assert(core.includes('const selectedKeys = getRakSelectedCalendarKeys();'));
+  assert(nav.includes('getRakActiveShiftCalendarDisplayContext'));
+});
+
+test('npm check retains 1.7.95 while CI runs the current release gate',()=>{
+  const workflow=read('.github/workflows/rak-development-validation.yml');
+  const pkg=JSON.parse(read('package.json'));
+  assert(pkg.scripts.check.includes('tools/release-gate-17095.test.mjs'));
+  assert(/node --test tools\/release-gate-1709\d\.test\.mjs/.test(workflow));
+});

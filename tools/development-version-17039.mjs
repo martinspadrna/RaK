@@ -50,7 +50,7 @@ change('sw.js',source=>{
  return swap(source,"const DEVELOPMENT_BUILD_ID = 'v1.7.38-actorprivacy1';",`const DEVELOPMENT_BUILD_ID = '${BUILD}';`,'worker build');
 });
 change('index.html',source=>swap(source,"var build='v1.7.38-actorprivacy1';",`var build='${BUILD}';`,'HTML build'));
-const paths=['index.html','supabase-config.js','app.js','sw.js','package.json','RAK_PLAN_13.md',
+const paths=['index.html','supabase-config.js','app.js','sw.js','package.json','RAK_HANDOFF.md',
  'EMPLOYEE_AUTH_CUTOVER.md','PUBLIC_ROTATION_ACTOR_PRIVACY.md',
  'tools/security-rotation-release-17039.sql','tools/shift-report-mo-hotfix-170-smoke.mjs'];
 const files=Object.fromEntries(paths.map(path=>[path,read(path)]));

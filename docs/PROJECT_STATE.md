@@ -7,7 +7,7 @@ Datum sestavení: 20. 9. 2026 (Europe/Prague). **Tento dokument je rozcestník, 
 1. Aktuální GitHub refs, skutečný obsah `development`, odpovídající GitHub Actions a Vercel deployment se stejným SHA; skutečná uživatelem potvrzená online verze. Vždy znovu ověřit.
 2. [RAK_HANDOFF_CURRENT.md](../RAK_HANDOFF_CURRENT.md) – podrobná historie, architektura, pravidla, rizika a další krok.
 3. [RAK_PLAN_17067_STATUS.md](../RAK_PLAN_17067_STATUS.md) – nejnovější známý položkový stav 13bodového plánu; při novější verzi používat novější status soubor.
-4. [RAK_PLAN_13.md](../RAK_PLAN_13.md) – podrobná definice 13 bodů a kritéria, **jeho záhlaví s verzí 1.7.59 je historické**, nikoli současný stav. Starý herní CAS už není požadavek: hry byly odstraněny v 1.7.21.
+4. [RAK_HANDOFF.md](../RAK_HANDOFF.md) – podrobná definice 13 bodů a kritéria, **jeho záhlaví s verzí 1.7.59 je historické**, nikoli současný stav. Starý herní CAS už není požadavek: hry byly odstraněny v 1.7.21.
 5. Relevantní zdrojové soubory, kumulativní build-time transformační skripty, testy a changelog. Poslední výslovné zadání vlastníka má přednost před zastaralým souhrnem, ale ne před objektivním výsledkem testu.
 
 **Neukládat do veřejného repozitáře:** hesla, API klíče, JWT, OS čísla konkrétních zaměstnanců, osobní exporty, soukromé zálohy ani obsah rozpisů. Repozitář je veřejný.

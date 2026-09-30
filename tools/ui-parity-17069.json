@@ -1,0 +1,95 @@
+{
+  "schema": "rak-ui-parity-v1",
+  "baseline": {
+    "version": "1.7.69",
+    "sha": "1693c8631c13d6e381e44a96810a55140ad6aa62",
+    "indexBlobSha": "430afd4c122fc5648224e1ca11077d99ca57c1be"
+  },
+  "criticalPages": [
+    {
+      "id": "home",
+      "selectors": [
+        "#home",
+        ".dashboardShell",
+        "#dashHero",
+        ".dashboardGrid"
+      ]
+    },
+    {
+      "id": "rotace",
+      "selectors": [
+        "#rotace",
+        "#rotaceNamesPanel",
+        "#namesGrid"
+      ]
+    },
+    {
+      "id": "kalkulacky",
+      "selectors": [
+        "#kalkulacky"
+      ]
+    },
+    {
+      "id": "soustruhy",
+      "selectors": [
+        "#soustruhy"
+      ]
+    },
+    {
+      "id": "frezky",
+      "selectors": [
+        "#frezky"
+      ]
+    },
+    {
+      "id": "brusy",
+      "selectors": [
+        "#brusy"
+      ]
+    },
+    {
+      "id": "korekce-frezky",
+      "selectors": [
+        "#korekce-frezky"
+      ]
+    },
+    {
+      "id": "korekce-brusy",
+      "selectors": [
+        "#korekce-brusy"
+      ]
+    }
+  ],
+  "bottomNav": [
+    {
+      "page": "home",
+      "action": "home"
+    },
+    {
+      "page": "rotace",
+      "action": "rotace"
+    },
+    {
+      "page": "kalkulacky",
+      "action": "kalkulacky"
+    },
+    {
+      "page": "menu",
+      "action": "menu"
+    }
+  ],
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 430,
+      "height": 932
+    }
+  ],
+  "invariants": {
+    "maxHorizontalOverflowPx": 1,
+    "minBottomNavButtonHeightPx": 36
+  }
+}

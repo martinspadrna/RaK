@@ -24,7 +24,7 @@ test('auth diagnostic uses GoTrue signed token, exact TEST URL and strictly read
  const helper=read('tools/auth-role-diagnostic-17056.js');
  const built=read('app-menu-admin-renderer.js');
  assert(built.includes(helper),'actual built app missing diagnostic implementation');
- for(const text of ['rakAdminCanOpenAdmin()','app.adminAuthVersion !== 2','getAdminAccessToken()',
+ for(const text of ['rakAdminCanOpenAdmin()','app.adminAuthVersion !== 2','getSignedAdminAccessToken()',
   "origin !== 'https://cgshssdjgzzuprlwnabl.supabase.co'", "'/auth/v1/user', 'GET'",
   "'/rest/v1/rpc/rak_admin_context'", "'/rest/v1/rpc/rak_admin_list_audit_v2'",
   "'/rest/v1/rpc/rak_owner_list_admin_profiles'", "role === 'owner'", "[401, 403].includes(ownerResponse.status)",
@@ -56,7 +56,7 @@ test('second full build preserves 1.7.55, all historical gates, offline Chromium
   'node tools/backup-source-integrity-17051.mjs'])assert(ci.includes(command),'CI missing '+command);
 });
 test('13-point roadmap validates every percentage independently of old status prose',()=>{
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert(progress.some(item=>item.id==='P1.5'));
  assert(read('tools/auth-role-diagnostic-17056.js').includes('/auth/v1/user'));

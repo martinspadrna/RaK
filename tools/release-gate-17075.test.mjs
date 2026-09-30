@@ -57,6 +57,6 @@ test('strict CI runs the adaptive PNG regression after two clean canonical build
  assert(pkg.scripts.check.includes('tools/release-gate-17075.test.mjs'));
  assert(workflow.includes('npm run vercel-build\n          npm run vercel-build'));
  assert(workflow.includes('node --test tools/release-gate-17075.test.mjs'));
- assert(workflow.includes('rak-170'+VERSION.split('.').at(-1)+'-isolated-build-'));
+ assert(workflow.includes('rak-current-isolated-build-'));
 });
 

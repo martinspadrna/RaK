@@ -1,16 +1,134 @@
 // RaK 1.2 (1.155) – spodní navigace a její bezpečné metriky.
+function rakEarlyMenuLocalRootHtml() {
+  return [
+    '<div class="appMenuGrid" data-rak-early-menu-local-root="1">',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="settings">Nastavení</button>',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="about">O aplikaci</button>',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="contact">Kontakt</button>',
+    '  <button type="button" class="appMenuAction" data-rak-early-menu-view="bug-report">Pošli mi chybu</button>',
+    '</div>'
+  ].join('');
+}
+
+function rakPopulateEarlyMenuLocalRoot(page) {
+  if (!page) return null;
+  let body = page.querySelector('#appMenuBody, .appMenuBody');
+  if (!body) {
+    const card = document.createElement('div');
+    card.className = 'card appMenuPageCard';
+    body = document.createElement('div');
+    body.className = 'appMenuBody';
+    body.id = 'appMenuBody';
+    card.appendChild(body);
+    page.appendChild(card);
+  } else if (!body.id) {
+    body.id = 'appMenuBody';
+  }
+  body.dataset.adminView = '';
+  body.innerHTML = rakEarlyMenuLocalRootHtml();
+  if (body.dataset.rakEarlyMenuLocalBound !== '1') {
+    body.dataset.rakEarlyMenuLocalBound = '1';
+    body.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest
+        ? event.target.closest('[data-rak-early-menu-view]')
+        : null;
+      if (!button || !body.contains(button)) return;
+      event.preventDefault();
+      const requestedView = String(button.getAttribute('data-rak-early-menu-view') || 'menu').trim() || 'menu';
+      page.dataset.rakEarlyMenuRequestedView = requestedView;
+      const openRequested = () => {
+        if (typeof openAppMenu !== 'function') return false;
+        delete page.dataset.rakEarlyMenuShell;
+        const view = String(page.dataset.rakEarlyMenuRequestedView || requestedView || 'menu');
+        delete page.dataset.rakEarlyMenuRequestedView;
+        openAppMenu(view);
+        return true;
+      };
+      if (openRequested()) return;
+      if (typeof window.rakEnsureFeature === 'function') {
+        window.rakEnsureFeature('menu').then(openRequested).catch((err) => {
+          if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, 'menu');
+        });
+      }
+    });
+  }
+  return body;
+}
+
+function openRakEarlyMenuShell() {
+  // RAK_17130_EARLY_MENU_OWNS_FIRST_RENDER:
+  // Never delegate the first visible render to legacy toggleAppMenu wrappers.
+  // Some startup stability layers intentionally existed before app-menu.js and
+  // could only switch to #menu, leaving an already-created body empty.
+  let page = document.getElementById('menu');
+  if (!page) {
+    page = document.createElement('div');
+    page.id = 'menu';
+    page.className = 'page appMenuPage';
+    page.innerHTML = [
+      '<div class="topBar appMenuTopBar"><div class="appMenuTitle">Více</div></div>',
+      '<div class="card appMenuPageCard"><div class="appMenuBody" id="appMenuBody"></div></div>'
+    ].join('');
+    const anchor = document.querySelector('.bottomNav');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(page, anchor);
+    else document.body.appendChild(page);
+  }
+  page.dataset.rakEarlyMenuShell = '1';
+  rakPopulateEarlyMenuLocalRoot(page);
+  // RAK_17133_ROTACE_MENU_PORTAL_CLEANUP: the local-first More route bypasses
+  // showPage(), so it must explicitly tear down Rotation's body-fixed names dock
+  // before #rotace loses .active. Otherwise namesGrid survives above More.
+  if (typeof setRotaceNamesDockPortalActive === 'function') {
+    setRotaceNamesDockPortalActive(false, 'openRakEarlyMenuShell');
+  }
+  try { document.documentElement.classList.remove('rakRotaceDockSettling', 'rakRotaceEntering'); } catch (err) {}
+  document.querySelectorAll('.page').forEach((node) => node.classList.remove('active'));
+  page.classList.add('active');
+  if (typeof setBottomNavActive === 'function') setBottomNavActive('menu');
+  if (typeof window.rakEnsureFeature === 'function') {
+    window.rakEnsureFeature('menu').then(() => {
+      if (typeof openAppMenu === 'function' && page.classList.contains('active') && page.dataset.rakEarlyMenuShell === '1') {
+        const requestedView = String(page.dataset.rakEarlyMenuRequestedView || 'menu');
+        delete page.dataset.rakEarlyMenuRequestedView;
+        delete page.dataset.rakEarlyMenuShell;
+        openAppMenu(requestedView);
+      }
+    }).catch((err) => {
+      const body = page.querySelector('#appMenuBody, .appMenuBody');
+      if (body && !body.querySelector('[data-rak-early-menu-local-root]')) body.innerHTML = rakEarlyMenuLocalRootHtml();
+      if (typeof window.rakHandleFeatureLoadError === 'function') window.rakHandleFeatureLoadError(err, 'menu');
+    });
+  }
+}
+
+function rakDismissTransientSurfacesForBottomNav() {
+  // Route changes own teardown of transient overlays. The Google Calendar
+  // iframe is cross-origin, so hiding its parent modal also dismisses any
+  // event detail popover rendered inside that frame.
+  try {
+    if (typeof hideCalendarModal === 'function') hideCalendarModal();
+  } catch (err) {}
+  try {
+    if (typeof hideFoodScheduleModal === 'function') hideFoodScheduleModal();
+  } catch (err) {}
+  try {
+    if (typeof hidePersonScheduleModal === 'function') hidePersonScheduleModal();
+  } catch (err) {}
+}
+window.rakDismissTransientSurfacesForBottomNav = rakDismissTransientSurfacesForBottomNav;
+
 function installBottomNavBindings() {
   const nav = document.querySelector('.bottomNav');
   if (!nav || nav.__rotaceBound) return;
   nav.__rotaceBound = true;
 
   const actionMap = {
-    home: () => { showPage('home'); setBottomNavActive('home'); },
-    rotace: () => { openRotaceNames(); },
-    kalkulacky: () => { openKalkulacky(); },
-    rozpisy: () => { openRotaceMonths(); },
-    statistiky: () => { openRotaceStats(); },
-    menu: () => { toggleAppMenu(); }
+    home: () => { if (typeof showPage === 'function') showPage('home'); if (typeof setBottomNavActive === 'function') setBottomNavActive('home'); },
+    rotace: () => { if (typeof openRotaceNames === 'function') openRotaceNames(); else if (typeof showPage === 'function') showPage('rotace'); },
+    kalkulacky: () => { if (typeof openKalkulacky === 'function') openKalkulacky(); else if (typeof showPage === 'function') showPage('kalkulacky'); },
+    rozpisy: () => { if (typeof openRotaceMonths === 'function') openRotaceMonths(); else if (typeof showPage === 'function') showPage('rotace'); },
+    statistiky: () => { if (typeof openRotaceStats === 'function') openRotaceStats(); else if (typeof showPage === 'function') showPage('rotace'); },
+    menu: () => { openRakEarlyMenuShell(); }
   };
 
   nav.addEventListener('click', (event) => {
@@ -19,6 +137,7 @@ function installBottomNavBindings() {
     const handler = actionMap[btn.dataset.action];
     if (!handler) return;
     event.preventDefault();
+    rakDismissTransientSurfacesForBottomNav();
     handler();
   }, { passive: false });
 }
@@ -109,82 +228,17 @@ function applyRakFixedBottomNavMetrics() {
 
 
 function applyBottomNavMoreHardFix() {
+  // RAK_17132_STATIC_NAV_GEOMETRY: geometry is CSS-owned from the first frame.
+  // Keep the public compatibility hook for old callers, but never resize "Více"
+  // after startup/sync.
   const apply = () => {
-    const btn = document.querySelector('nav.bottomNav > .bottomNavMenuBtn') || document.querySelector('nav.bottomNav .bottomNavMenuBtn');
-    if (!btn || !btn.style) return false;
-
-    const compact = window.matchMedia && window.matchMedia('(max-width: 390px)').matches;
-    const lightweight = document.body && (document.body.classList.contains('lightweightMode') || document.body.classList.contains('lowEndDevice'));
-    const peer = document.querySelector('nav.bottomNav > .bottomNavScroll > .bottomNavBtn:not(.bottomNavMenuBtn):not(.active)')
-      || document.querySelector('nav.bottomNav > .bottomNavScroll > .bottomNavBtn:not(.bottomNavMenuBtn)');
-    const peerRect = peer && peer.getBoundingClientRect ? peer.getBoundingClientRect() : null;
-    const peerWidth = peerRect && peerRect.width ? Math.round(peerRect.width) : (compact ? 58 : 64);
-    // „Více“ je plnohodnotná položka spodní lišty: stejná šířka jako ostatní.
-    const width = '100%';
-    const peerHeight = peerRect && peerRect.height ? Math.round(peerRect.height) : 44;
-    const height = Math.max(lightweight ? 40 : 42, Math.min(peerHeight || 44, lightweight ? 46 : 48)) + 'px';
-    const setStyle = typeof setStylePropertyIfChanged === 'function'
-      ? setStylePropertyIfChanged
-      : ((el, prop, value, priority) => { if (el && el.style) el.style.setProperty(prop, value, priority || ''); return true; });
-
-    setStyle(btn, 'flex', '1 1 0', 'important', 'bottomNavMore-flex');
-    setStyle(btn, 'width', width, 'important', 'bottomNavMore-width');
-    setStyle(btn, 'min-width', '0', 'important', 'bottomNavMore-minWidth');
-    setStyle(btn, 'max-width', 'none', 'important', 'bottomNavMore-maxWidth');
-    setStyle(btn, 'height', height, 'important', 'bottomNavMore-height');
-    setStyle(btn, 'min-height', height, 'important', 'bottomNavMore-minHeight');
-    setStyle(btn, 'max-height', height, 'important', 'bottomNavMore-maxHeight');
-    setStyle(btn, 'align-self', 'center', 'important', 'bottomNavMore-alignSelf');
-    setStyle(btn, 'justify-self', 'stretch', 'important', 'bottomNavMore-justifySelf');
-    setStyle(btn, 'padding', lightweight ? '3px 1px' : '4px 1px 3px', 'important', 'bottomNavMore-padding');
-    setStyle(btn, 'margin', '0', 'important', 'bottomNavMore-margin');
-    setStyle(btn, 'box-sizing', 'border-box', 'important', 'bottomNavMore-boxSizing');
-    setStyle(btn, 'justify-content', 'center', 'important', 'bottomNavMore-justify');
-    setStyle(btn, 'gap', '1px', 'important', 'bottomNavMore-gap');
-    setStyle(btn, 'transform', 'none', 'important', 'bottomNavMore-transform');
-
-    const icon = btn.querySelector('.moreIcon');
-    if (icon && icon.style) {
-      const iconWidth = lightweight ? '28px' : (compact ? '30px' : '32px');
-      const iconHeight = iconWidth;
-      setStyle(icon, 'flex', '0 0 ' + iconHeight, 'important', 'bottomNavMoreIcon-flex');
-      setStyle(icon, 'width', iconWidth, 'important', 'bottomNavMoreIcon-width');
-      setStyle(icon, 'height', iconHeight, 'important', 'bottomNavMoreIcon-height');
-      setStyle(icon, 'max-width', iconWidth, 'important', 'bottomNavMoreIcon-maxWidth');
-      setStyle(icon, 'max-height', iconHeight, 'important', 'bottomNavMoreIcon-maxHeight');
-      setStyle(icon, 'padding', '0', 'important', 'bottomNavMoreIcon-padding');
-      setStyle(icon, 'margin', '0 auto', 'important', 'bottomNavMoreIcon-margin');
-      setStyle(icon, 'transform', 'none', 'important', 'bottomNavMoreIcon-transform');
-      setStyle(icon, 'box-sizing', 'border-box', 'important', 'bottomNavMoreIcon-boxSizing');
-    }
-
-    const label = btn.querySelector('.bottomNavLabel');
-    if (label && label.style) {
-      setStyle(label, 'font-size', lightweight ? '8px' : '8.6px', 'important', 'bottomNavMoreLabel-fontSize');
-      setStyle(label, 'line-height', '1', 'important', 'bottomNavMoreLabel-lineHeight');
-      setStyle(label, 'margin', '0', 'important', 'bottomNavMoreLabel-margin');
-      setStyle(label, 'padding', '0', 'important', 'bottomNavMoreLabel-padding');
-      setStyle(label, 'white-space', 'nowrap', 'important', 'bottomNavMoreLabel-whiteSpace');
-      setStyle(label, 'letter-spacing', '-.02em', 'important', 'bottomNavMoreLabel-letterSpacing');
-      setStyle(label, 'transform', 'none', 'important', 'bottomNavMoreLabel-transform');
-    }
+    const btn = document.querySelector('nav.bottomNav .bottomNavMenuBtn');
+    if (!btn) return false;
+    btn.dataset.rakStaticGeometry = '1';
     return true;
   };
-
-  const run = () => {
-    apply();
-    requestAnimationFrame(apply);
-    setTimeout(apply, 80);
-    setTimeout(apply, 350);
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
-  } else {
-    run();
-  }
-  window.addEventListener('resize', () => requestAnimationFrame(apply), { passive: true });
-  window.addEventListener('orientationchange', () => setTimeout(apply, 120), { passive: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
+  else apply();
   window.__rakApplyBottomNavMoreHardFix = apply;
 }
 

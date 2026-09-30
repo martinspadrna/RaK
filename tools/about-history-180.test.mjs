@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+
+test('O aplikaci leads with RaK 1.8 and keeps 1.7 as historical generation',()=>{
+  const src=read('app-menu-pages.js');
+  const p18=src.indexOf("range: 'RaK 1.8'");
+  const p17=src.indexOf("range: 'RaK 1.7'");
+  assert(p18>=0&&p17>p18);
+  assert(src.includes("title: 'Local-first, kalendáře a přesnější provoz'"));
+  assert(src.includes("title: 'Stabilizace a local-first základ'"));
+  assert(!src.includes("title: 'Aktuální generace'"));
+});
+
+test('RaK 1.8 history stays compact while retaining the delivered work areas',()=>{
+  const src=read('app-menu-pages.js');
+  const start=src.indexOf('// RAK_180_ABOUT_START');
+  const end=src.indexOf('// RAK_180_ABOUT_END',start);
+  const block=src.slice(start,end);
+  for(const phrase of [
+    'skutečně local-first',
+    'neplánované změny',
+    'Kalírnou',
+    'Obrábění i Kalírnu A–D',
+    'prázdný měsíc',
+    'Korekce Frézek a Brusů',
+    'CAS ochranu',
+    'reprodukovatelný build'
+  ]) assert(block.includes(phrase),phrase);
+  const lineBlock=block.slice(block.indexOf('lines: ['),block.indexOf(']\n    }'));
+  assert.equal((lineBlock.match(/^\s*'/gm)||[]).length,5);
+});
+
+test('O aplikaci always shows generation 1.8 while technical release may advance within 1.8.x',()=>{
+  const src=read('app-menu-pages.js');
+  assert(src.includes("versionText || '1.8.1'"));
+  assert(src.includes("const displayParts = displayVersion.split('.')"));
+  assert(src.includes("displayParts.slice(0, 2).join('.')"));
+  assert(src.includes("formatRakDisplayVersion(aboutDisplayVersion)"));
+});

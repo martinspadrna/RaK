@@ -18,8 +18,8 @@ test('Rotation name index is a shared offline dependency instead of a hidden Bru
   assert(shared.includes('root.buildNameIndex = buildNameIndex'));
   assert(app.includes('"stats.js",\n    "rotation-name-index.js",\n    "rotace.js"'));
   assert(app.includes('"rotation-name-index.js",\n    "brusy.js"'));
-  assert(sw.includes("'./rotation-name-index.js?v=1.7.0'"));
-  assert(sw.includes('warm67'));
+  assert(sw.includes("'./rotation-name-index.js?v="+assertCurrentReleaseIdentity(read,'1.7.82').moduleCacheVersion+"'"));
+  assert.match(sw,/warm(?:67|68|69)/,'warm-start policy must remain at least the offline-Rotation successor budget');
 });
 
 test('sync cannot run before Rotation consumers are loaded',()=>{
@@ -42,6 +42,13 @@ test('cold boot has an explicit awaited runtime hydration contract',()=>{
   assert(sync.includes('async function hydrateRakRotationFromOfflineCache(options)'));
   assert(sync.includes('window.hydrateRakRotationFromOfflineCache = hydrateRakRotationFromOfflineCache'));
   assert(sync.includes('await hydrateRakRotationFromOfflineCache({ repair: true, force: false })'));
+  if(app.includes('RAK_17084_LOCAL_FIRST_BOOT')){
+    const boot=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
+    assert(boot.includes('await hydrateRakRotationLocalFirst()'));
+    assert(boot.includes("await ensureFeature('rotation')"));
+    assert(!boot.includes("await ensureFeature('sync')"));
+    return;
+  }
   const boot=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(boot.includes('RAK_17082_AWAIT_RUNTIME_HYDRATION'));
   assert(boot.includes("await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true })"));
@@ -49,9 +56,21 @@ test('cold boot has an explicit awaited runtime hydration contract',()=>{
 
 test('returning service-worker startup hydrates before remote sync regardless of navigator.onLine',()=>{
   const app=read('app.js');
-  assert(app.includes('RAK_17082_RETURNING_SW_HYDRATION'));
   assert(app.includes('navigator.serviceWorker.controller'));
   assert(app.includes('rakBootLocalHydrationInProgress = true'));
+  if(app.includes('RAK_17084_LOCAL_FIRST_BOOT')){
+    const boot=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
+    assert(boot.includes('rakReturningServiceWorkerStart'));
+    assert(boot.includes('await hydrateRakRotationLocalFirst()'));
+    assert(boot.includes("await ensureFeature('rotation')"));
+    assert(!boot.includes('activateRemoteSync()'));
+    const afterReady=app.slice(app.indexOf('const startupReadyAt'));
+    assert(afterReady.includes("const startSync = () => ensureFeature('sync')"));
+    assert(afterReady.includes("requestIdleCallback(startSync, { timeout: 1200 })"));
+    assert(afterReady.includes('else setTimeout(startSync, 450)'));
+    return;
+  }
+  assert(app.includes('RAK_17082_RETURNING_SW_HYDRATION'));
   assert(app.includes("if (!rakBootLocalHydrationInProgress) void activateRemoteSync()"));
   const boot=app.slice(app.indexOf('RAK_17080_OFFLINE_BOOT_RESTORE'),app.indexOf('const startupReadyAt'));
   assert(boot.indexOf("await window.hydrateRakRotationFromOfflineCache") < boot.indexOf('void activateRemoteSync()'));

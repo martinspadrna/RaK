@@ -7,6 +7,18 @@
   const ACCOUNT_UI_MIGRATION_KEY = 'rotace_kalkulacky:account_ui_migration_v1';
   const ACCOUNT_UI_PROFILE_VERSION = 912;
 
+  function normalizeCalendarAssignment(value, fallbackTeam) {
+    const team = ['A','B','C','D'].includes(String(fallbackTeam || '').trim().toUpperCase())
+      ? String(fallbackTeam).trim().toUpperCase()
+      : '';
+    const raw = String(value || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-');
+    const match = raw.match(/^(obrabeni|kalirna)-([abcd])$/);
+    if (match) return match[1] + '-' + match[2].toUpperCase();
+    return team ? ('obrabeni-' + team) : '';
+  }
+
   // Vzhled účtu dříve sdílel úložiště s modulem Hry. Hry už se v RaK nenačítají,
   // proto tu ponecháváme jen malou kompatibilní profilovou vrstvu pro vzhled.
   function makeAccountUiEntry(accountId, name) {
@@ -14,7 +26,7 @@
     return {
       id,
       name: String(name || id).trim() || id,
-      uiSettings: { themeId: '', backgroundId: '', updatedAt: 0 },
+      uiSettings: { themeId: '', backgroundId: '', updatedAt: 0, serverRevision: 0, serverUpdatedAt: '', dirty: false },
       updatedAt: 0
     };
   }
@@ -66,19 +78,50 @@
       if (!parsed || typeof parsed !== 'object') return null;
       const accountNumber = String(parsed.accountNumber || '').trim();
       const fullName = String(parsed.fullName || '').trim();
+      const requestedTeam = String(parsed.shiftTeam || '').trim().toUpperCase();
+      const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
       if (!accountNumber || !fullName) return null;
-      return { accountNumber, fullName, updatedAt: Number(parsed.updatedAt || 0) || 0 };
+      const calendarAssignment = normalizeCalendarAssignment(parsed.calendarAssignment || '', shiftTeam);
+      return { accountNumber, fullName, shiftTeam, calendarAssignment, updatedAt: Number(parsed.updatedAt || 0) || 0 };
     } catch (err) { return null; }
+  }
+
+  function resetRuntimeForAccountSwitch(nextAccountNumber) {
+    const nextId = String(nextAccountNumber || '').trim();
+    const current = window.__RAK_USER_PROFILE__ && typeof window.__RAK_USER_PROFILE__ === 'object' ? window.__RAK_USER_PROFILE__ : read();
+    const currentId = String(current && current.accountNumber || '').trim();
+    if (!nextId || !currentId || currentId === nextId) return false;
+    window.__RAK_USER_PROFILE__ = null;
+    window.__RAK_EARLY_USER_PROFILE__ = null;
+    try {
+      if (typeof app === 'object' && app) {
+        app.activeAccountId = '';
+        app.activeAccountName = '';
+        const gamesProfile = typeof gamesGetProfile === 'function' ? gamesGetProfile() : app.gamesProfile;
+        if (gamesProfile && typeof gamesProfile === 'object') {
+          gamesProfile.activeAccountId = '';
+          if (typeof gamesSaveProfile === 'function') gamesSaveProfile(gamesProfile);
+          app.gamesProfile = gamesProfile;
+        }
+      }
+    } catch (err) {}
+    try { if (typeof applyAppearancePreference === 'function') applyAppearancePreference('obsidian', true, { skipProfile: true, skipRemote: true }); } catch (err) {}
+    try { syncSettingsProfileCard(null); } catch (err) {}
+    return true;
   }
 
   function write(profile) {
     const src = profile && typeof profile === 'object' ? profile : {};
+    const requestedTeam = String(src.shiftTeam || '').trim().toUpperCase();
     const next = {
       accountNumber: String(src.accountNumber || '').trim(),
       fullName: String(src.fullName || '').trim(),
+      shiftTeam: ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '',
+      calendarAssignment: normalizeCalendarAssignment(src.calendarAssignment || '', requestedTeam),
       updatedAt: Date.now()
     };
     if (!next.accountNumber || !next.fullName) return false;
+    resetRuntimeForAccountSwitch(next.accountNumber);
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(next)); } catch (err) { return false; }
     window.__RAK_USER_PROFILE__ = next;
     window.__RAK_EARLY_USER_PROFILE__ = next;
@@ -126,8 +169,11 @@
     if (!safe) return;
     const accountNumber = String(safe.accountNumber || '').trim();
     const fullName = String(safe.fullName || '').trim();
+    const requestedTeam = String(safe.shiftTeam || '').trim().toUpperCase();
+    const shiftTeam = ['A','B','C','D'].includes(requestedTeam) ? requestedTeam : '';
+    const calendarAssignment = normalizeCalendarAssignment(safe.calendarAssignment || '', shiftTeam);
     if (!accountNumber || !fullName) return;
-    window.__RAK_USER_PROFILE__ = { accountNumber, fullName, updatedAt: Number(safe.updatedAt || Date.now()) || Date.now() };
+    window.__RAK_USER_PROFILE__ = { accountNumber, fullName, shiftTeam, calendarAssignment, updatedAt: Number(safe.updatedAt || Date.now()) || Date.now() };
     window.__RAK_EARLY_USER_PROFILE__ = window.__RAK_USER_PROFILE__;
     try {
       if (typeof app === 'object' && app) {
@@ -149,7 +195,7 @@
         if (gamesProfile && gamesProfile.accounts) {
           const makeAccount = typeof gamesMakeAccountEntry === 'function'
             ? gamesMakeAccountEntry(accountNumber, fullName)
-            : { id: accountNumber, name: fullName, uiSettings: { themeId: '', backgroundId: '', updatedAt: 0 } };
+            : { id: accountNumber, name: fullName, uiSettings: { themeId: '', backgroundId: '', updatedAt: 0, serverRevision: 0, serverUpdatedAt: '', dirty: false } };
           gamesProfile.accounts[accountNumber] = Object.assign({}, makeAccount, gamesProfile.accounts[accountNumber] || {}, { id: accountNumber, name: fullName });
           const accountUi = gamesProfile.accounts[accountNumber].uiSettings && typeof gamesProfile.accounts[accountNumber].uiSettings === 'object'
             ? gamesProfile.accounts[accountNumber].uiSettings
@@ -190,18 +236,24 @@
   async function lookup(last4) {
     const suffix = String(last4 || '').replace(/\D/g, '').slice(-4);
     if (!/^\d{4}$/.test(suffix)) return { ok: false, reason: 'not-found' };
+    if (!(window.supabase && typeof window.supabase.createClient === 'function') && typeof window.rakEnsureSupabaseSdk === 'function') {
+      try { await window.rakEnsureSupabaseSdk({ force: true }); } catch (err) {}
+    }
     const clientFactory = window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient : null;
     const config = window.SUPABASE_CONFIG || {};
     if (!clientFactory || !config.url || !config.publishableKey) return { ok: false, reason: 'online-not-ready' };
     try {
       const client = clientFactory(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
       // RAK_LOGIN_RPC_17027: do not expose the whole table to the login client.
-      const { data, error } = await client.rpc('rak_lookup_account_for_login_v2', { p_last4: suffix });
+      const { data, error } = await client.rpc('rak_lookup_account_for_login_v4', { p_last4: suffix });
       if (error) return { ok: false, reason: 'lookup-failed', error };
       if (!data || data.ok !== true) return { ok: false, reason: data && data.reason || 'not-found' };
       // RAK_LOGIN_ADMIN_GATE_17045: fail closed if the admin-password flag is absent.
       if (typeof data.requiresAdminAuth !== 'boolean') return { ok: false, reason: 'admin-gate-unavailable' };
-      return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim(), requiresAdminAuth: data.requiresAdminAuth };
+      const shiftTeam = String(data.shiftTeam || '').trim().toUpperCase();
+      if (!['A','B','C','D'].includes(shiftTeam)) return { ok: false, reason: 'shift-team-unavailable' };
+      const calendarAssignment = normalizeCalendarAssignment(data.calendarAssignment || '', shiftTeam);
+      return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim(), shiftTeam, calendarAssignment, requiresAdminAuth: data.requiresAdminAuth };
     } catch (error) {
       return { ok: false, reason: 'lookup-failed', error };
     }
@@ -284,9 +336,34 @@
     return null;
   }
 
+  async function refreshMissingShiftTeam(profile) {
+    const safe = profile && typeof profile === 'object' ? profile : null;
+    const currentTeam = String(safe && safe.shiftTeam || '').trim().toUpperCase();
+    const currentAssignment = normalizeCalendarAssignment(safe && safe.calendarAssignment || '', currentTeam);
+    const accountNumber = String(safe && safe.accountNumber || '').trim();
+    const hasTeam = ['A','B','C','D'].includes(currentTeam);
+    const hasExplicitAssignment = !!String(safe && safe.calendarAssignment || '').trim() && !!currentAssignment;
+    if (!accountNumber || (hasTeam && hasExplicitAssignment)) return false;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+      const result = await lookup(accountNumber.slice(-4));
+      if (!result || result.ok !== true || String(result.accountNumber || '').trim() !== accountNumber) return false;
+      if (!['A','B','C','D'].includes(String(result.shiftTeam || '').trim().toUpperCase())) return false;
+      if (!normalizeCalendarAssignment(result.calendarAssignment || '', result.shiftTeam)) return false;
+      if (!write(result)) return false;
+      apply(result);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
   function bootstrap() {
     const profile = get();
-    if (profile) apply(profile, { migrateLegacyAppearance: true });
+    if (profile) {
+      apply(profile, { migrateLegacyAppearance: true });
+      if (!['A','B','C','D'].includes(String(profile.shiftTeam || '').trim().toUpperCase()) || !String(profile.calendarAssignment || '').trim()) void refreshMissingShiftTeam(profile);
+    }
     refreshMenu();
     try {
       if (!window.__rakUserProfileSettingsObserver) {
@@ -306,6 +383,7 @@
 
   window.rakUserProfileRead = read;
   window.rakUserProfileWrite = write;
+  window.rakUserProfileResetForAccountSwitch = resetRuntimeForAccountSwitch;
   window.rakUserProfileGet = get;
   window.rakUserProfileClear = clear;
   window.rakUserProfileEscape = esc;

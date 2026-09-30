@@ -4,7 +4,7 @@ on:
   push:
     branches: [development]
   pull_request:
-    branches: [development]
+    branches: [development, main]
   workflow_dispatch:
 
 permissions:
@@ -12,10 +12,10 @@ permissions:
 
 concurrency:
   group: rak-development-validation-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
-  RAK_BUILD_TARGET: ${{ github.ref_name == 'main' && 'production' || 'test' }}
+  RAK_BUILD_TARGET: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'main') || github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) && 'production' || 'test' }}
 
 jobs:
   verify:
@@ -24,12 +24,14 @@ jobs:
     steps:
       - name: Check out exact development commit
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Preflight isolated build policy and measured thirteen-point roadmap
-        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-release-workflow.test.mjs tools/production-migration-history.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs
+        run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-release-workflow.test.mjs tools/production-migration-history.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs tools/ui-parity-contract.test.mjs
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Build and run npm check and critical smoke twice
@@ -56,29 +58,60 @@ jobs:
           node --test tools/release-gate-17080.test.mjs
           node --test tools/release-gate-17081.test.mjs
           node --test tools/release-gate-17082.test.mjs
-          node --test tools/release-gate-17083.test.mjs
+          node --test tools/release-gate-17099.test.mjs
+          node --test tools/release-gate-17102.test.mjs
+          node --test tools/release-gate-17103.test.mjs
+          node --test tools/release-gate-17104.test.mjs
+          node --test tools/privacy-diagnostics-17105.test.mjs tools/release-gate-17105.test.mjs tools/release-gate-17106.test.mjs tools/release-gate-17107.test.mjs tools/release-gate-17108.test.mjs tools/release-gate-17109.test.mjs tools/release-gate-17110.test.mjs tools/unplanned-absence-17111.test.mjs tools/rejected-operation-diagnostics-17111.test.mjs tools/release-gate-17111.test.mjs tools/unplanned-popup-17112.test.mjs tools/release-gate-17112.test.mjs tools/release-gate-17113.test.mjs tools/release-gate-17114.test.mjs tools/unplanned-reasons-17115.test.mjs tools/release-gate-17115.test.mjs tools/unplanned-kalirna-17116.test.mjs tools/release-gate-17116.test.mjs tools/staffing-shortage-17117.test.mjs tools/release-gate-17117.test.mjs tools/release-gate-17118.test.mjs tools/unplanned-scope-17119.test.mjs tools/release-gate-17119.test.mjs tools/unplanned-local-reflow-17120.test.mjs tools/release-gate-17120.test.mjs tools/unplanned-generator-options-17121.test.mjs tools/release-gate-17121.test.mjs tools/unplanned-mo-only-17122.test.mjs tools/release-gate-17122.test.mjs tools/unplanned-kalirna-minimal-17123.test.mjs tools/release-gate-17123.test.mjs tools/admin-password-min-17124.test.mjs tools/release-gate-17124.test.mjs tools/startup-interaction-17125.test.mjs tools/release-gate-17125.test.mjs tools/menu-role-ready-17126.test.mjs tools/release-gate-17126.test.mjs tools/startup-real-interaction-17127.test.mjs tools/release-gate-17127.test.mjs tools/menu-toggle-race-17130.test.mjs tools/preboot-nav-17131.test.mjs tools/local-first-startup-17132.test.mjs tools/rotation-menu-transition-17133.test.mjs tools/admin-first-open-17134.test.mjs tools/auth-role-diagnostic-17135.test.mjs tools/conflict-diagnostic-17136.test.mjs tools/conflict-rescue-routing-17138.test.mjs tools/release-gate-17138.test.mjs tools/conflict-diagnostic-version-17139.test.mjs tools/release-gate-17139.test.mjs tools/admin-ui-compact-17140.test.mjs tools/release-gate-17140.test.mjs tools/release-gate-17141.test.mjs tools/admin-rotation-overview-17142.test.mjs tools/release-gate-17142.test.mjs tools/admin-rotation-overview-refine-17143.test.mjs tools/release-gate-17143.test.mjs tools/admin-generator-compact-17144.test.mjs tools/release-gate-17144.test.mjs tools/admin-food-compact-17145.test.mjs tools/release-gate-17145.test.mjs tools/admin-accounts-compact-17146.test.mjs tools/release-gate-17146.test.mjs tools/kalirna-evidence-mfkf06-17147.test.mjs tools/release-gate-17147.test.mjs tools/kalirna-direct-cell-17148.test.mjs tools/unplanned-local-staffing-17148.test.mjs tools/release-gate-17148.test.mjs tools/calendar-selection-17149.test.mjs tools/release-gate-17149.test.mjs tools/calendar-google-hybrid-17150.test.mjs tools/release-gate-17150.test.mjs tools/calendar-google-all-17151.test.mjs tools/release-gate-17151.test.mjs tools/calendar-nav-dismiss-17152.test.mjs tools/release-gate-17152.test.mjs tools/calendar-account-sync-17153.test.mjs tools/release-gate-17153.test.mjs tools/calendar-legend-toggle-17154.test.mjs tools/release-gate-17154.test.mjs tools/calendar-legend-width-17155.test.mjs tools/release-gate-17155.test.mjs tools/calendar-legend-empty-17156.test.mjs tools/release-gate-17156.test.mjs tools/performance-isolation-17157.test.mjs tools/release-gate-17157.test.mjs tools/performance-isolation-17158.test.mjs tools/release-gate-17158.test.mjs tools/calendar-legend-blank-17159.test.mjs tools/release-gate-17159.test.mjs tools/calendar-legend-account-17160.test.mjs tools/release-gate-17160.test.mjs tools/calendar-zero-local-17161.test.mjs tools/release-gate-17161.test.mjs tools/calendar-zero-size-17162.test.mjs tools/release-gate-17162.test.mjs tools/release-gate-17163.test.mjs tools/sign-toggle-centering-17164.test.mjs tools/release-gate-17164.test.mjs tools/sign-toggle-frezky-parity-17165.test.mjs tools/release-gate-17165.test.mjs tools/brusy-sign-owner-parity-17166.test.mjs tools/release-gate-17166.test.mjs tools/about-history-180.test.mjs tools/release-gate-180.test.mjs tools/release-gate-181.test.mjs tools/vacation-report-calendar-182.test.mjs tools/release-gate-182.test.mjs tools/admin-vacation-report-spacing-183.test.mjs tools/release-gate-183.test.mjs tools/admin-diagnostic-copy-184.test.mjs tools/release-gate-184.test.mjs tools/bottom-nav-food-dismiss-185.test.mjs tools/release-gate-185.test.mjs tools/deputy-signed-session-186.test.mjs tools/release-gate-186.test.mjs tools/live-auth-runtime-187.test.mjs tools/release-gate-187.test.mjs tools/unplanned-change-cas-188.test.mjs tools/release-gate-188.test.mjs
           node --test tools/regression-parity-contract.test.mjs
+          node --test tools/ui-parity-contract.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
         run: |
           node --check tools/preview-rollback-preflight-17068.mjs
           node --check tools/pwa-start-bench-17068.mjs
           node --test tools/preview-rollback-preflight-17068.test.mjs
-          node --test tools/pwa-start-bench-17068.test.mjs
+          node --test tools/pwa-start-bench-17068.test.mjs tools/performance-budget-17104.test.mjs
       - name: Verify source backup ZIP inventory, excluded files and CRC
         working-directory: .rak-canonical-build/work
         run: node tools/backup-source-integrity-17051.mjs
-      - name: Real Chromium mobile start, offline restart and online recovery
+      - name: Real Chromium mobile offline, slow network and service-worker update recovery
         working-directory: .rak-canonical-build/work
         run: |
-          node --test tools/pwa-offline-17052.test.mjs
+          node --test tools/pwa-offline-17052.test.mjs tools/network-resilience-17104.test.mjs
           node tools/browser-offline-17052.mjs
           node tools/browser-absence-layout-17061.mjs
           node tools/browser-soft-grid-17066.mjs
           node tools/browser-equal-grid-17067.mjs
-      - name: Benchmark PWA three times in independent Chromium profiles
+          node tools/browser-fourth-bundle-17097.mjs
+          node tools/browser-iphone-regressions-17100.mjs
+          node tools/browser-ui-parity-17104.mjs
+          node tools/browser-privacy-diagnostics-17105.mjs
+      - name: Benchmark PWA three times with fail-closed time and size budgets
         working-directory: .rak-canonical-build/work
-        run: node tools/pwa-start-bench-17068.mjs
+        env:
+          RAK_CANONICAL_BUILD_PROOF: ${{ github.workspace }}/.rak-canonical-build/verified.json
+          RAK_PERFORMANCE_EVIDENCE: ${{ github.workspace }}/.rak-release-evidence/performance-budget.json
+        run: |
+          node tools/pwa-start-bench-17068.mjs
+          test -s "$RAK_PERFORMANCE_EVIDENCE"
+      - name: Compare current startup and first paint with immutable 1.7.69
+        working-directory: .rak-canonical-build/work
+        run: |
+          node --test tools/performance-parity-17069.test.mjs
+          node tools/performance-parity-17069.mjs
+          test -s "${{ github.workspace }}/.rak-canonical-build/performance-parity-17069.json"
+      - name: Enforce unified performance, network and conflict quality thresholds
+        working-directory: .rak-canonical-build/work
+        env:
+          RAK_PERFORMANCE_EVIDENCE: ${{ github.workspace }}/.rak-release-evidence/performance-budget.json
+          RAK_NETWORK_EVIDENCE: ${{ github.workspace }}/.rak-canonical-build/network-resilience.json
+          RAK_PARITY_EVIDENCE: ${{ github.workspace }}/.rak-canonical-build/performance-parity-17069.json
+          RAK_QUALITY_EVIDENCE: ${{ github.workspace }}/.rak-release-evidence/quality-thresholds.json
+        run: |
+          node --test tools/quality-thresholds-17104.test.mjs
+          node tools/quality-thresholds-17104.mjs
+          test -s "$RAK_QUALITY_EVIDENCE"
       - name: Verify live anonymous HTTP against isolated TEST Supabase
         working-directory: .rak-canonical-build/work
         run: node tools/http-anon-audit-17050.mjs
@@ -91,10 +124,410 @@ jobs:
         env:
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: node tools/release-evidence.mjs ci-proof
+      - name: Retain RaK 1.8.8 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-188-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.7 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-187-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.6 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-186-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.5 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-185-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.4 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-184-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.3 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-183-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.2 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-182-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.1 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-181-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain RaK 1.8.0 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-180-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain current isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-current-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.166 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170166-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.165 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170165-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.164 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170164-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.163 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170163-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.162 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170162-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.161 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170161-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.160 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170160-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.159 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170159-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.158 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170158-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.157 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170157-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.156 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170156-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.155 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170155-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.154 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170154-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.153 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170153-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.152 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170152-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.151 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170151-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.150 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170150-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.149 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170149-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.148 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170148-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.147 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170147-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.146 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170146-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.145 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170145-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.144 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170144-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.143 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170143-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.142 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170142-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.141 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170141-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.140 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170140-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.139 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170139-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.138 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170138-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.137 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170137-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.136 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170136-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.135 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170135-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.134 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170134-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.133 isolated-build reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170133-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
       - name: Retain isolated-build reproducibility evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rak-17083-isolated-build-${{ github.sha }}
+          name: rak-170132-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain previous isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170131-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain 1.7.130 isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170130-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain historical isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170129-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain older isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170128-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain oldest isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170127-isolated-build-${{ github.sha }}
+          path: .rak-canonical-build/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain legacy isolated-build evidence alias
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-170126-isolated-build-${{ github.sha }}
           path: .rak-canonical-build/*.json
           include-hidden-files: true
           if-no-files-found: error
@@ -173,9 +606,15 @@ jobs:
         run: |
           vercel build --yes --target=preview --token="$VERCEL_TOKEN"
           test -s ".rak-dist/supabase-vendor-2.110.7.js"
+          test -s ".rak-dist/rak-complete-backup-source.zip"
+          test "$(wc -c < .rak-dist/rak-complete-backup-source.zip)" -gt 100000
+          unzip -tqq ".rak-dist/rak-complete-backup-source.zip"
           mkdir -p ".vercel/output/static"
-          cp ".rak-dist/supabase-vendor-2.110.7.js" ".vercel/output/static/supabase-vendor-2.110.7.js"
+          cp -a ".rak-dist/." ".vercel/output/static/"
           test -s ".vercel/output/static/supabase-vendor-2.110.7.js"
+          test -s ".vercel/output/static/rak-complete-backup-source.zip"
+          cmp ".rak-dist/rak-complete-backup-source.zip" ".vercel/output/static/rak-complete-backup-source.zip"
+          unzip -tqq ".vercel/output/static/rak-complete-backup-source.zip"
       - name: Deploy prebuilt exact SHA only after the green verify job
         if: steps.policy.outputs.deploy == 'true'
         run: |
@@ -193,6 +632,9 @@ jobs:
           vercel curl /sw.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/sw.headers --output .rak-release-evidence/http/immutable/sw.body
           vercel curl /rak-release-metadata.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/metadata.headers --output .rak-release-evidence/http/immutable/metadata.body
           vercel curl /supabase-config.js --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/supabase.headers --output .rak-release-evidence/http/immutable/supabase.body
+          vercel curl /rak-complete-backup-source.zip --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header .rak-release-evidence/http/immutable/source-zip.headers --output .rak-release-evidence/http/immutable/source-zip.body
+          test "$(wc -c < .rak-release-evidence/http/immutable/source-zip.body)" -gt 100000
+          unzip -tqq .rak-release-evidence/http/immutable/source-zip.body
           node tools/release-evidence.mjs http-check immutable .rak-release-evidence/http/immutable .rak-release-evidence/http-immutable.json
       - name: Move only the stable development alias after immutable verification
         if: steps.policy.outputs.deploy == 'true'
@@ -245,10 +687,14 @@ jobs:
           fetch_public "/sw.js" "sw"
           fetch_public "/rak-release-metadata.js" "metadata"
           fetch_public "/supabase-config.js" "supabase"
-          fetch_public "/app.js?v=1.7.0" "app"
+          DISPLAY_VERSION="$(node --input-type=module -e "import metadata from './rak-release-metadata.js'; process.stdout.write(metadata.displayVersion)")"
+          fetch_public "/app.js?v=$DISPLAY_VERSION" "app"
           fetch_public "/supabase-vendor-2.110.7.js" "vendor"
+          fetch_public "/rak-complete-backup-source.zip?v=$DISPLAY_VERSION" "source-zip"
           test -s .rak-release-evidence/http/stable/app.body
           test -s .rak-release-evidence/http/stable/vendor.body
+          test "$(wc -c < .rak-release-evidence/http/stable/source-zip.body)" -gt 100000
+          unzip -tqq .rak-release-evidence/http/stable/source-zip.body
           node tools/release-evidence.mjs http-check stable-alias .rak-release-evidence/http/stable .rak-release-evidence/http-stable-alias.json
       - name: Prove main and production remained unchanged and assemble release evidence
         if: steps.policy.outputs.deploy == 'true'
@@ -274,3 +720,75 @@ jobs:
       - name: Report verified documentation-only skip
         if: steps.policy.outputs.deploy != 'true'
         run: echo "No Vercel deployment required; fail-closed policy result was ${{ steps.policy.outputs.reason }}."
+
+  p15_restore_drill:
+    name: P1.5 isolated Supabase restore drill
+    # P1.5 is an isolated backup/restore proof. Do not let unrelated frontend
+    # performance-parity noise prevent the database recovery drill from running.
+    if: >-
+      github.ref == 'refs/heads/development' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && contains(github.event.head_commit.message, '[p15-drill]')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out exact development commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install RaK dependencies
+        run: npm install --no-audit --no-fund
+      - name: Ensure PostgreSQL client exists
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+      - name: Prepare private ephemeral Supabase workspace
+        run: |
+          rm -rf .rak-p15-private
+          mkdir -p .rak-p15-private/supabase/migrations
+          chmod 700 .rak-p15-private
+          printf 'project_id = "rak-p15-restore-drill"\n' > .rak-p15-private/supabase/config.toml
+          node --check tools/p15-restore-drill.mjs
+      - name: Export current TEST backup through short-lived GitHub OIDC
+        run: node tools/p15-restore-drill.mjs export .rak-p15-private
+      - name: Start isolated local Supabase and replay exact TEST migrations
+        run: |
+          cd .rak-p15-private
+          if ! npx --yes supabase@2.117.0 start > supabase-start.log 2>&1; then
+            tail -n 160 supabase-start.log
+            exit 1
+          fi
+          if ! npx --yes supabase@2.117.0 db reset --local > supabase-reset.log 2>&1; then
+            tail -n 200 supabase-reset.log
+            exit 1
+          fi
+          npx --yes supabase@2.117.0 status -o env > status.env
+          chmod 600 status.env
+      - name: Restore data and verify hashes, Auth, RLS, migrations and Storage
+        run: node tools/p15-restore-drill.mjs restore .rak-p15-private
+      - name: Retain sanitized P1.5 restore proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: rak-p15-restore-proof-${{ github.sha }}
+          path: .rak-p15-private/restore-proof.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Destroy private restore workspace
+        if: always()
+        run: |
+          if [ -d .rak-p15-private ]; then
+            (cd .rak-p15-private && npx --yes supabase@2.117.0 stop --no-backup >/dev/null 2>&1 || true)
+            rm -rf .rak-p15-private
+          fi

@@ -63,6 +63,7 @@ function appMenuAdminModeSet() {
     'manual',
     'settings-map',
     'admin-accounts',
+    'calendars',
     'external-links',
     'app-contact',
     'payroll-settings',
@@ -112,16 +113,299 @@ function rakAdminMenuResolveActiveAccountId() {
 }
 
 function appMenuShouldShowAdminEntry() {
+  return !!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport());
+}
+
+function appMenuLiveAuthDiagnosticEnabled() {
+  try {
+    const config = window.SUPABASE_CONFIG || {};
+    return String(config.url || '').replace(/\/$/, '') === 'https://cgshssdjgzzuprlwnabl.supabase.co';
+  } catch (_) {
+    return false;
+  }
+}
+
+// RAK_17135_ROLE_DIAGNOSTIC: signed TEST role probe shared by More and Admin service.
+// Never print, persist or transmit a JWT except as the Authorization header to the
+// explicitly allowlisted isolated TEST Supabase origin.
+async function rakRunLiveAuthDiagnostic() {
+  const status = document.getElementById('rakLiveAuthDiagnosticStatus');
+  if (!status || status.dataset.running === '1') return;
+  const setStatus = (message, ok) => {
+    status.textContent = message;
+    status.dataset.result = ok === true ? 'pass' : ok === false ? 'fail' : 'pending';
+  };
+  const diagnose = (operation, httpStatus) => {
+    try {
+      if (window.RAK_DIAGNOSTICS && typeof window.RAK_DIAGNOSTICS.diagnoseRejectedOperation === 'function') {
+        return window.RAK_DIAGNOSTICS.diagnoseRejectedOperation(operation, { status: httpStatus });
+      }
+    } catch (_) {}
+    return null;
+  };
+  status.dataset.running = '1';
+  setStatus('Ověřuji podepsanou relaci a práva pouze pro tento účet…', null);
+  try {
+    if (!navigator.onLine
+        || typeof rakAdminCanOpenShiftReport !== 'function'
+        || !rakAdminCanOpenShiftReport()
+        || !app
+        || app.adminAuthVersion !== 2) {
+      setStatus('Nelze ověřit: vyžaduje online ověřenou roli přes Supabase Auth.', false);
+      return;
+    }
+
+    const config = window.SUPABASE_CONFIG || {};
+    const origin = String(config.url || '').replace(/\/$/, '');
+    if (origin !== 'https://cgshssdjgzzuprlwnabl.supabase.co'
+        || !String(config.publishableKey || '').startsWith('sb_publishable_')) {
+      setStatus('Kontrola zastavena: diagnostika je povolena pouze proti TEST databázi.', false);
+      return;
+    }
+
+    const bridge = window.RotationSupabaseBridge;
+    const token = bridge && typeof bridge.getSignedAdminAccessToken === 'function'
+      ? await bridge.getSignedAdminAccessToken()
+      : '';
+    if (!token || token.length < 100) {
+      setStatus('Platná podepsaná relace není dostupná. Přihlas se znovu.', false);
+      return;
+    }
+
+    async function probe(endpoint, method = 'POST', payload) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        return await fetch(origin + endpoint, {
+          method,
+          cache: 'no-store',
+          signal: controller.signal,
+          headers: {
+            apikey: config.publishableKey,
+            Authorization: 'Bearer ' + token,
+            ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {})
+          },
+          ...(method === 'POST' ? { body: JSON.stringify(payload || {}) } : {})
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    const authResponse = await probe('/auth/v1/user', 'GET');
+    if (!authResponse.ok) {
+      setStatus('NEPROŠLO: Supabase Auth zamítl přihlašovací token.', false);
+      return;
+    }
+    const authenticatedUser = await authResponse.json();
+
+    const contextResponse = await probe('/rest/v1/rpc/rak_admin_context');
+    if (!contextResponse.ok) {
+      setStatus('NEPROŠLO: databáze odmítla ověřenou relaci.', false);
+      return;
+    }
+    const context = await contextResponse.json();
+    const role = String(context && context.role || '');
+    if (!['owner', 'admin', 'deputy'].includes(role)
+        || String(context.user_id || '') !== String(authenticatedUser.id || '')
+        || String(context.account_id || '') !== String(app.adminAccountId || '')
+        || String(app.adminRole || '') !== role
+        || !String(context.session_id || '')) {
+      setStatus('NEPROŠLO: ověřená identita, účet, relace a role spolu nesouhlasí.', false);
+      return;
+    }
+
+    const adminResponse = await probe('/rest/v1/rpc/rak_admin_list_audit_v2', 'POST', { p_limit: 1 });
+    let adminBoundaryPass = adminResponse.ok;
+    if (role === 'deputy') {
+      const rejected = diagnose('admin-audit-read', adminResponse.status);
+      adminBoundaryPass = [401, 403].includes(adminResponse.status)
+        && !!rejected
+        && rejected.reason === 'permission-denied';
+    }
+    await adminResponse.body?.cancel();
+    if (!adminBoundaryPass) {
+      setStatus('NEPROŠLO: hranice administrátorského čtení neodpovídá ověřené roli.', false);
+      return;
+    }
+
+    if (role !== 'deputy') {
+      const rejectedWriteResponse = await probe('/rest/v1/rpc/rak_admin_save_rotation_v2', 'POST', {
+        p_key: 'main',
+        p_payload: [],
+        p_meta: { source: 'live-auth-diagnostic-reject' },
+        p_expected_revision: null
+      });
+      if (rejectedWriteResponse.ok) {
+        await rejectedWriteResponse.body?.cancel();
+        setStatus('NEPROŠLO: diagnostický neplatný zápis nebyl serverem odmítnut.', false);
+        return;
+      }
+      const rejection = diagnose('rotation-save', rejectedWriteResponse.status);
+      await rejectedWriteResponse.body?.cancel();
+      if (!rejection || rejection.reason !== 'invalid-request') {
+        setStatus('NEPROŠLO: zamítnutou operaci se nepodařilo bezpečně zařadit.', false);
+        return;
+      }
+    }
+
+    const ownerResponse = await probe('/rest/v1/rpc/rak_owner_list_admin_profiles');
+    let ownerBoundaryPass = ownerResponse.ok;
+    if (role !== 'owner') {
+      const rejected = diagnose('owner-profile-read', ownerResponse.status);
+      ownerBoundaryPass = [401, 403].includes(ownerResponse.status)
+        && !!rejected
+        && rejected.reason === 'permission-denied';
+    }
+    await ownerResponse.body?.cancel();
+    if (!ownerBoundaryPass) {
+      setStatus('NEPROŠLO: hranice práv vlastníka neodpovídá ověřené roli.', false);
+      return;
+    }
+
+    const roleLabel = role === 'owner' ? 'vlastník' : role === 'admin' ? 'administrátor' : 'zástupce';
+    setStatus('PROŠLO: skutečný podepsaný Auth token, účet, relace a role (' + roleLabel + ') odpovídají serveru; povolené i odmítnuté operace mají bezpečnou diagnostiku bez obsahu odpovědí.', true);
+  } catch (_error) {
+    setStatus('Kontrola nedokončena: chyba spojení nebo odpovědi. Žádná data nebyla změněna.', false);
+  } finally {
+    status.dataset.running = '0';
+  }
+}
+
+
+function appMenuShouldOfferRoleRefresh() {
   const activeId = rakAdminMenuResolveActiveAccountId();
-  if (!activeId) return false;
-  if (typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport()) return true;
-  if (typeof rakAdminAccountRequiresPassword === 'function' && rakAdminAccountRequiresPassword(activeId)) return true;
+  if (!activeId || appMenuShouldShowAdminEntry()) return false;
   if (activeId === '9811') return true;
+  if (typeof rakAdminAccountRequiresPassword === 'function' && rakAdminAccountRequiresPassword(activeId)) return true;
   return appMenuPersistentAdminSessionMatches(activeId);
 }
 
+let appMenuRoleRestorePromise = null;
+let appMenuAdminShellWarmPromise = null;
+let appMenuAdminWarmPromise = null;
+
+function appMenuCanOpenAdminNow() {
+  return !!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin());
+}
+
+// RAK_17134_ADMIN_SHELL_SPLIT: secure Admin root implementation is loaded only
+// after verified role warmup / Admin entry, so ordinary local-first startup
+// does not parse Admin-only markup.
+
+function appMenuWarmAdminShellFeature() {
+  if (!appMenuCanOpenAdminNow() || typeof window === 'undefined' || typeof window.rakEnsureFeature !== 'function') return null;
+  if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin-shell')) return Promise.resolve('admin-shell');
+  if (appMenuAdminShellWarmPromise) return appMenuAdminShellWarmPromise;
+  const pending = window.rakEnsureFeature('admin-shell').catch((err) => {
+    console.warn('Admin shell background warmup failed', err);
+    return false;
+  });
+  appMenuAdminShellWarmPromise = pending;
+  pending.finally(() => { if (appMenuAdminShellWarmPromise === pending) appMenuAdminShellWarmPromise = null; });
+  return pending;
+}
+
+function appMenuWarmAdminFeature() {
+  if (!appMenuCanOpenAdminNow() || typeof window === 'undefined' || typeof window.rakEnsureFeature !== 'function') return null;
+  if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin')) return Promise.resolve('admin');
+  if (appMenuAdminWarmPromise) return appMenuAdminWarmPromise;
+  const pending = window.rakEnsureFeature('admin').catch((err) => {
+    console.warn('Admin tools background warmup failed', err);
+    return false;
+  });
+  appMenuAdminWarmPromise = pending;
+  pending.finally(() => { if (appMenuAdminWarmPromise === pending) appMenuAdminWarmPromise = null; });
+  return pending;
+}
+
+async function appMenuEnsureAdminTools(body) {
+  if (!appMenuCanOpenAdminNow()) return false;
+  if (typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin')) return true;
+  const status = body && typeof body.querySelector === 'function' ? body.querySelector('#adminOnlineSaveStatus') : null;
+  if (status) status.textContent = 'Načítám vybranou administrační sekci…';
+  const loaded = await appMenuWarmAdminFeature();
+  return !!(loaded && appMenuCanOpenAdminNow());
+}
+
+function appMenuRenderRoot(body) {
+  if (!body) return;
+  const verifiedRole = appMenuShouldShowAdminEntry();
+  const deputy = verifiedRole && typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy();
+  const liveRoleDiagnostic = verifiedRole && appMenuLiveAuthDiagnosticEnabled()
+    ? '<button type="button" class="appMenuAction" data-menu-action="live-auth-check">Ověřit oprávnění</button>'
+      + '<div class="smallText" id="rakLiveAuthDiagnosticStatus" role="status" aria-live="polite"></div>'
+    : '';
+  const roleSection = verifiedRole
+    ? '<section class="appMenuAdminQuickLinks" aria-label="' + (deputy ? 'Zástupce' : 'Správce') + '">' +
+        '<div class="appMenuAdminQuickLinksTitle">' + (deputy ? 'Zástupce' : 'Správce') + '</div>' +
+        '<div class="appMenuGrid">' +
+          (deputy ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
+          '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>' +
+          liveRoleDiagnostic +
+        '</div>' +
+      '</section>'
+    : (appMenuShouldOfferRoleRefresh()
+      ? '<section class="appMenuAdminQuickLinks" aria-label="Oprávnění">' +
+          '<div class="appMenuAdminQuickLinksTitle">Oprávnění</div>' +
+          '<div class="appMenuGrid"><button type="button" class="appMenuAction" data-menu-action="role-refresh">Ověřit přístup</button></div>' +
+        '</section>'
+      : '');
+  body.innerHTML = [
+    '<div class="appMenuGrid">',
+    '  <button type="button" class="appMenuAction" data-menu-action="settings">Nastavení</button>',
+    '  <button type="button" class="appMenuAction" data-menu-action="about">O aplikaci</button>',
+    '  <button type="button" class="appMenuAction" data-menu-action="contact">Kontakt</button>',
+    '  <button type="button" class="appMenuAction" data-menu-action="bug-report">Pošli mi chybu</button>',
+    '</div>',
+    roleSection
+  ].join('');
+  if (verifiedRole && !deputy) {
+    void appMenuWarmAdminShellFeature();
+  }
+}
+
+function appMenuRerenderVisibleRoot() {
+  try {
+    const page = document.getElementById('menu');
+    const body = document.getElementById('appMenuBody');
+    if (!page || !body || !page.classList.contains('active') || String(body.dataset.adminView || '') !== '') return;
+    appMenuRenderRoot(body);
+  } catch (err) {}
+}
+
+function appMenuBindRoleEvents() {
+  if (typeof window === 'undefined' || window.__rakMenuRoleEventsBound === true) return;
+  window.__rakMenuRoleEventsBound = true;
+  window.addEventListener('rak-admin-access-changed', appMenuRerenderVisibleRoot);
+}
+
+async function appMenuRefreshRoleAccess(reason) {
+  if (appMenuShouldShowAdminEntry()) {
+    appMenuRerenderVisibleRoot();
+    return true;
+  }
+  if (appMenuRoleRestorePromise) return await appMenuRoleRestorePromise;
+  const pending = (async () => {
+    try {
+      if (typeof rakAdminRestoreSecureSessionForActiveAccount !== 'function') return false;
+      return !!(await rakAdminRestoreSecureSessionForActiveAccount(reason || 'menu-open'));
+    } catch (err) {
+      return false;
+    }
+  })();
+  appMenuRoleRestorePromise = pending;
+  try {
+    const restored = await pending;
+    if (restored) appMenuRerenderVisibleRoot();
+    return restored;
+  } finally {
+    if (appMenuRoleRestorePromise === pending) appMenuRoleRestorePromise = null;
+  }
+}
+
 async function appMenuEnsureAdminAccessFromMenu() {
-  const canOpen = () => !!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport());
+  const canOpen = () => appMenuCanOpenAdminNow();
   if (canOpen()) return true;
   const activeId = typeof rakAdminGetActiveAccountId === 'function' ? String(rakAdminGetActiveAccountId() || '').trim() : '';
   if (!activeId) return false;
@@ -203,8 +487,12 @@ function bindAppMenuHandlers(body) {
     if (target && target.matches && target.matches('#adminAnnouncementTitle, #adminAnnouncementMessage, #adminAnnouncementStart, #adminAnnouncementEnd') && typeof adminAnnouncementRefreshStatus === 'function') {
       adminAnnouncementRefreshStatus(body);
     }
-    if (target && target.matches && target.matches('[data-admin-account-field]') && typeof adminAccountsRefreshStatus === 'function') {
-      adminAccountsRefreshStatus(body);
+    if (target && target.matches && target.matches('[data-app-account-field]') && typeof ensureAdminAppAccountBlankRow === 'function') {
+      ensureAdminAppAccountBlankRow(body, target.closest('tr[data-app-account-row]'));
+    }
+    if (target && target.matches && target.matches('[data-admin-account-field]')) {
+      if (typeof ensureAdminAccountsBlankRow === 'function') ensureAdminAccountsBlankRow(body, target.closest('tr[data-admin-account-row]'));
+      if (typeof adminAccountsRefreshStatus === 'function') adminAccountsRefreshStatus(body);
     }
     if (target && target.matches && target.matches('[data-generator-settings-field]') && typeof adminRotationRefreshGeneratorSettingsStatus === 'function') {
       adminRotationRefreshGeneratorSettingsStatus(body);
@@ -245,8 +533,12 @@ function bindAppMenuHandlers(body) {
     if (target.matches('[data-app-contact-field]') && typeof adminAppContactRefreshStatus === 'function') {
       adminAppContactRefreshStatus(body);
     }
-    if (target.matches('[data-admin-account-field]') && typeof adminAccountsRefreshStatus === 'function') {
-      adminAccountsRefreshStatus(body);
+    if (target.matches('[data-app-account-field]') && typeof ensureAdminAppAccountBlankRow === 'function') {
+      ensureAdminAppAccountBlankRow(body, target.closest('tr[data-app-account-row]'));
+    }
+    if (target.matches('[data-admin-account-field]')) {
+      if (typeof ensureAdminAccountsBlankRow === 'function') ensureAdminAccountsBlankRow(body, target.closest('tr[data-admin-account-row]'));
+      if (typeof adminAccountsRefreshStatus === 'function') adminAccountsRefreshStatus(body);
     }
     if (target.matches('[data-generator-settings-field]') && typeof adminRotationRefreshGeneratorSettingsStatus === 'function') {
       adminRotationRefreshGeneratorSettingsStatus(body);
@@ -272,13 +564,25 @@ function bindAppMenuHandlers(body) {
     const menuBack = target.getAttribute('data-menu-back');
     const currentView = String(body.dataset.adminView || '');
     const select = body.querySelector('#adminMonthSelect');
-    const monthKey = select ? select.value : getAdminSelectedMonthKey();
+    // RAK_17134_ADMIN_SHELL_CLICK_DECOUPLE: ordinary/root menu clicks must not
+    // require a helper owned by the heavy Admin feature.
+    const monthKey = select
+      ? select.value
+      : (typeof getAdminSelectedMonthKey === 'function' ? getAdminSelectedMonthKey() : '');
     const adminMonthKey = target.getAttribute('data-admin-month-key');
     const adminYearKey = target.getAttribute('data-admin-year-key');
 
     try {
       if (appMenuIsAdminInteraction(target, menuAction, adminAction, adminMonthKey, adminYearKey) && !appMenuCanRunAdminInteraction(currentView)) {
         event.preventDefault();
+        openAppMenu('menu');
+        return;
+      }
+
+      const openingAdminTools = (adminAction && /^open-/.test(String(adminAction)))
+        || menuAction === 'admin-machines'
+        || menuAction === 'admin-rotation';
+      if (openingAdminTools && !(await appMenuEnsureAdminTools(body))) {
         openAppMenu('menu');
         return;
       }
@@ -374,6 +678,30 @@ function bindAppMenuHandlers(body) {
         }
         return;
       }
+      if (menuAction === 'change-account-password') {
+        event.preventDefault();
+        const statusEl = body.querySelector('#rakAccountPasswordStatus');
+        if (statusEl) statusEl.textContent = 'Měním heslo…';
+        if (!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport())) {
+          throw new Error('Pro změnu hesla musí být účet bezpečně přihlášený.');
+        }
+        const result = typeof rakAdminChangeOwnPassword === 'function'
+          ? await rakAdminChangeOwnPassword(body)
+          : { ok: false, reason: 'missing-handler' };
+        if (!result || result.ok === false) {
+          const messages = {
+            'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.',
+            'password-mismatch': 'Nová hesla se neshodují.',
+            'password-unchanged': 'Nové heslo je stejné jako současné.',
+            'invalid_current_password': 'Současné heslo není správné.',
+            'missing-session': 'Bezpečné přihlášení už vypršelo. Přihlas se znovu.'
+          };
+          throw (result && result.error ? result.error : new Error(messages[result && result.reason] || 'Změna hesla selhala.'));
+        }
+        body.querySelectorAll('[data-admin-own-password]').forEach((input) => { input.value = ''; });
+        if (statusEl) statusEl.textContent = 'Heslo bylo změněno.';
+        return;
+      }
       if (menuAction === 'settings') {
         openAppMenu('settings');
         return;
@@ -394,12 +722,38 @@ function bindAppMenuHandlers(body) {
         await handleBugReportAction(menuAction);
         return;
       }
+      if (menuAction === 'live-auth-check') {
+        event.preventDefault();
+        if (currentView === '' && appMenuLiveAuthDiagnosticEnabled() && typeof rakRunLiveAuthDiagnostic === 'function') {
+          await rakRunLiveAuthDiagnostic();
+        }
+        return;
+      }
+      if (menuAction === 'role-refresh') {
+        event.preventDefault();
+        await appMenuEnsureAdminAccessFromMenu();
+        appMenuRenderRoot(body);
+        return;
+      }
       if (menuAction === 'admin') {
         if (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy()) { openAppMenu('menu'); return; }
         const adminReady = await appMenuEnsureAdminAccessFromMenu();
         if (!adminReady) {
           openAppMenu('menu');
           return;
+        }
+        if (!(typeof window.rakIsFeatureReady === 'function' && window.rakIsFeatureReady('admin-shell'))) {
+          body.innerHTML = [
+            '<div class="appMenuCard appMenuAdminCard">',
+            '  <div class="appMenuCardTitle">Administrace</div>',
+            '  <div class="appMenuText">Načítám administraci…</div>',
+            '</div>'
+          ].join('');
+          const loaded = await appMenuWarmAdminShellFeature();
+          if (!loaded || !appMenuCanOpenAdminNow()) {
+            openAppMenu('menu');
+            return;
+          }
         }
         openAppMenu('admin');
         return;
@@ -871,6 +1225,10 @@ function bindAppMenuHandlers(body) {
         openAppMenu('admin-accounts');
         return;
       }
+      if (adminAction === 'open-calendars') {
+        openAppMenu('admin-calendars');
+        return;
+      }
       if (adminAction === 'open-external-links') {
         openAppMenu('admin-external-links');
         return;
@@ -932,6 +1290,12 @@ function bindAppMenuHandlers(body) {
       }
       if (adminAction === 'download-reports') {
         downloadAdminBugReports();
+        return;
+      }
+      if (adminAction === 'report-screenshot') {
+        const reportId = target.getAttribute('data-report-id') || target.closest('[data-report-id]')?.getAttribute('data-report-id') || '';
+        const result = typeof openAdminBugReportScreenshot === 'function' ? await openAdminBugReportScreenshot(reportId) : { ok: false, reason: 'missing-viewer' };
+        if (!result || result.ok === false) throw (result && result.error ? result.error : new Error('Screenshot reportu se nepodařilo načíst.'));
         return;
       }
       if (adminAction === 'report-delete') {
@@ -1407,7 +1771,7 @@ function bindAppMenuHandlers(body) {
           : { ok: false, reason: 'missing-handler' };
         if (!result || result.ok === false) {
           const messages = {
-            'password-too-short': 'Nové heslo musí mít alespoň 12 znaků a současné nesmí být prázdné.',
+            'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.',
             'password-mismatch': 'Nová hesla se neshodují.',
             'password-unchanged': 'Nové heslo je stejné jako současné.',
             'invalid_current_password': 'Současné heslo není správné.'
@@ -1425,12 +1789,61 @@ function bindAppMenuHandlers(body) {
         if (statusEl) statusEl.textContent = 'Měním moje heslo…';
         const result = typeof rakAdminChangeOwnPassword === 'function' ? await rakAdminChangeOwnPassword(body) : { ok: false, reason: 'missing-handler' };
         if (!result || result.ok === false) {
-          const messages = { 'password-too-short': 'Nové heslo musí mít alespoň 12 znaků a současné nesmí být prázdné.', 'password-mismatch': 'Nová hesla se neshodují.', 'password-unchanged': 'Nové heslo je stejné jako současné.', 'invalid_current_password': 'Současné heslo není správné.' };
+          const messages = { 'password-too-short': 'Nové heslo musí mít alespoň 6 znaků a současné nesmí být prázdné.', 'password-mismatch': 'Nová hesla se neshodují.', 'password-unchanged': 'Nové heslo je stejné jako současné.', 'invalid_current_password': 'Současné heslo není správné.' };
           throw (result && result.error ? result.error : new Error(messages[result && result.reason] || 'Změna hesla selhala.'));
         }
         renderAdminMenuBody(body, 'admin-accounts');
         const nextStatus = document.getElementById('adminOnlineSaveStatus');
         if (nextStatus) nextStatus.textContent = 'Moje heslo bylo změněno.';
+        return;
+      }
+      if (adminAction === 'add-shift-calendar') {
+        const team = String(target.getAttribute('data-calendar-team') || '').trim().toUpperCase();
+        const block = target.closest('[data-shift-calendar-team-block]');
+        const rows = block ? block.querySelector('[data-shift-calendar-rows]') : null;
+        const row = target.closest('[data-shift-calendar-row]');
+        if (typeof buildAdminShiftCalendarRowHtml === 'function') {
+          const html = buildAdminShiftCalendarRowHtml(team, {});
+          if (row) row.insertAdjacentHTML('afterend', html);
+          else if (rows) rows.insertAdjacentHTML('beforeend', html);
+        }
+        return;
+      }
+      if (adminAction === 'remove-shift-calendar') {
+        const row = target.closest('[data-shift-calendar-row]');
+        if (!row) return;
+        const rowsWrap = row.closest('[data-shift-calendar-rows]');
+        const rowCount = rowsWrap ? rowsWrap.querySelectorAll('[data-shift-calendar-row]').length : 0;
+        if (rowCount <= 1) {
+          row.querySelectorAll('[data-shift-calendar-field]').forEach((input) => { input.value = ''; });
+        } else {
+          row.remove();
+        }
+        return;
+      }
+      if (adminAction === 'load-calendars') {
+        await loadAdminMachineSettingsFromSupabase();
+        renderAdminMenuBody(body, 'calendars');
+        return;
+      }
+      if (adminAction === 'save-calendars') {
+        const calendarSettings = readAdminShiftCalendarsSettingsFromDom();
+        const rows = mergeRakShiftCalendarSettingsRows(calendarSettings);
+        if (window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.saveMachineSettings === 'function') {
+          const result = await window.RotationSupabaseBridge.saveMachineSettings(rows, { reason: 'shift-calendars' });
+          if (result && result.ok === false) throw (result.error || new Error('Uložení kalendářů selhalo.'));
+          app.machineSettingsRows = rows;
+          try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+          try {
+            const modal = document.getElementById('calendarModal');
+            if (modal && modal.classList.contains('isVisible') && typeof renderCalendarModalContent === 'function') {
+              renderCalendarModalContent(modal);
+            }
+          } catch (err) {}
+          renderAdminMenuBody(body, 'calendars');
+          const statusEl = document.getElementById('adminOnlineSaveStatus');
+          if (statusEl) statusEl.textContent = 'Kalendáře uložené online';
+        }
         return;
       }
       if (adminAction === 'load-external-links') {
@@ -1810,7 +2223,7 @@ function openAppMenu(view) {
   page.classList.add('active');
   const body = page.querySelector('#appMenuBody');
   const v = view || 'menu';
-  const adminViews = new Set(['admin', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
+  const adminViews = new Set(['admin', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-calendars', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
 
   const versionText = getRakCurrentAppVersion();
   const contact = typeof getRakAppContactSettings === 'function'
@@ -1866,15 +2279,12 @@ function openAppMenu(view) {
       return;
     } else if (v === 'admin') {
       bindAppMenuHandlers(body);
-      void (async () => {
-        try {
-          await loadAdminMachineSettingsFromSupabase();
-          renderAdminMenuBody(body, 'home');
-        } catch (err) {
-          console.warn('Admin preload failed', err);
-          renderAdminMenuBody(body, 'home');
-        }
-      })();
+      // RAK_17127_ADMIN_LOCAL_ROOT: render the navigation shell immediately.
+      // Machine settings refresh in background; individual data editors keep their
+      // own explicit online load before editing/saving.
+      renderAdminRootMenuBody(body);
+      // RAK_17134_ADMIN_ROOT_FIRST: the secure local root is already complete
+      // inside the local menu module. Heavy tools remain strictly on demand.
     } else if (v === 'admin-machines') {
       void (async () => {
         try {
@@ -2039,6 +2449,16 @@ function openAppMenu(view) {
           renderAdminMenuBody(body, 'admin-accounts');
         }
       })();
+    } else if (v === 'admin-calendars') {
+      void (async () => {
+        try {
+          await loadAdminMachineSettingsFromSupabase();
+          renderAdminMenuBody(body, 'calendars');
+        } catch (err) {
+          console.warn('Admin calendars preload failed', err);
+          renderAdminMenuBody(body, 'calendars');
+        }
+      })();
     } else if (v === 'admin-external-links') {
       void (async () => {
         try {
@@ -2115,23 +2535,11 @@ function openAppMenu(view) {
         }
       })();
     } else {
-      body.innerHTML = [
-        '<div class="appMenuGrid">',
-        '  <button type="button" class="appMenuAction" data-menu-action="settings">Nastavení</button>',
-        '  <button type="button" class="appMenuAction" data-menu-action="about">O aplikaci</button>',
-        '  <button type="button" class="appMenuAction" data-menu-action="contact">Kontakt</button>',
-        '  <button type="button" class="appMenuAction" data-menu-action="bug-report">Pošli mi chybu</button>',
-        '</div>',
-        (appMenuShouldShowAdminEntry() ?
-          '<section class="appMenuAdminQuickLinks" aria-label="Správce">' +
-            '<div class="appMenuAdminQuickLinksTitle">' + (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy() ? 'Zástupce' : 'Správce') + '</div>' +
-            '<div class="appMenuGrid">' +
-              // RAK_REPORT_ONLY_DEPUTY_17019
-              (typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy() ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
-              '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>' +
-            '</div>' +
-          '</section>' : '')
-      ].join('');
+      // RAK_17126_ROLE_READY_MENU: ordinary More remains local. Privileged links
+      // are rendered only from a verified secure role; restore runs in the background.
+      appMenuRenderRoot(body);
+      appMenuBindRoleEvents();
+      void appMenuRefreshRoleAccess('menu-open');
     }
 
     bindAppMenuHandlers(body);

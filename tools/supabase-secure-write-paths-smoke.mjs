@@ -30,11 +30,18 @@ assert(sync.includes("window.addEventListener('online', () => { void ensureRakSe
 assert(sync.includes("writeMode: 'authenticated admin RPC save/clear only; direct table fallback closed by RaK 1.6.03'"), 'announcement RPC-only status marker missing');
 
 assert(bridge.includes("client.rpc('rak_admin_save_rotation_v2'"), 'secure rotation RPC missing');
-assert(bridge.includes("client.rpc('rak_admin_save_machine_settings_v2'"), 'secure machine settings RPC missing');
-assert(bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'"), 'secure rotation month RPC missing');
+assert(bridge.includes("client.rpc('rak_admin_load_machine_settings_v3'"), 'revision-aware machine settings read RPC missing');
+assert(bridge.includes("client.rpc('rak_admin_save_machine_settings_v3'"), 'revision-aware machine settings write RPC missing');
+assert(bridge.includes('p_expected_revision: state.machineSettingsRevision'), 'machine settings expected revision missing');
+assert(bridge.includes("client.rpc('rak_admin_load_rotation_month_entries_v3'"), 'revision-aware rotation month read RPC missing');
+assert(bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v3'"), 'revision-aware rotation month write RPC missing');
+assert(bridge.includes('p_expected_revision: expectedRevision'), 'rotation month expected revision missing');
+assert(!bridge.includes("client.rpc('rak_admin_save_machine_settings_v2'"), 'legacy machine settings v2 writer returned to current client');
+assert(!bridge.includes("client.rpc('rak_admin_save_rotation_month_entries_v2'"), 'legacy rotation month v2 writer returned to current client');
 assert(bridge.includes("client.rpc('rak_admin_save_announcement_v2'"), 'secure announcement save RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_clear_announcement_v2'"), 'secure announcement clear RPC missing');
-assert(bridge.includes("client.rpc('rak_submit_bug_report_v2'"), 'public bug report submission RPC missing');
+assert(bridge.includes("client.rpc('rak_submit_bug_report_v3'"), 'public screenshot-aware bug report submission RPC missing');
+assert(!/\.from\(['"]bug_reports['"]\)/.test(bridge), 'bug report direct table write/read path returned');
 assert(bridge.includes("client.rpc('rak_admin_list_bug_reports_v2'"), 'secure bug report list RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_update_bug_report_v2'"), 'secure bug report update RPC missing');
 assert(bridge.includes("client.rpc('rak_admin_delete_bug_report_v2'"), 'secure bug report delete RPC missing');
@@ -47,7 +54,7 @@ const bridgePos = syncFeature[1].indexOf('"supabase-bridge.js"');
 const syncPos = syncFeature[1].indexOf('"app-rotation-sync.js"');
 assert(bridgePos >= 0 && syncPos > bridgePos, 'app-rotation-sync secure gate must load after supabase-bridge');
 
-assert(sw.includes("'./app-rotation-sync.js?v=1.6.0'")||sw.includes("'./app-rotation-sync.js?v=1.7.0'"), 'PWA must invalidate cached app-rotation-sync after secure gate update');
+assert(sw.includes("'./app-rotation-sync.js?v="+RELEASE_METADATA.moduleCacheVersion+"'"), 'PWA must invalidate cached app-rotation-sync with the current release version');
 const canonical=!!(pkg.scripts&&pkg.scripts['legacy:vercel-build']);
 if(canonical){
   assert.equal(pkg.version,RELEASE_METADATA.technicalVersion,'canonical technical version changed');
@@ -61,10 +68,10 @@ if(canonical){
   assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = "1.6.03";'), 'development test display version must be 1.6.03');
   assert(config.includes('window.RAK_PWA_BUILD = "v1.6.03-stats1";'), 'development PWA build marker must identify stats hotfix');
 }
-if (buildTarget === 'production') {
+if(buildTarget==='production'){
   assert(config.includes('https://bkqamcbkiwumsvelahxr.supabase.co'), 'production must use production Supabase ref');
   assert(!config.includes('cgshssdjgzzuprlwnabl'), 'TEST Supabase ref must not enter production runtime config');
-} else {
+}else{
   assert(config.includes('https://cgshssdjgzzuprlwnabl.supabase.co'), 'development must keep test Supabase ref');
   assert(!config.includes('bkqamcbkiwumsvelahxr'), 'production Supabase ref must not enter development runtime config');
 }
@@ -72,7 +79,7 @@ if (buildTarget === 'production') {
 assert(exportJs.includes('"supabase-bridge.js": "src-supabase-bridge-js"'), 'export inventory must still include Supabase bridge');
 assert(exportJs.includes('"app-rotation-sync.js": "src-app-rotation-sync-js"'), 'export inventory must still include rotation sync/security gate source');
 assert(String(pkg.scripts.check || '').includes('tools/supabase-secure-write-paths-smoke.mjs'), 'secure write paths smoke must run in npm check');
-assert.equal(pkg.version, canonical?'1.7.0':'1.6.0', 'technical package version changed');
+assert.equal(pkg.version, canonical?RELEASE_METADATA.technicalVersion:'1.6.0', 'technical package version changed');
 
 console.log('[supabase-secure-write-paths-smoke] OK critical working-data writes are gated to secure RPC; release metadata and export/SW/boot links preserved');
 

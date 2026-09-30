@@ -12,6 +12,7 @@ test('parse actual three labeled durations only, never estimates or silently ski
 });
 test('three independent cycles and strict fixed per-mode P95 budgets',()=>{
  assert.equal(ROUNDS,3);assert.deepEqual(BOOT_LABELS,['cold mobile','offline reload','online recovery']);
+ assert.deepEqual(BUDGET_MS,{'cold mobile':5000,'offline reload':4000,'online recovery':3500});
  const three=[good,{...good,'cold mobile':1200},{...good,'cold mobile':1300}];
  const stats=assessBootSamples(three);assert.equal(stats['cold mobile'].p50Ms,1200);assert.equal(stats['cold mobile'].p95Ms,1300);
  assert.throws(()=>assessBootSamples(three.slice(1)),/three independent/);

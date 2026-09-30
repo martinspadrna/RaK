@@ -95,6 +95,31 @@
         });
       });
 
+      (Array.isArray(month && month.dayMods) ? month.dayMods : []).forEach(mod => {
+        if (!mod || String(mod.type || '').trim() !== 'kalirnaOut') return;
+        const name = String(mod.person || '').trim();
+        if (!name || !knownNames.has(name)) return;
+        const parsed = parseRotationDateToken(mod.date);
+        if (!parsed) return;
+        if (!map.has(name)) map.set(name, []);
+        const existingWorkEntry = map.get(name).some((entry) => entry
+          && entry.monthKey === monthKey
+          && String(entry.date || '').trim() === String(mod.date || '').trim()
+          && !entry.absence);
+        if (existingWorkEntry) return; // legacy dayMod: runtime override changes the existing machine entry to Kalírna.
+        map.get(name).push({
+          monthKey,
+          section: 'dayMods',
+          date: String(mod.date || '').trim(),
+          dateLabel: cleanRotationDateLabel(mod.date, parsed.shift),
+          shift: parsed.shift,
+          machine: 'Kalírna',
+          target: 'Kalírna',
+          kalirnaOut: true,
+          sortDate: rotationSortDate(monthKey, parsed)
+        });
+      });
+
       (Array.isArray(month && month.notes) ? month.notes : []).forEach(note => {
         const normalized = normalizeRotationNote(note);
         if (!normalized.isAbsence || !normalized.people || !normalized.people.length) return;

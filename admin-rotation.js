@@ -131,6 +131,7 @@ function adminRotationRowTemplate(section, row, rowIndex, machineCount, allowBla
       const tdClasses = [];
       if (!filled) tdClasses.push('adminRotationEditorEmptyCell');
       if (mod) tdClasses.push('rakDayModCell');
+      if (mod && mod.type === 'kalirnaOut') tdClasses.push('rakKalirnaOutCell');
       const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '';
       const tip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : '';
       const mark = badge ? '<span class="rakDayModMark" aria-hidden="true">' + escapeHtml(badge) + '</span>' : '';
@@ -284,33 +285,237 @@ function buildAdminStatsAnomalyHtml(year) {
   ].join('');
 }
 
+function adminRotationSuggestionContext(root) {
+  const knownNames = adminGetKnownNames();
+  const scheduleByDate = new Map();
+  const absenceByDate = new Map();
+  const labelByDate = new Map();
+  const dateOrder = [];
+  const keyFor = (value) => adminRotationDateBaseKey(value) || adminRotationDateLabel(value);
+  const register = (value) => {
+    const label = adminRotationDateLabel(value);
+    const key = keyFor(value);
+    if (!key) return '';
+    if (!labelByDate.has(key)) {
+      labelByDate.set(key, label || String(value || '').trim());
+      dateOrder.push(key);
+    }
+    return key;
+  };
+  const add = (map, date, name) => {
+    const key = register(date);
+    const person = String(name || '').trim();
+    if (!key || !person) return;
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(person);
+  };
+  root.querySelectorAll('tr[data-rotation-section]').forEach((tr) => {
+    const date = tr.querySelector('[data-rot-field="date"]')?.value || '';
+    register(date);
+    tr.querySelectorAll('[data-rot-field^="cell-"]').forEach((field) => {
+      const name = String(field && field.value || '').trim();
+      if (name && !adminRotationIsRemoveValue(name)) add(scheduleByDate, date, name);
+    });
+  });
+  root.querySelectorAll('tr[data-note-row-index]').forEach((tr) => {
+    const date = tr.querySelector('[data-note-field="date"]')?.value || '';
+    adminSplitPeopleList(tr.querySelector('[data-note-field="person"]')?.value || '')
+      .forEach((name) => add(absenceByDate, date, name));
+  });
+  return { knownNames, scheduleByDate, absenceByDate, labelByDate, dateOrder, keyFor };
+}
+
+function adminRotationChoiceOptions(input, root) {
+  const ctx = adminRotationSuggestionContext(root);
+  if (input.matches('[data-rot-field^="cell-"]')) {
+    const row = input.closest('tr[data-rotation-section]');
+    const date = row && row.querySelector('[data-rot-field="date"]')?.value || '';
+    const key = ctx.keyFor(date);
+    const scheduled = ctx.scheduleByDate.get(key) || new Set();
+    const absent = ctx.absenceByDate.get(key) || new Set();
+    return {
+      title: 'Volní pro tento den',
+      values: ctx.knownNames.filter((name) => !scheduled.has(name) && !absent.has(name))
+    };
+  }
+  if (input.matches('[data-note-field="date"]')) {
+    const values = ctx.dateOrder.filter((key) => {
+      const scheduled = ctx.scheduleByDate.get(key) || new Set();
+      const absent = ctx.absenceByDate.get(key) || new Set();
+      return ctx.knownNames.some((name) => !scheduled.has(name) && !absent.has(name));
+    }).map((key) => ctx.labelByDate.get(key) || key);
+    return { title: 'Dny s chybějícím člověkem', values };
+  }
+  if (input.matches('[data-note-field="person"]')) {
+    const row = input.closest('tr[data-note-row-index]');
+    const date = row && row.querySelector('[data-note-field="date"]')?.value || '';
+    const key = ctx.keyFor(date);
+    if (!key) return { title: 'Chybějící lidé', values: [] };
+    const scheduled = ctx.scheduleByDate.get(key) || new Set();
+    const absent = ctx.absenceByDate.get(key) || new Set();
+    return {
+      title: 'Chybějící lidé pro ' + (ctx.labelByDate.get(key) || adminRotationDateLabel(date) || date),
+      values: ctx.knownNames.filter((name) => !scheduled.has(name) && !absent.has(name))
+    };
+  }
+  return { title: '', values: [] };
+}
+
+function adminCloseRotationChoicePicker() {
+  const box = document.getElementById('adminRotationChoicePicker');
+  if (box) box.remove();
+  window.__rakAdminRotationChoiceInput = null;
+}
+
+function adminRotationFloatingViewport() {
+  const vv = window.visualViewport;
+  const width = Math.max(240, Number(vv && vv.width || window.innerWidth || document.documentElement.clientWidth || 320));
+  const height = Math.max(180, Number(vv && vv.height || window.innerHeight || document.documentElement.clientHeight || 480));
+  const scrollX = Number(window.scrollX || window.pageXOffset || 0);
+  const scrollY = Number(window.scrollY || window.pageYOffset || 0);
+  const vvPageLeft = vv ? Number(vv.pageLeft) : NaN;
+  const vvPageTop = vv ? Number(vv.pageTop) : NaN;
+  const left = Number.isFinite(vvPageLeft) ? vvPageLeft : scrollX + Math.max(0, Number(vv && vv.offsetLeft || 0));
+  const top = Number.isFinite(vvPageTop) ? vvPageTop : scrollY + Math.max(0, Number(vv && vv.offsetTop || 0));
+  return { left: Math.max(0, left), top: Math.max(0, top), width, height };
+}
+
+function adminPositionRotationChoicePicker() {
+  const box = document.getElementById('adminRotationChoicePicker');
+  const input = window.__rakAdminRotationChoiceInput;
+  if (!box || !input || !input.isConnected) {
+    if (box) adminCloseRotationChoicePicker();
+    return;
+  }
+  const body = document.getElementById('appMenuBody');
+  if (!body || !body.contains(input)) {
+    adminCloseRotationChoicePicker();
+    return;
+  }
+  const rect = input.getBoundingClientRect();
+  const scrollX = Number(window.scrollX || window.pageXOffset || 0);
+  const scrollY = Number(window.scrollY || window.pageYOffset || 0);
+  const inputPage = {
+    left: rect.left + scrollX,
+    right: rect.right + scrollX,
+    top: rect.top + scrollY,
+    bottom: rect.bottom + scrollY,
+    width: rect.width,
+    height: rect.height
+  };
+  const vp = adminRotationFloatingViewport();
+  const margin = 8;
+  if (inputPage.bottom < vp.top - 2 || inputPage.top > vp.top + vp.height + 2 || inputPage.right < vp.left - 2 || inputPage.left > vp.left + vp.width + 2) {
+    adminCloseRotationChoicePicker();
+    return;
+  }
+  const pickerWidth = Math.min(292, Math.max(200, vp.width - margin * 2));
+  box.style.position = 'absolute';
+  box.style.width = pickerWidth + 'px';
+  box.classList.add('isVisible');
+  const measuredHeight = Math.min(264, Math.max(96, Math.ceil(box.getBoundingClientRect().height || 0)));
+  const below = inputPage.bottom + 6;
+  const above = inputPage.top - measuredHeight - 6;
+  const minTop = vp.top + margin;
+  const maxTop = Math.max(minTop, vp.top + vp.height - measuredHeight - margin);
+  let top = below;
+  if (below + measuredHeight > vp.top + vp.height - margin) top = above;
+  top = Math.max(minTop, Math.min(maxTop, top));
+  const centered = inputPage.left + inputPage.width / 2 - pickerWidth / 2;
+  const minLeft = vp.left + margin;
+  const maxLeft = Math.max(minLeft, vp.left + vp.width - pickerWidth - margin);
+  const left = Math.max(minLeft, Math.min(maxLeft, centered));
+  box.style.top = Math.round(top) + 'px';
+  box.style.left = Math.round(left) + 'px';
+}
+
+function adminQueueRotationChoicePickerPosition() {
+  if (window.__rakAdminRotationChoicePositionFrame) cancelAnimationFrame(window.__rakAdminRotationChoicePositionFrame);
+  window.__rakAdminRotationChoicePositionFrame = requestAnimationFrame(() => {
+    window.__rakAdminRotationChoicePositionFrame = 0;
+    adminPositionRotationChoicePicker();
+  });
+}
+
+function adminShowRotationChoicePicker(input) {
+  try {
+    const body = document.getElementById('appMenuBody');
+    if (!body || body.dataset.adminView !== 'rotation' || !input || !body.contains(input)) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    if (!input.matches('[data-rot-field^="cell-"], [data-note-field="date"], [data-note-field="person"]')) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    if (String(input.value || '').trim()) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    const suggestion = adminRotationChoiceOptions(input, body);
+    const values = Array.from(new Set((suggestion.values || []).map((value) => String(value || '').trim()).filter(Boolean)));
+    if (!values.length) {
+      adminCloseRotationChoicePicker();
+      return;
+    }
+    adminCloseRotationChoicePicker();
+    const box = document.createElement('div');
+    box.id = 'adminRotationChoicePicker';
+    box.className = 'adminRotationChoicePicker';
+    box.innerHTML = '<div class="adminRotationChoicePickerTitle">' + escapeHtml(suggestion.title || 'Nabídka') + '</div>'
+      + '<div class="adminRotationChoicePickerGrid">'
+      + values.map((value) => '<button type="button" class="adminRotationChoiceChip" data-rotation-choice="' + escapeHtml(value) + '">' + escapeHtml(value) + '</button>').join('')
+      + '</div>';
+    document.body.appendChild(box);
+    window.__rakAdminRotationChoiceInput = input;
+    box.addEventListener('pointerdown', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-rotation-choice]') : null;
+      if (!button) return;
+      event.preventDefault();
+      const target = window.__rakAdminRotationChoiceInput;
+      const value = String(button.getAttribute('data-rotation-choice') || '').trim();
+      if (target && target.isConnected && value) {
+        target.value = value;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+        try { target.focus({ preventScroll: true }); } catch (_) { try { target.focus(); } catch (_) {} }
+      }
+      adminCloseRotationChoicePicker();
+    });
+    adminPositionRotationChoicePicker();
+    setTimeout(adminQueueRotationChoicePickerPosition, 0);
+    setTimeout(adminQueueRotationChoicePickerPosition, 180);
+    setTimeout(adminQueueRotationChoicePickerPosition, 420);
+    if (!window.__rakAdminRotationChoiceOutsideBound) {
+      window.__rakAdminRotationChoiceOutsideBound = true;
+      document.addEventListener('pointerdown', (event) => {
+        const current = document.getElementById('adminRotationChoicePicker');
+        const target = window.__rakAdminRotationChoiceInput;
+        if (!current) return;
+        if (event.target === target || current.contains(event.target)) return;
+        adminCloseRotationChoicePicker();
+      }, true);
+      window.addEventListener('scroll', adminQueueRotationChoicePickerPosition, true);
+      window.addEventListener('resize', adminQueueRotationChoicePickerPosition, true);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', adminQueueRotationChoicePickerPosition);
+        window.visualViewport.addEventListener('scroll', adminQueueRotationChoicePickerPosition);
+      }
+    }
+  } catch (err) {
+    console.warn('Admin rotation choice picker failed', err);
+  }
+}
+
 function adminAttachRotationAvailableDatalist(input) {
   try {
     const body = document.getElementById('appMenuBody');
     if (!body || body.dataset.adminView !== 'rotation' || !input || !body.contains(input)) return;
-    if (!input.matches('[data-rot-field^="cell-"]')) return;
-    const currentValue = String(input.value || '').trim();
-    if (currentValue) {
-      input.removeAttribute('list');
-      return;
-    }
-    const row = input.closest('tr[data-rotation-section]');
-    const dateKey = adminRotationDateLabel(row && row.querySelector('[data-rot-field="date"]') ? row.querySelector('[data-rot-field="date"]').value : '');
-    const used = dateKey ? (adminBuildUsedNamesByDate(body).get(dateKey) || new Set()) : new Set();
-    const names = adminGetKnownNames().filter((name) => !used.has(name));
-    const listId = 'adminRotationSuggest-' + Math.random().toString(36).slice(2, 9);
-    const datalist = document.createElement('datalist');
-    datalist.id = listId;
-    datalist.setAttribute('data-admin-rotation-suggest', '1');
-    names.forEach((name) => {
-      const option = document.createElement('option');
-      option.value = name;
-      datalist.appendChild(option);
-    });
-    body.appendChild(datalist);
-    input.setAttribute('list', listId);
+    input.removeAttribute('list');
+    body.querySelectorAll('datalist[data-admin-rotation-suggest]').forEach((list) => list.remove());
+    adminShowRotationChoicePicker(input);
   } catch (err) {
-    console.warn('Admin rotation datalist failed', err);
+    console.warn('Admin rotation picker failed', err);
   }
 }
 
@@ -473,6 +678,24 @@ function adminRotationNamesForAbsenceDate(notesRows, dateLabel, knownNames) {
   return blocked;
 }
 
+function adminRotationKalirnaOutNamesForDate(month, dateLabel, knownNames) {
+  const names = new Set();
+  const wanted = adminRotationDateBaseKey(dateLabel);
+  (Array.isArray(month && month.dayMods) ? month.dayMods : []).forEach((mod) => {
+    if (!mod || String(mod.type || '').trim() !== 'kalirnaOut') return;
+    if (adminRotationDateBaseKey(mod.date) !== wanted) return;
+    const name = adminRotationCanonicalName(mod.person, knownNames);
+    if (name) names.add(name);
+  });
+  return names;
+}
+
+function adminRotationUnavailableNamesForDate(month, dateLabel, knownNames) {
+  const blocked = adminRotationNamesForAbsenceDate(month && month.notes, dateLabel, knownNames);
+  adminRotationKalirnaOutNamesForDate(month, dateLabel, knownNames).forEach((name) => blocked.add(name));
+  return blocked;
+}
+
 function adminRotationGetPressRotationOverride(month, dateLabel) {
   const baseKey = adminRotationDateBaseKey(dateLabel);
   if (typeof getRotationPressRotationOverride === 'function') return getRotationPressRotationOverride(month, baseKey);
@@ -529,10 +752,9 @@ function adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, a
     (Array.isArray(headers) ? headers : []).forEach((machine, idx) => {
       const shouldBeOccupied = required.includes(machine);
       const cell = row && Array.isArray(row.cells) ? row.cells[idx] : '';
-      const occupied = shouldBeOccupied
-        ? adminRotationIsRealName(cell, knownNames)
-        : !!String(cell || '').trim();
-      if (occupied !== shouldBeOccupied) issues.push({ machine, shouldBeOccupied });
+      const name = adminRotationCanonicalName(cell, knownNames);
+      const physicallyOccupied = !!(name && !absent.has(name));
+      if (physicallyOccupied !== shouldBeOccupied) issues.push({ machine, shouldBeOccupied });
     });
   };
   inspect(HARD_MACHINE_HEADERS, hardRow, ['TNKS01', 'TBKR07', 'TPKW01', 'TBKR01']);
@@ -577,6 +799,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
     const dateLabel = (hardRow && hardRow.date) || (softRow && softRow.date) || '';
     if (!dateLabel) continue;
     const assigned = new Map();
+    const kalirnaOutNames = adminRotationKalirnaOutNamesForDate(month, dateLabel, knownNames);
     const register = (sectionKey, machineName, rawName) => {
       const name = adminRotationCanonicalName(rawName, knownNames);
       if (!name) return;
@@ -587,6 +810,8 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
       }
       if (!assigned.has(name)) assigned.set(name, []);
       assigned.get(name).push({ sectionKey, machineName });
+      // Kalírna je v buňce jen evidenčně; není fyzická obsluha daného stroje.
+      if (kalirnaOutNames.has(name)) return;
       if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) {
         addIssue('error', 'skill', String(dateLabel) + ': ' + name + ' neumí ' + machineName + '.', '');
       }
@@ -610,7 +835,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
       }
     });
     if (!adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) {
-      const absent = new Set(noteNamesForDate(dateLabel).map((noteName) => noteName.canonical).filter((name) => knownNames.includes(name)));
+      const absent = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
       adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent).forEach((issue) => {
         addIssue('error', 'three-absence-staffing', String(dateLabel) + ': ' + issue.machine
           + (issue.shouldBeOccupied ? ' musí být obsazená.' : ' musí zůstat neobsazená.'),
@@ -694,7 +919,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
         if (!dateLabel) continue;
         const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
         if (adminRotationGeneratorIsDayBlocked(dayNotes)) continue;
-        const absences = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+        const absences = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
         if (!absences.has(name)) return true;
       }
       return false;
@@ -786,9 +1011,12 @@ function adminRotationFormatRuleIssues(issues) {
 }
 
 
-function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
+function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
+  const generationOptions = options && typeof options === 'object' ? options : {};
   if (!monthKey) throw new Error('Chybí měsíc.');
-  const domMonth = adminRotationGeneratorCanReadEditorDraftFromDom() ? readAdminRotationFromDom(monthKey) : null;
+  const domMonth = generationOptions.ignoreDom === true
+    ? null
+    : (adminRotationGeneratorCanReadEditorDraftFromDom() ? readAdminRotationFromDom(monthKey) : null);
   const fallback = domMonth || preparedMonth || (app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null);
   if (!fallback) throw new Error('Pro vybraný měsíc nejsou připravené řádky.');
   const model = adminBuildRotationGenerationModel(monthKey);
@@ -807,6 +1035,9 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
   let skippedDays = 0;
   let protectedEmptyCells = 0;
   const knownNames = model.knownNames;
+  const preserveHardCellsByDate = generationOptions.preserveHardCellsByDate && typeof generationOptions.preserveHardCellsByDate === 'object'
+    ? generationOptions.preserveHardCellsByDate
+    : {};
 
   for (let rowIdx = 0; rowIdx < maxRows; rowIdx += 1) {
     if (!hardRows[rowIdx] && softRows[rowIdx]) hardRows[rowIdx] = { date: softRows[rowIdx].date || '', cells: Array(HARD_MACHINE_HEADERS.length).fill('') };
@@ -816,7 +1047,7 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
     if (!hardRow && !softRow) continue;
     const dateLabel = (hardRow && hardRow.date) || (softRow && softRow.date) || '';
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
-    const absenceNames = adminRotationNamesForAbsenceDate(month.notes, dateLabel, knownNames);
+    const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     blockedByAbsence += absenceNames.size;
     if (adminRotationGeneratorIsDayBlocked(dayNotes)) {
       if (hardRow) hardRow.cells = Array(HARD_MACHINE_HEADERS.length).fill('');
@@ -824,7 +1055,10 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
       skippedDays += 1;
       continue;
     }
-    const generated = adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, absenceNames, monthKey);
+    const preserveHardCells = Array.isArray(preserveHardCellsByDate[dateLabel])
+      ? preserveHardCellsByDate[dateLabel]
+      : null;
+    const generated = adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, absenceNames, monthKey, { preserveHardCells });
     if (hardRow) hardRow.cells = generated.hardCells;
     if (softRow) softRow.cells = generated.softCells;
     filledCells += generated.filledCells;
@@ -838,44 +1072,53 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth) {
   month.soft.rows = softRows;
   month.soft.machines = SOFT_MACHINE_HEADERS.slice();
   month.soft.title = month.soft.title || 'Rotace měkota';
-  const tnksBalance = adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
-  const soloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);
-  const softTotalBalance = adminRotationGeneratorBalanceSoftTotals(month, model, monthKey);
-  const softKindBalance = adminRotationGeneratorBalanceSoftKind(month, model);
-  const soloMillRebalance = adminRotationGeneratorBalanceSoloMill(month, model);
-  const kminekNovotnyMoToBalance = adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model);
-  const emptyHardRepair = adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey);
-  const tnksPostRepairBalance = emptyHardRepair && Number(emptyHardRepair.repairs || 0)
+  const scopedDateLabels = Array.isArray(generationOptions.scopedDateLabels)
+    ? generationOptions.scopedDateLabels.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+  const scopedGeneration = scopedDateLabels.length > 0;
+  const scopedNoop = () => ({ swaps: 0, repairs: 0, spread: 0, tbkSpread: 0, unresolved: [], disabled: false });
+  // RaK 1.7.120: Neplánovaná změna potřebuje jen čistý výsledek BuildDay pro vybraný den.
+  // Měsíční dorovnávací/repair průchody mohou legitimně prohazovat jiné dny a
+  // v minulosti tím vracely absenci/Kalírnu zpět do právě přepočítaného dne.
+  const tnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
+  const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const softTotalBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftTotals(month, model, monthKey);
+  const softKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
+  const soloMillRebalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const kminekNovotnyMoToBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model);
+  const emptyHardRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey);
+  const tnksPostRepairBalance = !scopedGeneration && emptyHardRepair && Number(emptyHardRepair.repairs || 0)
     ? adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey)
-    : { swaps: 0 };
-  const tnksConsecutiveRepair = adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey);
-  const finalSoftKindBalance = adminRotationGeneratorBalanceSoftKind(month, model);
-  const finalTnksBalance = adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
-  const tpkw02Balance = adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
-  const finalSoloMillBalance = adminRotationGeneratorBalanceSoloMill(month, model);
+    : scopedNoop();
+  const tnksConsecutiveRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey);
+  const finalSoftKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
+  const finalTnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
+  const tpkw02Balance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
+  const finalSoloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
   // RAK_GENERATOR_FINAL_SOLO_MILL_CALL_17008
-  const finalSoloMillStreakRepair = adminRotationGeneratorRepairConsecutiveSoloMill17008(month, model, monthKey);
+  const finalSoloMillStreakRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairConsecutiveSoloMill17008(month, model, monthKey);
   // RAK_GENERATOR_SOLO_MILL_SPREAD_CALL_17009
-  const finalSoloMillSpreadRepair = adminRotationGeneratorRepairSoloMillSpread17009(month, model, monthKey);
+  const finalSoloMillSpreadRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairSoloMillSpread17009(month, model, monthKey);
   // RAK_GENERATOR_SUNDAY_TBK_FAIRNESS_CALL_17011
-  const annualSundayTbkrCleanupBalance = adminRotationGeneratorBalanceSundayTbkrCleanup17011(month, model, monthKey);
+  const annualSundayTbkrCleanupBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSundayTbkrCleanup17011(month, model, monthKey);
   // RAK_GENERATOR_PRESS_HALF_STEP_CALL_17012
-  const pressHalfStepBalance = adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey);
+  const pressHalfStepBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey);
   // RAK_TPKW02_FINAL_CALL_17013
-  const finalTpkw02Balance = adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey);
+  const finalTpkw02Balance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey);
   const ruleCheck = adminRotationValidateMonthRules(month, monthKey, { source: 'generator' });
   if (finalTpkw02Balance.spread > 1 && !finalTpkw02Balance.disabled) {
     ruleCheck.issues.push({ severity: 'warn', code: 'tpkw02-month-spread', message: 'TPKW02 nelze s aktuální kvalifikací bezpečně vyrovnat na rozdíl 1 směny.' });
   }
   const criticalIssues = ruleCheck.issues.filter((issue) => issue && issue.severity === 'error');
-  if (criticalIssues.length) {
+  const allowScopedRuleErrors = generationOptions.allowScopedRuleErrors === true;
+  if (criticalIssues.length && !allowScopedRuleErrors) {
     throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · '));
   }
   // Po opravach a prohozech vrat skutecny pocet obsazenych bunek, ne puvodni odhad.
   const finalFilledCells = hardRows.concat(softRows).reduce((count, row) => count +
     (Array.isArray(row && row.cells) ? row.cells : []).filter((name) => adminRotationIsRealName(name, model.knownNames)).length, 0);
   const normalized = normalizeMonthForImport(month, fallback);
-  adminRotationGeneratorSetPendingDraft(monthKey, normalized);
+  if (generationOptions.persistPending !== false) adminRotationGeneratorSetPendingDraft(monthKey, normalized);
   return {
     normalized,
     days,

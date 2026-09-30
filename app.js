@@ -89,22 +89,30 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-login-life.js"
   ];
 
-  const startupFiles = [
+  // RAK_17127_INTERACTION_FOUNDATION: the returning PWA must bind real navigation
+  // before auth helpers, dashboard work, local Rotation hydration or any network SDK.
+  const interactionCoreFiles = [
     "core.js",
+    "ui.js"
+  ];
+  const interactionShellFiles = [
     "lifecycle.js",
+    "app-navigation.js",
+    "app-bottom-nav.js",
+    "app-actions.js",
+    "rak-feature-routing.js"
+  ];
+
+  const startupFiles = [
+    "rak-rotation-local-store.js",
     "app-runtime-guards.js",
     "qr.js",
     "payroll.js",
     "dashboard.js",
     "appearance-theme.js",
-    "ui.js",
-    "app-navigation.js",
-    "app-bottom-nav.js",
-    "app-actions.js",
     "app-pwa-connectivity.js",
     "app-home-boot.js",
-    "rak-runtime-stability.js",
-    "rak-feature-routing.js"
+    "rak-runtime-stability.js"
   ];
 
   const rotationFeatureFiles = [
@@ -144,7 +152,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-shift-report-share.js"
   ];
 
+  // RAK_17134_ADMIN_SHELL_SPLIT: keep Admin-only markup outside the ordinary
+  // menu/startup parse path. The tiny shell is cached locally and loaded only
+  // after a verified admin role or an explicit Admin entry.
+  const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
+
   const adminFeatureFiles = [
+    "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",
     "admin-rotation-overtime.js",
     "admin-rotation-generator.js",
@@ -162,7 +176,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-menu-admin-export.js",
     "app-menu-admin-storage.js",
     "app-menu-admin-service.js",
-    "app-menu-admin-renderer.js",
     "export.js",
     "app-excel-import.js",
     "rak-lazy-external-libs.js",
@@ -206,6 +219,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-menu-admin-storage.js",
     "app-menu-admin-service.js",
     "app-menu-admin-renderer.js",
+    "app-menu-admin-shell.js",
     "app-menu.js",
     "app-menu-pages.js",
     "app-menu-bug-report.js",
@@ -265,7 +279,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     // before those consumers exist, especially on a cold offline iOS start.
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, dependencies: Object.freeze([]) }),
-    admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["menu", "sync"]) })
+    "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
+    admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
   });
 
   const modulePromises = new Map();
@@ -274,6 +289,133 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   let remoteSyncActivationPromise = null;
   let rakBootLocalHydrationInProgress = false;
   const bootStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  window.__rakBootV2StartedAt = bootStartedAt;
+
+  // RAK_17084_LOCAL_FIRST_BOOT: read the verified Rotation snapshot without loading
+  // Supabase. Returning/offline starts can paint "kam jdu" before any remote work.
+  const RAK_BOOT_ROTATION_LOCAL_KEY = 'rotace_kalkulacky_state_v123';
+  const RAK_BOOT_ROTATION_META_KEY = 'rotace_supabase_local_state_v1';
+  const RAK_BOOT_ROTATION_DURABLE_CACHE = 'rotace-offline-data-v1';
+  const RAK_BOOT_ROTATION_DURABLE_REQUEST = './__rak/offline/rotation-state-v1.json';
+
+  function rakBootRotationFingerprint(rotation) {
+    let json = '';
+    try { json = JSON.stringify(rotation); } catch (_) { return ''; }
+    let hash = 2166136261;
+    for (let i = 0; i < json.length; i += 1) {
+      hash ^= json.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return json.length.toString(36) + ':' + (hash >>> 0).toString(36);
+  }
+
+  function rakBootRotationCandidate(payload, meta, source, strictFingerprint) {
+    if (!payload || typeof payload !== 'object' || !payload.months) return null;
+    const safeMeta = meta && typeof meta === 'object' ? meta : {};
+    const actualFingerprint = rakBootRotationFingerprint(payload);
+    const storedFingerprint = String(safeMeta.fingerprint || '');
+    const verified = !storedFingerprint || storedFingerprint === actualFingerprint;
+    if (!verified && strictFingerprint) return null;
+    return {
+      payload,
+      source: verified ? String(source || 'local-cache') : String(source || 'local-cache') + '-unverified',
+      revision: verified ? Math.max(0, Number(safeMeta.revision || 0) || 0) : 0,
+      savedAt: verified ? Math.max(0, Number(safeMeta.savedAt || safeMeta.updatedAt || 0) || 0) : 0,
+      fingerprint: actualFingerprint,
+      verified
+    };
+  }
+
+  function rakReadBootLocalRotationCandidate() {
+    try {
+      const localMeta = JSON.parse(localStorage.getItem(RAK_BOOT_ROTATION_META_KEY) || 'null');
+      const canonical = JSON.parse(localStorage.getItem(RAK_BOOT_ROTATION_LOCAL_KEY) || 'null');
+      const legacy = localMeta && localMeta.rotation && typeof localMeta.rotation === 'object' ? localMeta.rotation : null;
+      const payload = canonical && canonical.months ? canonical : (legacy && legacy.months ? legacy : null);
+      if (!payload) return null;
+      const meta = Object.assign({}, localMeta && localMeta.rotationMeta || {});
+      if (!meta.savedAt && localMeta) meta.savedAt = Number(localMeta.rotationSavedAt || localMeta.updatedAt || 0) || 0;
+      return rakBootRotationCandidate(payload, meta, 'local-cache', false);
+    } catch (_) { return null; }
+  }
+
+  async function rakReadBootDurableRotationCandidate() {
+    if (typeof caches === 'undefined') return null;
+    try {
+      const cache = await caches.open(RAK_BOOT_ROTATION_DURABLE_CACHE);
+      const requestUrl = new URL(RAK_BOOT_ROTATION_DURABLE_REQUEST, window.location.href).href;
+      const response = await cache.match(requestUrl);
+      if (!response) return null;
+      const stored = await response.json();
+      return rakBootRotationCandidate(stored && stored.payload, stored, 'durable-cache', true);
+    } catch (_) { return null; }
+  }
+
+  function rakCompareBootRotationCandidates(a, b) {
+    if (!a) return b ? -1 : 0;
+    if (!b) return 1;
+    if (a.revision !== b.revision) {
+      if (a.revision > 0 && b.revision === 0) return 1;
+      if (b.revision > 0 && a.revision === 0) return -1;
+      if (a.revision > 0 && b.revision > 0) return a.revision - b.revision;
+    }
+    if (a.savedAt !== b.savedAt) return a.savedAt - b.savedAt;
+    if (a.verified !== b.verified) return Number(a.verified) - Number(b.verified);
+    return Number(a.source === 'durable-cache') - Number(b.source === 'durable-cache');
+  }
+
+  async function hydrateRakRotationLocalFirst() {
+    if (window.RakRotationLocalStore && typeof window.RakRotationLocalStore.loadBestOfflineRotationState === 'function') {
+      const selected = await window.RakRotationLocalStore.loadBestOfflineRotationState({ repair: true });
+      if (!selected || !selected.payload) return null;
+      try {
+        if (typeof app === 'object' && app) app.rotation = selected.payload;
+        window.__rakBootLocalFirstRotation = {
+          source: String(selected.meta && selected.meta.source || 'local-store'),
+          revision: Math.max(0, Number(selected.revision || 0) || 0),
+          savedAt: Math.max(0, Number(selected.meta && selected.meta.savedAt || selected.updatedAt || 0) || 0),
+          verified: true,
+          at: Date.now()
+        };
+      } catch (_) {}
+      return selected;
+    }
+    const local = rakReadBootLocalRotationCandidate();
+    const durable = await rakReadBootDurableRotationCandidate();
+    let selected = local || durable;
+    if (local && durable && rakCompareBootRotationCandidates(durable, local) > 0) selected = durable;
+    if (!selected || !selected.payload) return null;
+    try {
+      if (typeof app === 'object' && app) app.rotation = selected.payload;
+      window.__rakBootLocalFirstRotation = {source:selected.source,revision:selected.revision,savedAt:selected.savedAt,verified:selected.verified,at:Date.now()};
+    } catch (_) {}
+    return selected;
+  }
+
+  window.rakMarkFirstUsableRender = function rakMarkFirstUsableRender(source) {
+    if (Number(window.__rakFirstUsableRenderMs || 0) > 0) return window.__rakFirstUsableRenderMs;
+    const hasRotation = !!(typeof app === 'object' && app && app.rotation && app.rotation.months);
+    if (!hasRotation) return null;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const elapsed = Math.max(0, Math.round(now - bootStartedAt));
+    window.__rakFirstUsableRenderMs = elapsed;
+    window.__rakFirstUsableRenderSource = String(source || 'dashboard');
+    window.__rakFirstUsableRenderHasRotation = true;
+    return elapsed;
+  };
+
+  function markRakFirstInteractive(source) {
+    if (Number(window.__rakFirstInteractiveMs || 0) > 0) return window.__rakFirstInteractiveMs;
+    const nav = document.querySelector('.bottomNav');
+    if (!nav || nav.__rotaceBound !== true) return null;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const elapsed = Math.max(0, Math.round(now - bootStartedAt));
+    window.__rakFirstInteractiveMs = elapsed;
+    window.__rakFirstInteractiveSource = String(source || 'startup-shell');
+    window.__rakFirstInteractiveAuthState = String(document.documentElement && document.documentElement.dataset.rakAuthState || '');
+    return elapsed;
+  }
+  window.rakMarkFirstInteractive = markRakFirstInteractive;
 
   function normalizeScriptPath(value) {
     return String(value || '').replace(/^\.\//, '').split('?')[0].trim();
@@ -305,7 +447,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const started = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady(key, 'loading', { source: 'boot-v2-loader' });
       script.src = key + "?v=" + encodeURIComponent(RAK_MODULE_CACHE_VERSION);
-      script.async = false;
+      // RAK_17134_ADMIN_SHELL_NO_HOL: most legacy dynamic modules preserve
+      // ordered execution. The tiny Admin shell is different: its "menu"
+      // dependency is already resolved by the feature graph, so keeping it in
+      // the ordered dynamic-script queue would let a pending sync script ahead
+      // of it block the first Admin open.
+      script.async = key === "app-menu-admin-shell.js";
       script.dataset.rakBootV2Module = key;
       script.onload = () => {
         const ended = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -349,6 +496,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const previous = window.toggleAppMenu;
       const singlePass = function toggleAppMenuBootV2SinglePass() {
         showPage('menu');
+        // RAK_17130_FULL_MENU_RENDER_AFTER_LAZY: showPage only changes visibility.
+        // Re-render the local root synchronously so an empty/stale #appMenuBody
+        // can never survive until sync or until the next tab switch.
+        if (typeof openAppMenu === 'function') openAppMenu('menu');
         try { if (typeof window.__rakApplyBottomNavMoreHardFix === 'function') window.__rakApplyBottomNavMoreHardFix(); } catch (err) {}
         try { if (typeof window.__rakApplyFixedBottomNavMetricsNow === 'function') window.__rakApplyFixedBottomNavMetricsNow(); } catch (err) {}
       };
@@ -411,9 +562,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
     } else if (name === 'sync') {
-      // RAK_17082_BOOT_SYNC_ORDER: when startup is loading sync only to hydrate
-      // persisted Rotation, do not race that hydration with remote activation.
-      if (!rakBootLocalHydrationInProgress) void activateRemoteSync();
+      // RAK_17132_SYNC_LOAD_IS_LOCAL: loading the sync/data module is not a
+      // permission to touch the network. Remote refresh has one explicit owner
+      // after local-first readiness (or an explicit reconnect/manual action).
     } else if (name === 'menu') {
       reapplyMoreSinglePassAfterLazyMenu();
       try { if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu(); } catch (err) {}
@@ -460,8 +611,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     let appearanceSyncLastAt = 0;
     const syncActiveAppearance = (source) => {
       const now = Date.now();
+      if (!window.__rakBootV2LocalReady) {
+        window.__rakPendingAppearanceSyncSource = String(source || 'deferred');
+        return Promise.resolve(false);
+      }
       if (appearanceSyncPromise) return appearanceSyncPromise;
-      if (source !== 'startup' && source !== 'profile-ready' && now - appearanceSyncLastAt < 1500) return Promise.resolve(false);
+      if (source !== 'startup-ready' && source !== 'profile-ready' && now - appearanceSyncLastAt < 1500) return Promise.resolve(false);
       appearanceSyncLastAt = now;
       appearanceSyncPromise = ensureFeature('sync').then(() => {
         try {
@@ -496,12 +651,20 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       version: RAK_MODULE_CACHE_VERSION,
       startupReady: !!window.__rakBootV2StartupReady,
       startupReadyMs: Number(window.__rakBootV2StartupReadyMs || 0),
+      firstUsableRenderMs: Number(window.__rakFirstUsableRenderMs || 0) || null,
+      firstUsableRenderSource: String(window.__rakFirstUsableRenderSource || ''),
+      firstInteractiveMs: Number(window.__rakFirstInteractiveMs || 0) || null,
+      firstInteractiveSource: String(window.__rakFirstInteractiveSource || ''),
+      firstInteractiveAuthState: String(window.__rakFirstInteractiveAuthState || ''),
+      localFirstRotation: window.__rakBootLocalFirstRotation || null,
+      localReady: !!window.__rakBootV2LocalReady,
       elapsedMs: Math.max(0, Math.round(now - bootStartedAt)),
       loadedModuleCount: modulePromises.size,
       features: Object.keys(featureSpecs).reduce((out, key) => {
         out[key] = featureState[key] || 'deferred';
         return out;
       }, {}),
+      interactionFiles: interactionCoreFiles.concat(interactionShellFiles),
       startupFiles: startupFiles.slice(),
       featureFileCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, spec.files.length]))
     };
@@ -510,14 +673,46 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   try {
     if (window.__rakModuleReadinessRegistry) {
       window.__rakModuleReadinessRegistry.expected = ['module-readiness.js', 'rak-namespace.js', 'rak-dom-security-hardening.js', 'app.js', 'data.js']
-        .concat(criticalFiles, startupFiles);
+        .concat(interactionCoreFiles, interactionShellFiles, criticalFiles, startupFiles);
       if (typeof initialRotationData !== 'undefined' && typeof window.rakMarkModuleReady === 'function') {
         window.rakMarkModuleReady('data.js', 'loaded', { source: 'index-preload' });
       }
     }
   } catch (err) {}
 
-  for (const file of criticalFiles) await loadScript(file);
+  // RAK_LOCAL_FIRST_FIRST_PAINT: index.html has already restored the cached Home
+  // snapshot and installed final static navigation/Menu geometry. Yield one visual
+  // frame before starting dynamic hydration so module parsing cannot steal the
+  // first usable paint. This is local-only scheduling; it does not wait on network.
+  await new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== 'function' || (typeof document !== 'undefined' && document.hidden)) {
+      setTimeout(resolve, 0);
+      return;
+    }
+    requestAnimationFrame(() => resolve());
+  });
+  window.__rakBootV2FirstPaintYielded = true;
+
+  // RAK_17127_PARALLEL_FOUNDATION: critical auth/security loading begins
+  // immediately and runs in parallel with the local interaction foundation.
+  // This keeps the shell clickable early without pushing startupReady backwards.
+  const criticalLoadPromise = (async () => {
+    for (const file of criticalFiles) await loadScript(file);
+  })();
+
+  // Core/UI are ordered because ui.js reads core constants. The rest of the
+  // interaction shell can load in parallel and is fully local/cacheable.
+  for (const file of interactionCoreFiles) await loadScript(file);
+  await loadFiles(interactionShellFiles);
+  try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Earliest bottom nav binding failed', err); }
+  // RAK_17131_PREBOOT_NAV_HANDOFF: if the user tapped the already-visible
+  // navigation before the dynamic interaction shell arrived, continue that same
+  // action now. The first paint never has to wait for sync just to accept a tap.
+  try { if (typeof window.__rakConsumePrebootNav === 'function') window.__rakConsumePrebootNav(); } catch (err) { console.warn('Preboot nav handoff failed', err); }
+  try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Earliest delegated action binding failed', err); }
+  try { markRakFirstInteractive('startup-shell-bound'); } catch (err) {}
+
+  await criticalLoadPromise;
 
   try { if (typeof window.rakUserProfileBootstrap === 'function') window.rakUserProfileBootstrap(); } catch (err) { console.warn('RaK user profile bootstrap failed', err); }
 
@@ -533,7 +728,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
   }
 
+  // Do not compete with startupReady by warming menu here. The bottom-nav early
+  // shell already responds immediately; normal background warmup starts post-ready.
   await loadFiles(startupFiles);
+
+  // RAK_17125_EARLY_INTERACTION remains idempotently enforced here as well.
+  try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Early bottom nav binding failed', err); }
+  try { if (typeof installDelegatedAppActions === 'function') installDelegatedAppActions(); } catch (err) { console.warn('Early delegated action binding failed', err); }
 
   try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
   try {
@@ -541,41 +742,46 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (storedProfile && typeof window.rakUserProfileApplyToRuntime === 'function') window.rakUserProfileApplyToRuntime(storedProfile);
     if (typeof window.rakUserProfileRefreshMenu === 'function') window.rakUserProfileRefreshMenu();
   } catch (err) { console.warn('RaK user profile runtime restore failed', err); }
-  try { if (typeof window.__rakSyncActiveAppearance === 'function') void window.__rakSyncActiveAppearance('startup'); } catch (err) {}
-
-  // RAK_17080_OFFLINE_BOOT_RESTORE / RAK_17082_RETURNING_SW_HYDRATION:
-  // navigator.onLine can lag on iOS. Every returning service-worker-controlled
-  // startup therefore hydrates persisted Rotation before startupReady, even when
-  // navigator temporarily claims "online". The first uncached online visit keeps
-  // the fast lazy path because it has no controlling service worker yet.
+  // RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine is only a hint. It no longer
+  // decides whether local hydration happens: every startup restores the newest
+  // verified local snapshot and prepares all ordinary local surfaces before
+  // online refresh is even eligible to start.
+  const rakOfflineAtBoot = !!(
+    typeof navigator !== 'undefined' &&
+    navigator.onLine === false
+  );
   const rakReturningServiceWorkerStart = !!(
     typeof navigator !== 'undefined' &&
     navigator.serviceWorker &&
     navigator.serviceWorker.controller
   );
-  const rakMustHydrateRotationBeforeReady = !!(
-    (typeof navigator !== 'undefined' && navigator.onLine === false) ||
-    rakReturningServiceWorkerStart
-  );
+  const rakMustHydrateRotationBeforeReady = true;
   if (rakMustHydrateRotationBeforeReady) {
     rakBootLocalHydrationInProgress = true;
     try {
-      await ensureFeature('sync');
-      // RAK_17082_AWAIT_RUNTIME_HYDRATION: cache arbitration alone is not enough;
-      // app.rotation and its dependent UI must be updated before startupReady.
-      if (typeof window.hydrateRakRotationFromOfflineCache === 'function') {
-        await window.hydrateRakRotationFromOfflineCache({ repair: true, force: true });
-      }
+      await hydrateRakRotationLocalFirst();
+      await ensureFeature('rotation');
+      await Promise.all([
+        ensureFeature('calculators'),
+        ensureFeature('menu')
+      ]);
+      // RAK_17132_LOCAL_STORAGE_SPLIT: local snapshot/cache is already provided
+      // by rak-rotation-local-store.js. Do not load syncFeatureFiles here.
+      // Supabase bridge and app-rotation-sync remain strictly post-startup.
+      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
+      try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+      try {
+        const menuPage = document.getElementById('menu');
+        if (menuPage && menuPage.classList.contains('active') && typeof openAppMenu === 'function') openAppMenu('menu');
+      } catch (err) {}
     } catch (err) {
-      console.warn('Persisted Rotation restore during boot failed', err);
+      console.warn('Local-first UI restore during boot failed', err);
     } finally {
       rakBootLocalHydrationInProgress = false;
     }
-    // Remote sync is deliberately after local hydration and never blocks startupReady.
-    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
-      void activateRemoteSync().catch((err) => console.warn('Post-hydration online sync failed', err));
-    }
   }
+  window.__rakBootV2LocalReady = true;
+  window.__rakBootV2LocalReadySource = rakReturningServiceWorkerStart ? 'returning-pwa' : 'local-runtime';
 
   const startupReadyAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   window.__rakBootV2StartupReady = true;
@@ -604,7 +810,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     else if (typeof bootHomeRefresh === 'function') bootHomeRefresh();
   } catch (err) { console.warn('Post-load Home boot failed', err); }
 
-  const startSync = () => ensureFeature('sync').catch((err) => console.warn('Boot v2 sync preload failed', err));
+  // RAK_17132_BACKGROUND_REMOTE_REFRESH: local UI is complete at this point.
+  // Network work is intentionally fire-and-forget and cannot own the route.
+  const startSync = () => ensureFeature('sync')
+    .then(() => activateRemoteSync())
+    .then(() => {
+      if (typeof window.__rakSyncActiveAppearance === 'function') return window.__rakSyncActiveAppearance('startup-ready');
+      return true;
+    })
+    .catch((err) => console.warn('Boot v2 background sync failed', err));
   if (typeof requestIdleCallback === 'function') requestIdleCallback(startSync, { timeout: 1200 });
   else setTimeout(startSync, 450);
 

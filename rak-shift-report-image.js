@@ -521,6 +521,15 @@
     return 'RaK_report_smeny_' + date + '_' + shift + '.png';
   }
 
+  function shiftReportShareTitle(root) {
+    const model = collectModel(root);
+    const rawDate = String(model.date || '').trim();
+    const rawShift = String(model.shift || '').trim().toUpperCase();
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? formatDate(rawDate) : '—';
+    const shift = ['N', 'R', 'N8', 'R8'].includes(rawShift) ? shiftLabel(rawShift) : '—';
+    return 'RaK – Report směny diferenciály · ' + date + ' · ' + shift;
+  }
+
   async function buildBlob(root) {
     const model = collectModel(root);
     const sig = signature(model);
@@ -593,7 +602,8 @@
     status(root, 'Otevírám sdílení obrázku – vyber WhatsApp.');
     let sharePromise;
     try {
-      sharePromise = navigator.share({ title: 'RaK – Report směny diferenciály', files: [file] });
+      const caption = shiftReportShareTitle(root);
+      sharePromise = navigator.share({ title: caption, text: caption, files: [file] });
     } catch (err) {
       downloadEntry(entry);
       status(root, 'Sdílení obrázku není dostupné; PNG bylo uložené.');

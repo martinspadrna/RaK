@@ -2875,12 +2875,13 @@ html body nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavBtn
   transform:none !important;
 }
 html body nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMenuBtn .moreIcon{
-  width:clamp(16px, 4.8vw, 20px) !important;
-  height:clamp(23px, 6.4vw, 27px) !important;
-  max-width:20px !important;
-  max-height:27px !important;
+  width:32px !important;
+  height:32px !important;
+  max-width:32px !important;
+  max-height:32px !important;
+  flex:0 0 32px !important;
   margin:0 auto !important;
-  transform:translateX(1px) !important;
+  transform:none !important;
 }
 html body nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMenuBtn .bottomNavLabel{
   display:block !important;
@@ -2900,10 +2901,15 @@ html body nav.bottomNav > #bottomNavScroll.bottomNavScroll .bottomNavActiveIndic
   left:0 !important;
 }
 
-@media (max-width:370px){
+@media (max-width:390px){
   :root{--rak-v973-nav-more-w:36px;--rak-v973-nav-gap:3px;--rak-v973-main-nav-icon:32px;}
   html body nav.bottomNav > #bottomNavScroll.bottomNavScroll{padding-left:4px !important;padding-right:4px !important;}
+  html body nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMenuBtn .moreIcon{width:30px !important;height:30px !important;max-width:30px !important;max-height:30px !important;flex-basis:30px !important;}
   html body nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMenuBtn .bottomNavLabel{font-size:7.6px !important;}
+}
+body.lightweightMode nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMenuBtn .moreIcon,
+body.lowEndDevice nav.bottomNav > #bottomNavScroll.bottomNavScroll > button.bottomNavMenuBtn .moreIcon{
+  width:28px !important;height:28px !important;max-width:28px !important;max-height:28px !important;flex-basis:28px !important;
 }
 
 /* v.1.5 (976) – spodní lišta beze změny rozměrů: aktivní ikona +20 %, text aktivní položky skrytý; křížek v Rozpisech/Statistikách opticky výš. */

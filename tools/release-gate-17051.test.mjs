@@ -52,7 +52,7 @@ test('two builds and live HTTP remain mandatory; history and replay preserved',(
  assert(read('tools/development-version-17050.mjs').includes("'tools/release-gate-17050.test.mjs'"));
 });
 test('live 13-point plan is checked independently of historic release wording',()=>{
- const progress=verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+ const progress=verifyRoadmapProgress(read('RAK_HANDOFF.md'));
  assert.equal(progress.length,13);
  assert.equal(progress.find(item=>item.id==='P0.2').percentage,100);
  assert(read('SECURITY_DEPLOYMENT.md').includes('rollback'));

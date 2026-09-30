@@ -5,3 +5,7 @@ verify_jwt = true
 
 [functions.rak-admin-users]
 verify_jwt = true
+
+# P1.5 TEST-only GitHub OIDC export bridge. Custom auth is enforced inside the function.
+[functions.rak-p15-restore-export]
+verify_jwt = false

@@ -13,6 +13,17 @@ const RAK_ADMIN_DEVICE_ID_KEY = 'adminDeviceIdV1';
 const RAK_ADMIN_SESSION_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const RAK_ADMIN_SESSION_TOUCH_MS = 30 * 60 * 1000;
 const RAK_ADMIN_TRUSTED_SESSION_MARKER = '::rak-trusted-session::';
+let rakAdminSecureRestorePromise = null;
+let rakAdminSecureRestoreAccountId = '';
+
+function rakAdminNotifyAccessChanged(reason) {
+  void reason;
+  try {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new Event('rak-admin-access-changed'));
+    }
+  } catch (err) {}
+}
 
 // Synchronni SHA-256 (bez Web Crypto), aby hesla nizsich adminu nemusela byt
 // ulozena/porovnavana jako plaintext v Supabase radku ani v uplne zaloze nastaveni.
@@ -244,6 +255,7 @@ function rakAdminApplySecureContext(context, capabilities) {
   rakAdminClearPersistentSession();
   if (typeof updateImportBoxVisibility === 'function') updateImportBoxVisibility();
   if (role === 'owner') void rakAdminLoadSecureDirectory();
+  rakAdminNotifyAccessChanged('secure-context');
   return true;
 }
 
@@ -374,11 +386,29 @@ async function rakAdminRestoreSecureSessionForActiveAccount(reason) {
   const activeId = rakAdminGetActiveAccountId();
   const bridge = window.RotationSupabaseBridge;
   if (!activeId || !bridge || typeof bridge.restoreAdminAuthSession !== 'function') return false;
-  const capabilities = await rakAdminGetSecureCapabilities(false);
-  if (!capabilities.available) return false;
-  const result = await bridge.restoreAdminAuthSession(activeId, rakAdminSecureDevicePayload());
-  if (!result || !result.ok) return false;
-  return rakAdminApplySecureContext(result.context, capabilities);
+  if (rakAdminCanOpenShiftReport()
+    && typeof app !== 'undefined' && app
+    && String(app.adminAccountId || '') === activeId) return true;
+  if (rakAdminSecureRestorePromise && rakAdminSecureRestoreAccountId === activeId) {
+    return await rakAdminSecureRestorePromise;
+  }
+  const pending = (async () => {
+    const capabilities = await rakAdminGetSecureCapabilities(false);
+    if (!capabilities.available) return false;
+    const result = await bridge.restoreAdminAuthSession(activeId, rakAdminSecureDevicePayload());
+    if (!result || !result.ok) return false;
+    return rakAdminApplySecureContext(result.context, capabilities);
+  })();
+  rakAdminSecureRestorePromise = pending;
+  rakAdminSecureRestoreAccountId = activeId;
+  try {
+    return await pending;
+  } finally {
+    if (rakAdminSecureRestorePromise === pending) {
+      rakAdminSecureRestorePromise = null;
+      rakAdminSecureRestoreAccountId = '';
+    }
+  }
 }
 
 async function rakAdminSecureSignIn(accountId, password) {
@@ -507,6 +537,7 @@ function rakAdminLock(options) {
     const bridge = window.RotationSupabaseBridge;
     if (bridge && typeof bridge.signOutAdminAccount === 'function') void bridge.signOutAdminAccount();
   } catch (err) {}
+  rakAdminNotifyAccessChanged('locked');
 }
 
 function rakAdminSessionMatchesSettings(session, settings) {
@@ -862,13 +893,14 @@ function buildAdminSessionDevicesHtml(source) {
       }).join('')
     : '<tr><td colspan="4"><span class="smallText">Zatím není uložené žádné odemčené admin zařízení. Objeví se po přihlášení admin heslem.</span></td></tr>';
   return [
-    '<div class="tableWrap appMenuTableWrap uMt8">',
-    '  <div class="appMenuSubTitle">Přihlášená admin zařízení</div>',
-    '  <div class="smallText uMb10">Hlavní admin tady vidí zařízení, kde zůstala administrace odemčená. Odhlášení zařízení zruší všechny jeho admin relace, včetně dalších účtů v tomto prohlížeči. Nové přihlášení heslem je možné.</div>',
-    '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-    '    <thead><tr><th>Zařízení</th><th>Účet</th><th>Naposledy</th><th>Akce</th></tr></thead>',
-    '    <tbody>' + rows + '</tbody>',
-    '  </table>',
+    '<div class="adminAccountsSessionBody">',
+    '  <div class="smallText adminAccountsFoldHint">Odhlášení zařízení zruší jeho admin relace; nové přihlášení heslem zůstává možné.</div>',
+    '  <div class="tableWrap appMenuTableWrap adminAccountsTableWrap">',
+    '    <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsSessionTable">',
+    '      <thead><tr><th>Zařízení</th><th>Účet</th><th>Naposledy</th><th>Akce</th></tr></thead>',
+    '      <tbody>' + rows + '</tbody>',
+    '    </table>',
+    '  </div>',
     '</div>'
   ].join('');
 }
@@ -953,6 +985,38 @@ function buildAdminAccountsStatusHtml(source) {
   ].join('');
 }
 
+function buildAdminAccountEditableRowHtml(entry) {
+  const safe = entry && typeof entry === 'object' ? entry : {};
+  return [
+    '<tr data-admin-account-row>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(safe.accountId || '') + '" placeholder="os. c."></td>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(safe.label || '') + '" placeholder="jmeno / poznamka"></td>',
+    '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" minlength="6" maxlength="128" value="" placeholder="' + (safe.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
+    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (safe.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (safe.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
+    '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (safe.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
+    '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
+    '</tr>'
+  ].join('');
+}
+
+function ensureAdminAccountsBlankRow(root, preferredRow) {
+  const scope = root && root.querySelector ? root : document;
+  const tbody = scope.querySelector('.adminAccountsEditorTable tbody');
+  if (!tbody) return false;
+  const rows = Array.from(tbody.querySelectorAll('tr[data-admin-account-row]'));
+  const isBlank = (row) => !String(row.querySelector('[data-admin-account-id]')?.value || '').trim()
+    && !String(row.querySelector('[data-admin-account-label]')?.value || '').trim()
+    && !String(row.querySelector('[data-admin-account-password]')?.value || '').trim();
+  const blanks = rows.filter(isBlank);
+  let keep = preferredRow && blanks.includes(preferredRow) ? preferredRow : (blanks[blanks.length - 1] || null);
+  blanks.forEach((row) => { if (row !== keep) row.remove(); });
+  if (!keep) {
+    tbody.insertAdjacentHTML('beforeend', buildAdminAccountEditableRowHtml({ accountId: '', label: '', passwordHash: '', enabled: true, role: 'admin' }));
+    keep = tbody.lastElementChild;
+  }
+  return !!keep;
+}
+
 function buildAdminAccountsSettingsHtml() {
   if (!rakAdminCanManageAdmins()) {
     const settings = rakAdminGetAccountsSettings();
@@ -966,51 +1030,70 @@ function buildAdminAccountsSettingsHtml() {
     ].join('')).join('') || '<tr><td colspan="4"><span class="smallText">Seznam správců se načte po připojení.</span></td></tr>';
     return [
       buildAdminAccountsStatusHtml(settings),
+      '<div class="adminAccountsCompactSections">',
+      '  <details class="adminAccountsFold">',
+      '    <summary>Přehled rolí</summary>',
+      '    <div class="adminAccountsFoldBody">',
       buildAdminAccountsRoleOverviewHtml(settings),
-      '<div class="adminAccountsReadonlyNotice">',
-      '  <b>Správce může změnit pouze svoje heslo.</b>',
-      '  <span>Hesla všech účtů jsou z bezpečnostních důvodů vždy skrytá. Seznam správců, jejich přístupy i heslo hlavního admina může měnit jen účet 9811.</span>',
-      '</div>',
-      '<div class="tableWrap appMenuTableWrap uMt8">',
-      '  <div class="appMenuSubTitle">Ostatní správci</div>',
-      '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-      '    <thead><tr><th>Účet</th><th>Popis</th><th>Heslo</th><th>Stav</th></tr></thead>',
-      '    <tbody>' + rows + '</tbody>',
-      '  </table>',
+      '      <div class="adminAccountsReadonlyNotice">',
+      '        <b>Správce může změnit pouze svoje heslo.</b>',
+      '        <span>Hesla jsou vždy skrytá. Seznam správců a jejich přístupy může měnit jen hlavní admin.</span>',
+      '      </div>',
+      '    </div>',
+      '  </details>',
+      '  <details class="adminAccountsFold">',
+      '    <summary>Ostatní správci</summary>',
+      '    <div class="adminAccountsFoldBody">',
+      '      <div class="tableWrap appMenuTableWrap adminAccountsTableWrap">',
+      '        <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable adminAccountsReadonlyTable">',
+      '          <thead><tr><th>Účet</th><th>Popis</th><th>Heslo</th><th>Stav</th></tr></thead>',
+      '          <tbody>' + rows + '</tbody>',
+      '        </table>',
+      '      </div>',
+      '    </div>',
+      '  </details>',
       '</div>',
       buildAdminOwnPasswordHtml()
     ].join('');
   }
   const settings = rakAdminGetAccountsSettings();
-  const rows = settings.admins.concat(Array.from({ length: 4 }, () => ({ accountId: '', label: '', passwordHash: '', enabled: true })));
+  const rows = settings.admins.concat([{ accountId: '', label: '', passwordHash: '', enabled: true, role: 'admin' }]);
   const roster=typeof getRakWorkerRosterSettings==='function'?getRakWorkerRosterSettings():null;
   const availableAccounts=[].concat(Array.isArray(roster&&roster.workers)?roster.workers:[],
     Array.isArray(roster&&roster.appAccounts)?roster.appAccounts:[])
     .filter(row=>row&&/^\d{4}$/.test(String(row.loginNumber||'')));
   const accountOptions='<datalist id="rakAdminExistingAccounts17024">'+availableAccounts.map(row=>
     '<option value="'+escapeHtml(row.loginNumber)+'" label="'+escapeHtml(row.name)+'"></option>').join('')+'</datalist>';
-  const body = rows.map((entry) => [
-    '<tr data-admin-account-row>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(entry.accountId || '') + '" placeholder="os. c."></td>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(entry.label || '') + '" placeholder="jmeno / poznamka"></td>',
-    '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" value="" placeholder="' + (entry.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
-    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (entry.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (entry.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
-    '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (entry.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
-    '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
-    '</tr>'
-  ].join('')).join('');
+  const body = rows.map(buildAdminAccountEditableRowHtml).join('');
   return [
     buildAdminAccountsStatusHtml({ rows }),
     accountOptions,
+    '<div class="adminAccountsCompactSections">',
+    '  <details class="adminAccountsFold">',
+    '    <summary>Účty správců</summary>',
+    '    <div class="adminAccountsFoldBody">',
+    '      <div class="smallText adminAccountsFoldHint">Vyber účet a roli. Heslo nech prázdné, pokud ho nechceš měnit; odebrání nebo vypnutí potvrď uložením.</div>',
+    '      <div class="tableWrap appMenuTableWrap adminAccountsTableWrap">',
+    '        <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable adminAccountsEditorTable">',
+    '          <thead><tr><th>Účet</th><th>Popis</th><th>Heslo</th><th>Role</th><th>Aktivní</th><th></th></tr></thead>',
+    '          <tbody>' + body + '</tbody>',
+    '        </table>',
+    '      </div>',
+    '    </div>',
+    '  </details>',
+    '  <details class="adminAccountsFold">',
+    '    <summary>Role a bezpečnost</summary>',
+    '    <div class="adminAccountsFoldBody adminAccountsOverviewBody">',
     buildAdminAccountsRoleOverviewHtml(settings),
     buildAdminAccountsSafetyHtml(settings),
+    '    </div>',
+    '  </details>',
+    '  <details class="adminAccountsFold">',
+    '    <summary>Přihlášená zařízení</summary>',
+    '    <div class="adminAccountsFoldBody">',
     buildAdminSessionDevicesHtml(settings),
-    '<div class="tableWrap appMenuTableWrap uMt8">',
-    '  <div class="smallText uMb10">U každého účtu vyber roli: Správce spravuje pracovní části aplikace, Zástupce vidí pouze Report směny. Heslo nech prázdné, pokud ho nechceš měnit. Účet odeber nebo vypni a potvrď uložením. Hesla spravuje Supabase Auth.</div>',
-    '  <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense adminAccountsTable">',
-    '    <thead><tr><th>Ucet</th><th>Popis</th><th>Heslo</th><th>Role</th><th>Aktivni</th><th></th></tr></thead>',
-    '    <tbody>' + body + '</tbody>',
-    '  </table>',
+    '    </div>',
+    '  </details>',
     '</div>'
   ].join('');
 }
@@ -1018,16 +1101,18 @@ function buildAdminAccountsSettingsHtml() {
 function buildAdminOwnerPasswordHtml() {
   if (!rakAdminCanManageAdmins()) return '';
   return [
-    '<div class="adminOwnerPasswordPanel">',
-    '  <div class="appMenuSubTitle">Změna hesla hlavního admina</div>',
-    '  <div class="smallText">Po změně zůstane tento telefon přihlášený novým heslem.</div>',
-    '  <div class="adminOwnerPasswordGrid">',
-    '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-owner-password="current"></label>',
-    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-owner-password="new"></label>',
-    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-owner-password="confirm"></label>',
+    '<details class="adminAccountsFold adminAccountsPasswordFold">',
+    '  <summary>Moje heslo</summary>',
+    '  <div class="adminAccountsFoldBody adminOwnerPasswordPanel">',
+    '    <div class="smallText adminAccountsFoldHint">Po změně zůstane tento telefon přihlášený novým heslem.</div>',
+    '    <div class="adminOwnerPasswordGrid">',
+    '      <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-owner-password="current"></label>',
+    '      <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="new"></label>',
+    '      <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-owner-password="confirm"></label>',
+    '    </div>',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="change-owner-password">Změnit moje heslo</button>',
     '  </div>',
-    '  <button type="button" class="appMenuAction isActive" data-admin-action="change-owner-password">Změnit moje heslo</button>',
-    '</div>'
+    '</details>'
   ].join('');
 }
 
@@ -1035,16 +1120,18 @@ function buildAdminOwnPasswordHtml() {
   if (!rakAdminCanOpenAdmin() || rakAdminCanManageAdmins()) return '';
   const accountId = rakAdminGetActiveAccountId();
   return [
-    '<div class="adminOwnerPasswordPanel adminOwnPasswordPanel">',
-    '  <div class="appMenuSubTitle">Změna mého hesla</div>',
-    '  <div class="smallText">Měníš heslo pouze pro svůj admin účet ' + escapeHtml(accountId) + '.</div>',
-    '  <div class="adminOwnerPasswordGrid">',
-    '    <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
-    '    <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-own-password="new"></label>',
-    '    <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" data-admin-own-password="confirm"></label>',
+    '<details class="adminAccountsFold adminAccountsPasswordFold adminOwnPasswordPanel">',
+    '  <summary>Moje heslo</summary>',
+    '  <div class="adminAccountsFoldBody adminOwnerPasswordPanel">',
+    '    <div class="smallText adminAccountsFoldHint">Měníš heslo pouze pro svůj admin účet ' + escapeHtml(accountId) + '.</div>',
+    '    <div class="adminOwnerPasswordGrid">',
+    '      <label><span>Současné heslo</span><input class="appMenuInlineInput" type="password" autocomplete="current-password" data-admin-own-password="current"></label>',
+    '      <label><span>Nové heslo</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="new"></label>',
+    '      <label><span>Nové heslo znovu</span><input class="appMenuInlineInput" type="password" autocomplete="new-password" minlength="6" maxlength="128" data-admin-own-password="confirm"></label>',
+    '    </div>',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="change-own-admin-password">Změnit moje heslo</button>',
     '  </div>',
-    '  <button type="button" class="appMenuAction isActive" data-admin-action="change-own-admin-password">Změnit moje heslo</button>',
-    '</div>'
+    '</details>'
   ].join('');
 }
 
@@ -1054,7 +1141,7 @@ async function rakAdminChangeOwnerPassword(root) {
   const currentPassword = String(scope.querySelector('[data-admin-owner-password="current"]')?.value || '');
   const newPassword = String(scope.querySelector('[data-admin-owner-password="new"]')?.value || '');
   const confirmation = String(scope.querySelector('[data-admin-owner-password="confirm"]')?.value || '');
-  if (!currentPassword || newPassword.length < 12) return { ok: false, reason: 'password-too-short' };
+  if (!currentPassword || newPassword.length < 6) return { ok: false, reason: 'password-too-short' };
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;
@@ -1084,17 +1171,19 @@ async function rakAdminChangeOwnerPassword(root) {
 }
 
 async function rakAdminChangeOwnPassword(root) {
-  if (!rakAdminCanOpenAdmin() || rakAdminCanManageAdmins() || typeof app === 'undefined' || !app || app.adminAuthVersion !== 2) return { ok: false, reason: 'not-allowed' };
+  // RaK 1.7.149: owner/admin/deputy may change only their own password from Settings.
+  // This does not grant deputy access to any admin management surface.
+  if (!rakAdminCanOpenShiftReport() || typeof app === 'undefined' || !app || app.adminAuthVersion !== 2) return { ok: false, reason: 'not-allowed' };
   const accountId = rakAdminGetActiveAccountId();
   const scope = root && root.querySelector ? root : document;
   const currentPassword = String(scope.querySelector('[data-admin-own-password="current"]')?.value || '');
   const newPassword = String(scope.querySelector('[data-admin-own-password="new"]')?.value || '');
   const confirmation = String(scope.querySelector('[data-admin-own-password="confirm"]')?.value || '');
-  if (!accountId || !currentPassword || newPassword.length < 12) return { ok: false, reason: 'password-too-short' };
+  if (!accountId || !currentPassword || newPassword.length < 6) return { ok: false, reason: 'password-too-short' };
   if (newPassword !== confirmation) return { ok: false, reason: 'password-mismatch' };
   if (newPassword === currentPassword) return { ok: false, reason: 'password-unchanged' };
   const bridge = window.RotationSupabaseBridge;
-  const accessToken = bridge && typeof bridge.getAdminAccessToken === 'function' ? await bridge.getAdminAccessToken() : '';
+  const accessToken = bridge && typeof bridge.getSignedAdminAccessToken === 'function' ? await bridge.getSignedAdminAccessToken() : '';
   if (!accessToken) return { ok: false, reason: 'missing-session' };
   const adminUsersUrl = String(window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url || '').replace(/\/$/, '') + '/functions/v1/rak-admin-users';
   const response = await fetch(adminUsersUrl, {
@@ -1232,6 +1321,7 @@ try {
   window.rakAdminRevokePersistentSession = rakAdminRevokePersistentSession;
   window.rakAdminLock = rakAdminLock;
   window.rakAdminCanOpenAdmin = rakAdminCanOpenAdmin;
+window.ensureAdminAccountsBlankRow = ensureAdminAccountsBlankRow;
   window.rakAdminCanOpenShiftReport = rakAdminCanOpenShiftReport;
   window.rakAdminIsDeputy = rakAdminIsDeputy;
   window.rakAdminLoadAccountsDirectoryForViewer = rakAdminLoadAccountsDirectoryForViewer;

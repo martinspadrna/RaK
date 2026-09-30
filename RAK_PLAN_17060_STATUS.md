@@ -1,6 +1,6 @@
 # RaK — stav plánu po balíku 1.7.60 (20. 9. 2026)
 
-Navazuje na `RAK_PLAN_13.md`, nemění přijatá rizika ani historii. Pracovní větev pouze `development`, technická verze `1.7.0`, testovací databáze `cgshssdjgzzuprlwnabl`. Změny 1.7.60 se považují za vydané až po úspěšném GitHub Actions a Vercel READY se stejným SHA. Všechny lokální testy nenahrazují fyzické iOS Safari.
+Navazuje na `RAK_HANDOFF.md`, nemění přijatá rizika ani historii. Pracovní větev pouze `development`, technická verze `1.7.0`, testovací databáze `cgshssdjgzzuprlwnabl`. Změny 1.7.60 se považují za vydané až po úspěšném GitHub Actions a Vercel READY se stejným SHA. Všechny lokální testy nenahrazují fyzické iOS Safari.
 
 | Bod | Stav | Doložené kroky / zbývá |
 |---|---|---|

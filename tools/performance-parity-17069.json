@@ -1,0 +1,30 @@
+{
+  "schema": "rak-performance-parity-v1",
+  "baseline": {
+    "version": "1.7.69",
+    "sha": "1693c8631c13d6e381e44a96810a55140ad6aa62",
+    "buildPasses": 2
+  },
+  "current": {
+    "version": "1.8.8"
+  },
+  "rounds": 20,
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "deviceScaleFactor": 3
+  },
+  "metrics": {
+    "firstContentfulPaintMs": {
+      "maxMedianRegressionPct": 10,
+      "minMedianToleranceMs": 20,
+      "maxP95DeltaMs": 75,
+      "baselineMadMultiplier": 2,
+      "maxNoiseAllowanceMs": 50
+    }
+  },
+  "diagnostics": [
+    "startupReadyMs",
+    "wallReadyMs"
+  ]
+}

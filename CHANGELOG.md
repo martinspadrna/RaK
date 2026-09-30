@@ -1,3 +1,733 @@
+## RaK 1.8.8 (development)
+- Produkční rollout audit odhalil, že pozdější 1.7.148 přepsala `rak_admin_apply_unplanned_change_v2` a znovu zavedla retryable SQLSTATE `40001`, který 1.7.138 už odstranila.
+- Nová forward-only migrace `20260930112049_rak_unplanned_change_cas_nonretryable_188.sql` cíleně převádí finální definici tohoto RPC na `P0001` a fail-closed ověřuje, že `40001` nezůstalo. TEST live ověření po migraci: `40001=false`, `P0001=true`, authenticated EXECUTE zachováno.
+
+## RaK 1.8.7 (development)
+
+- Dokončení opravy živé auth diagnostiky pro roli zástupce: skutečný runtime ve `Více` (`app-menu.js`) teď používá stejný signed-role token jako změna vlastního hesla.
+- Kořen 1.8.6 byl nesynchronizovaný duplicitní zdroj diagnostiky: testovací helper byl opravený, ale lehký local-first shell `Více` měl stále starý getter pouze pro owner/admin. Nový regresní kontrakt hlídá oba zdroje současně, aby se znovu nerozešly.
+- Oprávnění se nerozšiřují: admin-write credential zůstává pouze owner/admin; deputy dostává jen svůj už existující podepsaný Auth token pro vlastní heslo a read-only diagnostiku.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.8.6 (development)
+
+- Oprava podepsané relace pro roli zástupce: změna vlastního hesla a ruční „Ověřit oprávnění“ už nepoužívají token getter vyhrazený pouze pro owner/admin.
+- Supabase Auth relace se nerozšiřuje o žádná nová oprávnění. Nový signed-role token getter přijímá pouze ověřené role owner/admin/deputy; původní admin-write getter zůstává omezený na owner/admin a všechny privilegované zápisové cesty ho dál používají.
+- Serverový `rak-admin-users` už změnu vlastního hesla pro owner/admin/deputy správně povoluje před deputy management blokem; backend ani databáze se kvůli této opravě nemění.
+- Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
+## RaK 1.8.5 (development)
+
+- Dashboard → Kantýna/Jídelna: při klepnutí na libovolnou položku spodní navigace, včetně „Více“, se otevřený popup jídelních časů nejdřív zavře.
+- Oprava je ve společném teardownu spodní navigace: local-first cesta do „Více“ už neobchází zavření food modalu; stejný teardown zároveň bezpečně uklízí kalendář a detail osoby.
+- Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
+## RaK 1.8.4 (development)
+
+- Více → správce: odstraněn výchozí text „TEST diagnostika se spustí pouze klepnutím.“ pod tlačítkem „Ověřit oprávnění“.
+- Stavový prvek zůstává v DOM prázdný, takže po klepnutí se do něj dál bezpečně vypíše výsledek živé diagnostiky; samotná role/diagnostická logika se nemění.
+- Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
+## RaK 1.8.3 (development)
+
+- Administrace → Kalendáře: blok „Report dovolených“ má větší svislý odstup od následující „Směny A“, aby nové nastavení nebylo vizuálně nalepené na seznam směn.
+- Funkce výběru kalendáře pro report dovolených, Dashboard ani generátor rozpisu se nemění. Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
+## RaK 1.8.2 (development)
+
+- Administrace → Kalendáře má samostatnou volbu „Kalendář pro report dovolených“. Volba se ukládá do stávajícího nastavení kalendářů; výchozí i bezpečný fallback zůstává Obrábění D.
+- Report dovolených už není svázaný se směnou právě přihlášeného účtu. Načítá jeden administrátorem zvolený kalendář a dál ho spojuje s uloženými absencemi v rozpisu bez duplicit.
+- Dashboard, uživatelský výběr/viditelnost kalendářů a generátor rozpisu zůstávají na dosavadní logice. Chráněný zdroj Obrábění D se nemění.
+- Nevyžaduje se žádná nová tabulka ani Supabase migrace; produkční main, produkční Vercel ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.8.1 (development)
+
+- „O aplikaci“: popis RaK 1.8 je zkrácený přibližně na polovinu, ale zachovává hlavní oblasti změn — local-first start, rozpisy/absence, Administraci, pracovní kalendáře, korekce, offline/CAS a release kontroly.
+- Uživatelské označení zůstává „RaK 1.8“ i při technické verzi 1.8.1; stránka zobrazuje generaci major.minor místo plné patch verze.
+- Produkční `main`, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.8.0 (development)
+
+- „O aplikaci“ otevírá novou generaci RaK 1.8 a shrnuje hlavní dodané změny od 1.7: skutečný local-first start, rychlejší Administraci, bezpečnější účty a CAS konflikty, přesnější neplánované změny/ staffing, kompaktnější mobilní administraci, pracovní kalendáře A–D, uloženou legendu, prázdný lokální měsíc, sjednocené korekce a přísnější offline/release kontroly.
+- Historická sekce RaK 1.7 už není označená „Aktuální generace“; nově se jmenuje „Stabilizace a local-first základ“.
+- Uživatelské „O aplikaci“ zobrazuje `RaK 1.8`; technická release identita zůstává korektní semver `1.8.0`.
+- Release identity helper už není natvrdo omezený na 1.7.x a porovnává plnou semver trojici, takže 1.8.x navazuje na historické release gates bez speciální záplaty.
+- Produkční `main`, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.166 (development)
+
+- Fyzický iPhone test 1.7.165: Administrace → nastavení korekcí → Frézky PASS, ale Administrace → Brusy a Kalkulačky → Brusy stále používaly vlastní pozdější styly.
+- Oprava je přesunuta do skutečných vlastníků těchto dvou brusových obrazovek: `brusy-fhb-v157.js` pro Kalkulačky → Brusy a `brusy-fhb-v158.js` pro Administrace → Brusy.
+- Obě brusové větve nyní používají stejnou geometrii jako správné Frézky: 42 × 46 px, stejný glass vzhled a stejnou výšku inputu; na velmi úzkém displeji 38 × 44 px.
+- Administrace → Frézky, výpočetní logika, hodnoty a ukládání nebyly změněné. Produkce ani `main` nejsou změněné.
+
+## RaK 1.7.165 (development)
+
+- Korekce → Brusy a Administrace → nastavení korekcí Frézky/Brusy: přepínače znaménka jsou vizuálně dorovnané podle fungujícího vzoru z Korekce → Frézky.
+- Vrací se skutečný textový znak `+` / `−` místo vlastních pseudo-prvků; používá stejné rozměry, typografii, centrování, rámeček a glass vzhled jako referenční Frézky.
+- Přepínací logika a zadané hodnoty se nemění; jde pouze o vzhled a layout sign-controlu.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.164 (development)
+
+- Kalkulačky → Korekce Brusy a Administrace → nastavení korekcí Frézky/Brusy: přepínač znaménka už není centrovaný podle metrik fontu.
+- Znak `+` / `−` se v těchto sdílených ovladačích vykresluje geometricky dvěma přesně centrovanými čárami; přepínací logika, hodnoty a ukládání zůstávají beze změny.
+- Ostatní kalkulačky, korekční modely, strojní nastavení a produkční prostředí nejsou změněné.
+
+## RaK 1.7.163 (development)
+
+- Dashboard → Kalendář: fyzický iPhone test 1.7.162 odhalil pravou mezeru uvnitř lokálního prázdného měsíce při 0 aktivních kalendářích.
+- Oprava mění pouze vnitřní root prázdného měsíce: má `width:100%` a `flex:1`, takže vyplní celou šířku stejného `calendarModalFrame` jako Google iframe.
+- Výběr kalendářů, account-scoped `calendar_hidden_keys`, synchronizace účtu, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstávají beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.162 (development)
+
+- Dashboard → Kalendář: upravuje pouze rozměry lokálního prázdného měsíce při 0 aktivních kalendářích.
+- Prázdný host používá stejnou existující třídu `calendarModalFrame` jako Google iframe, takže v témže `calendarModalFrameWrap` přebírá přesně stejnou šířku a výšku bez další startupové CSS/JS vrstvy.
+- Výběr kalendářů, account-scoped `calendar_hidden_keys`, synchronizace účtu, pracovní kalendáře i chráněné Obrábění D pro dovolené zůstávají beze změny.
+- Po zapnutí alespoň jednoho zdroje se dál vrací originální Google Calendar iframe.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.161 (development)
+
+- Dashboard → Kalendář: opravuje fyzický FAIL nulového stavu z 1.7.160. Google iframe bez `src` vyvolával na iPhonu cookie bránu místo prázdného kalendáře.
+- Při vypnutí všech štítků se proto Google iframe úplně odpojí a zobrazí se lehký lokální měsíční kalendář bez událostí, se stejným bílým měsíčním rozložením a navigací mezi měsíci.
+- Jakmile se zapne alespoň jeden zdroj, lokální prázdný pohled zmizí a znovu se načte originální Google Calendar iframe pouze s aktivními kalendáři.
+- Account-scoped ukládání zapnuto/vypnuto z 1.7.160 zůstává: `calendar_hidden_keys` se synchronizuje přes TEST account UI CAS profil mezi zařízeními.
+- Generátor rozpisu, report dovolených a chráněný kalendář Obrábění D zůstávají beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.160 (development)
+
+- Dashboard → Kalendář: zapnutí/vypnutí jednotlivých štítků legendy se nově ukládá k přihlášenému účtu a synchronizuje mezi zařízeními.
+- Interně se ukládají pouze skryté managed klíče Obrábění/Kalírna A–D. Výběr kalendářů v Nastavení a jejich aktuální viditelnost jsou dvě oddělené účetní preference.
+- Stav je local-first: změna legendy se projeví okamžitě lokálně a online CAS synchronizace dorovná stejný stav na TEST Supabase.
+- Při nule aktivních štítků zůstává originální Google Calendar iframe zobrazený bez událostí.
+- Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu; Obrábění D používané směnou D pro dovolené se nemění.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.159 (development)
+
+- Dashboard → Kalendář: při vypnutí všech štítků legendy už nezůstává prázdný panel s hláškou; zobrazí se originální Google Calendar iframe bez jediného zdrojového kalendáře, tedy kalendář bez událostí.
+- Přepínače legendy nadále mění jen dočasnou viditelnost v otevřeném dashboardovém kalendáři a nepřepisují účetní výběr kalendářů.
+- Opětovné zapnutí libovolného štítku přestaví iframe jen z právě aktivních zdrojů; poslední dříve aktivní zdroj se při stavu nula nikdy nepřenáší.
+- Obrábění D používané směnou D pro dovolené zůstává beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.158 (development)
+
+- Zpřesňuje izolaci parity benchmarku z 1.7.157: kontrola procesní skupiny rozlišuje skutečně živé Chrome procesy od Linux `Z` zombie položek čekajících pouze na reap.
+- SIGTERM/SIGKILL zůstává nad celou oddělenou Chrome procesní skupinou a benchmark stále fail-closed selže, pokud po cleanupu zůstane jakýkoli živý člen.
+- Performance limity, 20 kol a baseline 1.7.69 zůstávají beze změny.
+- Funkční oprava kalendáře z 1.7.156 zůstává: při vypnutí posledního štítku se iframe odpojí a zmizí; po opětovném zapnutí se sestaví z aktivních zdrojů.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.157 (development)
+
+- Zachovává funkční opravu 1.7.156: při vypnutí posledního kalendáře se starý Google iframe odpojí a skryje; po opětovném zapnutí se načte jen aktivní zdroj.
+- Performance parity runner nově spouští každý Chromium vzorek v oddělené procesní skupině a před dalším vzorkem fail-closed ukončí celý procesní strom. Tím se odstraní kontaminace pozdních FCP měření přeživšími renderer/GPU procesy.
+- Performance limity, 20 kol, baseline 1.7.69 i P50/P95 pravidla zůstávají beze změny.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.156 (development)
+
+- Dashboard → Kalendář: při vypnutí posledního aktivního štítku se Google iframe skutečně odpojí (`src` se odstraní) a skryje, takže poslední kalendář už nezůstane vizuálně zobrazený.
+- Prázdný stav zobrazuje pouze informaci „Všechny vybrané kalendáře jsou skryté.“; opětovné zapnutí kteréhokoli štítku znovu sestaví originální Google iframe jen z aktivních zdrojů.
+- Dočasné přepínače stále nepřepisují účetní výběr z Nastavení → Kalendář.
+- Šířka kompaktních štítků z fyzicky potvrzené 1.7.155 zůstává beze změny.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.155 (development)
+
+- Dashboard → Kalendář: přepínače barevné legendy už nejsou přes celou šířku; každý štítek má pouze šířku podle svého krátkého popisku (`Kal.A`, `Obr.D` apod.) a skládají se vedle sebe.
+- Funkce dočasného skrývání/zobrazování kalendářů z 1.7.154 zůstává beze změny a stále nepřepisuje účetní výběr.
+- Oprava používá jen minimální inline `width:auto`; existující ověřené `inline-flex`/`flex:0 0 auto` z 1.7.153 zůstává beze změny a do first-paint CSS cesty se nic nepřidává.
+- Kalendář Obrábění D používaný směnou D pro dovolené zůstává nedotčený.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.154 (development)
+
+- Barevná legenda nad originálním Google Calendar iframe je interaktivní: klepnutím na `Obr.A–D` / `Kal.A–D` se daný kalendář dočasně skryje nebo znovu zobrazí.
+- Rychlé přepínání viditelnosti nepřepisuje účetní výběr z Nastavení → Kalendář. Uložené kalendáře zůstávají stejné i při dočasném filtrování v otevřeném dashboard kalendáři.
+- Pokud jsou dočasně skryté všechny vybrané kalendáře, legenda zůstává dostupná a iframe se nahradí neutrální informací; kterýkoli zdroj lze znovu zapnout jedním klepnutím.
+- Kalendář Obrábění D používaný směnou D pro dovolené ani operational context generátoru/reportu se nemění.
+- Přepínač nepřidává žádné nové CSS na first-paint critical path; používá stejné styly legendy jako fyzicky potvrzená 1.7.153 a stav vypnutí se aplikuje až při interakci.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.153 (development)
+
+- Dashboard → Kalendář zachovává originální Google Calendar iframe, ale nad ním zobrazuje kompaktní barevnou legendu (např. `Kal.A`, `Kal.D`, `Obr.A`). Stejná stabilní barva se posílá Googlu pro daný kalendář, takže je bez otevírání události poznat, které směně patří.
+- Uživatelský výběr z Nastavení → Kalendář zůstává local-first v zařízení a zároveň se ukládá do account UI profilu v TEST Supabase s CAS revizí. Po přihlášení stejného účtu na jiném zařízení se výběr načte ze serveru; offline zůstává poslední lokální volba.
+- Generátor rozpisu a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu; account multi-výběr ovlivňuje pouze dashboard.
+- Původní Obrábění D kalendář používaný směnou D pro plánování dovolených se nemění: RaK nemění jeho zdroj, název ani události; pouze jej může zobrazit v Google iframe.
+- Kořen periodických FCP špiček: kalendářový `requestIdleCallback` závodil s prvním paintem na fresh startu. Idle prewarm modalu je odstraněný; Google iframe i shell se vytvářejí až po klepnutí na Kalendář. Performance limity zůstávají beze změny.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.152 (development)
+
+- Otevřený Dashboard → Kalendář se při kliknutí na kteroukoli položku spodní navigace nejdřív zavře; Google iframe ani jeho detail události už nezůstávají nad stránkou Více/Home/Rotace/Kalkulačky.
+- Originální Google Calendar iframe z 1.7.151 zůstává beze změny; oprava zasahuje pouze teardown modalu při změně route.
+- Názvy událostí Kalírny se nemění v RaK. Google iframe zobrazí jejich skutečné názvy až při veřejném oprávnění „Zobrazit všechny podrobnosti událostí“.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.151 (development)
+
+- Dashboard → Kalendář používá originální Google Calendar iframe pro každý uživatelský výběr, včetně 2+ vybraných kalendářů a výběru obsahujícího Kalírnu.
+- Do Google iframe se posílají pouze bezpečné calendar ID; private ICS tokeny Kalírny zůstávají výhradně v TEST Supabase Vaultu a nejsou součástí klienta ani GitHubu.
+- Pokud soukromý Kalírna kalendář Google v iframe nezobrazí, jde o oprávnění/sdílení na straně Google; RaK už nepřepíná na vlastní nativní vzhled.
+- Generátor a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.150 (development)
+
+- Dashboard → Kalendář vrací původní Google Calendar iframe vzhled, pokud výběr obsahuje pouze veřejné kalendáře Obrábění / jiné veřejné Google zdroje.
+- Pokud výběr obsahuje private Kalírnu A–D, používá bezpečný nativní RaK renderer, protože private ICS nelze vložit do Google iframe bez zpřístupnění kalendáře.
+- Multi-výběr z Nastavení zůstává zachovaný. Generátor a report dovolených dál používají právě jeden pracovní kalendář podle zařazení účtu.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.149 (development)
+
+- Kalendář v RaK má osm stabilních pracovních zdrojů: Obrábění A/B/C/D a Kalírna A/B/C/D. Každý účet má po prvním přihlášení vybraný právě jeden výchozí kalendář podle svého zařazení.
+- Administrace → Pracovníci → Účty aplikace nově umí zařazení Obrábění A–D nebo Kalírna A–D. Staré účty se bezpečně mapují na Obrábění své původní směny.
+- Nastavení → Kalendář umožňuje každému uživateli zaškrtnout libovolné další kalendáře. Dashboard pak otevře jeden společný nativní RaK kalendář se sloučenými vybranými zdroji.
+- Kalírna A–D používá private Google ICS jen serverově: private URL jsou uložené v TEST Supabase Vaultu a klient ani GitHub neobsahují private tokeny. Veřejný RaK endpoint pracuje pouze s allowlistovanými calendar ID.
+- Login RPC v4 vrací pouze zařazení konkrétního přihlášeného účtu, takže pracovník Kalírny dostane správný výchozí kalendář už při prvním přihlášení.
+- Nastavení → Heslo umožňuje ownerovi, správci i zástupci změnit pouze svoje vlastní heslo. Zástupce tím nezískává žádné další administrační oprávnění.
+- Produkční main, produkční Vercel ani produkční Supabase nejsou tímto development releasem změněné.
+
+## RaK 1.7.148 (development)
+
+- Neplánovaná Kalírna už není jen odvozený text pod prázdnou buňkou. Po lokálním přepočtu se stejný `kalirnaOut` zapíše přímo na chráněnou prázdnou MO pozici a člověk je v rozpisu jako „Jméno →K“.
+- Při 9 fyzicky dostupných lidech zůstává 5 TO + 4 MO; Kalírna se evidenčně zobrazí na volné MFKF06. Při 8 fyzicky dostupných lidech zůstává 5 TO + 3 MO (MSKC03, MSKC04, MFKF10) a Kalírna se evidenčně zobrazí na volné MSKC01.
+- Kalírna v buňce je jen evidence: nepočítá se do fyzického staffing počtu, statistik ani kvalifikace stroje. Veřejný rozpis i admin ji zobrazí růžově s `→K`.
+- Dovolená / Náhradní volno / Paragraf / Lékař zůstávají absencí: člověk se zapíše do tabulky Absence a ze strojů zmizí.
+- Neplánovaná změna dál smí přepočítat pouze vybraný den / vybraný rozsah. Ostatní dny musí zůstat byte-identické. Pokud je absence na MO a původní TO je stále platné, zachová se TO beze změny.
+- Regresní testy zamykají staffing: 1 absence = 5 TO + 4 MO (MSKC01, MSKC03, MSKC04, MFKF10); 2 absence = 5 TO + 3 MO (MSKC03, MSKC04, MFKF10).
+
+## RaK 1.7.147 (development)
+
+- „Odešel na kalírnu“ dál používá stejný uložený `kalirnaOut` záznam jako ruční Výjimky dne; nevzniká druhá datová větev ani nové staffing pravidlo.
+- Pokud po neplánovaném přepočtu člověk už není v žádné strojové buňce, tentýž `kalirnaOut` se evidenčně zobrazí na MFKF06 jako „Jméno →K“.
+- Evidenční jméno se nezapisuje do buněk rozpisu, neobsazuje MFKF06, nezvyšuje MO staffing a nemění minimal-reflow/generátor ani statistickou logiku.
+- Stejné evidenční zobrazení používá veřejný rozpis, administrační editor i obrázkový export rozpisu.
+- Ruční Výjimky dne zůstávají beze změny: pokud je člověk stále ve své původní strojové buňce, značka →K zůstává právě tam a MFKF06 se neduplikuje.
+
+## RaK 1.7.146 (development)
+
+- Administrace → Správci: dlouhá stránka je zhutněná do výchozím způsobem zabalených sekcí Účty správců, Role a bezpečnost, Přihlášená zařízení a Moje heslo.
+- Stav správců zůstává viditelný nahoře, ale na iPhonu je kompaktní 2×2 bez dlouhých opakovaných vysvětlivek.
+- Tabulky, role, zařízení, hesla, revoke akcí, minimum hesla 6 znaků i secure owner/admin gate zůstávají funkčně zachované.
+- Editor účtů má vlastní DOM cíl `adminAccountsEditorTable`, takže doplňování prázdného řádku nemůže omylem zasáhnout tabulku přihlášených zařízení.
+- Ostatní produktový backlog není součástí tohoto releasu.
+
+## RaK 1.7.145 (development)
+
+- Administrace → Kantýna / jídelna: editor je rozdělen do dvou kompaktních skládacích sekcí „Běžná otevírací doba“ a „Přesčasová doba“.
+- Obě sekce jsou po otevření stránky výchozím způsobem zabalené; duplicitní vnitřní nadpis a dlouhá opakovaná nápověda byly odstraněny.
+- Řádky tabulek a časová pole jsou zhutněné pro iPhone; tři spodní akce jsou vedle sebe místo pod sebou.
+- Všechny data atributy, hodnoty a ukládací logika Kantýny/jídelny zůstávají beze změny.
+- Bod 5 není součástí tohoto releasu.
+
+## RaK 1.7.144 (development)
+
+- Administrace → Pravidla generátoru: stránka je nově rozdělena do pěti kompaktních skládacích sekcí: Kontrola a souhrn pravidel, Lidé a pořadí, Cykly strojů, Vyrovnávací pravidla a Základní soustruhy měkoty.
+- Všechny sekce jsou po otevření stránky zabalené; uživatel rozbalí jen část, kterou chce upravit.
+- Stavové a pravidlové karty, textová pole, číselné vstupy a spodní tlačítka jsou zhutněné pro iPhone; číselné dvojice jsou seskupené vedle sebe tam, kde to dává smysl.
+- Veškerá ID polí, data atributy a ukládací logika generátoru zůstávají beze změny.
+- Body 4–5 nejsou součástí tohoto releasu.
+
+## RaK 1.7.143 (development)
+
+- Administrace → Rozpisy → Přehled jména × skupiny strojů: TO a MO mají nově stejnou šířku 35 px jako strojové sloupce a stejné svislé oddělení.
+- Celková šířka přehledu se tím zmenšuje z 356 px na 334 px; Jméno zůstává 54 px a strojové skupiny 35 px.
+- Panel „Neuložené místní návrhy“ je skutečný skládací panel a po načtení stránky je ve výchozím stavu zabalený.
+- Bezpečná logika exportu a mazání místních návrhů se nemění; body 3–5 nejsou součástí tohoto releasu.
+
+## RaK 1.7.142 (development)
+
+- Administrace → Rozpisy → Přehled jména × skupiny strojů: první zobrazení zůstává rozbalené i při prvním vytvoření dynamického přehledu.
+- Zobrazované hlavičky TNKS01/TPKW01/TPKW02 jsou zkrácené na TNK/W01/W02; skutečné machine keys a data se nemění.
+- Sloupec Jméno je 54 px místo 60 px (-10 %), strojové sloupce 35 px místo 50 px (-30 %); tabulka se tím zmenšuje z 452 px na 356 px.
+- Každý strojový sloupec má svislé oddělení pro lepší čitelnost na mobilu.
+- Bod 1 zůstává beze změny a body 3–5 nejsou součástí tohoto releasu.
+
+## RaK 1.7.141 (development)
+
+- Administrace → Rozpisy: neuložené místní návrhy, jejich exporty a tlačítko „Smazat všechny místní návrhy“ jsou v jednom společném rámečku.
+- Tlačítka v tomto rámečku mají svislou mezeru nad i pod sebou.
+- Blok „Statistické odchylky“ byl z Administrace → Rozpisy úplně odstraněn.
+- Bezpečná mazací logika z 1.7.140 se nemění; server ani jiná lokální fronta se nemažou.
+- Body 2–5 uživatelského seznamu zůstávají mimo tento krok.
+
+## RaK 1.7.140 (development)
+
+- Administrace → Rozpisy: přidáno viditelné tlačítko „Smazat všechny místní návrhy“.
+- Tlačítko používá bezpečný postup: nejdřív read-only ověří online rozpis, potom maže jen místní návrhy a čekající zápisy rozpisu v tomto zařízení; online data ani jiná fronta se nemažou.
+- Body 2–5 uživatelského seznamu nebyly součástí této verze.
+
+## RaK 1.7.139 (development)
+
+- **Diagnostika konfliktu už nemá natvrdo zapsanou starou verzi.** Nadpis čte `displayVersion` z `RAK_RELEASE_METADATA`; když metadata nejsou dostupná, zobrazí neutrální „RaK – bezpečná diagnostika konfliktu“ místo zastaralého čísla.
+- Lazy import `rak-conflict-diagnostics.js` v Dashboardu už nepoužívá pevné `?v=1.7.136`. Cache parametr se skládá z aktuálního `moduleCacheVersion` / `displayVersion`, takže při dalších releasech není potřeba ruční úprava a PWA si nevezme starý diagnostický modul.
+- Přidán regresní gate 1.7.139, který spouští formatter proti syntetickým release metadata a blokuje návrat hardcoded diagnostické verze/importu.
+- Runtime/cache jsou zvýšeny na 1.7.139. Produkční `main`, produkční Vercel ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.138 (development)
+
+- **P2.3 conflict-rescue fyzicky uzavřen:** řízený TEST scénář se dvěma lokálními konflikty ověřil celý bezpečný tok. U typu „stroj“ RaK nejdřív zobrazil sanitizovanou diagnostiku, nabídl soukromou zálohu fronty, provedl read-only serverovou kontrolu, vyžádal přesný export původních bajtů jediné položky a teprve potom odstranil právě 1 lokální konflikt. Serverové nastavení strojů zůstalo beze změny na revizi 23 a 52 řádcích.
+- Následný konflikt typu „ostatní“ byl správně rozpoznán jako nepodporovaný pro automatické odstranění; RaK zobrazil, že položku automaticky neodstraní, a ponechal ji ve frontě. Tím jsou fyzicky doložené oba poslední akceptační body P2.3.
+- Fyzický test současně odhalil kořenovou runtime chybu: capture handler v `rak-feature-routing.js` přepisoval `window.runDashboardManualSync` zjednodušeným safe-sync runnerem a přes `stopImmediatePropagation()` obcházel novější conflict-rescue workflow v `dashboard.js`. Router nyní Dashboard badge předává plnému Dashboard sync/rescue handleru; safe-sync zůstává jen jako fallback a pro servisní synchronizaci Administrace.
+- Dashboard po ruční synchronizaci znovu čte zadržené konflikty přímo z trvalé lokální fronty. Konflikt proto nemůže být dočasně vykreslen jako zelený jen kvůli opožděnému status snapshotu.
+- Regresní gate 1.7.138 hlídá oba nalezené kořeny: router už nesmí bezpodmínečně přepisovat plný Dashboard handler a zelený ruční sync nesmí projít, pokud přesná lokální fronta stále obsahuje konflikt.
+- Runtime/cache jsou zvýšeny na 1.7.138. Produkční `main`, produkční Vercel ani produkční Supabase se tímto TEST releasem nemění.
+
+## RaK 1.7.137 (development)
+
+- **P2.3 fyzický dvouzařízení CAS – oprava nalezeného závodu:** reálný souběžný test na iPhonu a Windows prokázal, že databázový CAS správně odmítl starou revizi (SQLSTATE `40001`, expected 17 / actual 18), ale HTTP vrstva vrátila 504 a obecný klientský retry stejný zápis později zopakoval už s mezitím obnovenou revizí. Uživatel proto konflikt neviděl a druhý zápis nakonec prošel.
+- Všechny revision/CAS chráněné provozní zápisy nyní používají právě **jeden síťový pokus**. Neúspěšný nebo časově nejednoznačný zápis se nikdy automaticky nereplayuje s novější mezitím načtenou baseline. Týká se nastavení strojů, hlavní Rotace, měsíčních rozpisů a obou neplánovaných změn.
+- Regresní test `server-cas-17102.test.mjs` fail-closed hlídá, že tyto CAS cesty nesmějí znovu získat obecný write retry. Serverový row-lock/CAS ani conflict-rescue workflow se nemění.
+- Runtime/cache jsou zvýšeny na 1.7.137, aby fyzický retest na obou zařízeních nemohl zůstat na starém 1.7.136. Produkční `main`, produkční Vercel a produkční Supabase se tímto TEST releasem nemění.
+
+## RaK 1.7.136 (development)
+
+- **P2.4 diagnostika skutečného konfliktu:** po ručním klepnutí na synchronizační badge se ještě před flush/syncem pořídí čistě čtecí sanitizovaný snapshot stavu aplikace, fronty a lokálního úložiště. Diagnostika tak zachová původní příčinu i tehdy, když následný sync stav fronty změní.
+- Snapshot používá jen pevně povolené kategorie. Rozlišuje offline/nenačtený klient/neověřený či selhaný online stav, počet čekajících a zadržených položek, typ položky a konkrétní bezpečnou příčinu konfliktu (např. novější online stav, starší admin změna, neověřitelná lokální verze, serverem odmítnutý zápis nebo poškozená/neověřitelná fronta).
+- Do diagnostiky se nikdy nevracejí ID položek, jména, payloady, tokeny, raw chybové texty ani libovolné hodnoty ze serveru. Diagnostický modul se nenačítá na startup hot path; načte se až po úmyslném klepnutí na synchronizační badge. Samotný capture nepoužívá síť ani zápis do storage a skládá pouze už existující sanitizované read-only pohledy; stávající soukromý export a explicitní conflict-recovery workflow zůstávají oddělené.
+- Runtime je 1.7.136 / cache v1.7.136 / build v1.7.136-conflict-diagnostic1. Produkční main, produkční Vercel a produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.135 (development)
+
+- **P2.4 role/JWT diagnostika:** živá kontrola podepsané TEST relace je přesunuta z těžkého Admin rendereru do lehkého role shellu ve Více. Na izolované TEST Supabase ji mohou spustit owner, admin i deputy bez načtení celé Administrace; produkční konfigurace tlačítko nezobrazuje.
+- Kontrola ověřuje aktuální Supabase Auth token přes `/auth/v1/user`, serverový `rak_admin_context`, vazbu na aktivní účet/session a hranice rolí. Owner/admin mají pozitivní administrátorskou read cestu; deputy na stejné cestě musí dostat skutečné odmítnutí. Owner-only reader musí projít jen ownerovi.
+- Odmítnuté odpovědi se neparsují ani nelogují. Do diagnostiky vstupuje pouze HTTP status a centrální `RAK_DIAGNOSTICS.diagnoseRejectedOperation()` jej převádí na pevnou kategorii bez JWT, payloadu, jména, OS čísla nebo serverové zprávy.
+- Owner/admin navíc používají bezpečně neplatný `rak_admin_save_rotation_v2` payload, který server odmítne validací před zámkem či změnou dat; deputy žádný write endpoint v diagnostice nevolá.
+- Nový regresní test spouští owner/admin/deputy scénáře s canary JWT a vyžaduje PASS bez úniku tokenu do viditelného výstupu. Produkční `main`, produkční Vercel ani produkční Supabase se tímto releasem nemění.
+- **Stabilizace first-frame navigace:** render-blocking local-first CSS nyní už v prvním frame ruší zděděné `scale()` aktivní položky i její ikony. Tím je geometrie spodní lišty stejná před i po načtení pozdních legacy override stylů; CI už nemusí spoléhat na timing kaskády.
+
+## RaK 1.7.134 (development)
+
+- Opraven kořen občas pomalého **prvního otevření Administrace**. Secure kořenová navigace je v malém samostatném `app-menu-admin-shell.js`, který se načítá jen po ověřené admin roli / explicitním vstupu; těžký renderer, editory rozpisů, generátor, export/import, zálohy, servis a další nástroje zůstávají v plném `admin` feature.
+- Secure role gate zůstává beze změny a je ještě utažený na konkrétní `rakAdminCanOpenAdmin()`: shell ani jeho background warmup se nespouští pro běžného uživatele ani zástupce. Samotný renderer znovu kontroluje oprávnění před vykreslením.
+- Kořen Administrace vykresluje `renderAdminRootMenuBody()` z malého lokálně cacheovaného admin shellu. Běžné Více tento Admin-only markup při startupu vůbec neparsuje; první otevření zároveň nenačítá heavy renderer ani nesestavuje HTML admin podstránek. Plný renderer při návratu na home deleguje zpět na tento shell.
+- Plný Admin dál zachovává závislost na `sync`, ale tato závislost už neblokuje první kořenovou obrazovku. Těžké moduly se už automaticky newarmují po startu ani po otevření Více/kořene Administrace; načtou se až při skutečném vstupu do konkrétní podsekce. Tím nekonkurují local-first startupu.
+- `app-menu-admin-shell.js` i `app-menu-admin-renderer.js` jsou ve warm/offline cache; při běžném startupu se ale Admin shell neexecutuje a heavy renderer se nenačítá do stránky. Privilegované položky se dál nepřidávají do běžného preboot UI.
+- Reálný Chromium gate drží startup `sync` záměrně nedokončený, vloží již ověřený admin kontext a vyžaduje, aby se kořen Administrace otevřel do 900 ms se stavem `admin-shell=true`, `admin=false`, `sync=false`; po pozdějším dokončení syncu navíc ověřuje, že se plný Admin bez uživatelského požadavku sám nenačetl.
+- Home, Rotace/Rozpisy, Kalkulačky a běžné Více zůstávají local-first; produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.133 (development)
+
+- Oprava přechodu **Rotace → Více**: local-first cesta `openRakEarlyMenuShell()` teď před přepnutím stránky explicitně zruší body-fixed portal `#namesGrid`, vrátí panel jmen do `#rotaceNamesPanel` a odstraní dock třídy. Panel jmen tak už nemůže zůstat nad stránkou Více.
+- Reálný Chromium gate reprodukuje přesně tento přechod: nejdřív ověří skutečně portovaný names dock v Rotaci, potom klikne na Více a vyžaduje aktivní pouze menu, navrácený `namesGrid` a nulové dock/portal příznaky.
+- Předchozí local-first startup 1.7.132 je po fyzické kontrole vlastníka **PASS**: běžné lokální stránky jsou ihned ovladatelné, Více má finální vzhled a background sync už otevřenou stránku nepřepisuje.
+
+## RaK 1.7.132 (development)
+
+- Startup je přestavěný na skutečný **local-first** model: po lokálním bootstrapu se vždy obnoví poslední ověřený snapshot Rotace a ještě před `startupReady` se načtou lokální feature **Rotace, Kalkulačky a Více**. Připojení k internetu už není podmínkou jejich připravenosti.
+- Lokální persistence Rotace je vytažená do samostatného `rak-rotation-local-store.js`. Modul neobsahuje Supabase klienta, RPC, realtime ani síťový transport; offline startup proto nenačítá `supabase-bridge.js`/`app-rotation-sync.js`. Online bridge po local-ready používá stejnou local-store vrstvu.
+- Načtení `sync` feature už samo o sobě nespouští Supabase. Síťová synchronizace má jediného vlastníka a spouští se až sekundárně po dokončení lokálního startupu; načtení modulu a provedení remote refresh jsou oddělené operace.
+- Startup synchronizace vzhledu už nemůže předběhnout lokální hydration. Lokální profil/vzhled se použije okamžitě, vzdálené preference se obnoví až po local-ready.
+- **Home refresh je route-neutral.** `app-home-boot.js` ani `forceHomeRefresh()` už nesmějí volat `showPage('home')`. Background sync, hydration ani watchdog proto nemohou vrátit uživatele z Více/Rotace/Kalkulaček na Home.
+- Běžné **Více** má statický bezpečný lokální root přímo v HTML. Privilegované Administrace/Reporty se do něj nepřidávají a dál zůstávají secure role-gated.
+- Spodní navigace má finální čtyřsloupcovou geometrii už ve statickém shellu. Pozdní `applyBottomNavMoreHardFix()` už nepřepisuje rozměry tlačítka Více ani jeho ikony, takže po dokončení startupu nic „nenaroste“.
+- Kalkulačky a běžné menu feature jsou doplněné do `WARM_START` a `OFFLINE_REQUIRED`, aby vracející se PWA mohla celý základní shell a lokální funkce otevřít bez sítě.
+- Chromium gate 1.7.132 navazuje na pomalý startup/offline test: kontroluje finální geometrii navigace ještě před plným bindingem, local-ready Rotace/Kalkulačky/Více a zachování otevřeného Více po pozdějším dokončení sync feature.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.131 (development)
+
+- Fyzický iPhone retest 1.7.130 upřesnil problém: **nejde jen o Více — viditelná spodní navigace nereaguje na dotyk, dokud se Synchronizace nerozsvítí zeleně**.
+- Kořen je dřív než v menu rendereru: spodní lišta je staticky vidět už z HTML, ale její skutečný click listener se dosud navazoval až po dynamickém načtení interaction shellu. Předchozí Chromium gate tuto mezeru neviděl, protože výslovně čekal na `bottomNav.__rotaceBound === true` a teprve potom klikl.
+- Do HTML je přidán malý lokální **preboot navigation owner**, který se naváže okamžitě po vykreslení lišty a funguje bez `app.js`, Supabase i syncu. Home, Kalkulačky, Rotace a bezpečný lokální kořen Více proto přijmou klepnutí už ve chvíli, kdy jsou vidět.
+- Preboot Více obsahuje pouze **Nastavení / O aplikaci / Kontakt / Pošli mi chybu**. Administrace a reporty v něm nejsou a secure role gate se neoslabuje.
+- Jakmile se plný interaction shell načte, převezme navigaci a případné dřívější klepnutí bezpečně dorenderuje přes normální lazy feature. Žádná síťová práce se nepřidává do samotného okamžitého tap handleru.
+- Chromium gate 1.7.131 záměrně zdrží `app-bottom-nav.js`, nastaví syntetický uložený profil vracejícího se uživatele a klikne na Více i Kalkulačky **ještě před `__rotaceBound`, startupReady a syncem**.
+- Současně je opraven current isolated-build upload: skryté JSONy z `.rak-canonical-build` se musí skutečně nahrát; chybějící artefakt je nově fail-closed.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.130 (development)
+
+- Fyzický iPhone retest potvrdil **PASS automatického načtení absencí podle směny** z 1.7.128/1.7.129: Generátor i Report dovolených načetly očekávaná data ze směnového kalendáře; původní případ 5.10. Novotný § je potvrzený.
+- Fyzický retest současně potvrdil, že 1.7.129 stále uměl otevřít prázdné **Více** až do dokončení Synchronizace. Kořen nebyl v samotném rendereru, ale v závodu se staršími `toggleAppMenu` compatibility wrappery, které před načtením plného menu uměly pouze `showPage('menu')`.
+- `openRakEarlyMenuShell()` už nikdy nedeleguje první render na `toggleAppMenu`; vždy nejdřív vytvoří/naplní lokální root **Nastavení / O aplikaci / Kontakt / Pošli mi chybu** a teprve potom lazy načítá plné menu.
+- Startup compatibility wrapper v `rak-runtime-stability.js` nyní používá stejný early renderer. Post-lazy wrapper v `app.js` po `showPage('menu')` vždy volá i `openAppMenu('menu')`, takže prázdné nebo staré body nemůže přežít do dalšího přepnutí záložky.
+- Privilegované Administrace/Reporty zůstávají mimo early shell a dál se řídí secure role gate.
+- Chromium gate nově deterministicky vloží starý show-only `toggleAppMenu`, vyprázdní existující menu body a klikne na Více ještě před sync/startupReady. Release projde jen tehdy, když se lokální položky zobrazí bez použití starého wrapperu.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.129 (development)
+
+- Fyzický FAIL 1.7.127 ve „Více“ je opraven u kořene: early shell už nezávisí na tom, zda stránka `#menu` právě vznikla. I když už existuje s prázdným body, okamžitě se naplní lokální nabídkou.
+- Běžné položky **Nastavení / O aplikaci / Kontakt / Pošli mi chybu** jsou viditelné hned po klepnutí na Více, ještě před synchronizací, `startupReady` i secure role restore.
+- Early shell neobsahuje Administraci ani reporty. Privilegované odkazy se dál přidají až přes plný `app-menu.js` po ověření secure role, takže role gate z 1.7.126 zůstává zachovaný.
+- Klepnutí na běžnou early položku lazy načte pouze lokální menu feature a otevře požadovanou stránku; nečeká na sync feature ani Supabase.
+- Přidán regresní gate 1.7.129 pro existující prázdný `#menu`, okamžitou lokální nabídku a nepřítomnost privilegovaných položek v early shellu.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.128 (development)
+
+- Generátor rozpisu a Report dovolených/absencí už nepoužívají samostatný Supabase secret pro kalendář. Načítají stejné veřejné Google Calendar zdroje, které jsou nastavené v Administraci → Kalendáře.
+- Zdroj se vybírá automaticky podle přihlášeného účtu: pracovník z rozpisu vždy používá směnu D, účet mimo rozpis používá svoji přiřazenou směnu A/B/C/D.
+- Podporováno je více kalendářů na směnu; záznamy se sloučí bez duplicit. Report směny D navíc zachová spojení s absencemi už uloženými v rozpisu, zatímco A/B/C nepřebírají D data.
+- Tím odpadá závislost Generátoru a Reportu dovolených na starém `RAK_ABSENCE_ICS_URL`, který v TEST prostředí vracel HTTP 500.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.127 (development)
+
+- Fyzický iPhone test 1.7.126 odhalil, že původní `firstInteractiveMs` měřilo jen navázaný listener, ne skutečné dokončení klepnutí. Startup proto nově načte malý **interaction foundation** (core/UI/navigation/bottom-nav/router) ještě před auth helpery, Dashboardem, QR a lokální Rotation hydration.
+- Spodní navigace je v HTML už před `app.js`, takže ji startup může opravdu navázat hned. Reálný Chromium gate nově záměrně zdrží Dashboard o 1,8 s a vyžaduje, aby klepnutí na **Kalkulačky** skutečně otevřelo stránku do 1,2 s a ještě před `startupReady`.
+- `supabase-vendor-2.110.7.js` už není parser-blocking script v `index.html`. Zůstává lokální, integrity-pinned a PWA cacheovaný, ale načte se až při online syncu nebo skutečném login/admin požadavku. Offline start jej zbytečně nespouští.
+- Běžné **Více** se warmuje na pozadí hned po lehkých auth helperch. Ověřená role zároveň začíná na pozadí warmovat Admin.
+- Globální feature router už **nesmí spolknout první klik spodní navigace**. `pointerdown` dál přednačítá lazy feature, ale vlastní klik okamžitě naviguje; Rotace se po dokončení lazy loadu sama dorenderuje.
+- **Více** má bezpečný lokální early shell „Načítám nabídku…“, takže první klepnutí reaguje okamžitě i tehdy, když `app-menu.js` ještě není načtený.
+- Critical auth/security balík se spouští paralelně s interaction foundation místo až po něm; před `startupReady` se už zároveň nespouští konkurenční warmup menu.
+- Neaktivní PNG ikony **Rotace/Kalkulačky** mají nízkou fetch prioritu, aby při prvním paintu nekonkurovaly render-blocking CSS; aktivní Home ikony zůstávají eager.
+- Obří vložená data osobních QR kódů byla vyjmuta z parseru `qr.js` do `rak-qr-data.js`. Food/brus logika zůstává ve startupu beze změny; QR payload se parsuje až při prvním zobrazení QR a je dál warm-cacheovaný pro offline použití.
+- Bootstrap `app.js` je načítán přes `defer`, takže HTML parser nejdřív objeví všechny zbývající CSS zdroje a bootstrap s nimi nesoutěží v parser-blocking fázi. Spodní navigace je už před skriptem v DOM.
+- Klik na **Administrace** už nezadržuje globální feature router. Menu okamžitě ukáže stav „Načítám administraci…“, bezpečně dokončí potřebný admin feature a kořen Administrace vykreslí bez čekání na `loadMachineSettings`; online nastavení se obnoví na pozadí.
+- Produkční větev, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.126 (development)
+
+- Položky s oprávněním ve **Více** se po obnovení secure role překreslí okamžitě i tehdy, když bylo menu otevřené dřív. Pasivní otevření Více nečeká na Supabase sync ani na nastavení strojů.
+- **Administrace, Report dovolené a Report směny se už nevykreslují jen podle lokálního náznaku, že účet může mít heslo.** Skutečné privilegované odkazy vyžadují ověřenou secure roli owner/admin/deputy; neověřený stav může nabídnout jen neprivilegované „Ověřit přístup“.
+- Obnova secure session je deduplikovaná, takže souběžný startup a otevření Více neposílají zbytečně paralelní obnovy. Změna role/uzamčení vysílá lokální událost pro okamžité bezpečné překreslení menu.
+- Produkční větev, produkční Vercel ani produkční Supabase se tímto releasem nemění.
+
+## RaK 1.7.125 (development)
+
+- Startup shell se nově stává **klikacím ještě před čekáním na lokální rehydrataci Rotace**. Spodní navigace a delegované základní akce se navážou hned po načtení startup modulů; pozdější post-ready instalace zůstává idempotentní.
+- Přidána runtime metrika `firstInteractiveMs` / `firstInteractiveSource`, aby se oddělil čas „aplikace je vidět“ od času „už lze skutečně ovládat navigaci“.
+- Běžné **Více** už při prvním otevření nečeká na Supabase `sync`; samotné menu je lokální UI a načte se přímo. Privilegovaná **Administrace** dál zachovává bezpečné pořadí `sync → admin`.
+- Background warmup menu a syncu je rozdělený: menu se může ohřát dřív lokálně, síťový sync běží odděleně na idle.
+- Reálný Chromium offline/network gate nově fail-closed vyžaduje navázanou spodní navigaci a metriku první interakce nejpozději do `startupReady`.
+- Produkční `main`, produkční Vercel ani produkční Supabase se nemění.
+
+## RaK 1.7.124 (development)
+
+- Minimální délka hesla pro **owner/admin správce** je sjednocena z 12 na **6 znaků** ve všech aktuálních klientských i serverových validačních cestách.
+- Nový správce, změna hesla hlavního admina i změna vlastního hesla nižšího admina používají stejné minimum 6 znaků; maximum 128 znaků zůstává beze změny.
+- Klientské formuláře mají `minlength="6"` a odpovídající české hlášky. Serverová Edge Function `rak-admin-users` odmítá 5 znaků, ale už neblokuje 6 znaků.
+- Ověření současného hesla, owner-only správa ostatních účtů, role owner/admin a existující Supabase Auth relace zůstávají zachované.
+- Přidán regresní gate 1.7.124, který hlídá klienta, serverový zdroj i zachování bezpečnostních kontrol.
+- Produkční `main`, produkční Vercel a produkční Supabase se touto development změnou nemění.
+
+## RaK 1.7.123 (development)
+
+- Neplánovaná změna → **Odešel na kalírnu** už nejdřív negeneruje celý vybraný den. Pokud pracovník odchází z MO, aplikace hledá platné rozložení se **zcela nejmenším počtem přesunutých lidí**.
+- Typický případ 5 → 4 lidí na MO: když odchází člověk ze soustruhu, přednostně ho nahradí pracovník z **MFKF06** a člověk na **MFKF10 zůstane sám na frézkách**. Ostatní soustruhy i celé TO zůstávají beze změny.
+- Když odchází člověk přímo z MFKF06, ostatní se nehýbou. Když odchází z MFKF10, pracovník z MFKF06 se přesune na MFKF10. Kvalifikace se kontrolují pro každý navržený stroj.
+- Pokud nejmenší lokální varianta kvůli kvalifikaci nebo staffing pravidlům neexistuje, teprve potom se použije dosavadní scoped generátor, a to jen pro konkrétní nevyřešený den.
+- Serverové CAS/idempotentní RPC, TEST Supabase, produkční Supabase i produkce se nemění.
+
+## RaK 1.7.122 (development)
+
+- Neplánovaná Dovolená/Náhradní volno/Paragraf/Lékař nově **preferují řešení pouze uvnitř MO**, když je chybějící pracovník původně na MO a stávající TO zůstává po absenci platné.
+- V takovém dni se původní řádek TO předá generátoru jako chráněný. Generátor jej ponechá beze změny a přeskupí pouze zbývající dostupné lidi na MO.
+- Ochrana TO se aktivuje jen tehdy, když má původní TO správný počet dostupných, unikátních a kvalifikovaných lidí. Pokud chybí člověk z TO nebo staré TO už po absenci není platné, generátor automaticky dovolí širší lokální přepočet.
+- Po vygenerování je zachování TO kontrolováno fail-closed proti původnímu řádku; „MO-only“ větev tedy nemůže potichu změnit Tvrdotu.
+- Scoped přepočet, izolace vybraných dnů, pět schválených důvodů, serverový CAS/idempotentní RPC i Supabase schéma zůstávají beze změny.
+
+## RaK 1.7.121 (development)
+
+- Oprava skutečné runtime příčiny, proč fyzický iPhone stále vracel Blažka do stroje při **26. 9. R → Dovolená** i **Odešel na kalírnu**.
+- Starší `module-readiness.js` obaloval `adminGenerateRotationMonthDraft` kvůli monthKey hotfixu, ale wrapper předával jen první dva argumenty. Třetí `generationOptions` se tedy v reálném browser runtime zahodil.
+- Wrapper nyní předává i třetí argument beze změny. Díky tomu se v Neplánované změně skutečně aktivují `scopedDateLabels` a `allowScopedRuleErrors`, které už byly implementované v 1.7.119–1.7.120.
+- Přidán regresní gate přes celý řetězec: oba unplanned vstupy posílají scoped options → legacy wrapper je musí přeposlat → generátor je musí použít pro lokální režim bez měsíčních repair/balance přesunů.
+- Žádná změna databáze ani serverového CAS/idempotentního RPC; TEST Supabase zůstává beze změny.
+
+## RaK 1.7.120 (development)
+
+- Oprava fyzického iPhone testu Neplánované změny pro **26. 9. R / Blažek / Odešel na kalírnu** a stejnou cestu pro jednodenní absenci.
+- Scoped přepočet už po sestavení dne nespouští měsíční balance/repair průchody, které mohly nedostupného pracovníka vrátit do vybraného dne.
+- Pro jednoho nedostupného z 10 lidí se vybraný den musí uzavřít jako **5 TO + 4 MO**; na MO jsou při čtyřech lidech **3 soustruhy + 1 fréza**. Nedostupný pracovník nesmí zůstat v žádném stroji.
+- Finální fail-closed kontrola Neplánované změny blokuje jen nově vzniklé chyby, které se dotýkají vybraného dne/rozsahu. Historická nebo návazná chyba jiného dne (např. 30. 9.) sama o sobě změnu 26. 9. nezablokuje.
+- Izolace zůstává zachovaná: do výsledného měsíce se splice-nou pouze zvolené dny a serverový CAS/idempotentní allowlist se nemění. Žádná nová Supabase migrace.
+- Pět schválených důvodů zůstává beze změny: **Dovolená, Náhradní volno, Paragraf, Lékař, Odešel na kalírnu**.
+
+## RaK 1.7.119 (development)
+
+- Neplánovaná změna zůstává přesně na pěti schválených důvodech: **Dovolená, Náhradní volno, Paragraf, Lékař, Odešel na kalírnu**.
+- Přepočet nyní bezpečně toleruje chyby v mezivýsledku mimo zvolený den/rozsah. Do uloženého měsíce se stále splice-nou jen vybrané dny a finální kandidát se porovnává s původním měsícem; nová chyba nebo zásah jiného dne zůstává fail-closed.
+- Validátor personální dostupnosti nyní počítá `kalirnaOut` stejně jako generátor. Starší Kalírna na jiném dni proto už nevytváří falešnou chybu „dostupný člověk není v rozpisu“.
+- Vybraný den se dál generuje plným generátorem včetně vyvážení MO/TO a návazných pravidel; ostatní dny se do výsledku nepropíšou.
+- iPhone popup Neplánované změny je kompaktnější, respektuje safe-area a scrolluje jen obsah. Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.118 (development)
+
+- Opravené nedorozumění z 1.7.117: speciální personální větev pro **4 chybějící** je odstraněná z generátoru, opravné fáze, validace i regresních testů. Čtyři a více chybějících se tímto releasem nezavádějí jako podporovaný provozní scénář.
+- Zachované pravidlo pro **3 chybějící**: 4 TO bez TPKW02 + 3 MO na MSKC03, MSKC04 a MFKF10; MSKC01 a MFKF06 zůstávají prázdné.
+- Pravidla pro 0–2 chybějící zůstávají beze změny. Release nepřidává novou databázovou migraci ani nemění TEST/produkční Supabase schéma.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.117 (development)
+
+- Generátor personálního obsazení: zachované pravidlo pro 3 absence se rozšiřuje i na **4 absence**. Při 3 i 4 chybějících z deseti lidí zůstává **TPKW02 bez obsluhy**.
+- Při 3 absencích zůstává stávající rozložení 4 TO + 3 MO: bez TPKW02, MSKC01 a MFKF06.
+- Při 4 absencích je nově explicitně 4 TO + 2 MO: TO bez TPKW02; MO na MSKC03 a MFKF10. Generátor, opravná fáze i validační kontrola používají stejný práh.
+- Pravidla pro 0–2 a 5+ absencí se tímto releasem nemění. Výběr pěti důvodů a Kalírna reflow z 1.7.115/1.7.116 zůstávají beze změny.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.116 (development)
+
+- Neplánovaná změna → `Odešel na kalírnu`: pracovník se dál ukládá jako skutečná `dayMods: kalirnaOut` výjimka a **nevzniká mu absence**, ale pro generátor je ve vybraném dni nedostupný stejně jako nepřítomný pracovník.
+- Vybraný den se nově přepočítá stejným generátorem a stejnými personálními pravidly jako běžný rozpis. Pro 4 dostupné lidi na MO zůstává MFKF06 prázdná a rozložení je 3 soustruhy + 1 člověk na MFKF10; pro 3 dostupné lidi jsou 2 soustruhy + 1 MFKF10. Při nedostatku na TO se dál použije stávající kvalifikované doplnění z MO a vyvažování.
+- Přepočet smí změnit pouze zvolený den nebo rozsah. Serverový TEST RPC kontroluje CAS/idempotenci, nedotčené ostatní dny a výjimky a odmítne uložení, pokud člověk označený jako Kalírna zůstane na některém stroji.
+- Osobní Rotace/Dashboard zachovají pracovníka na Kalírně i po jeho odebrání ze strojních buněk; značka `→K` se po přeskupení nesmí přenést na náhradníka.
+- Pevný výběr pěti důvodů z 1.7.115 se nemění. Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.115 (development)
+
+- Neplánovaná změna: pole Důvod je nyní pevný výběr přesně pěti položek podle zadání vlastníka: `Dovolená`, `Náhradní volno`, `Paragraf`, `Lékař`, `Odešel na kalírnu`. Volné psaní a ostatní důvody byly odstraněny.
+- První čtyři volby používají stávající bezpečný částečný generátor absence. `Odešel na kalírnu` se neukládá jako falešná absence: vytvoří skutečnou `dayMods` výjimku typu `kalirnaOut` na právě přiřazené buňce a nerozhází ostatní dny ani strojové obsazení.
+- TEST Supabase migrace `20260926081926_rak_unplanned_reason_catalog_17115` přidává admin-only RPC v2 s CAS/idempotencí a odděleným allowlistem: absence jen D/NV/§/LEK, denní výjimka jen `kalirnaOut`. Anon nemá EXECUTE.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.114 (development)
+
+- Administrace → Rozpisy: po fyzickém iPhone retestu je svislé menu opravené ještě o úroveň níž. Při každém otevření se přímo inline s `!important` vynutí jednosloupcový grid na `.adminRotationQuickRemoveActions` a 100% šířka obou tlačítek.
+- Tím se odstraní poslední možnost, aby staré `display:flex !important` v globálním stylesheetu znovu natlačilo `Neplánovaná dovolená` a `Odebrat` vedle sebe.
+- Velký popup i serverová logika Neplánované změny zůstávají beze změny. Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.113 (development)
+
+- Administrace → Rozpisy: akční nabídka po klepnutí na obsazené jméno je kořenově opravena proti starému `.adminRotationQuickRemove.isVisible{display:flex!important}`. Celý box se nyní při zobrazení vynutí jako jednosloupcový grid, takže `Neplánovaná dovolená` a `Odebrat` jsou skutečně pod sebou a přes celou šířku.
+- Oprava zůstává v deferred admin modulu; velký popup Neplánované změny ani serverová logika se nemění.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.112 (development)
+
+- Neplánovaná změna – mobilní UX: klepnutí na obsazené jméno v Rozpisech nejdřív otevře kompaktní akční nabídku se dvěma celými volbami `Neplánovaná dovolená` a `Odebrat`. Volba Neplánovaná dovolená následně otevře velkou vyskakovací stránku s formulářem.
+- První tap na obsazené jméno je zachycen ještě před focus inputu, takže se na iPhonu nemá automaticky vytáhnout klávesnice a obě akce zůstanou celé viditelné. Popup využívá dostupnou výšku obrazovky, safe-area, vlastní hlavičku s ×, scrollovatelný obsah a spodní akční lištu. Obsluha i 1.7.112 popup CSS jsou pouze v deferred admin modulu; běžný startup/menu shell se tím nezvětšuje.
+- Ruční editace zůstává dostupná explicitním tlačítkem `Ručně upravit`; teprve po něm se vrátí běžný focus/klávesnice.
+- Serverový výpočet, CAS, idempotence, absence i rozsah změn z 1.7.111 se tímto releasem nemění.
+- Produkční Vercel, `main` ani produkční Supabase se nemění.
+
+## RaK 1.7.111 (development)
+
+- WhatsApp report: automatický text je zkrácen na `RaK – Report směny diferenciály · <datum> · <Ranní/Noční/Ranní 8 h/Noční 8 h>`; nadbytečné slovo `směna` před názvem směny je pryč.
+- Administrace → Rozpisy → Neplánovaná změna: kliknutí na obsazené jméno nabízí nový formulář s předvyplněným pracovníkem a dnem, editovatelným důvodem a rozsahem Od–Do. Generátor vytvoří celý výpočet pouze jako pracovní podklad, do výsledku ale splice-ne výhradně zvolené dny; explicitní izolace odmítne jakoukoli změnu jiného dne.
+- Neplánovaná změna se ukládá jen online přes nový TEST RPC `rak_admin_apply_unplanned_absence_v1`: stávající admin auth, CAS revize, automatická záloha, serverová diff allowlist validace a 30denní idempotence podle operation UUID. Lokální queue/recovery cesta se nepoužívá. Živý rollback test TEST DB prokázal první zápis právě jednou, bezpečný identický retry a odmítnutí reuse stejného operation ID s jiným požadavkem.
+- P2.4: runtime má pevně kategorizovanou diagnostiku zamítnutých operací bez raw message/payloadu/JWT. Uživatelsky spuštěný TEST Auth probe po kryptografickém ověření skutečného tokenu provede i záměrně neplatný rotation RPC s polem místo objektu; server ho odmítne před zápisem a klient ověří jen sanitizovanou kategorii `invalid-request`.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.110 (development)
+
+- WhatsApp report: předvyplněná zpráva už nepoužívá interní kódy směny `R / N / R8 / N8`, ale čitelné české názvy `Ranní / Noční / Ranní 8 h / Noční 8 h`.
+- Datum, živý runtime synchronizovaný od 1.7.109 i PNG sdílení zůstávají beze změny.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.109 (development)
+
+- Report směny → WhatsApp: opravena skutečná živá cesta. Aplikace načítá `rak-shift-report-share.js`; jeho vložený PNG helper byl starší než samostatný `rak-shift-report-image.js`, takže i po 1.7.108 WhatsApp dostával statické `RaK – Report směny diferenciály`. Live runtime nyní používá kontext `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>` jako `title` i `text` spolu s PNG.
+- Kořenová oprava build pipeline: `tools/shift-report-image-170.mjs` při každém canonical buildu vložený helper v živém runtime synchronizuje; už nepřeskakuje aktualizaci jen proto, že marker existuje. Smoke test kontroluje pomocný i skutečně načítaný runtime.
+- Report směny na mobilu: `Datum směny` a `Směna` používají stejnou druhou grid řádku o výšce 48 px; select má explicitní 48px výšku, nulový margin a border-box, aby byly oba ovládací prvky srovnané.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.108 (development)
+
+- Report směny → WhatsApp PNG: kontext `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>` se nově posílá nejen jako Web Share `title`, ale i jako `text` společně s PNG. WhatsApp tak může použít tento text přímo jako popisek odesílaného obrázku.
+- Datum i směna se dál čtou z právě zvoleného formuláře v okamžiku sdílení; regresní gate 1.7.108 vyžaduje `text: caption` i soubor v jednom share payloadu.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.107 (development)
+
+- Administrace → Kalendáře: tlačítko `×` pro odebrání kalendáře je centrované v celé 54px dotykové ploše; rozložení `×` + `Přidat kalendář` zůstává vedle sebe.
+- Report směny: sdílení PNG přes WhatsApp/Web Share používá titul `RaK – Report směny diferenciály · <datum> · směna <R/N/R8/N8>`; datum i směna se čtou z právě zvoleného formuláře v okamžiku sdílení.
+- Regresní gate 1.7.107 hlídá obě změny a zachování jednotné release identity. Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.106 (development)
+
+- `RAK_HANDOFF.md` je nyní jediný živý třináctibodový plán. Historické `RAK_PLAN_13.md` bylo po migraci všech kontrol odstraněno; owner complete backup nově zahrnuje přímo handoff.
+- Runtime zůstává funkčně stejný jako 1.7.105, ale release ověřuje odstranění paralelního plánu, jeho absenci v aktivních kontrolách a zachování backup manifestu.
+
+## RaK 1.7.105 (development)
+
+- Browserový runtime instaluje před běžnými moduly jedinou diagnostickou bránu, která do konzole propouští jen pevnou kategorii a agregovaná metadata. Syrové chyby, texty, payloady a celé auditní reporty se do konzole nepředávají.
+- Nezachycené chyby a odmítnuté Promise používají stejnou agregovanou bránu a potlačují výchozí výpis potenciálně citlivého textu prohlížečem.
+- Regresní canary v Node i skutečném Chromium vkládá fiktivní token, JWT, OS-like číslo, jméno a obsah rozpisu a fail-closed vyžaduje, aby se žádná hodnota neobjevila v logovacím výstupu.
+- Sanitizátor nemění payload úplné owner zálohy ani uživatelem vědomě odesílaný bug report/screenshot; jeho působnost končí u diagnostických výstupů.
+- Immutable performance baseline zůstává 1.7.69 a budget baseline 1.7.104; aktuální pětikolová parita se měří proti 1.7.105 bez rozšíření tolerancí.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.104 (development)
+
+- Fyzický iPhone retest 1.7.103 potvrdil picker Rozpisů, širší OS sloupec, landscape pouze se správným login rakem a úplnou zálohu, která už nabídla skutečné stažení 23,3 MB. +/− v kalkulačce Brusů je také potvrzené.
+- V Nastavení korekcí fyzický retest odhalil, že znaménka byla vykreslená jen u části polí. Frézky nyní mají stejné +/− u hodnot před korekcí, obou změn ve stroji i obou výsledků po korekci. Brusy mají +/− u všech C1/C2 L/P hodnot před, při i po korekci.
+- Report směny už nespoléhá na viditelný rámeček nativního iOS `input type=date`. Pevný 124px vizuální obal vlastní celý rámeček a text data; průhledný nativní date input zůstává nad ním pouze jako plnohodnotná klikací vrstva pro iOS picker.
+- Chromium regrese měří viditelný obal data a jeho pravý okraj, nikoli interní geometrii nativního date inputu.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.103 (development)
+
+- Fyzický iPhone retest 1.7.102 potvrdil Vánoce a správného login raka, ale znovu odhalil čtyři reálné regrese: picker Rozpisů, +/− u Brusů, geometrii data Reportu a úplnou zálohu. 1.7.103 opravuje příčiny v posledních skutečně vykreslovaných vrstvách.
+- Picker Rozpisů už není `position: fixed`; kotví se absolutně v souřadnicích dokumentu a VisualViewport používá jen pro viditelné hranice. Tím se při iOS klávesnici/scrollu nemíchají dvě souřadnicové soustavy.
+- Pracovníci zachovávají dvojnásobný sloupec jména a sloupec OS čísla je proti 1.7.102 o 50 % širší (36 → 54 px).
+- Finální Brusy v157/v158 dostávají 48px +/− přímo do skutečného kalkulátoru a do fáze „Provedené korekce“ v Nastavení korekcí; už je nepřepíše následná vrstva bez znamének.
+- Landscape instalované PWA zobrazuje bez textu pouze stejného login raka přes celý viewport.
+- Report směny staví kompaktní 124px datum a oddělenou směnu už v základním DOM/CSS, takže není závislý na pozdějším polish skriptu.
+- Release pipeline kopíruje celý kanonický `.rak-dist` do Vercel Build Output. Před aliasem i po něm povinně stahuje skutečný `rak-complete-backup-source.zip`, vyžaduje velikost nad 100 kB a validní ZIP; 145bajtový placeholder už nemůže projít zeleným releasem.
+- Produkční Vercel, `main` ani produkční Supabase se tímto development releasem nemění.
+
+## RaK 1.7.102 (development)
+
+- P2.3 rozšiřuje serverový compare-and-swap z hlavního `rotation_state` také na `machine_settings` a měsíční `rotation_months/rotation_entries`.
+- Admin načtení používá atomické v3 RPC, které vrátí data spolu s revizí. Uložení musí poslat přesně tuto revizi; server revizní řádek zamkne, porovná a stale zařízení odmítne SQLSTATE `40001` bez přepsání novějších dat.
+- Neověřená revize se odmítne už v klientovi před síťovým zápisem. Po konfliktu RaK zobrazí, že data změnilo jiné zařízení a vyžádá nové online načtení.
+- Revizní registr `rak_write_revisions` je RLS-uzamčený bez přímého SELECT/INSERT pro anon/auth. Přístup je pouze přes admin RPC chráněná stávající ověřenou admin session.
+- Rollout je dvoufázový: staging drží kompatibilitu starého v2 klienta, ale každý jeho zápis zvýší stejnou revizi. Po zeleném 1.7.102 preview se na TEST aplikuje cutover, který staré v2 mutation RPC ponechá pouze jako fail-closed upgrade-required endpoint.
+- Reálný TEST rollback důkaz ověřil stale konflikt pro měsíční rozpis i nastavení strojů. Produkce ani produkční Supabase se nemění.
+
+## RaK 1.7.101 (development)
+
+- P2.3 dostává bezpečné řešení jediné konkrétní konfliktní položky z lokální fronty bez plošného mazání dat.
+- RaK umí najít zadržené konflikty podle typu `rozpis`, `stroj` a `ostatní`. Neznámé/ostatní typy se automaticky odstranit nesmějí.
+- Před odstraněním podporovaného konfliktu musí proběhnout read-only kontrola serveru a soukromý export přesných původních bajtů vybrané položky. Export ani kontrola nic nezapisují na server.
+- Odstranění používá raw splice původního JSON pole, takže ostatní položky fronty zůstávají bajtově nedotčené. Změněná fronta se po zápisu znovu načte a ověří.
+- Potvrzovací text explicitně říká, že online rozpis/nastavení se nepřepíše a že ostatní fronta zůstane zachovaná.
+- Produkce ani Supabase se nemění.
+
+## RaK 1.7.100 (development)
+
+- Fyzický iPhone retest 1.7.99 odhalil sedm konkrétních regresí. 1.7.100 je opravuje jako jeden přejímkový balík bez změny produkce.
+- Nabídka volných lidí v Administraci → Rozpisy se po otevření drží u skutečně klepnutého pole a přepočítává polohu při scrollu, resize i změnách iOS visual viewportu/klávesnice.
+- V Pracovnících je sloupec jména u účtů mimo rozpis dvojnásobný (63 → 126 px).
+- Brusy mají explicitně viditelné 48px +/− ovládání u levého/pravého FHB i u admin korekce; markup a logika už existovaly, chyběla Brusy-specific CSS geometrie.
+- Vánoční odpočet ignoruje staré uložené skloňování a pro vánoční cíl vždy píše přesně „do Vánoc“.
+- Landscape blokace PWA používá stejné tři PNG pózy raka jako aktuální přihlašovací obrazovka, místo staršího samostatného SVG maskota.
+- Report směny má kompaktnější datum (na iPhonu 124–126 px) a explicitní pravý okraj rámečku.
+- Úplná záloha už na iPhonu znovu neparsuje zdrojový Git ZIP přes JSZip. Build ho dál předem ověřuje proti Git inventory a CRC, klient kontroluje ZIP signaturu/konec a vloží přesné bajty jako `repository/source-exact.zip` do výsledné zálohy.
+- Textové i screenshotové hlášení chyby z 1.7.99 zůstává beze změny; fyzický test obou variant prošel.
+- Produkce ani produkční Supabase se nemění.
+
+## RaK 1.7.99 (development)
+
+- „Pošli mi chybu“ umí volitelně připojit jeden screenshot. JPG/PNG/WebP se na zařízení načte, zmenší na max. 1400 px, znovu překóduje do JPEG bez původních metadat a po kompresi musí mít nejvýše 650 kB.
+- Screenshot se nikdy neukládá do lokální fronty ani do běžného exportu reportů. Při offline režimu se report se screenshotem zastaví s vysvětlením; po odebrání obrázku funguje textový offline report stejně jako dřív.
+- TEST Supabase ukládá obrázek odděleně v RLS-uzamčené tabulce bez přímých práv anon/auth. Veřejné v3 RPC dovoluje jen omezený insert, admin screenshot načítá pouze přes zvláštní RPC chráněné `rak_require_admin(false)`.
+- Server znovu kontroluje MIME, magic bytes, rozměry a limit 750 kB. Smazání reportu zároveň maže jeho přílohu. Žádný veřejný/private Storage bucket nevzniká; staré v2 report RPC zůstává rollbackem.
+- Negativní TEST důkazy ověřují zákaz anonymního čtení, nepovolený typ, nadlimitní payload a nulovou perzistenci při odmítnutí. Produkce ani produkční Supabase se nemění.
+
+## RaK 1.7.98 (development)
+
+- Úplná záloha RaK už nestaví všechny veřejné tabulky v jednom monolitickém SQL JSONu. TEST Supabase dostává owner-only manifest RPC a owner-only tabulkové RPC; staré `rak_owner_complete_backup_v1` zůstává nedotčené jako rollback.
+- Klient načte manifest, veřejné tabulky stáhne po částech s maximálně dvěma souběžnými DB requesty a lokálně složí stejný výsledný `rak-complete-backup-v1` snapshot. ZIP, validátor i restore postup tak zůstávají kompatibilní.
+- Diagnostika prokázala příčinu timeoutu: samotné tři největší tabulky se serializují za méně než 0,6 s, ale opakované `jsonb || jsonb_build_object(...)` spojení čtyř velkých bloků trvá přibližně 12,8 s. Oprava tedy neprodlužuje timeout, ale odstraňuje kvadratické kopírování.
+- Nový VM regresní test ověřuje složení v1 snapshotu, zákaz automatického fallbacku na pomalé v1 RPC a fail-closed odmítnutí `rak_admin_secrets`.
+- Produkce ani produkční Supabase se nemění.
+
+## RaK 1.7.97 (development)
+
+- Korekce Brusů nově používají stejné tlačítko +/− jako ostatní korekční kalkulačky: u obou naměřených FHB hodnot i u korekce v administraci. Stejný vzor +/− dostaly také korekce Frézek v administraci.
+- „O aplikaci“ je kratší: odstraněna obecná věta „RaK spojuje…“ a historie řady 1.7 je zhuštěná do čtyř stručných bodů.
+- Vánoční odpočet používá přirozené „do Vánoc“ místo „k Vánocům“.
+- Landscape blokace instalované PWA používá stejný animovaný RaK krab jako login; při omezení pohybu se animace vypnou.
+- Report směny má oddělené datum a výběr směny bez překrývání pravého okraje. Nový reálný Chromium test na mobilní šířce hlídá geometrii i minimální dotykový cíl +/−.
+- Supabase ani produkce se nemění.
+
+## RaK 1.7.96 (development)
+
+- Třetí TEST balík podle 13bodového plánu: Rozpisy/absence + Pracovníci/Správci + sjednocení provozní administrace.
+- Rozpisy: odstraněna viditelná nápověda o trojkliku a karta „Místní neuložené návrhy rozpisů“; samotné místní návrhy/fronta ani bezpečné recovery/cleanup funkce se nemažou.
+- Přehled měsíce zůstává otevřený a používá kratší hlavičky `TNK`, `W01`, `W02` pouze pro zobrazení; uložené klíče strojů se nemění.
+- Prázdná buňka rozpisu používá vlastní picker ukotvený k buňce a nabízí jen lidi, kteří nejsou ve stejném dni už v rozpisu ani v absenci. Obsazená buňka dál nabízí stabilní Odebrat a nově se umí přesunout nad pole, když dole není místo.
+- Absence: prázdné datum nabízí přednostně dny s chybějícím člověkem bez už zadané absence; jméno nabízí chybějící lidi pro vybraný den. Ruční editace zůstává a povinná validace před uložením dál blokuje konflikt „absence + současně v rozpisu“.
+- Pracovníci: odstraněn blok „Stav pracovníků“, sloupce jméno/přihlašovací číslo jsou užší. Účty mimo rozpis zobrazují existující řádky + přesně jeden prázdný a po jeho vyplnění vznikne další jediný prázdný.
+- Správci používají stejný princip existující + jeden prázdný řádek. Nastavení strojů, Kantýna/Jídelna, Pravidla generátoru a Správci dostaly jednotnou mobilní hierarchii akcí.
+- Spodní read-only adresář účtů je výrazně kompaktnější.
+- Odstraněna stará poznámka/přepínač „Pondělí – Brusy: spálení“ po ověření, že měla jen jediného aktivního čtenáře. „První ranní – Roznýtování laborka“ zůstává.
+- Supabase schéma ani produkce se nemění.
+
+## RaK 1.7.95 (development)
+
+- Kalendář se vrací ke skutečnému Google Calendar iframe stejně jako v produkčním `main`, místo vlastní nativní napodobeniny. Díky tomu má přesně Google vzhled i jeho detail události.
+- Iframe se skládá dynamicky podle směny A/B/C/D přihlášeného účtu. Pokud má směna více veřejných Google kalendářů, RaK je spojí do jednoho měsíčního pohledu přes více `src`.
+- Jednou vytvořený iframe se při zavření modalu nezahazuje; při dalším otevření se znovu použije. Navíc se po navázání dlaždice kalendáře na pozadí přednačte, takže otevření má být stejně rychlé nebo rychlejší než v `main`.
+- Veřejný ICS endpoint a nativní parser zůstávají v repozitáři jako technická záloha/rollback, ale nejsou hlavním UI. Supabase ani produkce se nemění.
+
+## RaK 1.7.94 (development)
+
+- Mobilní měsíční kalendář už nevykresluje vždy pevných 42 dní. Použije 5 týdnů, když se měsíc do pěti řádků vejde, a 6 týdnů jen tehdy, když jsou skutečně potřeba; říjen 2026 tak nemá zbytečný poslední řádek.
+- Kalendářová tlačítka jsou izolovaná od globálního RaK glass stylu: denní buňky jsou skutečně bílé bez šedého gradientu, čísla dnů jsou tmavá a dnešek zůstává modře zvýrazněný.
+- Mobilní čitelnost byla zvětšena: čísla dnů, názvy dnů a text směn mají větší písmo; původní 7px text událostí je odstraněný.
+- Popup detail a intervaly `od–do` z 1.7.93/1.7.92 zůstávají beze změny. Supabase ani produkce se nemění.
+
+## RaK 1.7.93 (development)
+
+- Nativní směnový kalendář má nově světlý vzhled inspirovaný přehledností původního Google kalendáře, ale stále používá bezpečný RaK public-ICS renderer bez Google iframe, cookies nebo přihlášení.
+- Měsíční mřížka zůstává stručná. Klepnutí na datum se směnou otevře světlé vyskakovací okno s datem, názvem směny a celým intervalem `od–do`; volitelné místo a popis se zobrazí až v detailu.
+- Popup lze zavřít křížkem nebo klepnutím mimo kartu. Přechod na jiný měsíc, tlačítko Dnes nebo změna kalendáře detail bezpečně zavře; prázdný den žádný prázdný popup neudržuje.
+- Supabase ani produkce se nemění.
+
+## RaK 1.7.92 (development)
+
+- Denní přehled po kliknutí na datum v nativním kalendáři nově zobrazuje celý časový interval události, např. `06:00–18:00`, `18:00–06:00` nebo `22:00–06:00`, místo samotného začátku.
+- Měsíční mřížka zůstává stručná a dál ukazuje pouze začátek + název směny.
+- Celodenní události se dál zobrazují jako `celý den`; změna nezasahuje do Supabase ani produkce.
+
+## RaK 1.7.91 (development)
+
+- Ve veřejném směnovém kalendáři může Google při omezeném sdílení skrýt název události jako `Busy`; RaK u takové položky nově odvodí české označení ze začátku směny: 06:00 → `Ranní`, 18:00 nebo 22:00 → `Noční`.
+- Vlastní názvy z ICS se nepřepisují. Směna D si proto dál zachová názvy jako `Ranní 12h`, `Noční 12h` nebo `Ranní 8h`.
+- Změna je pouze v nativním kalendáři a release metadatech; Supabase ani produkce se nemění.
+
+## RaK 1.7.90 (development)
+
+- Dashboard kalendář už nepoužívá vložený Google Calendar iframe, který iOS/PWA blokoval kvůli third-party cookies. Veřejný Google Calendar ICS se načítá přes úzký RaK endpoint a vykresluje přímo v aplikaci.
+- Nový endpoint přijímá pouze ID Google kalendáře a sám sestaví cestu `calendar.google.com/.../public/basic.ics`; nepřijímá libovolnou URL, soukromé private ICS nepodporuje a omezuje velikost odpovědi.
+- Nativní kalendář má měsíční mřížku, předchozí/další měsíc, návrat na dnešek, výběr dne a denní seznam událostí. Parser podporuje běžné RRULE opakování, EXDATE a RECURRENCE-ID výjimky.
+- A/B/C/D mapování účtu z 1.7.89 zůstává zachované; řešení nevyžaduje novou Supabase migraci ani mazání lokálních dat.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.90; SW cache je v1.7.90.
+
+## RaK 1.7.89 (development)
+
+- Opraveno mapování kalendáře podle účtu: běžný klient už nemusí číst soukromý seznam pracovníků; verzovaný login RPC vrací pouze směnu právě nalezeného účtu a profil ji ukládá i pro další/offline start.
+- Starý lokální profil bez směny se po prvním online startu bezpečně doplní, takže není nutné ručně mazat data aplikace.
+- Kalendářový modal používá celý dostupný prostor: obsah je skutečný flex sloupec a Google iframe vyplní zbývající výšku místo malého výchozího proužku.
+- Zavírací × v kalendáři je centrované přes flex layout a mobilní modal má menší okraje.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.89; SW cache je v1.7.89.
+
+## RaK 1.7.88 (development)
+
+- Opraven administrátorský guard stránky Kalendáře: režim `calendars` je nově explicitně povolen, takže Přidat, Odebrat, Načíst i Uložit už nevrací uživatele do hlavního menu Více.
+- Editor směnových kalendářů má kompaktnější mobilní rozložení: × a + Přidat kalendář jsou vedle sebe; mezi směnami je větší rozestup.
+- Přidání nového kalendáře vloží nový řádek hned pod aktuální; odebrání posledního řádku jej jen vyčistí, takže tlačítko Přidat zůstane vždy dostupné.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.88; SW cache je v1.7.88.
+
+## RaK 1.7.87 (development)
+
+- Kalendáře směn nově přijímají i veřejné Google Calendar ICS odkazy ve tvaru `.../public/basic.ics`.
+- Veřejný ICS se před uložením automaticky převede na standardní Google Calendar embed URL, takže Dashboard používá stejný zobrazovací mechanismus jako dosud.
+- Soukromé `private-.../basic.ics` odkazy zůstávají blokované, protože obsahují neveřejný přístupový token.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.87; SW cache je v1.7.87.
+
+## RaK 1.7.86 (development)
+
+- Administrace → Informace pro zaměstnance má novou samostatnou sekci Kalendáře; obecné Odkazy už kalendář nenastavují.
+- Každé směně A/B/C/D lze přiřadit jeden nebo více Google kalendářů. Dashboard používá výhradně kalendáře směny přihlášeného účtu; více kalendářů nabídne jako přepínatelný výběr.
+- Pracovníci v Rozpisu používají směnu D, účty mimo Rozpis používají explicitní směnu A/B/C/D z Administrace → Pracovníci. Stávající kalendář se do prvního uložení zachová jako fallback směny D.
+- Kalendářová konfigurace přijímá jen HTTPS Google Calendar embed URL s parametrem src; soukromé ICS odkazy s privátním tokenem se neukládají.
+- Upozornění v kalendáři se přesunulo z Nastavení strojů do nové sekce Kalendáře.
+- Verze aplikace, technická verze, modulová cache a package verze jsou sjednocené na 1.7.86; SW cache je v1.7.86.
+
+## RaK 1.7.85 (development)
+
+- Všechna aktuální čísla verze jsou sjednocená na 1.7.85: viditelná verze, technická verze, module cache i package verze; SW cache je v1.7.85.
+- Oprava doručování PWA aktualizace na iOS: každá verze nově mění přímo zdroj service workeru a jeho vlastní release marker.
+- Service worker importuje release metadata přes verzovanou URL a registrace používá updateViaCache: none, takže kontrola aktualizace nemá použít starou HTTP cache.
+- Zachovává local-first start, oddělení účtů a account-scoped CAS synchronizaci vzhledu z 1.7.84.
+
+## RaK 1.7.84 (development)
+
+- Start na dříve použitém zařízení obnovuje ověřený lokální rozpis před spuštěním Supabase synchronizace, takže Dashboard může zobrazit dnešní nebo další směnu bez čekání na síť.
+- Diagnostika nově měří první použitelný render Dashboardu s dostupným rozpisem.
+- Přepnutí účtu před aplikací nového profilu odstraní aktivní identitu předchozího účtu; per-account cache vzhledu zůstává oddělená.
+- Synchronizace vzhledu už nepoužívá zrušené herní statistiky. Nové úložiště používá revize a compare-and-swap, je oddělené podle účtu a při konfliktu neblokuje globální synchronizaci.
+- Přesun účtu mezi směnami/rozpisem zůstává pouze provozním nastavením a nemění jeho autentizační ani owner/admin identitu.
+
 ## RaK 1.7.83 (development)
 
 - Stránka O aplikaci nově stručně vysvětluje, k čemu RaK slouží.

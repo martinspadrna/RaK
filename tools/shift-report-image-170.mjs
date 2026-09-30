@@ -21,19 +21,20 @@ if (helperMarkerCount < 1) throw new Error('[shift-report-image-170] helper mark
 if (!helper.includes("./assets/rak-login-crab.png")) throw new Error('[shift-report-image-170] exact login crab asset missing');
 if (helper.includes('new MutationObserver(scan)')) throw new Error('[shift-report-image-170] broad report observer must not reach deployed runtime');
 
+const helperHeader = '// RaK 1.7 – PNG export Reportu směny s přesným login RaK vodoznakem.';
 if (runtime.includes(marker)) {
   const count = runtime.split(marker).length - 1;
   if (count !== helperMarkerCount) throw new Error('[shift-report-image-170] helper marker count mismatch in runtime');
-  if (runtime.includes('new MutationObserver(scan)')) throw new Error('[shift-report-image-170] broad report observer returned in runtime');
-  console.log('[shift-report-image-170] repeated build: PNG image export already attached');
-  process.exit(0);
+  const embeddedStart = runtime.lastIndexOf(helperHeader);
+  if (embeddedStart < 0) throw new Error('[shift-report-image-170] embedded helper header missing');
+  runtime = runtime.slice(0, embeddedStart).replace(/\s*$/, '') + '\n\n' + helper.trim() + '\n';
+} else {
+  runtime = runtime.replace(/\s*$/, '') + '\n\n' + helper.trim() + '\n';
 }
-
-runtime = runtime.replace(/\s*$/, '') + '\n\n' + helper.trim() + '\n';
 fs.writeFileSync(runtimePath, runtime, 'utf8');
 
 const output = fs.readFileSync(runtimePath, 'utf8');
 const outputMarkerCount = output.split(marker).length - 1;
 if (outputMarkerCount !== helperMarkerCount) throw new Error('[shift-report-image-170] runtime append failed');
 if (output.includes('new MutationObserver(scan)')) throw new Error('[shift-report-image-170] broad report observer leaked into output');
-console.log('[shift-report-image-170] OK portrait PNG + exact login crab watermark + targeted report install + iOS file share attached');
+console.log('[shift-report-image-170] OK synchronized live PNG helper + exact login crab watermark + targeted report install + iOS file share attached');

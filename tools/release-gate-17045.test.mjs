@@ -57,7 +57,7 @@ test('exact 1.7.45 preview version and privacy/offline contracts', () => {
   assert(config.includes('cgshssdjgzzuprlwnabl') && !config.includes('bkqamcbkiwumsvelahxr'));
   assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
   assert(read('admin-rotation-generator.js').includes('note.text'));
-  const progress = verifyRoadmapProgress(read('RAK_PLAN_13.md'));
+  const progress = verifyRoadmapProgress(read('RAK_HANDOFF.md'));
   assert.equal(progress.length, 13);
   assert(read('PUBLIC_ROTATION_ACTOR_PRIVACY.md').includes('24 měsíců'));
   assert(read('EMPLOYEE_AUTH_CUTOVER.md').includes('OS_ONLY_POLICY_20260919'));
