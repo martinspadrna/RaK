@@ -49,7 +49,7 @@ test('rejected-operation diagnostics expose only fixed categories and never raw 
 
 test('live role probe uses real signed TEST JWT paths with sanitized owner/admin/deputy boundaries', () => {
   for (const marker of [
-    'getAdminAccessToken',
+    'getSignedAdminAccessToken',
     "/auth/v1/user",
     "/rest/v1/rpc/rak_admin_context",
     "['owner', 'admin', 'deputy'].includes(role)",
