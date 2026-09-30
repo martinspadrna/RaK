@@ -334,7 +334,7 @@ function appMenuRenderRoot(body) {
   const deputy = verifiedRole && typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy();
   const liveRoleDiagnostic = verifiedRole && appMenuLiveAuthDiagnosticEnabled()
     ? '<button type="button" class="appMenuAction" data-menu-action="live-auth-check">Ověřit oprávnění</button>'
-      + '<div class="smallText" id="rakLiveAuthDiagnosticStatus" role="status" aria-live="polite">TEST diagnostika se spustí pouze klepnutím.</div>'
+      + '<div class="smallText" id="rakLiveAuthDiagnosticStatus" role="status" aria-live="polite"></div>'
     : '';
   const roleSection = verifiedRole
     ? '<section class="appMenuAdminQuickLinks" aria-label="' + (deputy ? 'Zástupce' : 'Správce') + '">' +

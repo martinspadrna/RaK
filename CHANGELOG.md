@@ -1,3 +1,9 @@
+## RaK 1.8.4 (development)
+
+- Více → správce: odstraněn výchozí text „TEST diagnostika se spustí pouze klepnutím.“ pod tlačítkem „Ověřit oprávnění“.
+- Stavový prvek zůstává v DOM prázdný, takže po klepnutí se do něj dál bezpečně vypíše výsledek živé diagnostiky; samotná role/diagnostická logika se nemění.
+- Produkční `main`, produkční Vercel ani produkční Supabase zůstávají beze změny.
+
 ## RaK 1.8.3 (development)
 
 - Administrace → Kalendáře: blok „Report dovolených“ má větší svislý odstup od následující „Směny A“, aby nové nastavení nebylo vizuálně nalepené na seznam směn.
