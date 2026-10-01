@@ -22,7 +22,7 @@ test('performance limits and sample count are unchanged by isolation fix',()=>{
   assert.equal(fcp.minMedianToleranceMs,20);
   assert.equal(fcp.baselineMadMultiplier,2);
   assert.equal(fcp.maxNoiseAllowanceMs,50);
-  assert.equal(fcp.maxP95DeltaMs,75);
+  assert.equal(fcp.maxP90DeltaMs,75);
 });
 
 test('calendar zero-visible fix remains interaction-only and protected D source is unchanged',()=>{

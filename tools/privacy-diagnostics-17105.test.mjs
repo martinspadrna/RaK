@@ -70,7 +70,7 @@ test('privacy helper is installed before runtime, cached offline and cannot muta
   const bugReport=read('app-menu-bug-report.js');
   const helperMarker=`rak-runtime-diagnostics.js?v=${RELEASE_METADATA.displayVersion}`;
   assert(index.indexOf(helperMarker)>index.indexOf('rak-release-metadata.js'));
-  assert(index.indexOf(helperMarker)<index.indexOf('<script defer src="data.js"></script>'));
+  assert(index.indexOf(helperMarker)<index.indexOf('<script src="data.js"></script>'));
   assert(index.indexOf(helperMarker)<index.indexOf('<script defer src="app.js?v=' + RELEASE_METADATA.displayVersion + '"></script>'));
   assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'));
   assert((sw.match(new RegExp(`rak-runtime-diagnostics\\.js\\?v=${RELEASE_METADATA.displayVersion.replaceAll('.','\\.')}`,'g'))||[]).length>=3);

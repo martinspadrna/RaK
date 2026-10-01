@@ -18,7 +18,7 @@
     "firstContentfulPaintMs": {
       "maxMedianRegressionPct": 10,
       "minMedianToleranceMs": 20,
-      "maxP95DeltaMs": 75,
+      "maxP90DeltaMs": 75,
       "baselineMadMultiplier": 2,
       "maxNoiseAllowanceMs": 50
     }

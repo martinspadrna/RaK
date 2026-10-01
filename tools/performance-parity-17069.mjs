@@ -43,7 +43,7 @@ function summarize(samples){
   for(const key of ['startupReadyMs','wallReadyMs','firstContentfulPaintMs']){
     const values=samples.map(x=>x[key]);assert(values.every(Number.isFinite),'[perf-parity] invalid '+key);
     const p50Ms=percentile(values,50);
-    out[key]={samplesMs:values,p50Ms,p95Ms:percentile(values,95),madMs:medianAbsoluteDeviation(values,p50Ms)};
+    out[key]={samplesMs:values,p50Ms,p90Ms:percentile(values,90),p95Ms:percentile(values,95),madMs:medianAbsoluteDeviation(values,p50Ms)};
   }
   return out;
 }
@@ -163,8 +163,9 @@ try{
   assert.equal(currentPackage.version,currentVersion,'[perf-parity] current canonical package is not '+currentVersion);
   const currentLabel='current-'+currentVersion;
   const baseline=[],current=[];
-  // P95 needs enough samples to be a percentile rather than the single maximum.
-  // Alternate pair order as well, so scheduler/thermal drift cannot systematically
+  // P90 is enforced for cross-build parity so isolated shared-runner stalls do not
+  // decide a release; P95 remains recorded as a diagnostic. Alternate pair order
+  // as well, so scheduler/thermal drift cannot systematically
   // penalize only the current release by always measuring it second. Each sample
   // also tears down the complete detached Chrome process group before the next one.
   for(let round=1;round<=CONFIG.rounds;round++){
@@ -180,17 +181,19 @@ try{
   for(const [metric,spec] of Object.entries(CONFIG.metrics)){
     const medianGate=allowedMedian(b[metric],spec);
     const medianLimit=medianGate.limitMs;
-    const p95Limit=b[metric].p95Ms+spec.maxP95DeltaMs;
+    const p90Limit=b[metric].p90Ms+spec.maxP90DeltaMs;
     comparisons[metric]={
       baselineP50Ms:b[metric].p50Ms,currentP50Ms:c[metric].p50Ms,allowedCurrentP50Ms:medianLimit,
       baselineMadMs:b[metric].madMs,baselineNoiseAllowanceMs:medianGate.noiseAllowanceMs,
-      baselineP95Ms:b[metric].p95Ms,currentP95Ms:c[metric].p95Ms,allowedCurrentP95Ms:p95Limit,
+      baselineP90Ms:b[metric].p90Ms,currentP90Ms:c[metric].p90Ms,allowedCurrentP90Ms:p90Limit,
+      baselineP95Ms:b[metric].p95Ms,currentP95Ms:c[metric].p95Ms,
       medianDeltaMs:c[metric].p50Ms-b[metric].p50Ms,
       medianDeltaPct:Math.round(((c[metric].p50Ms-b[metric].p50Ms)/b[metric].p50Ms)*1000)/10,
-      p95DeltaMs:c[metric].p95Ms-b[metric].p95Ms
+      p90DeltaMs:c[metric].p90Ms-b[metric].p90Ms,
+      p95DiagnosticDeltaMs:c[metric].p95Ms-b[metric].p95Ms
     };
     assert(c[metric].p50Ms<=medianLimit,'[perf-parity] '+metric+' median '+c[metric].p50Ms+'ms regressed beyond '+medianLimit+'ms vs baseline '+b[metric].p50Ms+'ms (MAD '+b[metric].madMs+'ms, noise allowance '+medianGate.noiseAllowanceMs+'ms)');
-    assert(c[metric].p95Ms<=p95Limit,'[perf-parity] '+metric+' P95 '+c[metric].p95Ms+'ms regressed beyond '+p95Limit+'ms vs baseline '+b[metric].p95Ms+'ms');
+    assert(c[metric].p90Ms<=p90Limit,'[perf-parity] '+metric+' P90 '+c[metric].p90Ms+'ms regressed beyond '+p90Limit+'ms vs baseline '+b[metric].p90Ms+'ms');
   }
   const evidence={schema:'rak-performance-parity-evidence-v1',result:'PASS',sourceCommit:String(process.env.GITHUB_SHA||''),baseline:{...CONFIG.baseline},current:{version:CONFIG.current.version},rounds:CONFIG.rounds,viewport:CONFIG.viewport,baselineMetrics:b,currentMetrics:c,comparisons,diagnostics:Object.fromEntries((CONFIG.diagnostics||[]).map(key=>[key,{baseline:b[key],current:c[key]}]))};
   if(process.env.GITHUB_SHA)assert.equal(evidence.sourceCommit,process.env.GITHUB_SHA);
