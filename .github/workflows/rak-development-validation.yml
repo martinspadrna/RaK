@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Preflight isolated build policy and measured thirteen-point roadmap
+      - name: Preflight isolated build policy and retired roadmap contract
         run: node --test tools/vercel-build-policy.test.mjs tools/development-deploy-gate.test.mjs tools/release-evidence.test.mjs tools/build-architecture-contract.test.mjs tools/production-migration-history.test.mjs tools/roadmap-contract.test.mjs tools/canonical-source-snapshot.test.mjs tools/canonical-build-contract.test.mjs tools/canonical-baseline-smoke.mjs tools/ui-parity-contract.test.mjs
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
