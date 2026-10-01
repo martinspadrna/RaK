@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
+import net from 'node:net';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -52,6 +53,12 @@ const server=http.createServer((req,res)=>{
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'rak-17052-chrome-'));
 let chrome=null,ws=null;const pending=new Map();let nextId=0;const exceptions=[];const httpFailures=[];
 let chromeStderr='',chromeSpawnError='';
+async function getFreePort(){
+ return await new Promise((resolve,reject)=>{
+  const socket=net.createServer();socket.unref();socket.once('error',reject);
+  socket.listen(0,'127.0.0.1',()=>{const address=socket.address();const port=address&&typeof address==='object'?address.port:0;socket.close(error=>error?reject(error):resolve(port));});
+ });
+}
 function send(method,params={}){
  assert(ws&&ws.readyState===WebSocket.OPEN,'[17052-browser] debugger disconnected');
  const id=++nextId;
@@ -91,18 +98,21 @@ async function boot(label,expectedRelease){
 try{
  server.listen(0,'127.0.0.1');await once(server,'listening');
  const base='http://127.0.0.1:'+server.address().port+'/';
- chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--user-data-dir='+temp,'about:blank'],{stdio:['ignore','ignore','pipe']});
+ const port=await getFreePort();
+ chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port='+port,'--user-data-dir='+temp,'about:blank'],{stdio:['ignore','ignore','pipe']});
  chrome.on('error',error=>{chromeSpawnError=String(error.message||error);});
  chrome.stderr.on('data',chunk=>{chromeStderr=(chromeStderr+String(chunk)).slice(-3000);});
- let port=0;
- // Allow slower runner startup, but never bypass the real Chrome and offline gate.
+ let debuggerReady=false;
+ // An explicit port works with Chromium and Microsoft Edge on Windows. Port 0
+ // exits cleanly in Edge before writing DevToolsActivePort.
  for(let i=0;i<300;i++){
-  if(chromeSpawnError||chrome.exitCode!==null)throw Error('[17052-browser] Chrome exited: '+chrome.exitCode+'; spawn='+chromeSpawnError+'; stderr='+chromeStderr.slice(-1500));
-  const file=path.join(temp,'DevToolsActivePort');
-  if(fs.existsSync(file)){port=Number(fs.readFileSync(file,'utf8').split('\n')[0]);break;}
+  // On Windows the Edge launcher may hand the browser to a child process and
+  // exit with code 0 while the requested debugging endpoint keeps starting.
+  if(chromeSpawnError||(chrome.exitCode!==null&&process.platform!=='win32'))throw Error('[17052-browser] Chrome exited: '+chrome.exitCode+'; spawn='+chromeSpawnError+'; stderr='+chromeStderr.slice(-1500));
+  try{const response=await fetch('http://127.0.0.1:'+port+'/json/version');if(response.ok){debuggerReady=true;break;}}catch{}
   await delay(100);
  }
- assert(port>0,'[17052-browser] Chrome debugger did not start: executable='+CHROME+'; exit='+chrome.exitCode+'; spawn='+chromeSpawnError+'; stderr='+chromeStderr.slice(-1800));
+ assert(debuggerReady,'[17052-browser] Chrome debugger did not start: executable='+CHROME+'; exit='+chrome.exitCode+'; spawn='+chromeSpawnError+'; stderr='+chromeStderr.slice(-1800));
  const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
  const tab=tabs.find(t=>t.type==='page');assert(tab?.webSocketDebuggerUrl,'[17052-browser] no Chrome page');
  ws=new WebSocket(tab.webSocketDebuggerUrl);
@@ -241,7 +251,10 @@ try{
  console.log('[17132-local-first] PASS final nav + local core + route preserved across background sync');
  await check("(()=>{document.querySelector('.bottomNavBtn[data-action=\"home\"]')?.click();return true;})()");
  const cold=await boot('cold mobile',expected);
- await until('!!navigator.serviceWorker?.controller',30000);
+ try{await until('!!navigator.serviceWorker?.controller',30000);}catch(error){
+  const swDiagnostic=await check(`(async()=>{const registration=await navigator.serviceWorker?.getRegistration('./');let directRegistration=null;if(!registration){try{const direct=await navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'});directRegistration={ok:true,installing:direct?.installing?.state||'',waiting:direct?.waiting?.state||'',active:direct?.active?.state||''};}catch(error){directRegistration={ok:false,name:String(error?.name||''),message:String(error?.message||error||'')};}}return {bootstrapped:!!window.__rotacePwaBootstrapped,controller:!!navigator.serviceWorker?.controller,registration:!!registration,installing:registration?.installing?.state||'',waiting:registration?.waiting?.state||'',active:registration?.active?.state||'',directRegistration,hardening:window.getPwaHardeningStatus?.()||null};})()`);
+  throw Error(error.message+'; serviceWorker='+JSON.stringify(swDiagnostic));
+ }
  await until('!!window.__rotacePwaBootstrapped');
  await check("window.__rotaceRequestPwaCacheStatus?.('ci-mobile-offline') || false");
  await until(`window.getPwaHardeningStatus?.().swExpectedCacheVersion==='v${expected}'`,15000);
@@ -392,6 +405,7 @@ try{
 }finally{
  delayStartupSync=false;
  heldStartupSync.splice(0).forEach((release)=>{try{release();}catch{}});
+ try{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({id:++nextId,method:'Browser.close'}));await delay(150);}}catch{}
  for(const p of pending.values()){clearTimeout(p.timeout);p.reject(Error('Chrome closing'));}pending.clear();
  try{ws?.close();}catch{}try{chrome?.kill('SIGTERM');}catch{}
  await new Promise(resolve=>server.close(resolve));try{fs.rmSync(temp,{recursive:true,force:true});}catch{}

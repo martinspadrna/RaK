@@ -88,6 +88,33 @@ function prepareVendor(){
   fs.mkdirSync(path.dirname(destination),{recursive:true});
   fs.writeFileSync(destination,data);
 }
+function archiveAllowlistedTree(inventory){
+  // Passing every path to `git archive` exceeds Windows' command-line limit.
+  // Build an isolated temporary index containing the exact same allowlist and
+  // archive its tree object instead. The real index and working tree stay
+  // untouched, and no excluded file can enter the backup.
+  const archiveIndex=path.join(STATE,'archive-index');
+  const archiveEnv={...process.env,GIT_INDEX_FILE:archiveIndex};
+  fs.rmSync(archiveIndex,{force:true});
+  try{
+    run('git',['read-tree','--empty'],{env:archiveEnv});
+    const wanted=new Set(inventory);
+    const entries=split0(run('git',['ls-files','-s','-z'])).filter(entry=>{
+      const separator=entry.indexOf('\t');
+      return separator>=0&&wanted.has(entry.slice(separator+1));
+    });
+    assert(entries.length===inventory.length,'temporary archive index inventory mismatch');
+    execFileSync('git',['update-index','-z','--index-info'],{
+      cwd:ROOT,encoding:null,input:Buffer.from(entries.join('\0')+'\0','utf8'),
+      maxBuffer:128*1024*1024,env:archiveEnv
+    });
+    const tree=run('git',['write-tree'],{env:archiveEnv}).trim();
+    assert(/^[a-f0-9]{40,64}$/.test(tree),'temporary archive tree is invalid');
+    return execFileSync('git',['archive','--format=zip',tree],{cwd:ROOT,encoding:null,maxBuffer:128*1024*1024});
+  }finally{
+    fs.rmSync(archiveIndex,{force:true});
+  }
+}
 function prepareBackup(){
   const commit=run('git',['rev-parse','HEAD']).trim();
   assert(/^[a-f0-9]{40}$/.test(commit),'invalid source commit');
@@ -101,7 +128,7 @@ function prepareBackup(){
   assert(inventoryRe.test(source),'backup inventory marker missing');
   source=source.replace(inventoryRe,'const RAK_COMPLETE_BACKUP_REPO_FILES = Object.freeze([\n'+inventory.map(file=>'    '+JSON.stringify(file)).join(',\n')+'\n  ]);');
   fs.writeFileSync(backupFile,source);
-  const archive=execFileSync('git',['archive','--format=zip','HEAD','--',...inventory],{cwd:ROOT,encoding:null,maxBuffer:128*1024*1024});
+  const archive=archiveAllowlistedTree(inventory);
   assert(Buffer.isBuffer(archive)&&archive.length>100000,'source archive incomplete');
   fs.writeFileSync(path.join(WORK,'rak-complete-backup-source.zip'),archive);
 }
@@ -142,7 +169,7 @@ export function build(){
   const beforeFingerprint=sourceFingerprint();
   prepareWork();prepareBackup();prepareVendor();
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
-  if(process.platform==='win32')run(process.env.ComSpec||'cmd.exe',['/d','/s','/c','npm.cmd run check'],{cwd:WORK,env,stdio:'inherit'});
+  if(process.platform==='win32')run(process.execPath,['tools/portable-check.mjs'],{cwd:WORK,env,stdio:'inherit'});
   else run('npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});
   publish();
   validateSourceTree('after build');

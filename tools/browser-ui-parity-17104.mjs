@@ -44,6 +44,7 @@ async function openCdp(url){
   ws.addEventListener('message',event=>{let msg;try{msg=JSON.parse(String(event.data));}catch{return;}if(!msg.id||!pending.has(msg.id))return;const p=pending.get(msg.id);pending.delete(msg.id);if(msg.error)p.reject(new Error('[ui-parity] CDP '+JSON.stringify(msg.error)));else p.resolve(msg.result||{});});
   return {
     send(method,params={}){return new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});},
+    shutdown(){try{ws.send(JSON.stringify({id:++seq,method:'Browser.close'}));}catch{}},
     close(){try{ws.close();}catch{}}
   };
 }
@@ -57,10 +58,10 @@ function measurementExpression(){
 }
 
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'rak-ui-parity-cdp-'));
-let proc=null;let cdp=null;let stderr='';
+let proc=null;let cdp=null;let debugPort=0;let stderr='';
 try{
   const file=path.join(tmp,'index.html');fs.writeFileSync(file,html,'utf8');
-  const port=await freePort();
+  const port=await freePort();debugPort=port;
   const profile=path.join(tmp,'profile');
   proc=spawn(chrome,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--allow-file-access-from-files','--remote-debugging-address=127.0.0.1','--remote-debugging-port='+port,'--user-data-dir='+profile,'--no-first-run','--no-default-browser-check',pathToFileURL(file).href],{stdio:['ignore','ignore','pipe']});
   proc.stderr.on('data',chunk=>{stderr=(stderr+String(chunk)).slice(-5000);});
@@ -97,7 +98,14 @@ try{
 }catch(err){
   throw new Error(String(err&&err.message||err)+'\n'+stderr);
 }finally{
-  if(cdp)cdp.close();
+  if(cdp){
+    cdp.shutdown();
+    for(let attempt=0;attempt<50;attempt++){
+      try{await fetch('http://127.0.0.1:'+debugPort+'/json/version');await sleep(100);}
+      catch{break;}
+    }
+    cdp.close();
+  }
   if(proc&&proc.exitCode===null){
     proc.kill('SIGTERM');
     await Promise.race([
@@ -108,6 +116,11 @@ try{
   let removed=false;
   for(let attempt=0;attempt<5&&!removed;attempt++){
     try{fs.rmSync(tmp,{recursive:true,force:true,maxRetries:3,retryDelay:100});removed=true;}
-    catch(err){if(attempt===4)throw err;await sleep(150);}
+    catch(err){
+      if(attempt===4){
+        if(process.platform==='win32')process.stderr.write('[ui-parity] cleanup warning: '+String(err&&err.code||err)+' '+tmp+'\n');
+        else throw err;
+      }else await sleep(150);
+    }
   }
 }

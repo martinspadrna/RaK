@@ -107,9 +107,10 @@ async function measureRoot(root,label,round){
   const check=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error('[perf-parity] JS '+String(r.exceptionDetails.text||''));return r.result?.value;};
   const until=async(expression,ms=30000)=>{const end=Date.now()+ms;let last=null;while(Date.now()<end){try{last=await check(expression);if(last)return last;}catch(e){last=String(e.message);}await delay(100);}throw new Error('[perf-parity] timeout '+expression+' last='+JSON.stringify(last));};
   try{
-    chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe'],detached:POSIX_CHROME_GROUP});
+    const port=await freePort();
+    chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port='+port,'--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe'],detached:POSIX_CHROME_GROUP});
     chrome.stderr.on('data',c=>{stderr=(stderr+String(c)).slice(-3000);});
-    let port=0;for(let i=0;i<300;i++){const file=path.join(profile,'DevToolsActivePort');if(fs.existsSync(file)){port=Number(fs.readFileSync(file,'utf8').split('\n')[0]);break;}if(chrome.exitCode!==null)throw new Error('[perf-parity] Chrome exited '+chrome.exitCode+' '+stderr);await delay(100);}assert(port>0,'[perf-parity] debugger missing');
+    let debuggerReady=false;for(let i=0;i<300;i++){if(chrome.exitCode!==null&&process.platform!=='win32')throw new Error('[perf-parity] Chrome exited '+chrome.exitCode+' '+stderr);try{const response=await fetch('http://127.0.0.1:'+port+'/json/version');if(response.ok){debuggerReady=true;break;}}catch{}await delay(100);}assert(debuggerReady,'[perf-parity] debugger missing');
     const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();const tab=tabs.find(t=>t.type==='page');assert(tab?.webSocketDebuggerUrl,'[perf-parity] page target missing');
     ws=new WebSocket(tab.webSocketDebuggerUrl);
     ws.addEventListener('message',e=>{const m=JSON.parse(String(e.data));if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(new Error(m.error.message||'CDP error')):p.resolve(m.result||{});}if(m.method==='Fetch.requestPaused')void send('Fetch.failRequest',{requestId:m.params.requestId,errorReason:'BlockedByClient'}).catch(()=>{});});
@@ -127,6 +128,7 @@ async function measureRoot(root,label,round){
     assert.equal(data.width,CONFIG.viewport.width,'[perf-parity] viewport mismatch');assert(data.docWidth<=data.width+4,'[perf-parity] overflow');assert(data.dashboardVisible&&data.navVisible,'[perf-parity] visible shell missing');assert(data.startupReadyMs>0,'[perf-parity] startupReadyMs missing');assert(data.firstContentfulPaintMs>0,'[perf-parity] FCP missing');
     const result={startupReadyMs:data.startupReadyMs,wallReadyMs,firstContentfulPaintMs:data.firstContentfulPaintMs};console.log('[perf-parity] '+label+' round='+round+' '+JSON.stringify(result));return result;
   }finally{
+    try{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({id:++seq,method:'Browser.close'}));await delay(150);}}catch{}
     for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('closing'));}pending.clear();try{ws?.close();}catch{}
     await stopChromeProcessTree(chrome);
     await new Promise(resolve=>server.close(resolve));

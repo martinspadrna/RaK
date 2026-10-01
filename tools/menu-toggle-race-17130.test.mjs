@@ -6,7 +6,9 @@ import {fileURLToPath} from 'node:url';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const root=fileURLToPath(new URL('..',import.meta.url));
-const read=file=>fs.readFileSync(path.join(root,file),'utf8');
+// Keep source-contract checks identical on Windows and Linux. Git may expose the
+// working tree with CRLF locally even though CI reads LF from the repository.
+const read=file=>fs.readFileSync(path.join(root,file),'utf8').replace(/\r\n?/g,'\n');
 
 test('1.7.130 menu-toggle race milestone remains active in successors',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.7.130');

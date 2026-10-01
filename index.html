@@ -91,7 +91,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   .bottomNavBtn.active .bottomNavIconImg--off{opacity:0;}
 </style>
 
-<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet" onload="rakNoteExternalDependency('googleFonts','loaded',this.href)" onerror="rakNoteExternalDependency('googleFonts','failed',this.href)">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all';rakNoteExternalDependency('googleFonts','loaded',this.href)" onerror="rakNoteExternalDependency('googleFonts','failed',this.href)">
 <script src="data.js"></script>
 <script src="module-readiness.js"></script>
 <script src="rak-namespace.js"></script>
@@ -896,21 +896,21 @@ window.rakNoteExternalDependency = function(name, status, src) {
 <link rel="stylesheet" href="styles-calc-panels.css">
 
 <link rel="stylesheet" href="styles-overrides-legacy-early.css">
-<link rel="stylesheet" href="styles-shift-report.css">
-<link rel="stylesheet" href="styles-admin-reports.css">
+<meta data-rak-post-ready-style="styles-shift-report.css">
+<meta data-rak-post-ready-style="styles-admin-reports.css">
 <link rel="stylesheet" href="styles-interaction-guard.css">
-<link rel="stylesheet" href="styles-admin-rotation-fold.css">
+<meta data-rak-post-ready-style="styles-admin-rotation-fold.css">
 <link rel="stylesheet" href="styles-rotation-month.css">
 <link rel="stylesheet" href="styles-low-end-performance.css">
 <link rel="stylesheet" href="styles-dashboard-sync.css">
-<link rel="stylesheet" href="styles-admin-service.css">
+<meta data-rak-post-ready-style="styles-admin-service.css">
 <link rel="stylesheet" href="styles-settings-runtime.css">
 <link rel="stylesheet" href="styles-calculators-mid.css">
-<link rel="stylesheet" href="styles-admin-rotation-editor.css">
+<meta data-rak-post-ready-style="styles-admin-rotation-editor.css">
 <link rel="stylesheet" href="styles-bottom-nav-runtime.css">
 <link rel="stylesheet" href="styles-overrides-legacy-late.css">
 <link rel="stylesheet" href="styles-dashboard-fit.css">
-<link rel="stylesheet" href="styles-admin-polish.css">
+<meta data-rak-post-ready-style="styles-admin-polish.css">
 <link rel="stylesheet" href="styles-menu-polish.css">
 <link rel="stylesheet" href="styles-stats-polish.css">
 <link rel="stylesheet" href="styles-viewport-polish.css">

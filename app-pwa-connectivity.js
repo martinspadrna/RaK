@@ -750,7 +750,11 @@ function installPwaAndConnectivityHooks() {
           });
         });
       }
-      if (registration && registration.update) {
+      // A brand-new Edge/Chromium registration may still be installing here.
+      // Calling update() in that state can reject and make the successful first
+      // registration look like a failure. Existing active registrations keep
+      // the explicit no-cache update check.
+      if (registration && registration.update && !registration.installing) {
         try {
           pwaHardeningStatus.registrationUpdates = Number(pwaHardeningStatus.registrationUpdates || 0) + 1;
           await registration.update();
@@ -760,6 +764,8 @@ function installPwaAndConnectivityHooks() {
         } catch (err) {
           pwaHardeningStatus.registrationUpdateErrors = Number(pwaHardeningStatus.registrationUpdateErrors || 0) + 1;
         }
+      } else if (registration && registration.installing) {
+        pwaHardeningStatus.lastUpdateSource = 'register-installing';
       }
       void checkForWaitingServiceWorker('register');
       requestActiveServiceWorkerCacheStatus('register', { force: true });

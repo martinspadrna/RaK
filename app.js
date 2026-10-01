@@ -269,6 +269,30 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-boot-selftest.js"
   ];
 
+  // Admin editors and reports are never visible on the first dashboard frame.
+  // Their lightweight slots preserve the established cascade position, but the
+  // styles themselves are discovered only after startupReady and cannot block it.
+  function warmPostReadyStyles() {
+    try {
+      const existing = new Set(Array.from(document.querySelectorAll('link[rel="stylesheet"][href]')).map((link) => {
+        try { return new URL(link.href, document.baseURI).pathname.split('/').pop(); } catch (_) { return ''; }
+      }));
+      const slots = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'));
+      for (const slot of slots) {
+        const href = String(slot.getAttribute('data-rak-post-ready-style') || '').trim();
+        if (!href || existing.has(href)) { slot.remove(); continue; }
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.dataset.rakPostReadyStyle = '1';
+        slot.replaceWith(link);
+        existing.add(href);
+      }
+    } catch (err) {
+      console.warn('Post-ready styles warmup failed', err);
+    }
+  }
+
   // await Promise.all(deferredFiles.map(loadScript))
 
   const featureSpecs = Object.freeze({
@@ -787,6 +811,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   window.__rakBootV2StartupReady = true;
   window.__rakBootV2StartupReadyMs = Math.max(0, Math.round(startupReadyAt - bootStartedAt));
   if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('boot-loader', 'ready', { source: 'boot-v2', startupReadyMs: window.__rakBootV2StartupReadyMs });
+  setTimeout(warmPostReadyStyles, 0);
 
   try {
     const DEV_RESET_KEY = 'rak_dev_pwa_prompt_reset_build';

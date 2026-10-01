@@ -32,3 +32,18 @@ test('zero-visible Google calendar behavior and protected D calendar remain unch
   assert(nav.includes('rakEnsureBlankCalendar(empty)'));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
 });
+
+test('first dashboard paint is not blocked by Admin and report-only styles',()=>{
+  const html=read('index.html');
+  const app=read('app.js');
+  for(const file of ['styles-shift-report.css','styles-admin-reports.css','styles-admin-rotation-fold.css','styles-admin-service.css','styles-admin-rotation-editor.css','styles-admin-polish.css']){
+    assert(!html.includes('href="'+file+'"'),'deferred stylesheet still blocks index: '+file);
+    assert(html.includes('data-rak-post-ready-style="'+file+'"'),'cascade-preserving post-ready slot missing: '+file);
+  }
+  assert(app.includes('setTimeout(warmPostReadyStyles, 0)'));
+  assert(app.includes("slot.replaceWith(link)"));
+  const admin=read('styles-admin-polish.css');
+  const bottomNav=read('styles-bottom-nav-runtime.css');
+  assert(!admin.includes('rakBottomNavWithoutRotace17024'),'startup navigation must not depend on deferred Admin CSS');
+  assert(bottomNav.includes('rakBottomNavWithoutRotace17024'),'startup navigation rule must remain eager');
+});
