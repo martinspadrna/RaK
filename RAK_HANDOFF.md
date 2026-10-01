@@ -61,7 +61,7 @@ První pokus exact-main validace selhal pouze na proměnlivém FCP P95 benchmark
 - veřejná runtime verze: RaK `1.8.8`;
 - produkční `supabase-config.js` používá pouze produkční projekt a neobsahuje TEST ref;
 - při rollout kontrole nebyly na login obrazovce konzolové chyby ani warningy;
-- 120 first-party funkčních/vizuálních JS/CSS assetů bylo proti poslednímu ověřenému TEST deploymentu hashovD� shodných; výjimkou je jen prostředí-specifický `supabase-config.js` a Vercel feedback injection;
+- 120 first-party funkčních/vizuálních JS/CSS assetů bylo proti poslednímu ověřenému TEST deploymentu hashově shodných; výjimkou je jen prostředí-specifický `supabase-config.js` a Vercel feedback injection;
 - ověřený starý frontend rollback target: `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`.
 
 V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřenou TEST verzí 1.8.8. Další změny v TESTu smějí prostředí záměrně rozdělit až do případného nového, samostatně schváleného produkčního releasu.
