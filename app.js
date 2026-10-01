@@ -274,19 +274,26 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // styles themselves are discovered only after startupReady and cannot block it.
   function warmPostReadyStyles() {
     try {
-      const existing = new Set(Array.from(document.querySelectorAll('link[rel="stylesheet"][href]')).map((link) => {
-        try { return new URL(link.href, document.baseURI).pathname.split('/').pop(); } catch (_) { return ''; }
-      }));
+      const normalizeStyleUrl = (href) => {
+        try { return new URL(href, document.baseURI).href; } catch (_) { return ''; }
+      };
+      const existing = new Set(Array.from(document.querySelectorAll('link[rel="stylesheet"][href]')).map((link) => normalizeStyleUrl(link.href)));
       const slots = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'));
       for (const slot of slots) {
         const href = String(slot.getAttribute('data-rak-post-ready-style') || '').trim();
-        if (!href || existing.has(href)) { slot.remove(); continue; }
+        const normalizedHref = normalizeStyleUrl(href);
+        if (!normalizedHref || existing.has(normalizedHref)) { slot.remove(); continue; }
         const link = document.createElement('link');
         link.rel = 'stylesheet';
+        const dependencyName = String(slot.getAttribute('data-rak-external-dependency') || '').trim();
+        if (dependencyName && typeof window.rakNoteExternalDependency === 'function') {
+          link.addEventListener('load', () => window.rakNoteExternalDependency(dependencyName, 'loaded', link.href), { once: true });
+          link.addEventListener('error', () => window.rakNoteExternalDependency(dependencyName, 'failed', link.href), { once: true });
+        }
         link.href = href;
         link.dataset.rakPostReadyStyle = '1';
         slot.replaceWith(link);
-        existing.add(href);
+        existing.add(normalizedHref);
       }
     } catch (err) {
       console.warn('Post-ready styles warmup failed', err);

@@ -40,6 +40,8 @@ test('first dashboard paint is not blocked by Admin and report-only styles',()=>
     assert(!html.includes('href="'+file+'"'),'deferred stylesheet still blocks index: '+file);
     assert(html.includes('data-rak-post-ready-style="'+file+'"'),'cascade-preserving post-ready slot missing: '+file);
   }
+  assert(html.includes('data-rak-post-ready-style="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" data-rak-external-dependency="googleFonts"'),'noncritical Google font must be discovered only after startupReady');
+  assert(!html.includes('<link href="https://fonts.googleapis.com/'),'Google font must not be parser-discovered during first paint');
   assert(app.includes('setTimeout(warmPostReadyStyles, 0)'));
   assert(app.includes("slot.replaceWith(link)"));
   const admin=read('styles-admin-polish.css');

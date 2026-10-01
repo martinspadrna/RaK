@@ -20,7 +20,7 @@ const POSIX_CHROME_GROUP=process.platform!=='win32';
 
 function run(cmd,args,opts={}){
   const result=spawnSync(cmd,args,{cwd:opts.cwd||WORKSPACE,encoding:'utf8',timeout:opts.timeout||240000,maxBuffer:4*1024*1024,env:{...process.env,...opts.env}});
-  if(result.error||result.status!==0)throw new Error('[perf-parity] '+cmd+' '+args.join(' ')+' failed exit='+result.status+' error='+(result.error?.code||'none')+' stderr='+String(result.stderr||'').slice(-1600));
+  if(result.error||result.status!==0)throw new Error('[perf-parity] '+cmd+' '+args.join(' ')+' failed exit='+result.status+' error='+(result.error?.code||'none')+' output='+String((result.stdout||'')+(result.stderr||'')).slice(-2400));
   return result.stdout;
 }
 function percentile(values,p){
