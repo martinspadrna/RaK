@@ -68,7 +68,7 @@ V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřen
 
 ### TEST Vercel – pracovní prostředí
 
-- aktuální živý `development` HEAD: `0c5459c7d05d0ef9fc3df9ee4fc18a8e85754a2d`;
+- ověřený aplikační HEAD nasazený do TESTu: `0c5459c7d05d0ef9fc3df9ee4fc18a8e85754a2d`; novější dokumentační commity se vždy zjišťují živě podle povinného úvodního postupu;
 - poslední ověřený READY deployment: `dpl_5UABfr8ykXeR45mcxuAufLtkusmp`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
 - immutable URL: <https://skoda-spada-22rs9erq7-martinspadrnas-projects.vercel.app>;
