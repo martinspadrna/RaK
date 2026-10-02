@@ -68,11 +68,24 @@ V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřen
 
 ### TEST Vercel – pracovní prostředí
 
-- poslední ověřený READY deployment funkčního základu 1.8.8: `dpl_FK3b36QC5yQ6i9bxjTx9Ca4kzFYv`;
+- aktuální živý `development` HEAD: `0c5459c7d05d0ef9fc3df9ee4fc18a8e85754a2d`;
+- poslední ověřený READY deployment: `dpl_5UABfr8ykXeR45mcxuAufLtkusmp`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- source commit deploymentu: `7eb2adf28d8bcf8a08d3337d4014c1b493c55a9d`.
+- immutable URL: <https://skoda-spada-22rs9erq7-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `0c5459c7d05d0ef9fc3df9ee4fc18a8e85754a2d`;
+- development validation `#790` / ID `37039169045`, attempt 2: SUCCESS; první attempt stejného SHA narazil pouze na dva izolované FCP výkyvy, opakování proběhlo bez změny kódu nebo limitů;
+- aplikační performance commit `eb85af5d4f81de53d4db7c68ecb936e86affc826` prošel už v runu `#789`; navazující commit `0c5459c7...` jen srovnal browserovou testovací fixture s produkčním načítáním odložených stylů.
 
-Pozdější commity do přípravy releasu byly dokumentační/CI/release-only. Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
+Aktuální optimalizační důkaz:
+
+- přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
+- kalkulačkové styly `styles-calc-panels.css` a `styles-calculators-mid.css` o celkové velikosti 69 911 B se načítají až s kalkulačkami, ale před jejich označením jako připravené;
+- počet blokujících stylesheetů klesl z 22 na 20; pořadí CSS kaskády zůstává zachované přes původní slot;
+- run `#789` proti neměnné 1.7.69 naměřil FCP p50 232 ms proti 264 ms (−12,1 %) a p90 352 ms proti 364 ms; jde o CI signál, ne tvrzení o každém zařízení;
+- úplná lokální kontrola prošla 125 bloky, browser smoke prošel ve třech mobilních rozměrech bez runtime výjimky a dvě čisté canonical sestavy měly shodný digest `41f7bab27d2607f2ce27c020b8616aa4c943caecb8d6b4ead05e1403d1d93c1a`;
+- na živém stabilním TEST aliasu byly po finálním deploymentu ověřeny dashboard a „kam jdeš“, Rotace, Kalkulačky včetně obou odložených CSS a Více; konzole byla bez chyb a varování.
+
+Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
 
 ### Produkční Supabase – zmrazený výchozí stav
 
@@ -168,8 +181,9 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 
 ## Otevřený backlog
 
-- Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Aktuální bezpečný směr: měřit první načtení, ponechat Rotaci/„kam jdu“ v povinném jádru, odkládat jen nekritické moduly a po každém kroku zachovat úplné funkční, vizuální, offline a výkonnostní regrese.
-- Rozpracovaný krok odkládá plné Více a kalkulačky z čekané startovací cesty; před uzavřením musí projít dvě canonical sestavy, Chromium, performance parita a přesný TEST deployment.
+- Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. První etapa odložení nekritického JavaScriptu a kalkulačkových stylů je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
+- Další bezpečný krok: zmapovat zbývajících 20 blokujících stylesheetů (589 839 B) podle skutečných route a odložit jen prokazatelně route-only vrstvy, například statistiky nebo nastavení. `styles-menu-polish.css`, dashboardové a rotační jádro zatím ponechat beze změny, dokud měření a regresní test neprokážou bezpečnou hranici.
+- Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
