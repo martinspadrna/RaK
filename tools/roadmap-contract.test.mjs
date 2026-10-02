@@ -14,13 +14,13 @@ function syntheticRoadmap(){
   return '| ID | Task | Progress | Note |\n|---|---|---|---|\n'+rows+'\n\n'+details;
 }
 
-test('completed thirteen-point roadmap stays retired from the live handoff', () => {
+test('completed thirteen-point roadmap stays retired while new TEST work remains explicit', () => {
   const handoff=current();
   assert(!fs.existsSync(path.join(root,['RAK','PLAN','13.md'].join('_'))));
   assert.equal([...handoff.matchAll(/^\| (P[012]\.\d) \|/gm)].length,0);
   assert.equal([...handoff.matchAll(/^### (P[012]\.\d)\s*[–-]/gm)].length,0);
-  assert(handoff.includes('Aktuálně není evidovaný žádný otevřený produktový bod.'));
-  assert(handoff.includes('Automaticky neotvírat znovu historický 13bodový audit'));
+  assert(handoff.includes('Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu.'));
+  assert(handoff.includes('Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.'));
 });
 
 test('taxonomy catches missing, duplicate or reordered tasks without depending on prose', () => {
