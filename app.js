@@ -792,19 +792,17 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     try {
       await hydrateRakRotationLocalFirst();
       await ensureFeature('rotation');
-      await Promise.all([
-        ensureFeature('calculators'),
-        ensureFeature('menu')
-      ]);
+      // RAK_188_STARTUP_CORE_BOUNDARY: calculators and the full More module are
+      // not needed to paint the dashboard or resolve "kam jdu". Their static,
+      // dependency-free shells are already interactive and feature routing loads
+      // the complete module on first intent. Keeping them out of this awaited
+      // block avoids parsing roughly 600 KiB of noncritical JavaScript before
+      // startupReady while preserving Rotation as mandatory local startup data.
       // RAK_17132_LOCAL_STORAGE_SPLIT: local snapshot/cache is already provided
       // by rak-rotation-local-store.js. Do not load syncFeatureFiles here.
       // Supabase bridge and app-rotation-sync remain strictly post-startup.
       try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
-      try {
-        const menuPage = document.getElementById('menu');
-        if (menuPage && menuPage.classList.contains('active') && typeof openAppMenu === 'function') openAppMenu('menu');
-      } catch (err) {}
     } catch (err) {
       console.warn('Local-first UI restore during boot failed', err);
     } finally {

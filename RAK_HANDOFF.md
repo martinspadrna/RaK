@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 1. 10. 2026
+## Aktuální stav k 2. 10. 2026
 
 ### RaK 1.8.8 je v produkci
 
@@ -44,7 +44,7 @@ Rollout je dokončený. Nejde už o kandidáta ani čekající produkční plán
 - původní funkční `development` důkazní bod: `4767037231705be53817201e3fe4a5c854ff31fb`;
 - release větev `release/1.8.8-main-ready`: `716cb7806f742136cc93fef30432f249e37b7f97`;
 - PR `#7`: merged;
-- produkční `main`: `ec7e9147f85028038286a66eacf40d352c12a513`;
+- produkční release commit: `ec7e9147f85028038286a66eacf40d352c12a513`; aktuální `main` nad ním obsahuje pouze dokumentační commit `fa782f1fc1346115954eb51b9fbb5b7b37741c46`;
 - release HEAD a merge commit mají shodný tree SHA `e91ac3c6e91583769779218a90a95ecbd85e543d`;
 - production-target CI `#778`, attempt 3: PASS;
 - exact-main validation run `#779` / ID `36764543066`, attempt 2: SUCCESS;
@@ -68,9 +68,9 @@ V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřen
 
 ### TEST Vercel – pracovní prostředí
 
-- poslední ověřený READY deployment funkčního základu 1.8.8: `dpl_6KM3C1toG7B8mE26RxETn8DRA2Lg`;
-- URL: <https://skoda-spada-365n5lft2-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `eb7261f904e16666ae437ccab17470ef007efd2f`.
+- poslední ověřený READY deployment funkčního základu 1.8.8: `dpl_FK3b36QC5yQ6i9bxjTx9Ca4kzFYv`;
+- stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
+- source commit deploymentu: `7eb2adf28d8bcf8a08d3337d4014c1b493c55a9d`.
 
 Pozdější commity do přípravy releasu byly dokumentační/CI/release-only. Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
 
@@ -93,11 +93,11 @@ Známý advisor baseline se rolloutem nezměnil a nesmí se vydávat za novou re
 
 ### Produkční Edge Functions – zmrazený výchozí stav
 
-- `rak-admin-users`: platform version `v12`, ACTIVE, `verify_jwt=true`, zdroj shodný s ověřeným TEST/release zdrojem;
-- `rak-absence-calendar`: platform version `v14`, ACTIVE, `verify_jwt=true`; jeho source je shodný s obnoveným bezpečným zdrojem v12. Bez nové konkrétní příčiny jej neměnit;
+- `rak-admin-users`: platform version `v13`, ACTIVE, `verify_jwt=true`, zdroj shodný s ověřeným TEST/release zdrojem;
+- `rak-absence-calendar`: platform version `v15`, ACTIVE, `verify_jwt=true`; zdroj je shodný s repozitářem. Bez nové konkrétní příčiny jej neměnit;
 - `hradnik-sync`: nesouvisející platform version `v3`.
 
-Do produkce se při 1.8.8 nasadil z aplikačních Edge Functions pouze aktuální `rak-admin-users`. `rak-p15-restore-export` se do produkce nikdy nenasazuje.
+TEST-only `rak-p15-restore-export` byl po odhalení nechtěného hromadného deploye se souhlasem vlastníka z produkce odstraněn; měl 0 invocations. V produkci nesmí být a znovu se tam nikdy nenasazuje.
 
 ## Kalendáře – trvalý model
 
@@ -168,9 +168,10 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 
 ## Otevřený backlog
 
-Aktuálně není evidovaný žádný otevřený produktový bod.
+- Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Aktuální bezpečný směr: měřit první načtení, ponechat Rotaci/„kam jdu“ v povinném jádru, odkládat jen nekritické moduly a po každém kroku zachovat úplné funkční, vizuální, offline a výkonnostní regrese.
+- Rozpracovaný krok odkládá plné Více a kalkulačky z čekané startovací cesty; před uzavřením musí projít dvě canonical sestavy, Chromium, performance parita a přesný TEST deployment.
 
-Nový požadavek nebo konkrétní regrese se řeší jako nový samostatný bod v TESTu. Automaticky neotvírat znovu historický 13bodový audit ani uzavřené administrační série.
+Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
 ## Checklist pro další funkční změnu v TESTu
 
