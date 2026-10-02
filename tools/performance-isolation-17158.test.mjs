@@ -61,4 +61,6 @@ test('calculator styles are feature-bound without changing their cascade slots',
   assert(app.includes('await Promise.all([loadFiles(spec.files), loadFeatureStyles(spec.styles || [])])'),'feature readiness must wait for both scripts and styles');
   assert(app.includes('slot.replaceWith(link)'),'dynamic style must preserve its original cascade position');
   assert(app.includes('featureStylePromises'),'intent loading and post-ready warmup must share one stylesheet request');
+  const browserSmoke=read('browser-smoke-v1103.js');
+  assert(browserSmoke.includes('data-browser-smoke-inline-post-ready-css'),'inline browser fixture must preserve post-ready local styles after replacing app.js');
 });

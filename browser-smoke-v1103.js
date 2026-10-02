@@ -128,6 +128,15 @@ function buildInlineSmokeHtml() {
     const css = readLocalText(href);
     return `<style data-browser-smoke-inline-css="${href}">\n${css}\n</style>`;
   });
+  // The inline fixture intentionally replaces app.js with already-expanded
+  // modules, so the real post-ready style loader is not present here. Inline
+  // the same local cascade slots to represent the fully ready application;
+  // otherwise feature-bound CSS would be absent only in the smoke harness.
+  html = html.replace(/<meta\b[^>]*data-rak-post-ready-style=["']([^"']+)["'][^>]*>/gi, (tag, href) => {
+    if (/^https?:/i.test(href)) return `<!-- browser smoke external post-ready stylesheet stubbed: ${href} -->`;
+    const css = readLocalText(href);
+    return `<style data-browser-smoke-inline-post-ready-css="${href}">\n${css}\n</style>`;
+  });
   const dynamicFiles = getAppLoaderFiles();
   html = html.replace(/<script\b([^>]*?)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi, (tag, before, src) => {
     if (/^https?:/i.test(src)) return `<script data-browser-smoke-external-stub="${src}">\n${escapeInlineScript(getExternalStub(src))}\n</script>`;
