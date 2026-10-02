@@ -1,4 +1,5 @@
 ## RaK 1.8.8 (development)
+- TEST-only optimalizace prvního načtení: styly nastavení a statistického přehledu už neblokují první dashboardový paint. Zůstávají ve stejných cascade slotech a načtou se společně s příslušnou feature (`Více` nebo `Rotace`), takže se nemění vzhled ani izolace modulů.
 - TEST-only optimalizace prvního načtení: dashboard a údaj „kam jdu“ dál povinně čekají na lokální Rotaci, ale celé menu Více a výpočetní moduly se načtou až při prvním použití. Z čekané startovací cesty tím mizí přibližně 608 KiB JavaScriptu bez změny funkcí, vzhledu nebo offline dostupnosti.
 - Oba kalkulačkové CSS soubory (celkem přibližně 70 KiB) už neblokují první vykreslení dashboardu. Zůstávají ve stejných cascade slotech a feature loader čeká současně na styly i skripty, takže první otevření Kalkulaček nemůže zobrazit neostylovanou nebo částečně připravenou obrazovku.
 - Produkční rollout audit odhalil, že pozdější 1.7.148 přepsala `rak_admin_apply_unplanned_change_v2` a znovu zavedla retryable SQLSTATE `40001`, který 1.7.138 už odstranila.

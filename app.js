@@ -341,13 +341,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // await Promise.all(deferredFiles.map(loadScript))
 
   const featureSpecs = Object.freeze({
-    rotation: Object.freeze({ files: rotationFeatureFiles, dependencies: Object.freeze([]) }),
+    rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-stats-polish.css"]), dependencies: Object.freeze([]) }),
     calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"]), dependencies: Object.freeze([]) }),
     // RAK_17082_SYNC_REQUIRES_ROTATION_UI: dashboard "kam jdu" and the first
     // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
     // before those consumers exist, especially on a cold offline iOS start.
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
-    menu: Object.freeze({ files: menuFeatureFiles, dependencies: Object.freeze([]) }),
+    menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
     admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
   });
