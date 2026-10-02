@@ -49,3 +49,16 @@ test('first dashboard paint is not blocked by Admin and report-only styles',()=>
   assert(!admin.includes('rakBottomNavWithoutRotace17024'),'startup navigation must not depend on deferred Admin CSS');
   assert(bottomNav.includes('rakBottomNavWithoutRotace17024'),'startup navigation rule must remain eager');
 });
+
+test('calculator styles are feature-bound without changing their cascade slots',()=>{
+  const html=read('index.html');
+  const app=read('app.js');
+  for(const file of ['styles-calc-panels.css','styles-calculators-mid.css']){
+    assert(!html.includes('rel="stylesheet" href="'+file+'"'),'calculator stylesheet still blocks index: '+file);
+    assert(html.includes('data-rak-post-ready-style="'+file+'"'),'calculator cascade slot missing: '+file);
+  }
+  assert(app.includes('calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"])'));
+  assert(app.includes('await Promise.all([loadFiles(spec.files), loadFeatureStyles(spec.styles || [])])'),'feature readiness must wait for both scripts and styles');
+  assert(app.includes('slot.replaceWith(link)'),'dynamic style must preserve its original cascade position');
+  assert(app.includes('featureStylePromises'),'intent loading and post-ready warmup must share one stylesheet request');
+});

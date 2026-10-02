@@ -269,31 +269,69 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-boot-selftest.js"
   ];
 
-  // Admin editors and reports are never visible on the first dashboard frame.
+  const featureStylePromises = new Map();
+
+  // Optional feature, Admin and report styles are never visible on the first dashboard frame.
   // Their lightweight slots preserve the established cascade position, but the
   // styles themselves are discovered only after startupReady and cannot block it.
+  const normalizeStyleUrl = (href) => {
+    try { return new URL(href, document.baseURI).href; } catch (_) { return ''; }
+  };
+
+  function loadPostReadyStyle(href) {
+    const requestedHref = String(href || '').trim();
+    const normalizedHref = normalizeStyleUrl(requestedHref);
+    if (!requestedHref || !normalizedHref) return Promise.reject(new Error('Neplatná cesta stylu'));
+    if (featureStylePromises.has(normalizedHref)) return featureStylePromises.get(normalizedHref);
+
+    const existing = Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'))
+      .find((link) => normalizeStyleUrl(link.href) === normalizedHref);
+    if (existing) {
+      const ready = Promise.resolve(normalizedHref);
+      featureStylePromises.set(normalizedHref, ready);
+      return ready;
+    }
+
+    const slot = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'))
+      .find((candidate) => normalizeStyleUrl(candidate.getAttribute('data-rak-post-ready-style') || '') === normalizedHref);
+    if (!slot) return Promise.reject(new Error('Chybí pořadový slot stylu ' + requestedHref));
+
+    const promise = new Promise((resolve, reject) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      const dependencyName = String(slot.getAttribute('data-rak-external-dependency') || '').trim();
+      link.addEventListener('load', () => {
+        if (dependencyName && typeof window.rakNoteExternalDependency === 'function') {
+          window.rakNoteExternalDependency(dependencyName, 'loaded', link.href);
+        }
+        resolve(normalizedHref);
+      }, { once: true });
+      link.addEventListener('error', () => {
+        if (dependencyName && typeof window.rakNoteExternalDependency === 'function') {
+          window.rakNoteExternalDependency(dependencyName, 'failed', link.href);
+        }
+        featureStylePromises.delete(normalizedHref);
+        reject(new Error('Nepodařilo se načíst styl ' + requestedHref));
+      }, { once: true });
+      link.href = requestedHref;
+      link.dataset.rakPostReadyStyle = '1';
+      slot.replaceWith(link);
+    });
+    featureStylePromises.set(normalizedHref, promise);
+    return promise;
+  }
+
+  function loadFeatureStyles(styles) {
+    const list = Array.from(new Set((Array.isArray(styles) ? styles : []).map((style) => String(style || '').trim()).filter(Boolean)));
+    return Promise.all(list.map((style) => loadPostReadyStyle(style)));
+  }
+
   function warmPostReadyStyles() {
     try {
-      const normalizeStyleUrl = (href) => {
-        try { return new URL(href, document.baseURI).href; } catch (_) { return ''; }
-      };
-      const existing = new Set(Array.from(document.querySelectorAll('link[rel="stylesheet"][href]')).map((link) => normalizeStyleUrl(link.href)));
       const slots = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'));
       for (const slot of slots) {
         const href = String(slot.getAttribute('data-rak-post-ready-style') || '').trim();
-        const normalizedHref = normalizeStyleUrl(href);
-        if (!normalizedHref || existing.has(normalizedHref)) { slot.remove(); continue; }
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        const dependencyName = String(slot.getAttribute('data-rak-external-dependency') || '').trim();
-        if (dependencyName && typeof window.rakNoteExternalDependency === 'function') {
-          link.addEventListener('load', () => window.rakNoteExternalDependency(dependencyName, 'loaded', link.href), { once: true });
-          link.addEventListener('error', () => window.rakNoteExternalDependency(dependencyName, 'failed', link.href), { once: true });
-        }
-        link.href = href;
-        link.dataset.rakPostReadyStyle = '1';
-        slot.replaceWith(link);
-        existing.add(normalizedHref);
+        void loadPostReadyStyle(href).catch((err) => console.warn('Post-ready style warmup failed', href, err));
       }
     } catch (err) {
       console.warn('Post-ready styles warmup failed', err);
@@ -304,7 +342,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   const featureSpecs = Object.freeze({
     rotation: Object.freeze({ files: rotationFeatureFiles, dependencies: Object.freeze([]) }),
-    calculators: Object.freeze({ files: calculatorFeatureFiles, dependencies: Object.freeze([]) }),
+    calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"]), dependencies: Object.freeze([]) }),
     // RAK_17082_SYNC_REQUIRES_ROTATION_UI: dashboard "kam jdu" and the first
     // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
     // before those consumers exist, especially on a cold offline iOS start.
@@ -613,7 +651,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const promise = (async () => {
       try {
         for (const dependency of spec.dependencies) await ensureFeature(dependency);
-        await loadFiles(spec.files);
+        await Promise.all([loadFiles(spec.files), loadFeatureStyles(spec.styles || [])]);
         featureState[key] = 'ready';
         afterFeatureReady(key);
         try { window.dispatchEvent(new CustomEvent('rak:feature-ready', { detail: { feature: key, at: Date.now() } })); } catch (err) {}
@@ -697,7 +735,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       }, {}),
       interactionFiles: interactionCoreFiles.concat(interactionShellFiles),
       startupFiles: startupFiles.slice(),
-      featureFileCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, spec.files.length]))
+      featureFileCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, spec.files.length])),
+      featureStyleCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, (spec.styles || []).length]))
     };
   };
 

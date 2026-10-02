@@ -1,5 +1,6 @@
 ## RaK 1.8.8 (development)
 - TEST-only optimalizace prvního načtení: dashboard a údaj „kam jdu“ dál povinně čekají na lokální Rotaci, ale celé menu Více a výpočetní moduly se načtou až při prvním použití. Z čekané startovací cesty tím mizí přibližně 608 KiB JavaScriptu bez změny funkcí, vzhledu nebo offline dostupnosti.
+- Oba kalkulačkové CSS soubory (celkem přibližně 70 KiB) už neblokují první vykreslení dashboardu. Zůstávají ve stejných cascade slotech a feature loader čeká současně na styly i skripty, takže první otevření Kalkulaček nemůže zobrazit neostylovanou nebo částečně připravenou obrazovku.
 - Produkční rollout audit odhalil, že pozdější 1.7.148 přepsala `rak_admin_apply_unplanned_change_v2` a znovu zavedla retryable SQLSTATE `40001`, který 1.7.138 už odstranila.
 - Nová forward-only migrace `20260930112049_rak_unplanned_change_cas_nonretryable_188.sql` cíleně převádí finální definici tohoto RPC na `P0001` a fail-closed ověřuje, že `40001` nezůstalo. TEST live ověření po migraci: `40001=false`, `P0001=true`, authenticated EXECUTE zachováno.
 
