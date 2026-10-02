@@ -38,6 +38,13 @@ test('parity tolerance is bounded, median-based and P90 uses enough alternating 
  assert(script.includes("p95DiagnosticDeltaMs"));
 });
 
+test('CI may repeat one noisy parity run without weakening its gate',()=>{
+ const benchmarkCommand='node tools/performance-parity-17069.mjs';
+ assert.equal(workflow.split(benchmarkCommand).length-1,2,'workflow must allow exactly one measured retry');
+ assert(workflow.includes('first measured run failed; retrying the unchanged 20-round gate once'));
+ assert.equal(config.rounds,20,'retry must not reduce the sample count');
+});
+
 test('each parity sample tears down the complete Chromium process group before the next sample',()=>{
  assert(script.includes("const POSIX_CHROME_GROUP=process.platform!=='win32'"));
  assert(script.includes('detached:POSIX_CHROME_GROUP'));

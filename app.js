@@ -340,6 +340,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   // await Promise.all(deferredFiles.map(loadScript))
 
+  // Route-only polish retains its original cascade slot, but feature readiness
+  // guarantees it is present before the first complete Menu or Statistics paint.
   const featureSpecs = Object.freeze({
     rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-stats-polish.css"]), dependencies: Object.freeze([]) }),
     calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"]), dependencies: Object.freeze([]) }),
