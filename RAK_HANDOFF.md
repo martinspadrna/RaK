@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 2. 10. 2026
+## Aktuální stav k 3. 10. 2026
 
 ### RaK 1.8.8 je v produkci
 
@@ -68,22 +68,24 @@ V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřen
 
 ### TEST Vercel – pracovní prostředí
 
-- ověřený aplikační HEAD nasazený do TESTu: `0c5459c7d05d0ef9fc3df9ee4fc18a8e85754a2d`; novější dokumentační commity se vždy zjišťují živě podle povinného úvodního postupu;
-- poslední ověřený READY deployment: `dpl_5UABfr8ykXeR45mcxuAufLtkusmp`;
+- ověřený aplikační HEAD nasazený do TESTu: `b0988300026e6936d73ed3c83e551b1a9c08f4dd`; novější dokumentační commity se vždy zjišťují živě podle povinného úvodního postupu;
+- poslední ověřený READY deployment: `dpl_29XnPFu7fzNJ5ZyrDAKnav5gxvDY`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-22rs9erq7-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `0c5459c7d05d0ef9fc3df9ee4fc18a8e85754a2d`;
-- development validation `#790` / ID `37039169045`, attempt 2: SUCCESS; první attempt stejného SHA narazil pouze na dva izolované FCP výkyvy, opakování proběhlo bez změny kódu nebo limitů;
-- aplikační performance commit `eb85af5d4f81de53d4db7c68ecb936e86affc826` prošel už v runu `#789`; navazující commit `0c5459c7...` jen srovnal browserovou testovací fixture s produkčním načítáním odložených stylů.
+- immutable URL: <https://skoda-spada-qaww9mivr-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `b0988300026e6936d73ed3c83e551b1a9c08f4dd`;
+- development validation `#795` / ID `37069078788`, attempt 1: SUCCESS; `verify` i `release-preview` prošly a workflow před i po přesunu aliasu ověřilo exact SHA;
+- aplikační CSS změna vznikla v commitu `da72a9a26a939fcdcf2f936bb06cc6a9e21831d1`; finální nasazený commit navíc pouze zpřístupnil fail-closed median/P90 diagnostiku CI bez změny limitů.
 
 Aktuální optimalizační důkaz:
 
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly `styles-calc-panels.css` a `styles-calculators-mid.css` o celkové velikosti 69 911 B se načítají až s kalkulačkami, ale před jejich označením jako připravené;
-- počet blokujících stylesheetů klesl z 22 na 20; pořadí CSS kaskády zůstává zachované přes původní slot;
+- `styles-settings-runtime.css` a `styles-stats-polish.css` o dalších 22 611 B se načítají až s Více/Rotací, ale před prvním úplným vykreslením příslušné feature;
+- počet blokujících stylesheetů klesl z 22 na 18 a jejich objem na 567 228 B; pořadí CSS kaskády zůstává zachované přes původní sloty;
 - run `#789` proti neměnné 1.7.69 naměřil FCP p50 232 ms proti 264 ms (−12,1 %) a p90 352 ms proti 364 ms; jde o CI signál, ne tvrzení o každém zařízení;
 - úplná lokální kontrola prošla 125 bloky, browser smoke prošel ve třech mobilních rozměrech bez runtime výjimky a dvě čisté canonical sestavy měly shodný digest `41f7bab27d2607f2ce27c020b8616aa4c943caecb8d6b4ead05e1403d1d93c1a`;
-- na živém stabilním TEST aliasu byly po finálním deploymentu ověřeny dashboard a „kam jdeš“, Rotace, Kalkulačky včetně obou odložených CSS a Více; konzole byla bez chyb a varování.
+- CI `#795` zachovalo performance budget i paritu bez uvolnění limitů; veřejný TEST alias následně vrátil HTTP 200 pro runtime a oba nové CSS, normalizovaný `index.html`, `app.js` a CSS byly shodné s nasazeným zdrojem a konfigurace obsahovala jen TEST Supabase;
+- na předchozím živém stabilním TEST aliasu byly ručně ověřeny dashboard a „kam jdeš“, Rotace, Kalkulačky včetně odložených CSS a Více; konzole byla bez chyb a varování. Nový SHA navíc prošel úplnou automatickou browserovou sadou, ale fyzický iPhone nebyl pro tento CSS-loading krok znovu vyžádán.
 
 Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
 
@@ -181,8 +183,8 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 
 ## Otevřený backlog
 
-- Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. První etapa odložení nekritického JavaScriptu a kalkulačkových stylů je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
-- Další bezpečný krok: zmapovat zbývajících 20 blokujících stylesheetů (589 839 B) podle skutečných route a odložit jen prokazatelně route-only vrstvy, například statistiky nebo nastavení. `styles-menu-polish.css`, dashboardové a rotační jádro zatím ponechat beze změny, dokud měření a regresní test neprokážou bezpečnou hranici.
+- Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
+- Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
