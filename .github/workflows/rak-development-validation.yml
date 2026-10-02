@@ -97,10 +97,7 @@ jobs:
         working-directory: .rak-canonical-build/work
         run: |
           node --test tools/performance-parity-17069.test.mjs
-          if ! node tools/performance-parity-17069.mjs; then
-            echo "[perf-parity] first measured run failed; retrying the unchanged 20-round gate once" >&2
-            node tools/performance-parity-17069.mjs
-          fi
+          node tools/performance-parity-17069.mjs
           test -s "${{ github.workspace }}/.rak-canonical-build/performance-parity-17069.json"
       - name: Enforce unified performance, network and conflict quality thresholds
         working-directory: .rak-canonical-build/work

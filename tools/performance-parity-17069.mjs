@@ -223,7 +223,7 @@ try{
       baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));
     }
   }
-  const b=summarize(baseline),c=summarize(current),comparisons={};
+  const b=summarize(baseline),c=summarize(current),comparisons={},failures=[];
   for(const [metric,spec] of Object.entries(CONFIG.metrics)){
     const medianGate=allowedMedian(b[metric],spec);
     const medianLimit=medianGate.limitMs;
@@ -238,12 +238,16 @@ try{
       p90DeltaMs:c[metric].p90Ms-b[metric].p90Ms,
       p95DiagnosticDeltaMs:c[metric].p95Ms-b[metric].p95Ms
     };
-    assert(c[metric].p50Ms<=medianLimit,'[perf-parity] '+metric+' median '+c[metric].p50Ms+'ms regressed beyond '+medianLimit+'ms vs baseline '+b[metric].p50Ms+'ms (MAD '+b[metric].madMs+'ms, noise allowance '+medianGate.noiseAllowanceMs+'ms)');
-    assert(c[metric].p90Ms<=p90Limit,'[perf-parity] '+metric+' P90 '+c[metric].p90Ms+'ms regressed beyond '+p90Limit+'ms vs baseline '+b[metric].p90Ms+'ms');
+    if(c[metric].p50Ms>medianLimit)failures.push(metric+' median '+c[metric].p50Ms+'ms regressed beyond '+medianLimit+'ms vs baseline '+b[metric].p50Ms+'ms (MAD '+b[metric].madMs+'ms, noise allowance '+medianGate.noiseAllowanceMs+'ms)');
+    if(c[metric].p90Ms>p90Limit)failures.push(metric+' P90 '+c[metric].p90Ms+'ms regressed beyond '+p90Limit+'ms vs baseline '+b[metric].p90Ms+'ms');
   }
-  const evidence={schema:'rak-performance-parity-evidence-v1',result:'PASS',sourceCommit:String(process.env.GITHUB_SHA||''),baseline:{...CONFIG.baseline},current:{version:CONFIG.current.version},rounds:CONFIG.rounds,viewport:CONFIG.viewport,baselineMetrics:b,currentMetrics:c,comparisons,diagnostics:Object.fromEntries((CONFIG.diagnostics||[]).map(key=>[key,{baseline:b[key],current:c[key]}]))};
+  const evidence={schema:'rak-performance-parity-evidence-v1',result:failures.length?'FAIL':'PASS',sourceCommit:String(process.env.GITHUB_SHA||''),baseline:{...CONFIG.baseline},current:{version:CONFIG.current.version},rounds:CONFIG.rounds,viewport:CONFIG.viewport,baselineMetrics:b,currentMetrics:c,comparisons,diagnostics:Object.fromEntries((CONFIG.diagnostics||[]).map(key=>[key,{baseline:b[key],current:c[key]}])),failures};
   if(process.env.GITHUB_SHA)assert.equal(evidence.sourceCommit,process.env.GITHUB_SHA);
   const out=path.join(process.env.GITHUB_WORKSPACE||WORKSPACE,'.rak-canonical-build','performance-parity-17069.json');fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(evidence,null,2)+'\n');
+  if(failures.length){
+    for(const message of failures)console.error('::error title=Performance parity::'+message);
+    throw new Error('[perf-parity] '+failures.join('; '));
+  }
   console.log('[perf-parity] PASS '+JSON.stringify(evidence));
 }finally{
   if(baselineWorktreeAdded){
