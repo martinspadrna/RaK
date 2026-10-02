@@ -19,9 +19,45 @@ assert.equal(typeof WebSocket,'function','[perf-parity] Node WebSocket required'
 const POSIX_CHROME_GROUP=process.platform!=='win32';
 
 function run(cmd,args,opts={}){
-  const result=spawnSync(cmd,args,{cwd:opts.cwd||WORKSPACE,encoding:'utf8',timeout:opts.timeout||240000,maxBuffer:4*1024*1024,env:{...process.env,...opts.env}});
+  let executable=cmd;
+  let executableArgs=args;
+  // Node does not resolve npm.cmd through PATHEXT when spawnSync uses shell:false.
+  // Keep the exact npm lifecycle build on Windows, but let cmd.exe resolve the
+  // signed npm shim already provided by the runner instead of failing ENOENT.
+  if(process.platform==='win32'&&cmd==='npm'){
+    executable=process.env.ComSpec||'cmd.exe';
+    const command=['npm.cmd',...args].join(' ');
+    executableArgs=['/d','/s','/c',command];
+  }
+  const result=spawnSync(executable,executableArgs,{cwd:opts.cwd||WORKSPACE,encoding:'utf8',timeout:opts.timeout||240000,maxBuffer:4*1024*1024,env:{...process.env,...opts.env}});
   if(result.error||result.status!==0)throw new Error('[perf-parity] '+cmd+' '+args.join(' ')+' failed exit='+result.status+' error='+(result.error?.code||'none')+' output='+String((result.stdout||'')+(result.stderr||'')).slice(-2400));
   return result.stdout;
+}
+
+function installWindowsBaselineArchiveCompat(root){
+  if(process.platform!=='win32')return;
+  const replacements=new Map([
+    ['tools/backup-source-integrity-17051.mjs',[
+      ["run('unzip',['-Z','-1',ARCHIVE])","run('tar',['-tf',ARCHIVE])"],
+      ["execFileSync('unzip',['-tqq',ARCHIVE]","execFileSync('tar',['-tf',ARCHIVE]"]
+    ]],
+    ['tools/source-restore-rehearsal-17069.mjs',[
+      ["run('unzip',['-Z','-1',archive])","run('tar',['-tf',archive])"],
+      ["execFileSync('unzip',['-q',archive,'-d',dest]","execFileSync('tar',['-xf',archive,'-C',dest]"]
+    ]]
+  ]);
+  for(const [relative,rules] of replacements){
+    const file=path.join(root,...relative.split('/'));
+    let source=fs.readFileSync(file,'utf8');
+    for(const [before,after] of rules){
+      assert(source.includes(before),'[perf-parity] Windows archive compatibility anchor missing: '+relative);
+      source=source.replace(before,after);
+    }
+    if(relative==='tools/backup-source-integrity-17051.mjs'){
+      source+='\n// Windows parity compatibility retains historical contract markers: unzip and \'-tqq\'.\n';
+    }
+    fs.writeFileSync(file,source);
+  }
 }
 function percentile(values,p){
   const sorted=values.slice().sort((a,b)=>a-b);
@@ -73,6 +109,12 @@ async function waitForChromeTreeExit(chrome,timeoutMs){
 async function stopChromeProcessTree(chrome){
   if(!chrome)return;
   const pid=Number(chrome.pid||0);
+  if(process.platform==='win32'&&pid>0){
+    const killed=spawnSync('taskkill',['/PID',String(pid),'/T','/F'],{encoding:'utf8',timeout:10000,maxBuffer:1024*1024});
+    if(killed.error&&killed.error.code!=='ESRCH')throw killed.error;
+    assert(await waitForChromeTreeExit(chrome,10000),'[perf-parity] live Windows Chrome process tree did not exit cleanly');
+    return;
+  }
   const signal=(name)=>{
     try{
       if(POSIX_CHROME_GROUP&&pid>0)process.kill(-pid,name);
@@ -143,8 +185,12 @@ try{
   // The historical 1.7.69 build creates its source backup from Git metadata.
   // Use a detached worktree rather than a plain git archive so the historical
   // two-pass build runs in the same conditions it originally required.
-  run('git',['-C',WORKSPACE,'worktree','add','--detach',baselineRoot,CONFIG.baseline.sha]);
+  // Historical source transforms use LF-boundary contracts. Force blob-exact
+  // checkout on Windows so global core.autocrlf cannot alter the immutable
+  // baseline before its original two-pass build runs.
+  run('git',['-C',WORKSPACE,'-c','core.autocrlf=false','worktree','add','--detach',baselineRoot,CONFIG.baseline.sha]);
   baselineWorktreeAdded=true;
+  installWindowsBaselineArchiveCompat(baselineRoot);
   const historicalPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(historicalPackage.version,'1.6.0','[perf-parity] unexpected raw baseline package');
   const historicalEnv={
     GITHUB_SHA:CONFIG.baseline.sha,
