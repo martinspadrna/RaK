@@ -58,3 +58,12 @@ html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button
 html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="rotace"] {
   display:none !important;
 }
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="home"] {
+  grid-column:1 !important;
+}
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="kalkulacky"] {
+  grid-column:2 !important;
+}
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="menu"] {
+  grid-column:3 !important;
+}

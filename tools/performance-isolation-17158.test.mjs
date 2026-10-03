@@ -41,7 +41,7 @@ test('visual parity styles stay parser-loaded so cached PWA files cannot expose 
     assert(!html.includes('data-rak-post-ready-style="'+file+'"'),'route stylesheet must not depend on a cached runtime loader: '+file);
   }
   assert(html.includes('<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet"'),'established application font must be parser-loaded');
-  assert(sw.includes("const DEVELOPMENT_VISUAL_PARITY_HOTFIX_POLICY = 'parser-css-main-parity;cross-shift-nav-3-equal';"),'service worker must refresh the restored visual-parity shell');
+  assert(sw.includes("const DEVELOPMENT_VISUAL_PARITY_HOTFIX_POLICY = 'parser-css-main-parity;cross-shift-nav-home-calculators-more';"),'service worker must refresh the restored visual-parity shell');
   const admin=read('styles-admin-polish.css');
   const bottomNav=read('styles-bottom-nav-runtime.css');
   assert(!admin.includes('rakBottomNavWithoutRotace17024'),'startup navigation must not depend on deferred Admin CSS');
@@ -50,8 +50,12 @@ test('visual parity styles stay parser-loaded so cached PWA files cannot expose 
 
 test('cross-shift navigation hardens the three equal slots against legacy column rules',()=>{
   const core=read('core.js');
+  const bottomNav=read('styles-bottom-nav-runtime.css');
   assert(core.includes("rail.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important')"));
-  assert(core.includes("menuButton.style.setProperty('grid-column','auto','important')"));
+  assert(core.includes("button.style.setProperty('grid-column',String(index+1),'important')"));
+  assert.match(bottomNav,/button\[data-action="home"\]\s*\{\s*grid-column:1 !important;/);
+  assert.match(bottomNav,/button\[data-action="kalkulacky"\]\s*\{\s*grid-column:2 !important;/);
+  assert.match(bottomNav,/button\[data-action="menu"\]\s*\{\s*grid-column:3 !important;/);
   assert(core.includes("button.style.setProperty('display','none','important')"));
 });
 
