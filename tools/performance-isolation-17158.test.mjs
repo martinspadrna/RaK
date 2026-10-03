@@ -52,10 +52,10 @@ test('cross-shift navigation hardens the three equal slots against legacy column
   const core=read('core.js');
   const bottomNav=read('styles-bottom-nav-runtime.css');
   assert(core.includes("rail.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important')"));
-  assert(core.includes("button.style.setProperty('grid-column',String(index+1),'important')"));
-  assert.match(bottomNav,/button\[data-action="home"\]\s*\{\s*grid-column:1 !important;/);
-  assert.match(bottomNav,/button\[data-action="kalkulacky"\]\s*\{\s*grid-column:2 !important;/);
-  assert.match(bottomNav,/button\[data-action="menu"\]\s*\{\s*grid-column:3 !important;/);
+  assert(core.includes("menuButton.style.setProperty('grid-column','3','important')"));
+  assert.match(bottomNav,/\[data-action="home"\]\{grid-column:1!important\}/);
+  assert.match(bottomNav,/\[data-action="kalkulacky"\]\{grid-column:2!important\}/);
+  assert.match(bottomNav,/\[data-action="menu"\]\{grid-column:3!important\}/);
   assert(core.includes("button.style.setProperty('display','none','important')"));
 });
 

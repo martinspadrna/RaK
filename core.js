@@ -806,8 +806,6 @@ function rakApplyShiftAccess() {
   const nav=document.querySelector('nav.bottomNav');
   if(nav&&nav.classList) nav.classList.toggle('rakBottomNavWithoutRotace17024',!allowed);
   const rail=nav&&nav.querySelector ? nav.querySelector('#bottomNavScroll') : null;
-  const homeButton=nav&&nav.querySelector ? nav.querySelector('.bottomNavBtn[data-action="home"]') : null;
-  const calculatorsButton=nav&&nav.querySelector ? nav.querySelector('.bottomNavBtn[data-action="kalkulacky"]') : null;
   const menuButton=nav&&nav.querySelector ? nav.querySelector('.bottomNavMenuBtn') : null;
   if(rail&&rail.style){
     if(allowed){
@@ -824,22 +822,19 @@ function rakApplyShiftAccess() {
       rail.style.setProperty('overflow','visible','important');
     }
   }
-  [homeButton,calculatorsButton,menuButton].forEach((button,index) => {
-    if(!button||!button.style) return;
+  if(menuButton&&menuButton.style){
     if(allowed){
-      button.style.removeProperty('grid-column');
-      button.style.removeProperty('width');
-      button.style.removeProperty('min-width');
-      button.style.removeProperty('max-width');
+      menuButton.style.removeProperty('grid-column');
+      menuButton.style.removeProperty('width');
+      menuButton.style.removeProperty('min-width');
+      menuButton.style.removeProperty('max-width');
     }else{
-      // Explicit columns preserve the user-facing order Home, Kalkulačky, Více
-      // even when an older cached CSS layer still pins Více to column 4.
-      button.style.setProperty('grid-column',String(index+1),'important');
-      button.style.setProperty('width','100%','important');
-      button.style.setProperty('min-width','0','important');
-      button.style.setProperty('max-width','none','important');
+      menuButton.style.setProperty('grid-column','3','important');
+      menuButton.style.setProperty('width','100%','important');
+      menuButton.style.setProperty('min-width','0','important');
+      menuButton.style.setProperty('max-width','none','important');
     }
-  });
+  }
   document.querySelectorAll('.bottomNav button[data-action="rotace"], .bottomNav button[data-action="rozpisy"], .bottomNav button[data-action="statistiky"], .bottomNav .bottomNavBtn[data-page="rotace"]').forEach(button => {
     button.hidden = !allowed;
     button.setAttribute('aria-hidden',allowed?'false':'true');
