@@ -35,7 +35,9 @@ test('1.9 remains TEST-only and preserves the explicit cross-shift order',()=>{
   const config=read('supabase-config.js');
   assert(config.includes('cgshssdjgzzuprlwnabl'));
   assert(!config.includes('bkqamcbkiwumsvelahxr'));
-  assert(read('core.js').includes("menuButton.style.setProperty('grid-column','3','important')"));
+  const core=read('core.js');
+  assert(core.includes("['home','kalkulacky','menu'].forEach((action,index)=>"));
+  assert(core.includes("button.style.setProperty('grid-column',String(index+1),'important')"));
 });
 
 test('1.9 gate is mandatory locally and in CI',()=>{

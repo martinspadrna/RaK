@@ -26,6 +26,8 @@ test('calendar selection remains available in Settings and dashboard keeps accou
   assert(nav.includes('getRakActiveShiftCalendarDisplayContext'));
   assert(nav.includes('rakShiftCalendarEmbedUrl(calendars)'));
   assert(css.includes('.rakCalendarPreferenceGroups'));
+  assert(css.includes('grid-template-columns:repeat(2,minmax(0,1fr));'));
+  assert(!css.includes('.rakCalendarPreferenceGroups{\n    grid-template-columns:1fr;'),'four shift groups must stay A+B / C+D even on a phone');
   assert(css.includes('.rakCalendarPreferenceOption'));
 });
 
