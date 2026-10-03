@@ -42,10 +42,43 @@ test('active Supabase migrations preserve the exact production history', async (
       `Production migration changed: ${migration.file}`,
     );
 
+    if (migration.originalSha256 !== undefined) {
+      assert.match(migration.originalSha256, /^[0-9a-f]{64}$/);
+      assert.notEqual(migration.originalSha256, migration.sha256);
+      assert.ok(
+        typeof migration.replayCompatibilityReason === 'string'
+          && migration.replayCompatibilityReason.length >= 40,
+        `Replay compatibility patch requires an audit reason: ${migration.file}`,
+      );
+    } else {
+      assert.equal(
+        migration.replayCompatibilityReason,
+        undefined,
+        `Replay compatibility reason has no original hash: ${migration.file}`,
+      );
+    }
+
     lockedFiles.add(migration.file);
     lockedVersions.add(migration.version);
     previousVersion = migration.version;
   }
+
+  const replayPatched = lock.migrations.filter(
+    (migration) => migration.originalSha256 !== undefined,
+  );
+  assert.deepEqual(
+    replayPatched.map((migration) => migration.file),
+    ['20260512071249_revoke_public_rls_auto_enable.sql'],
+    'Only the reviewed Supabase Preview replay compatibility patch is allowed',
+  );
+
+  const previewReplayPatch = await readFile(
+    path.join(migrationDir, replayPatched[0].file),
+    'utf8',
+  );
+  assert.match(previewReplayPatch, /to_regprocedure\('public\.rls_auto_enable\(\)'\) is not null/);
+  assert.match(previewReplayPatch, /execute 'revoke execute on function public\.rls_auto_enable\(\)/);
+  assert.doesNotMatch(previewReplayPatch, /create(?: or replace)? function public\.rls_auto_enable/i);
 
   assert.equal(lock.lastProductionVersion, previousVersion);
 

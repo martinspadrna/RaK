@@ -42,7 +42,9 @@
     {
       "version": "20260512071249",
       "file": "20260512071249_revoke_public_rls_auto_enable.sql",
-      "sha256": "78fbc40de48d5fea34480fd11f44ebfcdbd7734dca248d71a6581762555472eb"
+      "sha256": "03311163faa05bc2eab0b545fd7d0b5a296f9be8db24fd6088a81c503d97112b",
+      "originalSha256": "78fbc40de48d5fea34480fd11f44ebfcdbd7734dca248d71a6581762555472eb",
+      "replayCompatibilityReason": "Guard the historical REVOKE when fresh Supabase Preview databases do not contain the project-creation rls_auto_enable helper."
     },
     {
       "version": "20260512073220",
