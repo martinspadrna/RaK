@@ -1,10 +1,10 @@
 (function installRakReleaseMetadata(root) {
   const metadata = Object.freeze({
-    displayVersion: '1.8.8',
-    technicalVersion: '1.8.8',
-    moduleCacheVersion: '1.8.8',
-    cacheVersion: 'v1.8.8',
-    buildId: 'v1.8.8-unplanned-cas-source1'
+    displayVersion: '1.9.0',
+    technicalVersion: '1.9.0',
+    moduleCacheVersion: '1.9.0',
+    cacheVersion: 'v1.9.0',
+    buildId: 'v1.9.0-startup-parity-nav1'
   });
   if (root) root.RAK_RELEASE_METADATA = metadata;
   if (typeof module !== 'undefined' && module.exports) module.exports = metadata;

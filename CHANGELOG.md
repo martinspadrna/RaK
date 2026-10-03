@@ -1,3 +1,11 @@
+## RaK 1.9.0 (development)
+
+- První načtení je lehčí: povinné jádro dál obsahuje přihlášení, dashboard, dnešní směnu a údaj „kam jdu“, zatímco nepoužívané části se načítají až při otevření.
+- Vzhled TESTu byl vrácen 1:1 k ověřené hlavní verzi napříč Rotacemi, Statistikami, Kalkulačkami, Více a Administrací.
+- Funkční části zůstávají oddělené; volitelné moduly a jejich styly se načítají samostatně, aby chyba jedné části nezastavila celý RaK.
+- Účty jiných směn mají bez Rotace tři stejně široké položky ve správném pořadí Home – Kalkulačky – Více.
+- PWA cache a automatické kontroly hlídají úplnou výměnu verze, rychlost, offline start a vizuální regresi. Změna je pouze v TEST/`development`; `main` ani produkce se nemění.
+
 ## RaK 1.8.8 (development)
 - TEST-only pokračování optimalizace prvního vykreslení: tři styly určené výhradně pro obrazovku Rotace a menu Více už neblokují dashboard. Načítají se přes stejné izolované feature loadery a zůstávají ve svých původních cascade slotech, takže vzhled příslušných obrazovek zůstává 1:1.
 - Výkonnostní CI při překročení parity limitu uloží fail-closed důkaz a zveřejní přesný median/P90 rozdíl v anotaci běhu. Počet 20 kol ani žádný limit se nemění; neúspěch dál zastaví TEST deployment.
