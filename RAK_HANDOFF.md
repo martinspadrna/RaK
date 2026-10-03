@@ -37,57 +37,50 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 
 ## Aktuální stav k 3. 10. 2026
 
-### RaK 1.8.8 je v produkci
+### RaK 1.9.0 je v produkci
 
-Rollout je dokončený. Nejde už o kandidáta ani čekající produkční plán.
+Rollout 1.9.0 je dokončený. Produkční release byl proveden auditovaným workflow po exact-main validaci; nejde už o kandidáta ani čekající plán.
 
-- původní funkční `development` důkazní bod: `4767037231705be53817201e3fe4a5c854ff31fb`;
-- release větev `release/1.8.8-main-ready`: `716cb7806f742136cc93fef30432f249e37b7f97`;
-- PR `#7`: merged;
-- produkční release commit: `ec7e9147f85028038286a66eacf40d352c12a513`; aktuální `main` nad ním obsahuje pouze dokumentační commit `fa782f1fc1346115954eb51b9fbb5b7b37741c46`;
-- release HEAD a merge commit mají shodný tree SHA `e91ac3c6e91583769779218a90a95ecbd85e543d`;
-- production-target CI `#778`, attempt 3: PASS;
-- exact-main validation run `#779` / ID `36764543066`, attempt 2: SUCCESS;
-- audited production release run `#2` / ID `36766143512`: SUCCESS.
+- ověřený funkční `development` důkazní bod: `c595880728f449658fe8b14b37768572c4a1dd1f`;
+- release větev `release/1.9.0-main-ready`: `65222471c59e655bf6d96f1db0907117b4464ffb`;
+- PR `#8`: merged;
+- produkční `main` merge commit: `22262ec30312ffb44defa5e21e0e687d3dfa1723`;
+- production-target PR CI `#807` / ID `37141811531`, attempt 2: SUCCESS na stejném release SHA bez změny kódu nebo uvolnění limitů;
+- exact-main validation `#808` / ID `37143409209`, attempt 1: SUCCESS;
+- audited production release `#3` / ID `37143900470`: SUCCESS.
 
-První pokus exact-main validace selhal pouze na proměnlivém FCP P95 benchmarku. Opakování stejného SHA prošlo bez změny kódu nebo uvolnění limitů.
+První pokus production-target PR CI #807 selhal pouze na proměnlivém FCP P90 parity signálu; opakování stejného SHA prošlo bez změny kódu nebo limitů. Exact-main #808 následně prošel napoprvé včetně Chromium/offline, PWA budgetu, parity proti 1.7.69, quality thresholdů, HTTP a canonical kontrol.
 
-### Produkční Vercel – zmrazený výchozí stav
+### Produkční Vercel – aktuální stav
 
-- alias: <https://skoda-spada.vercel.app>;
-- aktivní deployment: `dpl_3qwMi6CGZnnZ29rU5ptYyjKAGFVv`;
+- veřejný alias: <https://skoda-spada.vercel.app>;
+- aktivní deployment: `dpl_DyZMb7i2yf44WxeptBNrqQyyqocB`;
+- immutable URL: <https://skoda-spada-lfcykfo4d-martinspadrnas-projects.vercel.app>;
 - stav: READY, target production;
-- source commit: `ec7e9147f85028038286a66eacf40d352c12a513`;
-- veřejná runtime verze: RaK `1.8.8`;
-- produkční `supabase-config.js` používá pouze produkční projekt a neobsahuje TEST ref;
-- při rollout kontrole nebyly na login obrazovce konzolové chyby ani warningy;
-- 120 first-party funkčních/vizuálních JS/CSS assetů bylo proti poslednímu ověřenému TEST deploymentu hashově shodných; výjimkou je jen prostředí-specifický `supabase-config.js` a Vercel feedback injection;
-- ověřený starý frontend rollback target: `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`.
+- source branch: `main`;
+- source commit: `22262ec30312ffb44defa5e21e0e687d3dfa1723`;
+- veřejná runtime verze: RaK `1.9.0`;
+- veřejný alias po rollout kontrole vracel HTTP 200 a načítal `app.js?v=1.9.0`;
+- Vercel po nasazení nehlásil v poslední hodině žádné runtime errors;
+- bezprostřední frontend rollback target na poslední ověřenou produkci 1.8.8: `dpl_3qwMi6CGZnnZ29rU5ptYyjKAGFVv`.
 
-V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřenou TEST verzí 1.8.8. Další změny v TESTu smějí prostředí záměrně rozdělit až do případného nového, samostatně schváleného produkčního releasu.
+Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produkční DB migrace ani Edge Functions se v tomto release workflow neměnily.
 
 ### TEST Vercel – pracovní prostředí
 
-- ověřený aplikační HEAD nasazený do TESTu: `b0988300026e6936d73ed3c83e551b1a9c08f4dd`; novější dokumentační commity se vždy zjišťují živě podle povinného úvodního postupu;
-- poslední ověřený READY deployment: `dpl_29XnPFu7fzNJ5ZyrDAKnav5gxvDY`;
+- aktuální aplikační `development` HEAD použitý pro release 1.9.0: `c595880728f449658fe8b14b37768572c4a1dd1f`;
+- poslední ověřený READY deployment: `dpl_5BWrpyh11dHEVLWveoxqv3UpkKQK`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-qaww9mivr-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `b0988300026e6936d73ed3c83e551b1a9c08f4dd`;
-- development validation `#795` / ID `37069078788`, attempt 1: SUCCESS; `verify` i `release-preview` prošly a workflow před i po přesunu aliasu ověřilo exact SHA;
-- aplikační CSS změna vznikla v commitu `da72a9a26a939fcdcf2f936bb06cc6a9e21831d1`; finální nasazený commit navíc pouze zpřístupnil fail-closed median/P90 diagnostiku CI bez změny limitů.
-
-Aktuální optimalizační důkaz:
-
+- immutable URL: <https://skoda-spada-7v2pomczl-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `c595880728f449658fe8b14b37768572c4a1dd1f`;
+- development validation `#806` / ID `37138303892`: SUCCESS;
+- vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
-- kalkulačkové styly `styles-calc-panels.css` a `styles-calculators-mid.css` o celkové velikosti 69 911 B se načítají až s kalkulačkami, ale před jejich označením jako připravené;
-- `styles-settings-runtime.css` a `styles-stats-polish.css` o dalších 22 611 B se načítají až s Více/Rotací, ale před prvním úplným vykreslením příslušné feature;
-- počet blokujících stylesheetů klesl z 22 na 18 a jejich objem na 567 228 B; pořadí CSS kaskády zůstává zachované přes původní sloty;
-- run `#789` proti neměnné 1.7.69 naměřil FCP p50 232 ms proti 264 ms (−12,1 %) a p90 352 ms proti 364 ms; jde o CI signál, ne tvrzení o každém zařízení;
-- úplná lokální kontrola prošla 125 bloky, browser smoke prošel ve třech mobilních rozměrech bez runtime výjimky a dvě čisté canonical sestavy měly shodný digest `41f7bab27d2607f2ce27c020b8616aa4c943caecb8d6b4ead05e1403d1d93c1a`;
-- CI `#795` zachovalo performance budget i paritu bez uvolnění limitů; veřejný TEST alias následně vrátil HTTP 200 pro runtime a oba nové CSS, normalizovaný `index.html`, `app.js` a CSS byly shodné s nasazeným zdrojem a konfigurace obsahovala jen TEST Supabase;
-- na předchozím živém stabilním TEST aliasu byly ručně ověřeny dashboard a „kam jdeš“, Rotace, Kalkulačky včetně odložených CSS a Více; konzole byla bez chyb a varování. Nový SHA navíc prošel úplnou automatickou browserovou sadou, ale fyzický iPhone nebyl pro tento CSS-loading krok znovu vyžádán.
+- kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
+- 18 blokujících stylesheetů má celkem 567 228 B;
+- CI parity proti neměnné 1.7.69 i produkční exact-main validace #808 prošly bez uvolnění limitů.
 
-Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
+Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše jsou důkazní body, ne pokyn k automatickému přesunu aliasu.
 
 ### Produkční Supabase – zmrazený výchozí stav
 
@@ -160,16 +153,16 @@ Privátní ICS URL se nesmí zapsat do repozitáře, handoffu, logů ani artifac
 - „Odešel na kalírnu“ používá nejmenší bezpečný zásah, respektuje kvalifikace a evidenční růžovou buňku `Jméno →K` nezapočítává do fyzického staffingu.
 - Již fyzicky schválené administrační a mobilní obrazovky bez nové konkrétní regrese znovu neredesignovat.
 
-## Nouzový rollback produkce 1.8.8
+## Nouzový rollback produkce 1.9.0
 
-Produkční rollback není pouze přesun Vercel aliasu. CAS cutover vypnul dva v2 writery, které starý frontend 1.7.83 potřebuje.
+Release 1.9.0 neměnil produkční DB migrace ani Edge Functions. Bezprostřední rollback 1.9.0 → 1.8.8 je proto frontendový: po novém výslovném souhlasu vlastníka vrátit produkční Vercel alias na ověřený deployment `dpl_3qwMi6CGZnnZ29rU5ptYyjKAGFVv` a znovu provést veřejný HTTP/runtime smoke.
 
-Při skutečně schváleném rollbacku musí koordinovaně proběhnout oba kroky:
+Pokud by bylo potřeba rollbackovat ještě dál z 1.8.8 na starý frontend 1.7.83, stále platí původní koordinovaný rollback kvůli CAS cutoveru:
 
 1. vrátit produkční Vercel alias na ověřený deployment `dpl_3Sn4PbVPMSAF2yrUTXKphoDEZ6tj`;
 2. v produkční DB spustit připravený `supabase/ops/rollback_188_restore_legacy_v2_writers.sql` a ověřit jeho postcheck.
 
-Neprovádět ani jeden krok samostatně a nic z toho nespouštět bez nového výslovného souhlasu vlastníka s rollbackem.
+Druhý, hlubší rollback nikdy neprovádět jen na jedné vrstvě. Žádný rollback nespouštět bez nového výslovného souhlasu vlastníka.
 
 Rolloutové soubory zůstávají auditním a nouzovým důkazem:
 
