@@ -805,6 +805,36 @@ function rakApplyShiftAccess() {
   // Three evenly spaced entries only when Rotace is unavailable. Do not touch D layout.
   const nav=document.querySelector('nav.bottomNav');
   if(nav&&nav.classList) nav.classList.toggle('rakBottomNavWithoutRotace17024',!allowed);
+  const rail=nav&&nav.querySelector ? nav.querySelector('#bottomNavScroll') : null;
+  const menuButton=nav&&nav.querySelector ? nav.querySelector('.bottomNavMenuBtn') : null;
+  if(rail&&rail.style){
+    if(allowed){
+      rail.style.removeProperty('display');
+      rail.style.removeProperty('grid-template-columns');
+      rail.style.removeProperty('justify-items');
+      rail.style.removeProperty('overflow');
+    }else{
+      // Several legacy layers still pin "Více" to column 4. Inline important
+      // values make the three-button A/B/C layout deterministic on every route.
+      rail.style.setProperty('display','grid','important');
+      rail.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important');
+      rail.style.setProperty('justify-items','stretch','important');
+      rail.style.setProperty('overflow','visible','important');
+    }
+  }
+  if(menuButton&&menuButton.style){
+    if(allowed){
+      menuButton.style.removeProperty('grid-column');
+      menuButton.style.removeProperty('width');
+      menuButton.style.removeProperty('min-width');
+      menuButton.style.removeProperty('max-width');
+    }else{
+      menuButton.style.setProperty('grid-column','auto','important');
+      menuButton.style.setProperty('width','100%','important');
+      menuButton.style.setProperty('min-width','0','important');
+      menuButton.style.setProperty('max-width','none','important');
+    }
+  }
   document.querySelectorAll('.bottomNav button[data-action="rotace"], .bottomNav button[data-action="rozpisy"], .bottomNav button[data-action="statistiky"], .bottomNav .bottomNavBtn[data-page="rotace"]').forEach(button => {
     button.hidden = !allowed;
     button.setAttribute('aria-hidden',allowed?'false':'true');
