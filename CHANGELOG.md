@@ -1,4 +1,5 @@
 ## RaK 1.8.8 (development)
+- TEST-only pokračování optimalizace prvního vykreslení: tři styly určené výhradně pro obrazovku Rotace a menu Více už neblokují dashboard. Načítají se přes stejné izolované feature loadery a zůstávají ve svých původních cascade slotech, takže vzhled příslušných obrazovek zůstává 1:1.
 - Výkonnostní CI při překročení parity limitu uloží fail-closed důkaz a zveřejní přesný median/P90 rozdíl v anotaci běhu. Počet 20 kol ani žádný limit se nemění; neúspěch dál zastaví TEST deployment.
 - TEST-only optimalizace prvního načtení: styly nastavení a statistického přehledu už neblokují první dashboardový paint. Zůstávají ve stejných cascade slotech a načtou se společně s příslušnou feature (`Více` nebo `Rotace`), takže se nemění vzhled ani izolace modulů.
 - TEST-only optimalizace prvního načtení: dashboard a údaj „kam jdu“ dál povinně čekají na lokální Rotaci, ale celé menu Více a výpočetní moduly se načtou až při prvním použití. Z čekané startovací cesty tím mizí přibližně 608 KiB JavaScriptu bez změny funkcí, vzhledu nebo offline dostupnosti.

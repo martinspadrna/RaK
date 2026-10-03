@@ -65,13 +65,13 @@ test('calculator styles are feature-bound without changing their cascade slots',
   assert(browserSmoke.includes('data-browser-smoke-inline-post-ready-css'),'inline browser fixture must preserve post-ready local styles after replacing app.js');
 });
 
-test('menu and statistics polish styles are feature-bound without changing their cascade slots',()=>{
+test('menu and rotation-only styles are feature-bound without changing their cascade slots',()=>{
   const html=read('index.html');
   const app=read('app.js');
-  for(const file of ['styles-settings-runtime.css','styles-stats-polish.css']){
+  for(const file of ['styles-settings-runtime.css','styles-menu-polish.css','styles-rotation-month.css','styles-stats-polish.css','styles-rotation-tasks.css']){
     assert(!html.includes('rel="stylesheet" href="'+file+'"'),'feature stylesheet still blocks index: '+file);
     assert(html.includes('data-rak-post-ready-style="'+file+'"'),'cascade slot missing: '+file);
   }
-  assert(app.includes('rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-stats-polish.css"])'));
-  assert(app.includes('menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css"])'));
+  assert(app.includes('rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-rotation-month.css", "styles-stats-polish.css", "styles-rotation-tasks.css"])'));
+  assert(app.includes('menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"])'));
 });
