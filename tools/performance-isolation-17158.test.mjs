@@ -33,29 +33,34 @@ test('zero-visible Google calendar behavior and protected D calendar remain unch
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
 });
 
-test('first dashboard paint is not blocked by Admin and report-only styles',()=>{
+test('visual parity styles stay parser-loaded so cached PWA files cannot expose unstyled routes',()=>{
   const html=read('index.html');
-  const app=read('app.js');
+  const sw=read('sw.js');
   for(const file of ['styles-shift-report.css','styles-admin-reports.css','styles-admin-rotation-fold.css','styles-admin-service.css','styles-admin-rotation-editor.css','styles-admin-polish.css']){
-    assert(!html.includes('href="'+file+'"'),'deferred stylesheet still blocks index: '+file);
-    assert(html.includes('data-rak-post-ready-style="'+file+'"'),'cascade-preserving post-ready slot missing: '+file);
+    assert(html.includes('rel="stylesheet" href="'+file+'"'),'route stylesheet must be parser-loaded: '+file);
+    assert(!html.includes('data-rak-post-ready-style="'+file+'"'),'route stylesheet must not depend on a cached runtime loader: '+file);
   }
-  assert(html.includes('data-rak-post-ready-style="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" data-rak-external-dependency="googleFonts"'),'noncritical Google font must be discovered only after startupReady');
-  assert(!html.includes('<link href="https://fonts.googleapis.com/'),'Google font must not be parser-discovered during first paint');
-  assert(app.includes('setTimeout(warmPostReadyStyles, 0)'));
-  assert(app.includes("slot.replaceWith(link)"));
+  assert(html.includes('<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet"'),'established application font must be parser-loaded');
+  assert(sw.includes("const DEVELOPMENT_VISUAL_PARITY_HOTFIX_POLICY = 'parser-css-main-parity;cross-shift-nav-3-equal';"),'service worker must refresh the restored visual-parity shell');
   const admin=read('styles-admin-polish.css');
   const bottomNav=read('styles-bottom-nav-runtime.css');
   assert(!admin.includes('rakBottomNavWithoutRotace17024'),'startup navigation must not depend on deferred Admin CSS');
   assert(bottomNav.includes('rakBottomNavWithoutRotace17024'),'startup navigation rule must remain eager');
 });
 
-test('calculator styles are feature-bound without changing their cascade slots',()=>{
+test('cross-shift navigation hardens the three equal slots against legacy column rules',()=>{
+  const core=read('core.js');
+  assert(core.includes("rail.style.setProperty('grid-template-columns','repeat(3,minmax(0,1fr))','important')"));
+  assert(core.includes("menuButton.style.setProperty('grid-column','auto','important')"));
+  assert(core.includes("button.style.setProperty('display','none','important')"));
+});
+
+test('calculator styles are parser-loaded for first-open visual parity',()=>{
   const html=read('index.html');
   const app=read('app.js');
   for(const file of ['styles-calc-panels.css','styles-calculators-mid.css']){
-    assert(!html.includes('rel="stylesheet" href="'+file+'"'),'calculator stylesheet still blocks index: '+file);
-    assert(html.includes('data-rak-post-ready-style="'+file+'"'),'calculator cascade slot missing: '+file);
+    assert(html.includes('rel="stylesheet" href="'+file+'"'),'calculator stylesheet must be parser-loaded: '+file);
+    assert(!html.includes('data-rak-post-ready-style="'+file+'"'),'calculator stylesheet must not depend on lazy runtime state: '+file);
   }
   assert(app.includes('calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"])'));
   assert(app.includes('await Promise.all([loadFiles(spec.files), loadFeatureStyles(spec.styles || [])])'),'feature readiness must wait for both scripts and styles');
@@ -65,12 +70,12 @@ test('calculator styles are feature-bound without changing their cascade slots',
   assert(browserSmoke.includes('data-browser-smoke-inline-post-ready-css'),'inline browser fixture must preserve post-ready local styles after replacing app.js');
 });
 
-test('menu and rotation-only styles are feature-bound without changing their cascade slots',()=>{
+test('menu and rotation styles are parser-loaded for first-open visual parity',()=>{
   const html=read('index.html');
   const app=read('app.js');
   for(const file of ['styles-settings-runtime.css','styles-menu-polish.css','styles-rotation-month.css','styles-stats-polish.css','styles-rotation-tasks.css']){
-    assert(!html.includes('rel="stylesheet" href="'+file+'"'),'feature stylesheet still blocks index: '+file);
-    assert(html.includes('data-rak-post-ready-style="'+file+'"'),'cascade slot missing: '+file);
+    assert(html.includes('rel="stylesheet" href="'+file+'"'),'feature stylesheet must be parser-loaded: '+file);
+    assert(!html.includes('data-rak-post-ready-style="'+file+'"'),'feature stylesheet must not depend on lazy runtime state: '+file);
   }
   assert(app.includes('rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-rotation-month.css", "styles-stats-polish.css", "styles-rotation-tasks.css"])'));
   assert(app.includes('menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"])'));
