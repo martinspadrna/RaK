@@ -269,16 +269,87 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "app-boot-selftest.js"
   ];
 
+  const featureStylePromises = new Map();
+
+  // Optional feature, Admin and report styles are never visible on the first dashboard frame.
+  // Their lightweight slots preserve the established cascade position, but the
+  // styles themselves are discovered only after startupReady and cannot block it.
+  const normalizeStyleUrl = (href) => {
+    try { return new URL(href, document.baseURI).href; } catch (_) { return ''; }
+  };
+
+  function loadPostReadyStyle(href) {
+    const requestedHref = String(href || '').trim();
+    const normalizedHref = normalizeStyleUrl(requestedHref);
+    if (!requestedHref || !normalizedHref) return Promise.reject(new Error('Neplatná cesta stylu'));
+    if (featureStylePromises.has(normalizedHref)) return featureStylePromises.get(normalizedHref);
+
+    const existing = Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'))
+      .find((link) => normalizeStyleUrl(link.href) === normalizedHref);
+    if (existing) {
+      const ready = Promise.resolve(normalizedHref);
+      featureStylePromises.set(normalizedHref, ready);
+      return ready;
+    }
+
+    const slot = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'))
+      .find((candidate) => normalizeStyleUrl(candidate.getAttribute('data-rak-post-ready-style') || '') === normalizedHref);
+    if (!slot) return Promise.reject(new Error('Chybí pořadový slot stylu ' + requestedHref));
+
+    const promise = new Promise((resolve, reject) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      const dependencyName = String(slot.getAttribute('data-rak-external-dependency') || '').trim();
+      link.addEventListener('load', () => {
+        if (dependencyName && typeof window.rakNoteExternalDependency === 'function') {
+          window.rakNoteExternalDependency(dependencyName, 'loaded', link.href);
+        }
+        resolve(normalizedHref);
+      }, { once: true });
+      link.addEventListener('error', () => {
+        if (dependencyName && typeof window.rakNoteExternalDependency === 'function') {
+          window.rakNoteExternalDependency(dependencyName, 'failed', link.href);
+        }
+        featureStylePromises.delete(normalizedHref);
+        reject(new Error('Nepodařilo se načíst styl ' + requestedHref));
+      }, { once: true });
+      link.href = requestedHref;
+      link.dataset.rakPostReadyStyle = '1';
+      slot.replaceWith(link);
+    });
+    featureStylePromises.set(normalizedHref, promise);
+    return promise;
+  }
+
+  function loadFeatureStyles(styles) {
+    const list = Array.from(new Set((Array.isArray(styles) ? styles : []).map((style) => String(style || '').trim()).filter(Boolean)));
+    return Promise.all(list.map((style) => loadPostReadyStyle(style)));
+  }
+
+  function warmPostReadyStyles() {
+    try {
+      const slots = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'));
+      for (const slot of slots) {
+        const href = String(slot.getAttribute('data-rak-post-ready-style') || '').trim();
+        void loadPostReadyStyle(href).catch((err) => console.warn('Post-ready style warmup failed', href, err));
+      }
+    } catch (err) {
+      console.warn('Post-ready styles warmup failed', err);
+    }
+  }
+
   // await Promise.all(deferredFiles.map(loadScript))
 
+  // Route-only polish retains its original cascade slot, but feature readiness
+  // guarantees it is present before the first complete Menu or Statistics paint.
   const featureSpecs = Object.freeze({
-    rotation: Object.freeze({ files: rotationFeatureFiles, dependencies: Object.freeze([]) }),
-    calculators: Object.freeze({ files: calculatorFeatureFiles, dependencies: Object.freeze([]) }),
+    rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-rotation-month.css", "styles-stats-polish.css", "styles-rotation-tasks.css"]), dependencies: Object.freeze([]) }),
+    calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"]), dependencies: Object.freeze([]) }),
     // RAK_17082_SYNC_REQUIRES_ROTATION_UI: dashboard "kam jdu" and the first
     // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
     // before those consumers exist, especially on a cold offline iOS start.
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
-    menu: Object.freeze({ files: menuFeatureFiles, dependencies: Object.freeze([]) }),
+    menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
     admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
   });
@@ -582,7 +653,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const promise = (async () => {
       try {
         for (const dependency of spec.dependencies) await ensureFeature(dependency);
-        await loadFiles(spec.files);
+        await Promise.all([loadFiles(spec.files), loadFeatureStyles(spec.styles || [])]);
         featureState[key] = 'ready';
         afterFeatureReady(key);
         try { window.dispatchEvent(new CustomEvent('rak:feature-ready', { detail: { feature: key, at: Date.now() } })); } catch (err) {}
@@ -666,7 +737,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       }, {}),
       interactionFiles: interactionCoreFiles.concat(interactionShellFiles),
       startupFiles: startupFiles.slice(),
-      featureFileCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, spec.files.length]))
+      featureFileCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, spec.files.length])),
+      featureStyleCounts: Object.fromEntries(Object.entries(featureSpecs).map(([key, spec]) => [key, (spec.styles || []).length]))
     };
   };
 
@@ -761,19 +833,17 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     try {
       await hydrateRakRotationLocalFirst();
       await ensureFeature('rotation');
-      await Promise.all([
-        ensureFeature('calculators'),
-        ensureFeature('menu')
-      ]);
+      // RAK_188_STARTUP_CORE_BOUNDARY: calculators and the full More module are
+      // not needed to paint the dashboard or resolve "kam jdu". Their static,
+      // dependency-free shells are already interactive and feature routing loads
+      // the complete module on first intent. Keeping them out of this awaited
+      // block avoids parsing roughly 600 KiB of noncritical JavaScript before
+      // startupReady while preserving Rotation as mandatory local startup data.
       // RAK_17132_LOCAL_STORAGE_SPLIT: local snapshot/cache is already provided
       // by rak-rotation-local-store.js. Do not load syncFeatureFiles here.
       // Supabase bridge and app-rotation-sync remain strictly post-startup.
       try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
-      try {
-        const menuPage = document.getElementById('menu');
-        if (menuPage && menuPage.classList.contains('active') && typeof openAppMenu === 'function') openAppMenu('menu');
-      } catch (err) {}
     } catch (err) {
       console.warn('Local-first UI restore during boot failed', err);
     } finally {
@@ -787,6 +857,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   window.__rakBootV2StartupReady = true;
   window.__rakBootV2StartupReadyMs = Math.max(0, Math.round(startupReadyAt - bootStartedAt));
   if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('boot-loader', 'ready', { source: 'boot-v2', startupReadyMs: window.__rakBootV2StartupReadyMs });
+  setTimeout(warmPostReadyStyles, 0);
 
   try {
     const DEV_RESET_KEY = 'rak_dev_pwa_prompt_reset_build';

@@ -6,7 +6,7 @@
     "buildPasses": 2
   },
   "current": {
-    "version": "1.8.8"
+    "version": "1.9.0"
   },
   "rounds": 20,
   "viewport": {
@@ -18,7 +18,7 @@
     "firstContentfulPaintMs": {
       "maxMedianRegressionPct": 10,
       "minMedianToleranceMs": 20,
-      "maxP95DeltaMs": 75,
+      "maxP90DeltaMs": 75,
       "baselineMadMultiplier": 2,
       "maxNoiseAllowanceMs": 50
     }

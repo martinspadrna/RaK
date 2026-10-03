@@ -28,15 +28,17 @@ test('ordinary More menu no longer waits for Supabase sync but Admin still does'
   assert(routing.includes("if (key === 'admin') return window.rakEnsureFeature('sync').then(() => window.rakEnsureFeature('admin'));"));
   assert(!routing.includes("if (key === 'menu' || key === 'admin')"));
   const warmup=routing.slice(routing.indexOf('function startBackgroundWarmup()'),routing.indexOf('function queueBackgroundWarmup()'));
-  // Successors may strengthen 1.7.125 by moving ordinary More into the mandatory
-  // local startup core. In that model the background router must own neither menu
-  // nor sync; the startup block itself proves menu is ready before startupReady.
+  // Successors may either keep ordinary More in the mandatory local startup core
+  // or preserve the immediate static shell and hydrate the full menu on intent.
   if (warmup.includes("window.rakEnsureFeature('sync')")) {
     assert(warmup.indexOf("window.rakEnsureFeature('menu')") < warmup.indexOf("window.rakEnsureFeature('sync')"),'menu warmup should not queue behind network sync');
   } else {
     assert(!warmup.includes("window.rakEnsureFeature('menu')"),'single-owner local-first startup must not warm menu twice');
     const local=app.slice(app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine'),app.indexOf('const startupReadyAt'));
-    assert(local.includes("ensureFeature('menu')"),'ordinary More must be mandatory local startup core');
+    if (!local.includes("ensureFeature('menu')")) {
+      assert(routing.includes("if (key === 'menu') return window.rakEnsureFeature('menu');"),'deferred ordinary More must hydrate on first intent');
+      assert(app.includes('RAK_188_STARTUP_CORE_BOUNDARY'),'deferred ordinary More needs an explicit startup boundary');
+    }
     assert(!local.includes("ensureFeature('sync')"),'ordinary More local startup must not wait for sync');
   }
 });

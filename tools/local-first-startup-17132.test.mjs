@@ -29,8 +29,9 @@ test('render and sync paths cannot own the user route',()=>{
   assert(startSync.includes('.then(() => activateRemoteSync())'),'remote sync needs one explicit post-local owner');
 });
 
-test('rotation calculators and ordinary More are unconditional local startup core',()=>{
+test('Rotation is unconditional local startup core while noncritical modules hydrate on intent',()=>{
   const app=read('app.js');
+  const routing=read('rak-feature-routing.js');
   assert(app.includes('"rak-rotation-local-store.js"'),'local Rotation storage must load before hydration');
   const start=app.indexOf('RAK_17084_LOCAL_FIRST_BOOT: navigator.onLine');
   const end=app.indexOf('const startupReadyAt',start);
@@ -39,8 +40,11 @@ test('rotation calculators and ordinary More are unconditional local startup cor
   assert(block.includes('const rakMustHydrateRotationBeforeReady = true'));
   assert(block.includes('await hydrateRakRotationLocalFirst()'));
   assert(block.includes("await ensureFeature('rotation')"));
-  assert(block.includes("ensureFeature('calculators')"));
-  assert(block.includes("ensureFeature('menu')"));
+  assert(!block.includes("ensureFeature('calculators')"),'calculator code must not delay dashboard readiness');
+  assert(!block.includes("ensureFeature('menu')"),'full More code must not delay dashboard readiness');
+  assert(block.includes('RAK_188_STARTUP_CORE_BOUNDARY'));
+  assert(routing.includes("if (key === 'menu') return window.rakEnsureFeature('menu');"));
+  assert(routing.includes('return window.rakEnsureFeature(key);'));
   assert(block.includes('window.__rakBootV2LocalReady = true'));
   assert(block.includes('RAK_17132_LOCAL_STORAGE_SPLIT'));
   assert(!block.includes('loadFiles(syncFeatureFiles)'),'remote sync files must not block startupReady');

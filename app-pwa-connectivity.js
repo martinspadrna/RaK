@@ -233,6 +233,13 @@ function installPwaAndConnectivityHooks() {
 
   const runLiveRefresh = async (reason, opts = {}) => {
     const force = !!(opts && opts.force);
+    // RAK_188_STARTUP_REFRESH_DEDUPE: the startup orchestrator owns the first
+    // remote read. Browsers dispatch pageshow/focus/visible while that read is
+    // being prepared; treating those lifecycle notifications as another full
+    // refresh duplicates Rotation, announcements and machine settings requests.
+    if (!window.__rakBootV2StartupReady && ['pageshow', 'focus', 'visible'].includes(String(reason || ''))) {
+      return 'startup-pending';
+    }
     if (!navigator.onLine && !force) return 'offline';
     if (liveRefreshPromise && !force) return liveRefreshPromise;
     const now = Date.now();
@@ -263,17 +270,21 @@ function installPwaAndConnectivityHooks() {
         if (navigator.onLine && typeof flushSupabaseSyncQueue === 'function') {
           await flushSupabaseSyncQueue();
         }
-        if (navigator.onLine && typeof syncRotationFromSupabase === 'function') {
-          await syncRotationFromSupabase(false);
-        }
+        let machineSettingsPromise = null;
         if (navigator.onLine && window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.loadMachineSettings === 'function' && typeof app !== 'undefined') {
-          const machineRows = await window.RotationSupabaseBridge.loadMachineSettings().catch(() => null);
-          if (Array.isArray(machineRows) && machineRows.length) {
-            app.machineSettingsRows = machineRows;
-            if (typeof renderBrusy === 'function') renderBrusy();
-            if (typeof renderSoustruhy === 'function') renderSoustruhy();
-            refreshMachineSettingsUi('live-refresh:' + String(reason || 'sync'));
-          }
+          // RAK_188_MACHINE_SETTINGS_DEDUPE: this refresh owns the settings
+          // read and asks rotation sync not to issue its usual background copy.
+          machineSettingsPromise = window.RotationSupabaseBridge.loadMachineSettings().catch(() => null);
+        }
+        const rotationPromise = navigator.onLine && typeof syncRotationFromSupabase === 'function'
+          ? syncRotationFromSupabase(false, { skipMachineSettings: machineSettingsPromise !== null })
+          : null;
+        const [, machineRows] = await Promise.all([rotationPromise, machineSettingsPromise]);
+        if (Array.isArray(machineRows) && machineRows.length && typeof app !== 'undefined') {
+          app.machineSettingsRows = machineRows;
+          if (typeof renderBrusy === 'function') renderBrusy();
+          if (typeof renderSoustruhy === 'function') renderSoustruhy();
+          refreshMachineSettingsUi('live-refresh:' + String(reason || 'sync'));
         }
         if (navigator.onLine && typeof gamesRefreshRemoteLeaderboards === 'function') {
           const gamesPage = document.getElementById('games');
@@ -750,7 +761,11 @@ function installPwaAndConnectivityHooks() {
           });
         });
       }
-      if (registration && registration.update) {
+      // A brand-new Edge/Chromium registration may still be installing here.
+      // Calling update() in that state can reject and make the successful first
+      // registration look like a failure. Existing active registrations keep
+      // the explicit no-cache update check.
+      if (registration && registration.update && !registration.installing) {
         try {
           pwaHardeningStatus.registrationUpdates = Number(pwaHardeningStatus.registrationUpdates || 0) + 1;
           await registration.update();
@@ -760,6 +775,8 @@ function installPwaAndConnectivityHooks() {
         } catch (err) {
           pwaHardeningStatus.registrationUpdateErrors = Number(pwaHardeningStatus.registrationUpdateErrors || 0) + 1;
         }
+      } else if (registration && registration.installing) {
+        pwaHardeningStatus.lastUpdateSource = 'register-installing';
       }
       void checkForWaitingServiceWorker('register');
       requestActiveServiceWorkerCacheStatus('register', { force: true });

@@ -2386,32 +2386,6 @@
   margin-top:8px !important;
 }
 
-/* // RAK_CROSS_SHIFT_FIXES_17024: A/B/C only. Three available buttons consume three equal slots. */
-html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll {
-  display:grid !important;
-  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-  justify-content:stretch !important;
-  justify-items:stretch !important;
-  width:100% !important;
-  gap:4px !important;
-  overflow:visible !important;
-  scroll-snap-type:none !important;
-}
-html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button.bottomNavBtn:not([hidden]) {
-  grid-column:auto !important;
-  justify-self:stretch !important;
-  align-self:center !important;
-  box-sizing:border-box !important;
-  width:100% !important;
-  min-width:0 !important;
-  max-width:none !important;
-  margin:0 !important;
-}
-html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="rotace"] {
-  display:none !important;
-}
-
-
 /* RaK 1.7.88 – směnové kalendáře: kompaktní mobilní editor */
 #appMenuBody[data-admin-view="calendars"] .adminShiftCalendarTeam + .adminShiftCalendarTeam{
   margin-top:12px !important;

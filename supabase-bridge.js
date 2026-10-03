@@ -5562,19 +5562,29 @@
 
   window.refreshPublicData = refreshPublicData;
 
+  let supabaseInitPromise = null;
   function init() {
+    // RAK_188_SUPABASE_INIT_SINGLE_FLIGHT: loading the bridge already schedules
+    // init. The post-startup orchestrator may ask for it again; that request must
+    // join the same work instead of issuing a second announcements query.
+    if (supabaseInitPromise) return supabaseInitPromise;
     if (state.ready) {
       bindRealtimeSubscriptions();
       scheduleSupabaseKeepalive('init-ready', 1400);
-      return refreshPublicData();
+      return Promise.resolve({ announcements: state.announcements });
     }
-    if (!hasClient()) {
-      return refreshPublicData();
+    const clientReady = hasClient();
+    if (clientReady) {
+      bindRealtimeSubscriptions();
+      scheduleSupabaseQueueFlush('init', 650);
+      scheduleSupabaseKeepalive('init', 1600);
     }
-    bindRealtimeSubscriptions();
-    scheduleSupabaseQueueFlush('init', 650);
-    scheduleSupabaseKeepalive('init', 1600);
-    return refreshPublicData();
+    const run = Promise.resolve().then(() => refreshPublicData());
+    supabaseInitPromise = run;
+    run.finally(() => {
+      if (supabaseInitPromise === run) supabaseInitPromise = null;
+    });
+    return run;
   }
 
   window.sendGomokuWin = sendGomokuWin;

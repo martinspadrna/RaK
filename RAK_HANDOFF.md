@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 1. 10. 2026
+## Aktuální stav k 3. 10. 2026
 
 ### RaK 1.8.8 je v produkci
 
@@ -44,7 +44,7 @@ Rollout je dokončený. Nejde už o kandidáta ani čekající produkční plán
 - původní funkční `development` důkazní bod: `4767037231705be53817201e3fe4a5c854ff31fb`;
 - release větev `release/1.8.8-main-ready`: `716cb7806f742136cc93fef30432f249e37b7f97`;
 - PR `#7`: merged;
-- produkční `main`: `ec7e9147f85028038286a66eacf40d352c12a513`;
+- produkční release commit: `ec7e9147f85028038286a66eacf40d352c12a513`; aktuální `main` nad ním obsahuje pouze dokumentační commit `fa782f1fc1346115954eb51b9fbb5b7b37741c46`;
 - release HEAD a merge commit mají shodný tree SHA `e91ac3c6e91583769779218a90a95ecbd85e543d`;
 - production-target CI `#778`, attempt 3: PASS;
 - exact-main validation run `#779` / ID `36764543066`, attempt 2: SUCCESS;
@@ -68,11 +68,27 @@ V okamžiku rollout kontroly byla produkce funkčně a vzhledově 1:1 s ověřen
 
 ### TEST Vercel – pracovní prostředí
 
-- poslední ověřený READY deployment funkčního základu 1.8.8: `dpl_6KM3C1toG7B8mE26RxETn8DRA2Lg`;
-- URL: <https://skoda-spada-365n5lft2-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `eb7261f904e16666ae437ccab17470ef007efd2f`.
+- ověřený aplikační HEAD nasazený do TESTu: `c595880728f449658fe8b14b37768572c4a1dd1f`; novější dokumentační commity se vždy zjišťují živě podle povinného úvodního postupu;
+- poslední ověřený READY deployment: `dpl_5BWrpyh11dHEVLWveoxqv3UpkKQK`;
+- stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
+- immutable URL: <https://skoda-spada-7v2pomczl-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `c595880728f449658fe8b14b37768572c4a1dd1f`;
+- veřejná runtime verze: RaK `1.9.0`;
+- development validation `#806` / ID `37138303892`, attempt 1: SUCCESS; úplná sada prošla 125 kontrolami;
+- vlastník fyzicky potvrdil opravenou vzhledovou paritu proti 1.8, rozložení navigace účtů bez Rotace a dvousloupcové rozložení směn v Nastavení → Kalendář.
 
-Pozdější commity do přípravy releasu byly dokumentační/CI/release-only. Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
+Aktuální optimalizační důkaz:
+
+- přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
+- kalkulačkové styly `styles-calc-panels.css` a `styles-calculators-mid.css` o celkové velikosti 69 911 B se načítají až s kalkulačkami, ale před jejich označením jako připravené;
+- `styles-settings-runtime.css` a `styles-stats-polish.css` o dalších 22 611 B se načítají až s Více/Rotací, ale před prvním úplným vykreslením příslušné feature;
+- počet blokujících stylesheetů klesl z 22 na 18 a jejich objem na 567 228 B; pořadí CSS kaskády zůstává zachované přes původní sloty;
+- run `#789` proti neměnné 1.7.69 naměřil FCP p50 232 ms proti 264 ms (−12,1 %) a p90 352 ms proti 364 ms; jde o CI signál, ne tvrzení o každém zařízení;
+- úplná lokální kontrola prošla 125 bloky, browser smoke prošel ve třech mobilních rozměrech bez runtime výjimky a dvě čisté canonical sestavy měly shodný digest `41f7bab27d2607f2ce27c020b8616aa4c943caecb8d6b4ead05e1403d1d93c1a`;
+- CI `#806` zachovalo performance budget i paritu bez uvolnění limitů; veřejný TEST alias vrátil HTTP 200, nasazený zdroj používá pouze TEST Supabase a runtime i release metadata hlásí 1.9.0;
+- dashboard a „kam jdeš“, Rotace, Kalkulačky, Více, administrační obrazovky, účet mimo směnu D i Nastavení → Kalendář byly zkontrolovány automaticky a dotčené vizuální opravy také fyzicky vlastníkem.
+
+Před novou prací vždy ověřit živý `development` HEAD a aktuální TEST alias; hodnoty výše nejsou pokyn k automatickému přesunu aliasu.
 
 ### Produkční Supabase – zmrazený výchozí stav
 
@@ -93,11 +109,11 @@ Známý advisor baseline se rolloutem nezměnil a nesmí se vydávat za novou re
 
 ### Produkční Edge Functions – zmrazený výchozí stav
 
-- `rak-admin-users`: platform version `v12`, ACTIVE, `verify_jwt=true`, zdroj shodný s ověřeným TEST/release zdrojem;
-- `rak-absence-calendar`: platform version `v14`, ACTIVE, `verify_jwt=true`; jeho source je shodný s obnoveným bezpečným zdrojem v12. Bez nové konkrétní příčiny jej neměnit;
+- `rak-admin-users`: platform version `v13`, ACTIVE, `verify_jwt=true`, zdroj shodný s ověřeným TEST/release zdrojem;
+- `rak-absence-calendar`: platform version `v15`, ACTIVE, `verify_jwt=true`; zdroj je shodný s repozitářem. Bez nové konkrétní příčiny jej neměnit;
 - `hradnik-sync`: nesouvisející platform version `v3`.
 
-Do produkce se při 1.8.8 nasadil z aplikačních Edge Functions pouze aktuální `rak-admin-users`. `rak-p15-restore-export` se do produkce nikdy nenasazuje.
+TEST-only `rak-p15-restore-export` byl po odhalení nechtěného hromadného deploye se souhlasem vlastníka z produkce odstraněn; měl 0 invocations. V produkci nesmí být a znovu se tam nikdy nenasazuje.
 
 ## Kalendáře – trvalý model
 
@@ -168,9 +184,11 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 
 ## Otevřený backlog
 
-Aktuálně není evidovaný žádný otevřený produktový bod.
+- Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
+- Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
+- Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
 
-Nový požadavek nebo konkrétní regrese se řeší jako nový samostatný bod v TESTu. Automaticky neotvírat znovu historický 13bodový audit ani uzavřené administrační série.
+Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
 ## Checklist pro další funkční změnu v TESTu
 

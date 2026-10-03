@@ -1,26 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {RAK_ROADMAP_IDS,verifyRoadmapSummary,verifyRoadmapProgress} from './roadmap-contract.mjs';
 const read = path => fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const current = () => read('RAK_HANDOFF.md');
+const root=fileURLToPath(new URL('..',import.meta.url));
 
-test('living roadmap has thirteen detailed tasks and truthful percentages', () => {
-  const progress = verifyRoadmapProgress(current());
-  assert.deepEqual(progress.map(item => item.id), RAK_ROADMAP_IDS);
-  assert.equal(progress.length, 13);
-  for (const item of progress) assert(item.total >= item.completed);
+function syntheticRoadmap(){
+  const rows=RAK_ROADMAP_IDS.map(id=>'| '+id+' | test | **100 % (3/3)** | '+(id==='P0.2'?'přijaté riziko – rozhodnutí':'done')+' |').join('\n');
+  const details=RAK_ROADMAP_IDS.map(id=>'### '+id+' – test\n\n- [x] one\n- [x] two\n- [x] three\n'+(id==='P0.2'?'\nPřijaté riziko – rozhodnutí.\n':'')).join('\n');
+  return '| ID | Task | Progress | Note |\n|---|---|---|---|\n'+rows+'\n\n'+details;
+}
+
+test('completed thirteen-point roadmap stays retired while new TEST work remains explicit', () => {
+  const handoff=current();
+  assert(!fs.existsSync(path.join(root,['RAK','PLAN','13.md'].join('_'))));
+  assert.equal([...handoff.matchAll(/^\| (P[012]\.\d) \|/gm)].length,0);
+  assert.equal([...handoff.matchAll(/^### (P[012]\.\d)\s*[–-]/gm)].length,0);
+  assert(handoff.includes('Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu.'));
+  assert(handoff.includes('Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.'));
 });
 
 test('taxonomy catches missing, duplicate or reordered tasks without depending on prose', () => {
-  const plan = current();
+  const plan = syntheticRoadmap();
+  assert.deepEqual(verifyRoadmapSummary(plan),RAK_ROADMAP_IDS);
   assert.throws(() => verifyRoadmapSummary(plan.replace(/^\| P2\.4 \|.*$/m, '')), /thirteen unique/);
   assert.throws(() => verifyRoadmapSummary(plan.replace(/^\| P2\.4 \|.*$/m, '| P2.3 | duplicated |')), /thirteen unique/);
   assert.throws(() => verifyRoadmapSummary(plan.replace(/^\| P0\.1 \|.*\r?\n\| P0\.2 \|.*$/m, match => match.split(/\r?\n/).reverse().join('\n'))), /thirteen unique/);
 });
 
 test('progress catches incorrect percentage and silently flipped checkboxes', () => {
-  const plan = current();
+  const plan = syntheticRoadmap();
+  const progress=verifyRoadmapProgress(plan);
+  assert.deepEqual(progress.map(item=>item.id),RAK_ROADMAP_IDS);
   const p22Row = plan.match(/^\| P2\.2 \|.*$/m)?.[0];
   assert(p22Row, 'P2.2 summary row missing');
   const corruptedP22 = p22Row.replace(/\*\*(\d+) %/, (_, value) => {
@@ -29,13 +43,14 @@ test('progress catches incorrect percentage and silently flipped checkboxes', ()
   });
   assert.notEqual(corruptedP22, p22Row, 'percentage mutation must change the roadmap');
   assert.throws(() => verifyRoadmapProgress(plan.replace(p22Row, corruptedP22)), /percentage differs/);
-  assert.throws(() => verifyRoadmapProgress(plan.replace('- [x] Zabránit anonymnímu', '- [ ] Zabránit anonymnímu')), /completed count differs/);
+  assert.throws(() => verifyRoadmapProgress(plan.replace('- [x] one', '- [ ] one')), /completed count differs/);
   assert.throws(() => verifyRoadmapProgress(plan.replace('### P2.4 –', '### P2.3 –')), /detailed acceptance section/);
 });
 
 test('risk decision must remain distinguishable from technical security', () => {
-  const plan = current();
-  assert.throws(() => verifyRoadmapProgress(plan.replace(/(\| P0\.2 \|[^\n]*\| \*\*100 % \(5\/5\)\*\* \|)[^\n]*/, '$1 Technically secure |')), /accepted risk/);
+  const plan = syntheticRoadmap();
+  const withoutRisk=plan.replace('přijaté riziko – rozhodnutí','Technically secure').replace('Přijaté riziko – rozhodnutí.','Technically secure.');
+  assert.throws(() => verifyRoadmapProgress(withoutRisk), /accepted risk/);
 });
 
 test('historic stage is independent of live roadmap wording and never rewrites it', () => {
