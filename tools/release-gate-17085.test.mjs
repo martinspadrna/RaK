@@ -20,6 +20,8 @@ test('1.7.85 unified-version milestone remains active in verified successors',()
 test('service worker update checks bypass HTTP cache',()=>{
   const pwa=read('app-pwa-connectivity.js');
   assert(pwa.includes("navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' })"));
+  assert(pwa.includes('registration.update && !registration.installing'));
+  assert(pwa.includes("lastUpdateSource = 'register-installing'"));
   assert(pwa.includes('await registration.update()'));
   assert(pwa.includes("registration.addEventListener('updatefound'"));
 });

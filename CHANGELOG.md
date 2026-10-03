@@ -1,4 +1,17 @@
+## RaK 1.9.0 (development)
+
+- První načtení je lehčí: povinné jádro dál obsahuje přihlášení, dashboard, dnešní směnu a údaj „kam jdu“, zatímco nepoužívané části se načítají až při otevření.
+- Vzhled TESTu byl vrácen 1:1 k ověřené hlavní verzi napříč Rotacemi, Statistikami, Kalkulačkami, Více a Administrací.
+- Funkční části zůstávají oddělené; volitelné moduly a jejich styly se načítají samostatně, aby chyba jedné části nezastavila celý RaK.
+- Účty jiných směn mají bez Rotace tři stejně široké položky ve správném pořadí Home – Kalkulačky – Více.
+- PWA cache a automatické kontroly hlídají úplnou výměnu verze, rychlost, offline start a vizuální regresi. Změna je pouze v TEST/`development`; `main` ani produkce se nemění.
+
 ## RaK 1.8.8 (development)
+- TEST-only pokračování optimalizace prvního vykreslení: tři styly určené výhradně pro obrazovku Rotace a menu Více už neblokují dashboard. Načítají se přes stejné izolované feature loadery a zůstávají ve svých původních cascade slotech, takže vzhled příslušných obrazovek zůstává 1:1.
+- Výkonnostní CI při překročení parity limitu uloží fail-closed důkaz a zveřejní přesný median/P90 rozdíl v anotaci běhu. Počet 20 kol ani žádný limit se nemění; neúspěch dál zastaví TEST deployment.
+- TEST-only optimalizace prvního načtení: styly nastavení a statistického přehledu už neblokují první dashboardový paint. Zůstávají ve stejných cascade slotech a načtou se společně s příslušnou feature (`Více` nebo `Rotace`), takže se nemění vzhled ani izolace modulů.
+- TEST-only optimalizace prvního načtení: dashboard a údaj „kam jdu“ dál povinně čekají na lokální Rotaci, ale celé menu Více a výpočetní moduly se načtou až při prvním použití. Z čekané startovací cesty tím mizí přibližně 608 KiB JavaScriptu bez změny funkcí, vzhledu nebo offline dostupnosti.
+- Oba kalkulačkové CSS soubory (celkem přibližně 70 KiB) už neblokují první vykreslení dashboardu. Zůstávají ve stejných cascade slotech a feature loader čeká současně na styly i skripty, takže první otevření Kalkulaček nemůže zobrazit neostylovanou nebo částečně připravenou obrazovku.
 - Produkční rollout audit odhalil, že pozdější 1.7.148 přepsala `rak_admin_apply_unplanned_change_v2` a znovu zavedla retryable SQLSTATE `40001`, který 1.7.138 už odstranila.
 - Nová forward-only migrace `20260930112049_rak_unplanned_change_cas_nonretryable_188.sql` cíleně převádí finální definici tohoto RPC na `P0001` a fail-closed ověřuje, že `40001` nezůstalo. TEST live ověření po migraci: `40001=false`, `P0001=true`, authenticated EXECUTE zachováno.
 

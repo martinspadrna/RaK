@@ -39,12 +39,14 @@ test('the public build is isolated and the historical rewrite chain is legacy-on
 
 test('the canonical build contract names its output, variable archive and immutable-source proof',()=>{
   const source=read('tools/canonical-build.mjs');
-  for(const marker of [".rak-canonical-build","'.rak-dist'","GIT_WORK_TREE","prepareBackup","['run','check']",
+  for(const marker of [".rak-canonical-build","'.rak-dist'","GIT_WORK_TREE","prepareBackup","tools/portable-check.mjs",
     "git',['diff','--name-only','HEAD','--']","rak-complete-backup-source.zip","stableDigest","verify-repeat"]){
     assert(source.includes(marker),'missing canonical build guard: '+marker);
   }
-  assert(source.includes("['archive','--format=zip','HEAD','--',...inventory]"),
+  assert(source.includes('archiveAllowlistedTree(inventory)'),
     'source ZIP must use the verified allowlist');
+  assert(source.includes('GIT_INDEX_FILE:archiveIndex')&&source.includes("['update-index','-z','--index-info']"),
+    'source ZIP allowlist must avoid platform command-line limits through an isolated index');
   assert(!source.includes('applyMetadata(WORK'),'canonical work must keep the exact published release metadata');
   assert(!source.includes('LEGACY_RELEASE'),'canonical build must not relabel current code as an older release');
   const restore=read('tools/source-restore-rehearsal-17069.mjs');

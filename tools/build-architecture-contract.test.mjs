@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8').replace(/\r\n?/g,'\n');
 
 test('the frozen 1.7.69 rewrite chain is retained only as a compatibility compiler',()=>{
   const chain=read('tools/development-version-17048.mjs');

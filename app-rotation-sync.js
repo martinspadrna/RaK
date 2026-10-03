@@ -84,7 +84,7 @@ async function hydrateRakRotationFromOfflineCache(options) {
   return applyRakRotationState(cached.payload, { force: opts.force === true });
 }
 
-async function syncRotationFromSupabase(force) {
+async function syncRotationFromSupabase(force, options = {}) {
   const bridge = window.RotationSupabaseBridge;
   if (!bridge || typeof bridge.loadRotationState !== 'function') return null;
   if (force !== 'discard-draft' && typeof app !== 'undefined' && app && app.adminRotationDirty === true && document.getElementById('adminRotationEditor')) return null;
@@ -98,7 +98,7 @@ async function syncRotationFromSupabase(force) {
     // RAK_17082_BOOT_HYDRATE: cached state has its own awaited contract so cold
     // startup can complete runtime hydration before startupReady.
     if (force !== 'discard-draft') await hydrateRakRotationFromOfflineCache({ repair: true, force: false });
-    refreshRakMachineSettingsInBackground(bridge);
+    if (options.skipMachineSettings !== true) refreshRakMachineSettingsInBackground(bridge);
     const remote = await bridge.loadRotationState();
     if (!remote || !remote.payload) return null;
     // RAK_17068_FINAL_DRAFT_BARRIER: never overwrite edits made during the request.

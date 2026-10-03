@@ -59,13 +59,16 @@ function getAppLoaderFiles() {
   const appJs = readLocalText('app.js');
   const legacyMatch = appJs.match(/const files = \[(.*?)\];/s);
   if (legacyMatch) return Array.from(legacyMatch[1].matchAll(/"([^"]+\.js)"/g)).map(item => item[1]);
-  const groups = ['criticalFiles', 'deferredFiles'];
+  // The inline smoke bypasses app.js' real idle scheduler, so it must include
+  // the same audit groups explicitly. Otherwise health helpers used below are
+  // absent and the advertised browser smoke fails before testing the UI.
+  const groups = ['criticalFiles', 'deferredFiles', 'idleFoundationFiles', 'idleAuditFiles'];
   const files = groups.flatMap((group) => {
     const match = appJs.match(new RegExp('const\\s+' + group + '\\s*=\\s*\\[(.*?)\\];', 's'));
     return match ? Array.from(match[1].matchAll(/"([^"]+\.js)"/g)).map(item => item[1]) : [];
   });
   assert(files.length > 0, 'browser smoke nedokázal najít app.js files list');
-  return files;
+  return Array.from(new Set(files));
 }
 
 function buildInlineBootScript() {
@@ -124,6 +127,15 @@ function buildInlineSmokeHtml() {
     if (/^https?:/i.test(href)) return `<!-- browser smoke external stylesheet stubbed: ${href} -->`;
     const css = readLocalText(href);
     return `<style data-browser-smoke-inline-css="${href}">\n${css}\n</style>`;
+  });
+  // The inline fixture intentionally replaces app.js with already-expanded
+  // modules, so the real post-ready style loader is not present here. Inline
+  // the same local cascade slots to represent the fully ready application;
+  // otherwise feature-bound CSS would be absent only in the smoke harness.
+  html = html.replace(/<meta\b[^>]*data-rak-post-ready-style=["']([^"']+)["'][^>]*>/gi, (tag, href) => {
+    if (/^https?:/i.test(href)) return `<!-- browser smoke external post-ready stylesheet stubbed: ${href} -->`;
+    const css = readLocalText(href);
+    return `<style data-browser-smoke-inline-post-ready-css="${href}">\n${css}\n</style>`;
   });
   const dynamicFiles = getAppLoaderFiles();
   html = html.replace(/<script\b([^>]*?)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi, (tag, before, src) => {
@@ -553,7 +565,8 @@ async function runViewportSmoke(cdpPort, viewport, inlineHtml, liveRotationPaylo
       };
       brand.classList.remove('error');
       if (panel) panel.classList.remove('error');
-      window.rakUserProfileLookup = async () => ({ ok: true, accountNumber: '1234', fullName: 'Browser smoke' });
+      let smokeLookupCalls = 0;
+      window.rakUserProfileLookup = async () => { smokeLookupCalls += 1; return { ok: true, accountNumber: '1234', fullName: 'Browser smoke', requiresAdminAuth: false }; };
       window.rakUserProfileWrite = () => {};
       window.rakUserProfileApplyToRuntime = () => {};
       input.value = '1234';
@@ -570,6 +583,9 @@ async function runViewportSmoke(cdpPort, viewport, inlineHtml, liveRotationPaylo
         hasMotion: mascotStyles.includes('@keyframes rakCrabIdlePose') && mascotStyles.includes('@keyframes rakCrabStepPose'),
         attention,
         reject,
+        lookupCalls: smokeLookupCalls,
+        status: String(document.getElementById('rakUserLoginStatus')?.textContent || ''),
+        disabled: !!button.disabled,
         cutting: brand.classList.contains('success'),
         pageSplit: overlay.classList.contains('pageSplit')
       };
@@ -1018,8 +1034,11 @@ async function runViewportSmoke(cdpPort, viewport, inlineHtml, liveRotationPaylo
   assert(exportState.selected && exportState.width > 800 && exportState.height > 800, `${viewport.name}: export Rotace nevytvořil platný canvas ${JSON.stringify(exportState)}`);
 
   const exportAbsenceTableState = await evalInPage(client, `(() => {
-    const month = window.app && app.rotation && app.rotation.months ? app.rotation.months['8/26'] : null;
-    if (!month || typeof getRotationMonthExportAbsences !== 'function' || typeof buildRotationExportAbsenceTable !== 'function') return { ok: false, reason: 'missing helpers' };
+    const sourceMonth = window.app && app.rotation && app.rotation.months ? app.rotation.months['8/26'] : null;
+    if (!sourceMonth || typeof getRotationMonthExportAbsences !== 'function' || typeof buildRotationExportAbsenceTable !== 'function') return { ok: false, reason: 'missing helpers' };
+    const month = JSON.parse(JSON.stringify(sourceMonth));
+    const sampleDate = month.hard?.rows?.[0]?.date || month.soft?.rows?.[0]?.date || '5.8. N';
+    month.notes = [{ date: sampleDate, person: 'Kříž', code: 'D' }];
     const absences = getRotationMonthExportAbsences(month);
     const table = buildRotationExportAbsenceTable(absences, 0.12, 0.18);
     const columns = table && table.columns ? table.columns : [];

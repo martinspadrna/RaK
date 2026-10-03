@@ -33,3 +33,28 @@ body{
   will-change:auto !important;
   touch-action:manipulation !important;
 }
+/* RAK_CROSS_SHIFT_FIXES_17024: this navigation rule is startup-critical and
+   must not live in the deferred Admin stylesheet. A/B/C consume equal slots. */
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll {
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  justify-content:stretch !important;
+  justify-items:stretch !important;
+  width:100% !important;
+  gap:4px !important;
+  overflow:visible !important;
+  scroll-snap-type:none !important;
+}
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button.bottomNavBtn:not([hidden]) {
+  grid-column:auto !important;
+  justify-self:stretch !important;
+  align-self:center !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  margin:0 !important;
+}
+html body nav.bottomNav.rakBottomNavWithoutRotace17024 #bottomNavScroll > button[data-action="rotace"] {
+  display:none !important;
+}

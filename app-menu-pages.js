@@ -4,6 +4,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
+    // RAK_190_ABOUT_START
+    {
+      range: 'RaK 1.9',
+      title: 'Rychlejší start bez změny funkcí a vzhledu',
+      lines: [
+        'První načtení je lehčí: dashboard, přihlášení, dnešní směna a údaj „kam jdu“ zůstávají v rychlém jádru, zatímco nepoužívané části se načtou až při otevření.',
+        'Rotace, Kalkulačky, Více a Administrace si zachovávají oddělené moduly a vlastní zachycení chyb, takže porucha jedné volitelné části nezastaví celý RaK.',
+        'Vzhled TESTu byl vrácen 1:1 k ověřené hlavní verzi včetně tabulek, formulářů, statistik, kalkulaček a administrace.',
+        'Účty jiných směn nevidí Rotaci a mají dole tři stejně široké položky ve správném pořadí Home – Kalkulačky – Více.',
+        'PWA cache a automatické kontroly hlídají úplnou výměnu verze, rychlost prvního načtení, offline start a vizuální regresi.'
+      ]
+    },
+    // RAK_190_ABOUT_END
     // RAK_180_ABOUT_START
 // RAK_181_ABOUT_COMPACT: RaK 1.8 keeps the same coverage in a shorter five-point user-facing summary.
     {
@@ -87,7 +100,7 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.8.1').trim();
+      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.9.0').trim();
       const displayParts = displayVersion.split('.');
       const aboutDisplayVersion = displayParts.length >= 2 ? displayParts.slice(0, 2).join('.') : displayVersion;
       body.innerHTML = [
