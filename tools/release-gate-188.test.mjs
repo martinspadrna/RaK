@@ -27,6 +27,10 @@ test('1.8.8 CAS repair gates are mandatory locally and in CI',()=>{
     assert(pkg.scripts.check.includes(file));
     assert(workflow.includes(file));
   }
+  assert(pkg.scripts.postcheck.includes('tools/startup-network-dedupe-188.test.mjs'));
+  assert(pkg.scripts.postcheck.includes('tools/measure-test-startup-network.mjs'));
+  assert(workflow.includes('tools/startup-network-dedupe-188.test.mjs'));
+  assert(workflow.includes('node --check tools/measure-test-startup-network.mjs'));
   assert(workflow.includes('rak-188-isolated-build-${{ github.sha }}'));
 });
 
