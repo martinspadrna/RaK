@@ -11,12 +11,8 @@ function group(name) {
   return Array.from(match[1].matchAll(/["']([^"']+\.js)["']/g)).map((item) => item[1]);
 }
 
-const adminAuth = group('adminAuthFeatureFiles');
-assert.deepEqual(adminAuth, ['supabase-bridge.js', 'app-admin-unlock.js'],
-  'admin-auth must reuse the existing secure bridge + admin unlock modules');
-
 assert.match(app,
-  /"admin-auth": Object\.freeze\(\{ files: adminAuthFeatureFiles, dependencies: Object\.freeze\(\[\]\) \}\)/,
+  /"admin-auth": Object\.freeze\(\{ files: \["supabase-bridge\.js", "app-admin-unlock\.js"\], dependencies: Object\.freeze\(\[\]\) \}\)/,
   'admin-auth feature must be an on-demand feature without startup dependencies');
 
 const startup = group('startupFiles');
