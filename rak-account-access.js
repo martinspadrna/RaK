@@ -109,20 +109,12 @@
 
   function waitForSecureSignIn(timeoutMs) {
     const started = Date.now();
-
-    // RAK_191_ADMIN_AUTH_ON_DEMAND: trigger admin-auth immediately;
-    // do not wait for the More/menu feature on a fresh device.
     try {
-      if (typeof window.rakEnsureSupabaseSdk === 'function') {
-        void window.rakEnsureSupabaseSdk({ force: true }).catch(() => {});
-      }
       if (typeof window.rakEnsureFeature === 'function') {
-        void window.rakEnsureFeature('admin-auth').catch((err) => {
-          try { console.warn('Admin auth feature load failed', err); } catch (_) {}
-        });
+        void window.rakEnsureFeature('menu').catch(() => {});
+        void window.rakEnsureFeature('sync').catch(() => {});
       }
     } catch (_) {}
-
     return new Promise((resolve) => {
       const check = () => {
         if (typeof window.rakAdminSecureSignIn === 'function') { resolve(window.rakAdminSecureSignIn); return; }
