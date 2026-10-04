@@ -110,9 +110,8 @@
   function waitForSecureSignIn(timeoutMs) {
     const started = Date.now();
 
-    // RAK_191_ADMIN_AUTH_ON_DEMAND: do not wait passively for a menu feature
-    // that may never be opened on a fresh Android/tablet session. Trigger the
-    // smallest dedicated admin-auth feature as soon as the password gate opens.
+    // RAK_191_ADMIN_AUTH_ON_DEMAND: trigger admin-auth immediately;
+    // do not wait for the More/menu feature on a fresh device.
     try {
       if (typeof window.rakEnsureSupabaseSdk === 'function') {
         void window.rakEnsureSupabaseSdk({ force: true }).catch(() => {});
