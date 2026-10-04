@@ -349,7 +349,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
     // before those consumers exist, especially on a cold offline iOS start.
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
-    "admin-auth": Object.freeze({ files: ["supabase-bridge.js", "app-admin-unlock.js"], dependencies: Object.freeze([]) }),
     menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
     admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
