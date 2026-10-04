@@ -109,6 +109,12 @@
 
   function waitForSecureSignIn(timeoutMs) {
     const started = Date.now();
+    try {
+      if (typeof window.rakEnsureFeature === 'function') {
+        void window.rakEnsureFeature('menu').catch(() => {});
+        void window.rakEnsureFeature('sync').catch(() => {});
+      }
+    } catch (_) {}
     return new Promise((resolve) => {
       const check = () => {
         if (typeof window.rakAdminSecureSignIn === 'function') { resolve(window.rakAdminSecureSignIn); return; }
