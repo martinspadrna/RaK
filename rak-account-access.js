@@ -109,6 +109,21 @@
 
   function waitForSecureSignIn(timeoutMs) {
     const started = Date.now();
+
+    // RAK_191_ADMIN_AUTH_ON_DEMAND: do not wait passively for a menu feature
+    // that may never be opened on a fresh Android/tablet session. Trigger the
+    // smallest dedicated admin-auth feature as soon as the password gate opens.
+    try {
+      if (typeof window.rakEnsureSupabaseSdk === 'function') {
+        void window.rakEnsureSupabaseSdk({ force: true }).catch(() => {});
+      }
+      if (typeof window.rakEnsureFeature === 'function') {
+        void window.rakEnsureFeature('admin-auth').catch((err) => {
+          try { console.warn('Admin auth feature load failed', err); } catch (_) {}
+        });
+      }
+    } catch (_) {}
+
     return new Promise((resolve) => {
       const check = () => {
         if (typeof window.rakAdminSecureSignIn === 'function') { resolve(window.rakAdminSecureSignIn); return; }
