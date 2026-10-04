@@ -15,6 +15,9 @@ assert.match(app,
   /"admin-auth": Object\.freeze\(\{ files: \["supabase-bridge\.js", "app-admin-unlock\.js"\], dependencies: Object\.freeze\(\[\]\) \}\)/,
   'admin-auth feature must be an on-demand feature without startup dependencies');
 
+assert.match(access, /rakEnsureFeature\('menu'\)[\s\S]*rakEnsureFeature\('sync'\)/,
+  'admin password gate must preload the existing menu + sync modules for secure sign-in');
+
 const startup = group('startupFiles');
 assert(!startup.includes('app-admin-unlock.js'),
   'full admin unlock module must stay out of the fast startup shell');
