@@ -8,7 +8,7 @@ const access = read('rak-account-access.js');
 function group(name) {
   const match = app.match(new RegExp('const\\s+' + name + '\\s*=\\s*\\[(.*?)\\];', 's'));
   assert(match, `missing ${name}`);
-  return Array.from(match[1].matchAll(/["']([^"']+\\.js)["']/g)).map((item) => item[1]);
+  return Array.from(match[1].matchAll(/["']([^"']+\.js)["']/g)).map((item) => item[1]);
 }
 
 const adminAuth = group('adminAuthFeatureFiles');
