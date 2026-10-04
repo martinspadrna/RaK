@@ -11,27 +11,18 @@ function group(name) {
   return Array.from(match[1].matchAll(/["']([^"']+\.js)["']/g)).map((item) => item[1]);
 }
 
-assert.match(app,
-  /"admin-auth": Object\.freeze\(\{ files: \["supabase-bridge\.js", "app-admin-unlock\.js"\], dependencies: Object\.freeze\(\[\]\) \}\)/,
-  'admin-auth feature must be an on-demand feature without startup dependencies');
-
-assert.match(access, /rakEnsureFeature\('menu'\)[\s\S]*rakEnsureFeature\('sync'\)/,
-  'admin password gate must preload the existing menu + sync modules for secure sign-in');
-
 const startup = group('startupFiles');
-assert(!startup.includes('app-admin-unlock.js'),
-  'full admin unlock module must stay out of the fast startup shell');
 
-assert.match(access,
-  /rakEnsureFeature\('admin-auth'\)/,
-  'admin password gate must actively trigger the dedicated admin-auth feature');
+assert.doesNotMatch(app, /["']admin-auth["']/, 'admin login must not add a new startup feature bucket');
+assert(!startup.includes('app-admin-unlock.js'), 'full admin unlock module must stay out of the fast startup shell');
 
-assert.match(access,
-  /rakEnsureSupabaseSdk\(\{ force: true \}\)/,
-  'admin password gate must proactively ensure the Supabase SDK');
+assert.match(access, /rakEnsureFeature\('menu'\)/,
+  'admin password gate must trigger the existing menu feature so app-admin-unlock.js is available');
+assert.match(access, /rakEnsureFeature\('sync'\)/,
+  'admin password gate must trigger the existing sync feature so RotationSupabaseBridge is available');
+assert.match(access, /rakAdminSecureSignIn/,
+  'admin password gate must still wait for the secure sign-in function');
+assert.match(access, /waitForSecureSignIn\(12000\)/,
+  'the bounded fail-closed login wait must remain');
 
-assert.match(access,
-  /waitForSecureSignIn\(12000\)/,
-  'the existing bounded login wait must remain as the final fail-closed guard');
-
-console.log('[admin-login-startup-191] OK dedicated admin-auth lazy feature is triggered by the admin password gate without moving the full admin module into startup');
+console.log('[admin-login-startup-191] OK admin login preloads existing menu + sync modules without adding startup feature overhead');
