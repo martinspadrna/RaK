@@ -198,7 +198,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rotace.js",
     "rotation-tasks.js",
     "admin-fhb-calibration.js",
-    "admin-shift-overview.js",
     "brusy-fhb-correction.js",
     "brusy-fhb-v157.js",
     "appearance-theme.js",

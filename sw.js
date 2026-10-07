@@ -41,14 +41,7 @@ const RAK_17100_BACKUP_SOURCE_POLICY = 'same-origin-build-verified-zip;embedded-
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
-const SAME_VERSION_HOTFIX_ASSETS = [
-  './app-menu-pages.js?v=1.9.0',
-  './app.js?v=1.9.0',
-  './app-menu.js?v=1.9.0',
-  './app-menu-admin-shell.js?v=1.9.0',
-  './app-menu-admin-renderer.js?v=1.9.0',
-  './admin-shift-overview.js?v=1.9.0'
-];
+const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.9.0'];
 const DEVELOPMENT_EXPORT_HOTFIX_ASSETS = ['./export.js?v=1.9.0', './rak-lazy-external-libs.js?v=1.9.0'];
 const DEVELOPMENT_COMPLETE_BACKUP_HOTFIX_ASSETS = ['./app.js?v=1.9.0', './app-menu-admin-renderer.js?v=1.9.0', './rak-complete-backup.js?v=1.9.0'];
 // Development-only invalidace starých admin/Supabase assetů po oddělení test DB.
@@ -199,7 +192,6 @@ const WARM_START = [
   './app-menu.js?v=1.9.0',
   './app-menu-admin-shell.js?v=1.9.0',
   './app-menu-admin-renderer.js?v=1.9.0',
-  './admin-shift-overview.js?v=1.9.0',
   './app-menu-pages.js?v=1.9.0',
   './app-menu-bug-report.js?v=1.9.0',
   './app-menu-profile.js?v=1.9.0',
@@ -226,7 +218,7 @@ const OFFLINE_REQUIRED = Object.freeze([
   './styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-calc-panels.css','./styles-calculators-mid.css',
   './brusy.js?v=1.9.0','./soustruhy.js?v=1.9.0','./admin-fhb-calibration.js?v=1.9.0',
   './brusy-fhb-correction.js?v=1.9.0','./brusy-fhb-v157.js?v=1.9.0','./brusy-fhb-v158.js?v=1.9.0',
-  './changelog.js?v=1.9.0','./app-menu.js?v=1.9.0','./app-menu-admin-shell.js?v=1.9.0','./app-menu-admin-renderer.js?v=1.9.0','./admin-shift-overview.js?v=1.9.0','./app-menu-pages.js?v=1.9.0',
+  './changelog.js?v=1.9.0','./app-menu.js?v=1.9.0','./app-menu-admin-shell.js?v=1.9.0','./app-menu-admin-renderer.js?v=1.9.0','./app-menu-pages.js?v=1.9.0',
   './app-menu-bug-report.js?v=1.9.0','./app-menu-profile.js?v=1.9.0','./app-menu-shift-report.js?v=1.9.0',
   './app-admin-unlock.js?v=1.9.0','./rak-vacation-report.js?v=1.9.0','./rak-shift-report.js?v=1.9.0','./rak-shift-report-share.js?v=1.9.0',
   './assets/nav-icons/home-gray.png','./assets/nav-icons/home-green.png',
