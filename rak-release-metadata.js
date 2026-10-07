@@ -4,7 +4,7 @@
     technicalVersion: '1.9.0',
     moduleCacheVersion: '1.9.0',
     cacheVersion: 'v1.9.0',
-    buildId: 'v1.9.0-startup-parity-nav1'
+    buildId: 'v1.9.0-shift-overview1'
   });
   if (root) root.RAK_RELEASE_METADATA = metadata;
   if (typeof module !== 'undefined' && module.exports) module.exports = metadata;
