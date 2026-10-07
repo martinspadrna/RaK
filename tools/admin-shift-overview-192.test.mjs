@@ -30,12 +30,13 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('first version is local-only and covers the paper table fields', () => {
-  for (const label of ['Vsázky před kalírnou','Počet zmetků','Počet BK/ST v provozu','Dlouhodobé závady','Výroba AAR','Volné kalení','Závady na zařízení AAR','Celkové poznámky ke směně']) {
+  for (const label of ['Vsázky před kalírnou','Počet zmetků','Počet BK/ST v provozu','Dlouhodobé závady','Výroba AAR','Volné kalení','Závady na zařízení AAR','Celkové poznámky ke směně','0AM 409 155 / 409 111','Měkké obrábění','Sklad před kalením','Sklad po kalení','Nýtování','Tvrdé obrábění','Plán sklad','Montáž','ALD1 č. posl. vs.:']) {
     assert.ok(feature.includes(label), label);
   }
-  for (const code of ['AG / AE','AF / AD','AD / AG','AH / AH','Soustružení','Do skladu','Stav skladu']) {
+  for (const code of ['AG / AE','AF / AD','AD / AG','AH / AH','Soustružení','Do skladu','Stav skladu','Awa','Awi','TW1','SR7','FR7','ZSB-RLR','SRRG','0AM 409 155 AG','0AM 409 111 AE']) {
     assert.ok(feature.includes(code), code);
   }
+  assert.ok(feature.includes('data-shift-overview-oam-total'));
   assert.ok(feature.includes('rak_admin_shift_overview_v1'));
   assert.ok(feature.includes('localStorage'));
   assert.ok(!feature.includes('fetch('));
