@@ -1,3 +1,9 @@
+## RaK 1.9.2 (development)
+
+- Přehled směny na telefonu nově zřetelně ukazuje, že široké tabulky lze posouvat do stran.
+- Ve Výrobě AAR při vodorovném posunu zůstává viditelný název řádku, takže je zadávání hodnot přehlednější.
+- Viditelné TEST číslo bylo posunuto na RaK 1.9.2 a PWA dostala nový build marker, aby se aktualizace nabídla i uživatelům s předchozí cache.
+
 ## RaK 1.9.1 (development)
 
 - TEST číslování je znovu viditelné v O aplikaci: tento build se zobrazuje jako RaK 1.9.1, zatímco technická produkční řada zůstává 1.9.0.

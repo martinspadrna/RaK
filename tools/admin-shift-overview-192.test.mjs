@@ -33,9 +33,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview1'"));
-  assert.ok(index.includes("var e='so1',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview1"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.2'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview2'"));
+  assert.ok(index.includes("var e='so2',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview2"));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
@@ -53,4 +54,12 @@ test('first version is local-only and covers the paper table fields', () => {
   assert.ok(!feature.includes('fetch('));
   assert.ok(!feature.includes('RotationSupabaseBridge'));
   assert.ok(!feature.includes('.rpc('));
+});
+
+test('wide tables explain mobile scrolling and keep AAR row labels visible', () => {
+  assert.ok(feature.includes('Posuň tabulku do stran'));
+  assert.ok(feature.includes('tabulka se posouvá do stran'));
+  assert.ok(feature.includes('tabindex="0"'));
+  assert.ok(feature.includes('overscroll-behavior-inline:contain'));
+  assert.ok(feature.includes('.rakShiftOverviewAarTable tbody th:first-child{position:sticky'));
 });
