@@ -1,6 +1,7 @@
 (function installRakReleaseMetadata(root) {
   const metadata = Object.freeze({
     displayVersion: '1.9.0',
+    visibleTestVersion: '1.9.1',
     technicalVersion: '1.9.0',
     moduleCacheVersion: '1.9.0',
     cacheVersion: 'v1.9.0',
