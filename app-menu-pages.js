@@ -100,13 +100,12 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.9.0').trim();
-      const displayParts = displayVersion.split('.');
-      const aboutDisplayVersion = displayParts.length >= 2 ? displayParts.slice(0, 2).join('.') : displayVersion;
+      const releaseMetadata = window.RAK_RELEASE_METADATA || {};
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '1.9.0').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
-        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(aboutDisplayVersion)) + '</div>',
+        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(displayVersion)) + '</div>',
         '  ' + buildAppMenuAboutHistoryHtml(),
         '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
         '</div>'
