@@ -41,7 +41,7 @@ const RAK_17100_BACKUP_SOURCE_POLICY = 'same-origin-build-verified-zip;embedded-
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
-const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.9.0'];
+const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=1.9.0', './admin-shift-overview.js?v=1.9.0', './rak-release-metadata.js'];
 const DEVELOPMENT_EXPORT_HOTFIX_ASSETS = ['./export.js?v=1.9.0', './rak-lazy-external-libs.js?v=1.9.0'];
 const DEVELOPMENT_COMPLETE_BACKUP_HOTFIX_ASSETS = ['./app.js?v=1.9.0', './app-menu-admin-renderer.js?v=1.9.0', './rak-complete-backup.js?v=1.9.0'];
 // Development-only invalidace starých admin/Supabase assetů po oddělení test DB.
