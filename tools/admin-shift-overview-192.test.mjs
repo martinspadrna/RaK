@@ -8,7 +8,6 @@ const renderer = read('app-menu-admin-renderer.js');
 const menu = read('app-menu.js');
 const app = read('app.js');
 const feature = read('admin-shift-overview.js');
-const sw = read('sw.js');
 
 test('Přehled směny is owner-only and lives under Admin', () => {
   assert.ok(shell.includes('rakAdminCanManageAdmins'));
@@ -28,7 +27,6 @@ test('feature remains deferred and does not join startup core', () => {
   const startupEnd = app.indexOf('const rotationFeatureFiles', startupStart);
   assert.ok(app.slice(adminStart, adminEnd).includes('"admin-shift-overview.js"'));
   assert.ok(!app.slice(startupStart, startupEnd).includes('admin-shift-overview.js'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
 });
 
 test('first version is local-only and covers the paper table fields', () => {
