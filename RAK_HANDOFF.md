@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 3. 10. 2026
+## Aktuální stav k 7. 10. 2026
 
 ### RaK 1.9.0 je v produkci
 
@@ -54,11 +54,11 @@ První pokus production-target PR CI #807 selhal pouze na proměnlivém FCP P90 
 ### Produkční Vercel – aktuální stav
 
 - veřejný alias: <https://skoda-spada.vercel.app>;
-- aktivní deployment: `dpl_DyZMb7i2yf44WxeptBNrqQyyqocB`;
-- immutable URL: <https://skoda-spada-lfcykfo4d-martinspadrnas-projects.vercel.app>;
+- aktivní deployment: `dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF`;
+- immutable URL: <https://skoda-spada-ourw28jh8-martinspadrnas-projects.vercel.app>;
 - stav: READY, target production;
 - source branch: `main`;
-- source commit: `22262ec30312ffb44defa5e21e0e687d3dfa1723`;
+- source commit: `915a75793207b4125a0489dd8e5c824696f227ab`;
 - veřejná runtime verze: RaK `1.9.0`;
 - veřejný alias po rollout kontrole vracel HTTP 200 a načítal `app.js?v=1.9.0`;
 - Vercel po nasazení nehlásil v poslední hodině žádné runtime errors;
@@ -68,12 +68,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- aktuální aplikační `development` HEAD použitý pro release 1.9.0: `c595880728f449658fe8b14b37768572c4a1dd1f`;
-- poslední ověřený READY deployment: `dpl_5BWrpyh11dHEVLWveoxqv3UpkKQK`;
+- aktuální `development` HEAD: `067a5aacd67dfd8effbba50cf32e8d5006e1db14`;
+- poslední ověřený READY deployment: `dpl_6znxfBFW2tpn1wVze13hpCXiE8PB`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-7v2pomczl-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `c595880728f449658fe8b14b37768572c4a1dd1f`;
-- development validation `#806` / ID `37138303892`: SUCCESS;
+- immutable URL: <https://skoda-spada-rabqhev1r-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `067a5aacd67dfd8effbba50cf32e8d5006e1db14`;
+- development validation `#832` / ID `37603431667`: SUCCESS včetně release-preview jobu;
+- TEST obsahuje owner-only prototyp `Administrace → Přehled směny`. Je lokální-only bez Supabase zápisu a obsahuje ALD 1–3, individuální „Vsázky před kalírnou“ (Awa/Awi/TW/SR/FR/ZSB-RLR/SRRG/AAR), poslední vsázky ALD1–3, Výrobu AAR a tabulku 0AM 409 155 / 409 111 s automatickými součty;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -179,6 +180,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
+- Otevřená fyzická přejímka owner-only prototypu `Administrace → Přehled směny`: na iPhonu zkontrolovat použitelnost zadávání, šířky/scroll tabulek a podle výsledku upravit rozložení. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
