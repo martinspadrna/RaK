@@ -8,6 +8,7 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 test('1.9.0 has one release identity across runtime, PWA and package metadata',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.9.0');
   assert.equal(metadata.displayVersion,'1.9.0');
+  assert.equal(metadata.visibleTestVersion,'1.9.1');
   assert.equal(metadata.technicalVersion,'1.9.0');
   assert.equal(metadata.moduleCacheVersion,'1.9.0');
   assert.equal(metadata.cacheVersion,'v1.9.0');
