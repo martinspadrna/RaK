@@ -1,3 +1,9 @@
+## RaK 1.9.1 (development)
+
+- TEST číslování je znovu viditelné v O aplikaci: tento build se zobrazuje jako RaK 1.9.1, zatímco technická produkční řada zůstává 1.9.0.
+- Přehled směny pro hlavního správce je součástí TESTu a PWA update mechanismus dostal nový build marker, aby se nová verze skutečně nabídla.
+- Další vydaná TEST změna musí posunout viditelné číslo na 1.9.2, 1.9.3 atd.; main/produkce se tímto development releasem nemění.
+
 ## RaK 1.9.0 (development)
 
 - První načtení je lehčí: povinné jádro dál obsahuje přihlášení, dashboard, dnešní směnu a údaj „kam jdu“, zatímco nepoužívané části se načítají až při otevření.
