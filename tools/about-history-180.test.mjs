@@ -34,10 +34,12 @@ test('RaK 1.8 history stays compact while retaining the delivered work areas',()
   assert.equal((lineBlock.match(/^\s*'/gm)||[]).length,5);
 });
 
-test('O aplikaci always shows generation 1.9 while technical release may advance within 1.9.x',()=>{
+test('O aplikaci shows the full visible TEST version so every published TEST update is obvious',()=>{
   const src=read('app-menu-pages.js');
+  const metadata=read('rak-release-metadata.js');
+  assert(metadata.includes("visibleTestVersion: '1.9.1'"));
+  assert(src.includes('releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION'));
   assert(src.includes("versionText || '1.9.0'"));
-  assert(src.includes("const displayParts = displayVersion.split('.')"));
-  assert(src.includes("displayParts.slice(0, 2).join('.')"));
-  assert(src.includes("formatRakDisplayVersion(aboutDisplayVersion)"));
+  assert(src.includes("formatRakDisplayVersion(displayVersion)"));
+  assert(!src.includes("displayParts.slice(0, 2).join('.')"));
 });
