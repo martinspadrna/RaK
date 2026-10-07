@@ -48,6 +48,7 @@ function hideAppMenu() {
 function appMenuAdminModeSet() {
   return new Set([
     'home',
+    'shift-overview',
     'machines',
     'food',
     'vacation',
@@ -1155,6 +1156,11 @@ function bindAppMenuHandlers(body) {
         openAppMenu('admin');
         return;
       }
+      if (adminAction === 'open-shift-overview') {
+        if (!(typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins())) return;
+        openAppMenu('admin-shift-overview');
+        return;
+      }
       if (adminAction === 'open-machines') {
         openAppMenu('admin-machines');
         return;
@@ -2223,7 +2229,7 @@ function openAppMenu(view) {
   page.classList.add('active');
   const body = page.querySelector('#appMenuBody');
   const v = view || 'menu';
-  const adminViews = new Set(['admin', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-calendars', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
+  const adminViews = new Set(['admin', 'admin-shift-overview', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-calendars', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
 
   const versionText = getRakCurrentAppVersion();
   const contact = typeof getRakAppContactSettings === 'function'
@@ -2265,6 +2271,16 @@ function openAppMenu(view) {
       ].join('');
       return;
     }
+    if (v === 'admin-shift-overview' && !(typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins())) {
+      body.innerHTML = [
+        '<div class="appMenuCard appMenuAdminCard">',
+        '  <div class="appMenuCardTitle">Přehled směny</div>',
+        '  <div class="appMenuText">Tato testovací funkce je zatím dostupná pouze hlavnímu správci.</div>',
+        '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
+        '</div>'
+      ].join('');
+      return;
+    }
     if (v === 'about') {
       renderAppMenuAboutPage(body, versionText);
       return;
@@ -2285,6 +2301,8 @@ function openAppMenu(view) {
       renderAdminRootMenuBody(body);
       // RAK_17134_ADMIN_ROOT_FIRST: the secure local root is already complete
       // inside the local menu module. Heavy tools remain strictly on demand.
+    } else if (v === 'admin-shift-overview') {
+      renderAdminMenuBody(body, 'shift-overview');
     } else if (v === 'admin-machines') {
       void (async () => {
         try {

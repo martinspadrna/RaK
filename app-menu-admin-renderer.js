@@ -19,6 +19,12 @@ function renderAdminMenuBody(body, section) {
   const page = document.getElementById('menu');
   if (page) page.dataset.adminView = mode;
 
+  if (mode === 'shift-overview') {
+    if (typeof renderAdminShiftOverview === 'function') renderAdminShiftOverview(body);
+    else body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Funkce se nepodařila načíst.</div><button type="button" class="appMenuAction appMenuBack" data-admin-action="back-admin">Zpět</button></div>';
+    return;
+  }
+
   const months = getAdminRotationMonthKeys();
   const monthKey = getAdminSelectedMonthKey();
 
