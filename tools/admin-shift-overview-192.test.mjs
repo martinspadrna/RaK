@@ -34,7 +34,8 @@ test('feature remains deferred and does not join startup core', () => {
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
   assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview1'"));
-  assert.ok(index.includes("var entryBuild='v1.9.0-shift-overview1'"));
+  assert.ok(index.includes("var entryUpdateEpoch='shift-overview-20261007-1'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview1"));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
