@@ -8,6 +8,9 @@ const renderer = read('app-menu-admin-renderer.js');
 const menu = read('app-menu.js');
 const app = read('app.js');
 const feature = read('admin-shift-overview.js');
+const sw = read('sw.js');
+const index = read('index.html');
+const metadata = read('rak-release-metadata.js');
 
 test('Přehled směny is owner-only and lives under Admin', () => {
   assert.ok(shell.includes('rakAdminCanManageAdmins'));
@@ -27,6 +30,13 @@ test('feature remains deferred and does not join startup core', () => {
   const startupEnd = app.indexOf('const rotationFeatureFiles', startupStart);
   assert.ok(app.slice(adminStart, adminEnd).includes('"admin-shift-overview.js"'));
   assert.ok(!app.slice(startupStart, startupEnd).includes('admin-shift-overview.js'));
+});
+
+test('same-version TEST build offers an update and evicts the old overview module', () => {
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview1'"));
+  assert.ok(index.includes("var entryBuild='v1.9.0-shift-overview1'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
+  assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
 test('first version is local-only and covers the paper table fields', () => {
