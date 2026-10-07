@@ -11,7 +11,7 @@ test('1.9.0 has one release identity across runtime, PWA and package metadata',(
   assert.equal(metadata.technicalVersion,'1.9.0');
   assert.equal(metadata.moduleCacheVersion,'1.9.0');
   assert.equal(metadata.cacheVersion,'v1.9.0');
-  assert.equal(metadata.buildId,'v1.9.0-startup-parity-nav1');
+  assert.equal(metadata.buildId,'v1.9.0-shift-overview1');
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'1.9.0');
   assert(read('index.html').includes('app.js?v=1.9.0'));
   assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=1.9.0')"));
