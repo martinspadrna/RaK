@@ -1,4 +1,4 @@
-// RaK 1.9 PWA service worker – metadata-driven cache + confirmed-update navigation.
+// RaK PWA service worker.
 importScripts('./rak-release-metadata.js?sw=1.9.0');
 const RELEASE_METADATA = self.RAK_RELEASE_METADATA;
 if (!RELEASE_METADATA || !RELEASE_METADATA.displayVersion || !RELEASE_METADATA.buildId) {
