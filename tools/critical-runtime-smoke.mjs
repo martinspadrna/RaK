@@ -500,7 +500,7 @@ assert(appJs.includes('const RAK_MODULE_CACHE_VERSION = releaseMetadata.moduleCa
   'app.js nečte technickou cache verzi z release metadat');
 assert(swJs.includes('const CACHE_VERSION = RELEASE_METADATA.cacheVersion;'),
   'sw.js nečte cache verzi z release metadat');
-assert(swJs.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;'),
+assert(swJs.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'),
   'sw.js nečte viditelnou verzi z release metadat');
 assert(String(packageJson.version)===RELEASE_METADATA.technicalVersion,
   'package.json a release metadata mají rozdílnou technickou verzi');

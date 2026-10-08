@@ -56,7 +56,7 @@ assert(sw.includes("'./app-rotation-sync.js?v="+RELEASE_METADATA.moduleCacheVers
 const canonical=!!(pkg.scripts&&pkg.scripts['legacy:vercel-build']);
 if(canonical){
   assert.equal(pkg.version,RELEASE_METADATA.technicalVersion,'canonical technical version changed');
-  assert(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;'), 'canonical SW must read display version metadata');
+  assert(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'), 'canonical SW must prefer visible TEST version metadata');
   assert(config.includes('window.RAK_RELEASE_VERSION = rakReleaseMetadata.displayVersion;'), 'canonical config must read release metadata');
   assert(config.includes('window.RAK_TEST_DISPLAY_VERSION = rakReleaseMetadata.displayVersion;'), 'canonical config must read test display metadata');
   assert(config.includes('window.RAK_PWA_BUILD = rakReleaseMetadata.buildId;'), 'canonical config must read PWA build metadata');

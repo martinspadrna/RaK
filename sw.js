@@ -10,7 +10,7 @@ if (CACHE_VERSION !== SW_RELEASE_CACHE_MARKER) {
   throw new Error('Service worker release marker does not match release metadata');
 }
 const SW_APP_VERSION = RELEASE_METADATA.technicalVersion;
-const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;
+const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;
 // Legacy smoke compatibility: const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.6.03';
 const DEVELOPMENT_BUILD_ID = RELEASE_METADATA.buildId;
 const DEVELOPMENT_STARTUP_DIAGNOSTIC_POLICY = 'idle-foundation-2;feature-css-10';

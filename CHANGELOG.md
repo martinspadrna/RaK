@@ -1,3 +1,8 @@
+## RaK 1.9.3 (development)
+
+- Nabídka PWA aktualizace nyní zobrazuje celé viditelné TEST číslo verze (např. `1.9.3`) už před potvrzením aktualizace.
+- Service worker používá pro uživatelské hlášky `visibleTestVersion`; technická verze `1.9.0` a produkční větev zůstávají beze změny.
+
 ## RaK 1.9.2 (development)
 
 - Přehled směny na telefonu nově zřetelně ukazuje, že široké tabulky lze posouvat do stran.

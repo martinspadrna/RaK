@@ -45,7 +45,7 @@ export function assertCurrentReleaseIdentity(read,minimumVersion){
   const sw=read('sw.js');
   assert(sw.indexOf("importScripts('./rak-release-metadata.js?sw=")<sw.indexOf('const CACHE_VERSION'));
   assert(sw.includes('const CACHE_VERSION = RELEASE_METADATA.cacheVersion;'));
-  assert(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.displayVersion;'));
+  assert(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert(sw.includes('const DEVELOPMENT_BUILD_ID = RELEASE_METADATA.buildId;'));
   assert(sw.includes("'./rak-release-metadata.js'"));
   return metadata;

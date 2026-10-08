@@ -180,7 +180,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- Po TEST nasazení 1.9.2 zbývá fyzická přejímka owner-only prototypu `Administrace → Přehled směny` na iPhonu. Rozložení bylo ověřeno při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
+- Po TEST nasazení 1.9.3 zbývá fyzická přejímka owner-only prototypu `Administrace → Přehled směny` na iPhonu. Rozložení bylo ověřeno při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Aktualizační nabídka už přebírá celé viditelné TEST číslo verze. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
