@@ -68,13 +68,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- aktuální `development` HEAD: `067a5aacd67dfd8effbba50cf32e8d5006e1db14`;
-- poslední ověřený READY deployment: `dpl_6znxfBFW2tpn1wVze13hpCXiE8PB`;
+- funkční TEST důkazní bod 1.9.6: `9a0d6f5337015a6a1c93b033a7b820c5c5781a28`;
+- poslední ověřený READY deployment: `dpl_8BybeCgshdt1wnbSzjWxNoxwtH8s`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-rabqhev1r-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `067a5aacd67dfd8effbba50cf32e8d5006e1db14`;
-- development validation `#832` / ID `37603431667`: SUCCESS včetně release-preview jobu;
-- TEST obsahuje owner-only prototyp `Více → Správce → Přehled směny`. Je lokální-only bez Supabase zápisu a obsahuje ALD 1–3, individuální „Vsázky před kalírnou“ (Awa/Awi/TW/SR/FR/ZSB-RLR/SRRG/AAR), poslední vsázky ALD1–3, Výrobu AAR a tabulku 0AM 409 155 / 409 111 s automatickými součty; na telefonu mají široké tabulky viditelnou nápovědu pro posun do stran a Výroba AAR drží název řádku při vodorovném posunu;
+- immutable URL: <https://skoda-spada-63vbo7mas-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `9a0d6f5337015a6a1c93b033a7b820c5c5781a28`;
+- development validation `#858` / ID `37993452014`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.6, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
+- TEST 1.9.6 obsahuje owner-only přehled podle fotek provozní tabulky: tři indexy AG/AE, AF/AD, AH/AH; devět stavů zásob od měkkého obrábění po montáž; kompaktní ALD1–3, AAR Soustružení/Koncové praní se zmetky a vstupy ALD1/ALD2 po dílech s automatickými součty. Doplňující starší pole jsou sbalená. Žlutý AD/AG je vyřazen ze zobrazení a součtů; historické lokální hodnoty se při uložení zachovají. Ukládání je pouze lokální bez Supabase zápisů;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -182,7 +182,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- Pro TEST 1.9.6 je připravena úprava owner-only prototypu podle fotek provozní tabulky: tři indexy AG/AE, AF/AD a AH/AH, devět stavů zásob, kompaktní ALD1–3, AAR Soustružení/Koncové praní se zmetky a vstupy ALD1/ALD2 po dílech s automatickými součty. Žlutý index AD/AG je vyřazen ze zobrazení i součtů; historické lokální hodnoty zůstávají zachované při uložení. Dosavadní doplňující pole jsou sbalená. Zbývá CI, TEST nasazení a fyzická přejímka owner-only prototypu `Více → Správce → Přehled směny` na iPhonu. Přímý vstup byl ověřený na první klepnutí, rozložení při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Aktualizační nabídka už přebírá celé viditelné TEST číslo verze. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
+- TEST 1.9.6 je nasazený a čeká na fyzickou přejímku vlastníka ve `Více → Správce → Přehled směny`. Sedm unit/VM kontrol, dvě čisté canonical sestavy a CI #858 prošly. Chromium fixture při šířkách 390/1366 px ověřil layout bez horizontálního přetečení stránky, tabulkové posouvání, součty, uložit/reload, zachování archivovaného žlutého indexu mimo součty a owner gate. Fyzický iPhone tím není nahrazen. Datový model zůstává lokální bez DB/Edge zápisu. Produkční deployment i main zůstaly beze změny.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
