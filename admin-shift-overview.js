@@ -539,7 +539,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewPaper th,.rakShiftOverviewPaper td{border:1px solid rgba(255,255,255,.22);padding:5px;text-align:center;}',
       '.rakShiftOverviewPaper .rakShiftOverviewInput{min-height:36px;padding:6px;text-align:center;}',
       '.rakShiftOverviewProcess{min-width:970px;}.rakShiftOverviewProcess th{font-size:11px;min-width:85px;}.rakShiftOverviewProcess tbody+tbody{border-top:8px solid transparent;}',
-      '.rakShiftOverviewProcess th.isGreen{background:#68b832;color:#071006;}.rakShiftOverviewProcess th.isBlue{background:#1598db;color:#061019;}.rakShiftOverviewProcess th.isOrange{background:#df5d1b;color:#1b0900;}',
+      '.rakShiftOverviewProcess th.isGreen,.rakShiftOverviewProcess th:first-child.isGreen{background:#68b832;color:#071006;}.rakShiftOverviewProcess th.isBlue,.rakShiftOverviewProcess th:first-child.isBlue{background:#1598db;color:#061019;}.rakShiftOverviewProcess th.isOrange,.rakShiftOverviewProcess th:first-child.isOrange{background:#df5d1b;color:#1b0900;}',
       '.rakShiftOverviewPaper th:first-child{position:sticky;left:0;z-index:2;background:var(--panel,#25125d);min-width:76px;}',
       '.rakShiftOverviewAldTable{min-width:680px;}.rakShiftOverviewAldTable td:last-child{width:42%;}.rakShiftOverviewAldTable .rakShiftOverviewArea{min-height:64px;padding:6px;}',
       '.rakShiftOverviewInputs{min-width:340px;}.rakShiftOverviewInputs td{width:24%;}',

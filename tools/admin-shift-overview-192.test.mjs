@@ -97,3 +97,46 @@ test('paper overview renders only three active indices and all nine process stag
   const paths = [...body.innerHTML.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m => m[1]);
   assert.equal(new Set(paths).size, paths.length, 'a field must never be rendered twice and overwrite edits on save');
 });
+
+test('editing the active table preserves archived yellow values and excludes them from totals', () => {
+  const context = vm.createContext({
+    window: { rakAdminCanManageAdmins: () => true },
+    document: { getElementById: () => ({}) }
+  });
+  // Expose private helpers only inside this VM fixture, never in the deployed module.
+  vm.runInContext(feature.replace('  installStyle();',
+    '  root.fixture = { normalizeRecord, readDom, refreshTotals, setRecord: (el, record) => renderedRecords.set(el, record) };'), context);
+  const api = context.window.fixture;
+  const original = api.normalizeRecord({
+    aar: { matrix: { turning: { agAe: '12', afAd: '8', adAg: '999', ahAh: '2' } } },
+    oam: { rows: { ad: { op1020: '888' } } },
+    process: { rows: { ag: { before150: '42' } } }
+  }, '2026-10-09', 'ranni12');
+  const values = new Map([
+    ['[data-shift-overview-date]', { value: '2026-10-10' }],
+    ['[data-shift-overview-shift]', { value: 'nocni12' }]
+  ]);
+  for (const [path, value] of [
+    ['aar.matrix.turning.agAe', '12'], ['aar.matrix.turning.afAd', '8'], ['aar.matrix.turning.ahAh', '2'],
+    ['inputs.rows.AAR.ald1', '11'], ['inputs.rows.AAR.ald2', '9'], ['process.rows.ag.before150', '43']
+  ]) values.set('[data-shift-overview-field="' + path + '"]', { value, getAttribute: () => path });
+  const total = { textContent: '' };
+  const inputTotal = { textContent: '' };
+  values.set('[data-shift-overview-total="turning"]', total);
+  values.set('[data-shift-overview-input-total="AAR"]', inputTotal);
+  const el = {
+    querySelector: (selector) => values.get(selector) || null,
+    querySelectorAll: () => [...values].filter(([selector]) => selector.startsWith('[data-shift-overview-field=')).map(([, value]) => value)
+  };
+  api.setRecord(el, original);
+  api.refreshTotals(el);
+  assert.equal(total.textContent, '22');
+  assert.equal(inputTotal.textContent, '20');
+  const saved = api.readDom(el);
+  assert.equal(saved.date, '2026-10-10');
+  assert.equal(saved.shift, 'nocni12');
+  assert.equal(saved.process.rows.ag.before150, '43');
+  assert.equal(saved.aar.matrix.turning.adAg, '999');
+  assert.equal(saved.oam.rows.ad.op1020, '888');
+  assert.equal(saved.inputs.rows.AAR.ald2, '9');
+});
