@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const shell = read('app-menu-admin-shell.js');
@@ -39,20 +40,20 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.5'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview5'"));
-  assert.ok(index.includes("var e='so5',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview5"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.6'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview6'"));
+  assert.ok(index.includes("var e='so6',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview6"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
 test('first version is local-only and covers the paper table fields', () => {
-  for (const label of ['Vsázky před kalírnou','Počet zmetků','Počet BK/ST v provozu','Dlouhodobé závady','Výroba AAR','Volné kalení','Závady na zařízení AAR','Celkové poznámky ke směně','0AM 409 155 / 409 111','Měkké obrábění','Sklad před kalením','Sklad po kalení','Nýtování','Tvrdé obrábění','Plán sklad','Montáž','ALD1 č. posl. vs.:']) {
+  for (const label of ['Vsázky před kalírnou','Zmetky','Počet BK/ST v provozu','Dlouhodobé závady','Výroba AAR','Volné kalení','Závady na zařízení AAR','Celkové poznámky ke směně','0AM 409 155 / 409 111','Měkké obrábění','Sklad před kalením','Sklad po kalení','Nýtování','Tvrdé obrábění','Plán sklad','Montáž','ALD1 č. posl. vs.:']) {
     assert.ok(feature.includes(label), label);
   }
-  for (const code of ['AG / AE','AF / AD','AD / AG','AH / AH','Soustružení','Do skladu','Stav skladu','Awa','Awi','TW1','SR7','FR7','ZSB-RLR','SRRG','0AM 409 155 AG','0AM 409 111 AE']) {
+  for (const code of ['AG / AE','AF / AD','AH / AH','Soustružení','Do skladu','Stav skladu','Awa','Awi','TW1','SR7','FR7','ZSB-RLR','SRRG','0AM 409 155 AG','0AM 409 111 AE']) {
     assert.ok(feature.includes(code), code);
   }
   assert.ok(feature.includes('data-shift-overview-oam-total'));
@@ -71,4 +72,28 @@ test('wide tables explain mobile scrolling and keep AAR row labels visible', () 
   assert.ok(feature.includes('tabindex="0"'));
   assert.ok(feature.includes('overscroll-behavior-inline:contain'));
   assert.ok(feature.includes('.rakShiftOverviewAarTable tbody th:first-child{position:sticky'));
+});
+
+test('paper overview renders only three active indices and all nine process stages', () => {
+  const context = vm.createContext({
+    window: { rakAdminCanManageAdmins: () => true },
+    document: { getElementById: () => ({}), head: { appendChild() {} } },
+    localStorage: { getItem: () => '{}' }
+  });
+  vm.runInContext(feature, context);
+  const body = { dataset: {}, innerHTML: '', querySelector: () => null };
+  assert.equal(context.window.RakAdminShiftOverview.render(body, {
+    date: '2026-10-09', shift: 'ranni12',
+    process: { rows: { ag: { before150: '42' } } },
+    aar: { matrix: { turning: { adAg: '999' } } }
+  }), true);
+  for (const label of ['AG / AE', 'AF / AD', 'AH / AH', 'Počty vsázek', 'Koncové praní', 'ALD1 Vstup', 'ALD2 Vstup']) assert.ok(body.innerHTML.includes(label), label);
+  assert.ok(!body.innerHTML.includes('AD / AG'));
+  assert.ok(!body.innerHTML.includes('aar.matrix.turning.adAg'));
+  assert.ok(!body.innerHTML.includes('oam.rows.ad.'));
+  assert.equal((body.innerHTML.match(/data-shift-overview-field="process.rows./g) || []).length, 27);
+  assert.equal((body.innerHTML.match(/data-shift-overview-field="inputs.rows./g) || []).length, 36);
+  assert.ok(body.innerHTML.includes('value="42"'));
+  const paths = [...body.innerHTML.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m => m[1]);
+  assert.equal(new Set(paths).size, paths.length, 'a field must never be rendered twice and overwrite edits on save');
 });

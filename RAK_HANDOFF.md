@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 7. 10. 2026
+## Aktuální stav k 9. 10. 2026
 
 ### RaK 1.9.0 je v produkci
 
@@ -177,10 +177,12 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 
 ## Otevřený backlog
 
+- Produkční rozpor z read-only kontroly 9. 10. 2026: migration head a Vercel zůstávají dle baseline, ale API vrací `rak-admin-users` v15, `rak-absence-calendar` v17 a aktivní `rak-p15-restore-export` v2 (`verify_jwt=false`). Původní tvrzení o odstranění exportu výše není aktuálním strojovým důkazem potvrzené. Produkční stav se v této práci nemění. Po upozornění na rozpor vlastník výslovně zadal pokračovat přehledem směny; rozsah je omezen na lokální frontend TESTu bez DB/Edge zápisů. Před jakýmkoli dalším produkčním krokem tento rozpor objasnit.
+
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- Po TEST nasazení 1.9.5 zbývá fyzická přejímka owner-only prototypu `Více → Správce → Přehled směny` na iPhonu. Přímý vstup byl ověřený na první klepnutí, rozložení při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Aktualizační nabídka už přebírá celé viditelné TEST číslo verze. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
+- Pro TEST 1.9.6 je připravena úprava owner-only prototypu podle fotek provozní tabulky: tři indexy AG/AE, AF/AD a AH/AH, devět stavů zásob, kompaktní ALD1–3, AAR Soustružení/Koncové praní se zmetky a vstupy ALD1/ALD2 po dílech s automatickými součty. Žlutý index AD/AG je vyřazen ze zobrazení i součtů; historické lokální hodnoty zůstávají zachované při uložení. Dosavadní doplňující pole jsou sbalená. Zbývá CI, TEST nasazení a fyzická přejímka owner-only prototypu `Více → Správce → Přehled směny` na iPhonu. Přímý vstup byl ověřený na první klepnutí, rozložení při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Aktualizační nabídka už přebírá celé viditelné TEST číslo verze. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 

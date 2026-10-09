@@ -7,14 +7,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   const STORAGE_KEY = 'rak_admin_shift_overview_v1';
   const MAX_RECORDS = 120;
+  const renderedRecords = new WeakMap();
   const AAR_COLUMNS = [
     { key: 'agAe', label: 'AG / AE', cls: 'isGreen' },
     { key: 'afAd', label: 'AF / AD', cls: 'isBlue' },
-    { key: 'adAg', label: 'AD / AG', cls: 'isYellow' },
     { key: 'ahAh', label: 'AH / AH', cls: 'isOrange' }
   ];
   const AAR_ROWS = [
     { key: 'turning', label: 'Soustružení' },
+    { key: 'washing', label: 'Koncové praní' },
     { key: 'toStock', label: 'Do skladu' },
     { key: 'stock', label: 'Stav skladu' }
   ];
@@ -22,7 +23,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const OAM_ROWS = [
     { key: 'ag', left: '0AM 409 155 AG', right: '0AM 409 111 AE', cls: 'isGreen' },
     { key: 'af', left: '0AM 409 155 AF', right: '0AM 409 111 AD', cls: 'isBlue' },
-    { key: 'ad', left: '0AM 409 155 AD', right: '0AM 409 111 AG', cls: 'isYellow' },
     { key: 'ah', left: '0AM 409 155 AH', right: '0AM 409 111 AH', cls: 'isOrange' }
   ];
   const OAM_LEFT_COLUMNS = [
@@ -40,6 +40,18 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     { key: 'planStock', label: 'Plán sklad' },
     { key: 'assembly', label: 'Montáž' }
   ];
+  const PROCESS_COLUMNS = [
+    { key: 'soft', label: 'Měkké obrábění' },
+    { key: 'kiln', label: 'Kalírna' },
+    { key: 'kilnStock', label: 'Sklad kalírna' },
+    { key: 'riveting', label: 'Nýtování' },
+    { key: 'before150', label: 'Před op. 150' },
+    { key: 'after150', label: 'Po op. 150' },
+    { key: 'before162', label: 'Před op. 162' },
+    { key: 'stock', label: 'Sklad' },
+    { key: 'assembly', label: 'Montáž' }
+  ];
+  const INPUT_ROWS = ['AAR','SRRG','ZSB-RLR','FR7','FR5','FR3','SR7','SR6','SR5','SR4','SR3','SR2','SR1','TW3','TW2','TW1','Awi','Awa'];
 
   function ownerAllowed() {
     try {
@@ -90,6 +102,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         faults: ''
       },
       oam: { rows: oamRows },
+      process: { rows: {} },
+      inputs: { ald1: '', ald2: '', rows: {} },
       notes: '',
       updatedAt: ''
     };
@@ -136,6 +150,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       });
     });
     base.oam = Object.assign({}, base.oam, src.oam || {});
+    base.process = Object.assign({}, base.process, src.process || {});
+    base.process.rows = Object.assign({}, base.process.rows || {});
+    OAM_ROWS.forEach((row) => {
+      base.process.rows[row.key] = Object.assign({}, base.process.rows[row.key] || {});
+      PROCESS_COLUMNS.forEach((col) => {
+        if (base.process.rows[row.key][col.key] == null) base.process.rows[row.key][col.key] = '';
+      });
+    });
+    base.inputs = Object.assign({}, base.inputs, src.inputs || {});
+    base.inputs.rows = Object.assign({}, base.inputs.rows || {});
+    INPUT_ROWS.forEach((name) => {
+      base.inputs.rows[name] = Object.assign({ ald1: '', ald2: '' }, base.inputs.rows[name] || {});
+    });
     base.oam.rows = Object.assign({}, base.oam.rows || {});
     OAM_ROWS.forEach((row) => {
       base.oam.rows[row.key] = Object.assign({}, base.oam.rows[row.key] || {});
@@ -178,9 +205,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const opts = options || {};
     const value = nestedGet(record, path);
     if (opts.area) {
-      return '<textarea class="rakShiftOverviewArea" data-shift-overview-field="' + esc(path) + '" rows="' + String(opts.rows || 3) + '" placeholder="' + esc(opts.placeholder || '') + '">' + esc(value) + '</textarea>';
+      return '<textarea class="rakShiftOverviewArea" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" rows="' + String(opts.rows || 3) + '" placeholder="' + esc(opts.placeholder || '') + '">' + esc(value) + '</textarea>';
     }
-    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" type="text" inputmode="' + esc(opts.inputmode || 'text') + '" value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
+    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode || 'text') + '" value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
   }
 
   function shiftOptions(selected) {
@@ -192,20 +219,38 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     ].map((row) => '<option value="' + row[0] + '"' + (row[0] === selected ? ' selected' : '') + '>' + row[1] + '</option>').join('');
   }
 
-  function aldCard(index, record) {
-    const prefix = 'ald.' + index + '.';
-    return [
-      '<section class="rakShiftOverviewAldCard">',
-      '<div class="rakShiftOverviewAldTitle"><b>ALD ' + String(index + 1) + '</b><span>zařízení</span></div>',
-      '<div class="rakShiftOverviewTwo">',
-      '<label>Vsázky před kalírnou' + field(prefix + 'inserts', record, { inputmode: 'numeric', placeholder: '0' }) + '</label>',
-      '<label>Počet zmetků' + field(prefix + 'rejects', record, { inputmode: 'numeric', placeholder: '0' }) + '</label>',
-      '</div>',
-      '<label>Závady' + field(prefix + 'faults', record, { area: true, rows: 3, placeholder: 'Průběh závady, čas, zásah…' }) + '</label>',
-      '<label>Počet BK/ST v provozu' + field(prefix + 'running', record, { placeholder: 'např. 9 nebo 4 / 1;2;3;5' }) + '</label>',
-      '<label>Dlouhodobé závady' + field(prefix + 'longFaults', record, { area: true, rows: 2, placeholder: 'Dlouhodobý problém / omezení…' }) + '</label>',
-      '</section>'
-    ].join('');
+  function scrollTable(label, html) {
+    return '<div class="rakShiftOverviewScrollHint" aria-hidden="true"><span>←</span> Posuň tabulku do stran <span>→</span></div>' +
+      '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="' + esc(label) + ', tabulka se posouvá do stran">' + html + '</div>';
+  }
+
+  function processTable(record) {
+    const groups = OAM_ROWS.map((row, index) => {
+      const label = AAR_COLUMNS[index].label;
+      const heading = PROCESS_COLUMNS.map((col) => '<th scope="col" class="' + row.cls + '">' + esc(col.label) + '</th>').join('');
+      const cells = PROCESS_COLUMNS.map((col) => '<td>' + field('process.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: label + ' · ' + col.label }) + '</td>').join('');
+      return '<tbody><tr><th scope="rowgroup" rowspan="2" class="' + row.cls + '">' + esc(label) + '</th>' + heading + '</tr><tr>' + cells + '</tr></tbody>';
+    }).join('');
+    return scrollTable('Zásoby v provozu', '<table class="rakShiftOverviewPaper rakShiftOverviewProcess"><caption>Zásoby v provozu</caption>' + groups + '</table>');
+  }
+
+  function aldTable(record) {
+    const columns = [
+      ['inserts', 'Počty vsázek', 'numeric'], ['rejects', 'Zmetky', 'numeric'],
+      ['running', 'Počet BK/ST v provozu', 'text'], ['faults', 'Závady', 'text']
+    ];
+    const rows = [0, 1, 2].map((index) => '<tr><th scope="row">ALD' + (index + 1) + '</th>' + columns.map(([key, label, mode]) =>
+      '<td>' + field('ald.' + index + '.' + key, record, { inputmode: mode, area: key === 'faults', rows: 2, label: 'ALD' + (index + 1) + ' · ' + label }) + '</td>'
+    ).join('') + '</tr>').join('');
+    return scrollTable('ALD 1–3', '<table class="rakShiftOverviewPaper rakShiftOverviewAldTable"><thead><tr><th>Zařízení</th>' + columns.map((col) => '<th scope="col">' + col[1] + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>');
+  }
+
+  function inputsTable(record) {
+    const rows = INPUT_ROWS.map((name) => '<tr><th scope="row">' + esc(name) + '</th>' + ['ald1', 'ald2'].map((key) =>
+      '<td>' + field('inputs.rows.' + name + '.' + key, record, { inputmode: 'numeric', label: name + ' · ' + key.toUpperCase() }) + '</td>'
+    ).join('') + '<td class="rakShiftOverviewTotal" data-shift-overview-input-total="' + esc(name) + '">0</td></tr>').join('');
+    return '<div class="rakShiftOverviewHeader"><label>ALD1 Vstup' + field('inputs.ald1', record, { label: 'ALD1 Vstup' }) + '</label><label>ALD2 Vstup' + field('inputs.ald2', record, { label: 'ALD2 Vstup' }) + '</label></div>' +
+      scrollTable('Vstupy ALD1 / ALD2', '<table class="rakShiftOverviewPaper rakShiftOverviewInputs"><thead><tr><th>Díl</th><th scope="col">ALD1</th><th scope="col">ALD2</th><th scope="col">Celkem</th></tr></thead><tbody>' + rows + '</tbody></table>');
   }
 
   function preKilnGrid(record) {
@@ -224,18 +269,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     ].join('');
   }
 
-  function aarTable(record) {
+  function aarTable(record, legacy) {
     const head = AAR_COLUMNS.map((col) => '<th class="' + col.cls + '">' + col.label + '</th>').join('');
-    const body = AAR_ROWS.map((row) => {
+    const body = AAR_ROWS.filter((row) => legacy ? ['toStock', 'stock'].includes(row.key) : ['turning', 'washing'].includes(row.key)).map((row) => {
       const cells = AAR_COLUMNS.map((col) =>
-        '<td>' + field('aar.matrix.' + row.key + '.' + col.key, record, { inputmode: 'numeric' }) + '</td>'
+        '<td>' + field('aar.matrix.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: row.label + ' · ' + col.label }) + '</td>'
       ).join('');
-      return '<tr><th>' + row.label + '</th>' + cells + '<td class="rakShiftOverviewTotal" data-shift-overview-total="' + row.key + '">0</td></tr>';
+      const rejects = legacy ? '' : '<td>' + field('aar.rejects.' + row.key, record, { inputmode: 'numeric', label: row.label + ' · Zmetky' }) + '</td>';
+      return '<tr><th>' + row.label + '</th>' + cells + rejects + '<td class="rakShiftOverviewTotal" data-shift-overview-total="' + row.key + '">0</td></tr>';
     }).join('');
     return [
       '<div class="rakShiftOverviewScrollHint" aria-hidden="true"><span>←</span> Posuň tabulku do stran <span>→</span></div>',
       '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="Výroba AAR, tabulka se posouvá do stran">',
-      '<table class="rakShiftOverviewAarTable"><thead><tr><th></th>' + head + '<th>Celkem</th></tr></thead><tbody>' + body + '</tbody></table>',
+      '<table class="rakShiftOverviewAarTable"><thead><tr><th>AAR</th>' + head + (legacy ? '' : '<th>Zmetky</th>') + '<th>Celkem</th></tr></thead><tbody>' + body + '</tbody></table>',
       '</div>'
     ].join('');
   }
@@ -267,20 +313,28 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return [
       '<div class="appMenuCard appMenuAdminCard rakShiftOverviewCard" id="rakShiftOverviewRoot">',
       '<div class="appMenuCardTitle">Přehled směny</div>',
-      '<div class="appMenuText"><div>Provozní přehled podle papírové tabulky. Testovací verze je zatím jen pro hlavního správce.</div><div class="smallText">Ukládá se pouze v tomto zařízení. Nic se zatím neposílá do Supabase ani do produkce.</div></div>',
+      '<div class="appMenuText smallText">Přehled podle provozní tabulky · ukládá se v tomto zařízení.</div>',
       '<div class="rakShiftOverviewHeader">',
       '<label>Datum<input class="appMenuInlineInput" data-shift-overview-date type="date" value="' + esc(record.date) + '"></label>',
       '<label>Směna D<select class="appMenuSelect" data-shift-overview-shift>' + shiftOptions(record.shift) + '</select></label>',
       '</div>',
       '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction" data-shift-overview-action="previous">Načíst předchozí</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button></div>',
       '<div class="smallText rakShiftOverviewStatus" data-shift-overview-status role="status" aria-live="polite">' + (record.updatedAt ? 'Načteno · naposledy uloženo ' + esc(new Date(record.updatedAt).toLocaleString('cs-CZ')) : 'Pro tento den zatím není uložený přehled.') + '</div>',
+      '<div class="appMenuSubTitle">Zásoby v provozu</div>',
+      processTable(record),
+      '<div class="appMenuSubTitle">ALD 1–3</div>',
+      aldTable(record),
+      '<div class="appMenuSubTitle">Výroba AAR</div>',
+      aarTable(record),
+      '<div class="appMenuSubTitle">Vstupy ALD1 / ALD2</div>',
+      inputsTable(record),
+      '<details class="rakShiftOverviewDetails"><summary>Doplňující údaje</summary><div class="rakShiftOverviewExtra">',
       '<div class="appMenuSubTitle">Vsázky před kalírnou</div>',
       preKilnGrid(record),
-      '<div class="appMenuSubTitle">ALD 1–3</div>',
-      [0, 1, 2].map((index) => aldCard(index, record)).join(''),
-      '<div class="appMenuSubTitle">Výroba AAR</div>',
+      '<div class="appMenuSubTitle">Dlouhodobé závady</div>',
+      [0, 1, 2].map((index) => '<label>ALD' + (index + 1) + field('ald.' + index + '.longFaults', record, { area: true, rows: 2, label: 'ALD' + (index + 1) + ' · Dlouhodobé závady' }) + '</label>').join(''),
       '<label class="rakShiftOverviewPlan">PLÁN' + field('aar.plan', record, { placeholder: 'Po–So 1184/1184 · Ne 704/800' }) + '</label>',
-      aarTable(record),
+      aarTable(record, true),
       '<div class="rakShiftOverviewSummary"><span>Stav skladu celkem</span><b data-shift-overview-grand-total>0</b></div>',
       '<div class="rakShiftOverviewFree">',
       '<label>Volné kalení – nasoustruženo' + field('aar.freeTurning', record, { placeholder: 'poznámka / stav' }) + '</label><label>ks' + field('aar.freeTurningKs', record, { inputmode: 'numeric' }) + '</label>',
@@ -290,6 +344,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<label>Závady na zařízení AAR' + field('aar.faults', record, { area: true, rows: 3, placeholder: 'např. TBKR07 – přestavba z AE na AD' }) + '</label>',
       '<div class="appMenuSubTitle">0AM 409 155 / 409 111</div>',
       oamTable(record),
+      '</div></details>',
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
       '<div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit přehled</button><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>',
@@ -300,7 +355,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function readDom(rootEl) {
     const date = String(rootEl.querySelector('[data-shift-overview-date]')?.value || localDateString());
     const shift = String(rootEl.querySelector('[data-shift-overview-shift]')?.value || 'ranni12');
-    const record = defaultRecord(date, shift);
+    const record = normalizeRecord(clone(renderedRecords.get(rootEl) || {}), date, shift);
+    record.date = date;
+    record.shift = shift;
     rootEl.querySelectorAll('[data-shift-overview-field]').forEach((el) => {
       nestedSet(record, el.getAttribute('data-shift-overview-field'), String(el.value || '').trim());
     });
@@ -309,6 +366,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function refreshTotals(rootEl) {
+    INPUT_ROWS.forEach((name) => {
+      const total = ['ald1', 'ald2'].reduce((sum, key) => {
+        const el = rootEl.querySelector('[data-shift-overview-field="inputs.rows.' + name + '.' + key + '"]');
+        return sum + numberOrZero(el && el.value);
+      }, 0);
+      const out = rootEl.querySelector('[data-shift-overview-input-total="' + name + '"]');
+      if (out) out.textContent = String(total);
+    });
     AAR_ROWS.forEach((row) => {
       let total = 0;
       AAR_COLUMNS.forEach((col) => {
@@ -350,6 +415,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const record = normalizeRecord(forcedRecord || getSaved(date, shift) || defaultRecord(date, shift), date, shift);
     body.dataset.adminView = 'shift-overview';
     body.innerHTML = buildHtml(record);
+    const rootEl = body.querySelector('#rakShiftOverviewRoot');
+    if (rootEl) renderedRecords.set(rootEl, clone(record));
     bind(body);
     return true;
   }
@@ -364,6 +431,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       if (event.target && event.target.matches && (
         event.target.matches('[data-shift-overview-field^="aar.matrix."]')
         || event.target.matches('[data-shift-overview-field^="oam.rows."]')
+        || event.target.matches('[data-shift-overview-field^="inputs.rows."]')
       )) refreshTotals(rootEl);
     });
 
@@ -465,6 +533,17 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewOamTable th.isGreen{background:#68b832;color:#071006;}.rakShiftOverviewOamTable th.isBlue{background:#1598db;color:#061019;}.rakShiftOverviewOamTable th.isYellow{background:#ffe11e;color:#171300;}.rakShiftOverviewOamTable th.isOrange{background:#df5d1b;color:#1b0900;}',
       '.rakShiftOverviewOamTable .rakShiftOverviewInput{min-width:54px;min-height:34px;padding:5px;text-align:center;}',
       '.rakShiftOverviewOamTotals th,.rakShiftOverviewOamTotals td{font-weight:900;background:rgba(124,255,124,.05);}',
+      '.rakShiftOverviewCard{min-width:0;}.rakShiftOverviewCard>*,.rakShiftOverviewExtra>*{min-width:0;}',
+      '.rakShiftOverviewPaper{width:100%;border-collapse:collapse;background:rgba(0,0,0,.12);font-size:12px;}',
+      '.rakShiftOverviewPaper caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}',
+      '.rakShiftOverviewPaper th,.rakShiftOverviewPaper td{border:1px solid rgba(255,255,255,.22);padding:5px;text-align:center;}',
+      '.rakShiftOverviewPaper .rakShiftOverviewInput{min-height:36px;padding:6px;text-align:center;}',
+      '.rakShiftOverviewProcess{min-width:970px;}.rakShiftOverviewProcess th{font-size:11px;min-width:85px;}.rakShiftOverviewProcess tbody+tbody{border-top:8px solid transparent;}',
+      '.rakShiftOverviewProcess th.isGreen{background:#68b832;color:#071006;}.rakShiftOverviewProcess th.isBlue{background:#1598db;color:#061019;}.rakShiftOverviewProcess th.isOrange{background:#df5d1b;color:#1b0900;}',
+      '.rakShiftOverviewPaper th:first-child{position:sticky;left:0;z-index:2;background:var(--panel,#25125d);min-width:76px;}',
+      '.rakShiftOverviewAldTable{min-width:680px;}.rakShiftOverviewAldTable td:last-child{width:42%;}.rakShiftOverviewAldTable .rakShiftOverviewArea{min-height:64px;padding:6px;}',
+      '.rakShiftOverviewInputs{min-width:340px;}.rakShiftOverviewInputs td{width:24%;}',
+      '.rakShiftOverviewDetails{border:1px solid rgba(124,255,124,.16);border-radius:12px;padding:10px;}.rakShiftOverviewDetails summary{cursor:pointer;font-weight:800;}.rakShiftOverviewExtra{display:grid;gap:12px;margin-top:12px;}.rakShiftOverviewExtra label{display:grid;gap:6px;font-size:12px;}',
       '@media(max-width:430px){.rakShiftOverviewHeader,.rakShiftOverviewTwo{grid-template-columns:1fr;}.rakShiftOverviewFree{grid-template-columns:minmax(0,1fr) 76px;}.rakShiftOverviewPreKiln{grid-template-columns:repeat(2,minmax(0,1fr));}.rakShiftOverviewLastBatch{grid-template-columns:1fr;}.rakShiftOverviewScrollHint{display:flex;}.rakShiftOverviewCard{padding:12px!important;}}'
     ].join('');
     document.head.appendChild(style);
