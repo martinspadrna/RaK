@@ -1,3 +1,7 @@
+## RaK 1.9.5 (development)
+
+- Přímý vstup `Více → Správce → Přehled směny` nově před otevřením bezpečně načte administrační modul; první klepnutí tedy otevře přehled místo návratu do stejné nabídky.
+
 ## RaK 1.9.4 (development)
 
 - `Přehled směny` je nově dostupný přímo v `Více → Správce`, vedle Administrace a reportů.

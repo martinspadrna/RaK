@@ -15,10 +15,13 @@ const metadata = read('rak-release-metadata.js');
 test('Přehled směny is owner-only and lives directly under More / Správce', () => {
   const managerSection = menu.slice(menu.indexOf('const roleSection = verifiedRole'), menu.indexOf('body.innerHTML = [', menu.indexOf('const roleSection = verifiedRole')));
   assert.ok(managerSection.includes('rakAdminCanManageAdmins'));
-  assert.ok(managerSection.includes('data-admin-action="open-shift-overview"'));
+  assert.ok(managerSection.includes('data-menu-action="shift-overview"'));
   assert.ok(managerSection.includes('Přehled směny'));
   assert.ok(!shell.includes('data-admin-action="open-shift-overview"'));
   assert.ok(!shell.includes('Přehled směny'));
+  assert.ok(menu.includes("if (menuAction === 'shift-overview')"));
+  assert.ok(menu.includes('await appMenuEnsureAdminAccessFromMenu()'));
+  assert.ok(menu.includes('await appMenuEnsureAdminTools(body)'));
   assert.ok(menu.includes("'admin-shift-overview'"));
   assert.ok(menu.includes("adminAction === 'open-shift-overview'"));
   assert.ok(menu.includes("v === 'admin-shift-overview' && !(typeof rakAdminCanManageAdmins"));
@@ -36,10 +39,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.4'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview4'"));
-  assert.ok(index.includes("var e='so4',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview4"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.5'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview5'"));
+  assert.ok(index.includes("var e='so5',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview5"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
