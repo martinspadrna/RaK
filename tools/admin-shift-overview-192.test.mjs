@@ -12,10 +12,13 @@ const sw = read('sw.js');
 const index = read('index.html');
 const metadata = read('rak-release-metadata.js');
 
-test('Přehled směny is owner-only and lives under Admin', () => {
-  assert.ok(shell.includes('rakAdminCanManageAdmins'));
-  assert.ok(shell.includes('data-admin-action="open-shift-overview"'));
-  assert.ok(shell.includes('Přehled směny'));
+test('Přehled směny is owner-only and lives directly under More / Správce', () => {
+  const managerSection = menu.slice(menu.indexOf('const roleSection = verifiedRole'), menu.indexOf('body.innerHTML = [', menu.indexOf('const roleSection = verifiedRole')));
+  assert.ok(managerSection.includes('rakAdminCanManageAdmins'));
+  assert.ok(managerSection.includes('data-admin-action="open-shift-overview"'));
+  assert.ok(managerSection.includes('Přehled směny'));
+  assert.ok(!shell.includes('data-admin-action="open-shift-overview"'));
+  assert.ok(!shell.includes('Přehled směny'));
   assert.ok(menu.includes("'admin-shift-overview'"));
   assert.ok(menu.includes("adminAction === 'open-shift-overview'"));
   assert.ok(menu.includes("v === 'admin-shift-overview' && !(typeof rakAdminCanManageAdmins"));
@@ -33,10 +36,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.3'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview3'"));
-  assert.ok(index.includes("var e='so3',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview3"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.4'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview4'"));
+  assert.ok(index.includes("var e='so4',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview4"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -52,6 +55,8 @@ test('first version is local-only and covers the paper table fields', () => {
   assert.ok(feature.includes('data-shift-overview-oam-total'));
   assert.ok(feature.includes('rak_admin_shift_overview_v1'));
   assert.ok(feature.includes('localStorage'));
+  assert.ok(feature.includes('data-menu-back="1"'));
+  assert.ok(!feature.includes('data-admin-action="back-admin"'));
   assert.ok(!feature.includes('fetch('));
   assert.ok(!feature.includes('RotationSupabaseBridge'));
   assert.ok(!feature.includes('.rpc('));

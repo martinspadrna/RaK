@@ -74,7 +74,7 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 - immutable URL: <https://skoda-spada-rabqhev1r-martinspadrnas-projects.vercel.app>;
 - source commit deploymentu: `067a5aacd67dfd8effbba50cf32e8d5006e1db14`;
 - development validation `#832` / ID `37603431667`: SUCCESS včetně release-preview jobu;
-- TEST obsahuje owner-only prototyp `Administrace → Přehled směny`. Je lokální-only bez Supabase zápisu a obsahuje ALD 1–3, individuální „Vsázky před kalírnou“ (Awa/Awi/TW/SR/FR/ZSB-RLR/SRRG/AAR), poslední vsázky ALD1–3, Výrobu AAR a tabulku 0AM 409 155 / 409 111 s automatickými součty; na telefonu mají široké tabulky viditelnou nápovědu pro posun do stran a Výroba AAR drží název řádku při vodorovném posunu;
+- TEST obsahuje owner-only prototyp `Více → Správce → Přehled směny`. Je lokální-only bez Supabase zápisu a obsahuje ALD 1–3, individuální „Vsázky před kalírnou“ (Awa/Awi/TW/SR/FR/ZSB-RLR/SRRG/AAR), poslední vsázky ALD1–3, Výrobu AAR a tabulku 0AM 409 155 / 409 111 s automatickými součty; na telefonu mají široké tabulky viditelnou nápovědu pro posun do stran a Výroba AAR drží název řádku při vodorovném posunu;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -180,7 +180,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- Po TEST nasazení 1.9.3 zbývá fyzická přejímka owner-only prototypu `Administrace → Přehled směny` na iPhonu. Rozložení bylo ověřeno při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Aktualizační nabídka už přebírá celé viditelné TEST číslo verze. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
+- Po TEST nasazení 1.9.4 zbývá fyzická přejímka owner-only prototypu `Více → Správce → Přehled směny` na iPhonu. Rozložení bylo ověřeno při šířce 390 px, široké tabulky mají nápovědu pro posun a Výroba AAR přichycené názvy řádků. Aktualizační nabídka už přebírá celé viditelné TEST číslo verze. Dokud vlastník neschválí datový model, zůstává ukládání pouze lokální a bez produkčního/TEST Supabase zápisu.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 

@@ -292,7 +292,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       oamTable(record),
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
-      '<div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit přehled</button><button type="button" class="appMenuAction appMenuBack" data-admin-action="back-admin">Zpět</button></div>',
+      '<div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit přehled</button><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>',
       '</div>'
     ].join('');
   }
@@ -342,7 +342,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (!body) return false;
     if (!ownerAllowed()) {
       body.dataset.adminView = 'shift-overview';
-      body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Tato testovací funkce je zatím dostupná pouze hlavnímu správci.</div><button type="button" class="appMenuAction appMenuBack" data-admin-action="back-admin">Zpět</button></div>';
+      body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Tato testovací funkce je zatím dostupná pouze hlavnímu správci.</div><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>';
       return false;
     }
     const date = forcedRecord && forcedRecord.date ? String(forcedRecord.date) : localDateString();

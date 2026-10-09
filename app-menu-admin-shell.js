@@ -68,9 +68,6 @@ function renderAdminRootMenuBody(body) {
     '    <button type="button" class="appMenuAction" data-admin-action="open-workers">Pracovníci</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="open-machines">Nastavení strojů</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="open-reports">Reporty chyb</button>',
-    (typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins()
-      ? '    <button type="button" class="appMenuAction isActive" data-admin-action="open-shift-overview">Přehled směny</button>'
-      : ''),
     '  </div>',
     '  <div class="appMenuSubTitle">Všechny možnosti</div>',
     '  <div class="adminMenuSections">',

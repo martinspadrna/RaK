@@ -8,11 +8,11 @@ const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 test('1.9.0 has one release identity across runtime, PWA and package metadata',()=>{
   const metadata=assertCurrentReleaseIdentity(read,'1.9.0');
   assert.equal(metadata.displayVersion,'1.9.0');
-  assert.equal(metadata.visibleTestVersion,'1.9.3');
+  assert.equal(metadata.visibleTestVersion,'1.9.4');
   assert.equal(metadata.technicalVersion,'1.9.0');
   assert.equal(metadata.moduleCacheVersion,'1.9.0');
   assert.equal(metadata.cacheVersion,'v1.9.0');
-  assert.equal(metadata.buildId,'v1.9.0-shift-overview3');
+  assert.equal(metadata.buildId,'v1.9.0-shift-overview4');
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'1.9.0');
   assert(read('index.html').includes('app.js?v=1.9.0'));
   assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=1.9.0')"));

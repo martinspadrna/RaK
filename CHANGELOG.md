@@ -1,3 +1,8 @@
+## RaK 1.9.4 (development)
+
+- `Přehled směny` je nově dostupný přímo v `Více → Správce`, vedle Administrace a reportů.
+- Duplicitní vstup z úvodní stránky Administrace byl odstraněn a tlačítko Zpět vrací hlavního správce přímo do nabídky Více.
+
 ## RaK 1.9.3 (development)
 
 - Nabídka PWA aktualizace nyní zobrazuje celé viditelné TEST číslo verze (např. `1.9.3`) už před potvrzením aktualizace.
