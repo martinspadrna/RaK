@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.10'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview10'"));
-  assert.ok(index.includes("var e='so10',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview10"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.11'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview11'"));
+  assert.ok(index.includes("var e='so11',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview11"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -195,4 +195,15 @@ test('batch counters expose plus/count/minus and prohibit typing', () => {
   assert.equal(counters.length,18);
   for(const [,html] of counters){assert.ok(html.includes('readonly'));assert.ok(html.indexOf('data-count-step="1"')<html.indexOf('readonly'));assert.ok(html.indexOf('readonly')<html.indexOf('data-count-step="-1"'));}
   assert.ok(feature.includes('Math.max(0, numberOrZero(input.value) + step)'));
+});
+
+test('multiplication offers cover only requested stages and integers 1–99', () => {
+  const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+  vm.runInContext(feature.replace('  installStyle();','  root.fixture = {canMultiply,quantityMultiplier};'),context);
+  const api=context.window.fixture;
+  for(const value of ['1','9','10','99','01',' 42 '])assert.equal(api.canMultiply(value),true,value);
+  for(const value of ['', '0','00','100','999','-1','1.5','1,5','1e1','abc','001'])assert.equal(api.canMultiply(value),false,value);
+  for(const key of ['stock','assembly','op1121','hard'])assert.equal(api.quantityMultiplier(key),32,key);
+  for(const key of ['op31','op121'])assert.equal(api.quantityMultiplier(key),64,key);
+  for(const key of ['op1020','op30','op120','op145'])assert.equal(api.quantityMultiplier(key),0,key);
 });

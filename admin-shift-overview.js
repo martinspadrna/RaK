@@ -264,8 +264,30 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }).join('')).join('');
   }
 
+  function quantityMultiplier(key) {
+    return { stock: 32, assembly: 32, op1121: 32, hard: 32, op31: 64, op121: 64 }[key] || 0;
+  }
+
+  function canMultiply(value) {
+    const text = String(value == null ? '' : value).trim();
+    return /^\d{1,2}$/.test(text) && Number(text) >= 1 && Number(text) <= 99;
+  }
+
+  function refreshMultipliers(rootEl) {
+    rootEl.querySelectorAll('[data-shift-overview-multiply]').forEach(button => {
+      const input = button.parentElement.querySelector('[data-shift-overview-field]');
+      button.hidden = !input || !canMultiply(input.value);
+    });
+  }
+
   function labeledField(label, path, record, options) {
-    return '<label><span>' + esc(label) + '</span>' + field(path, record, Object.assign({ label }, options)) + '</label>';
+    const opts = Object.assign({ label }, options);
+    let control = field(path, record, opts);
+    if (opts.multiplier) {
+      control = '<div class="rakShiftOverviewQuantity">' + control +
+        '<button type="button" class="appMenuAction rakShiftOverviewMultiply" data-shift-overview-multiply="' + esc(path) + '" aria-label="Vynásobit ' + esc(opts.label) + ' číslem ' + opts.multiplier + '"' + (canMultiply(nestedGet(record,path)) ? '' : ' hidden') + '>×' + opts.multiplier + '</button></div>';
+    }
+    return '<label><span>' + esc(label) + '</span>' + control + '</label>';
   }
 
   function panel(title, html, cls) {
@@ -304,7 +326,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Montáž', [{key:'assembly',label:'Montáž'}]]
     ];
     return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) => panel(title,
-      '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{inputmode:'numeric',label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>')).join('') + '</div>';
+      '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>')).join('') + '</div>';
   }
 
   function buildHtml(record) {
@@ -410,10 +432,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (!rootEl || rootEl.dataset.bound === '1') return;
     rootEl.dataset.bound = '1';
     refreshTotals(rootEl);
+    refreshMultipliers(rootEl);
 
-    rootEl.addEventListener('change', () => syncDateDisplay(rootEl));
+    rootEl.addEventListener('change', () => { syncDateDisplay(rootEl); refreshMultipliers(rootEl); });
     rootEl.addEventListener('input', (event) => {
       syncDateDisplay(rootEl);
+      refreshMultipliers(rootEl);
       if (event.target && event.target.matches && (
         event.target.matches('[data-shift-overview-field^="aar.matrix."]')
         || event.target.matches('[data-shift-overview-field^="oam.rows."]')
@@ -422,6 +446,20 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
 
     rootEl.addEventListener('click', (event) => {
+      const multiply = event.target && event.target.closest ? event.target.closest('[data-shift-overview-multiply]') : null;
+      if (multiply && rootEl.contains(multiply)) {
+        event.preventDefault();
+        if (!ownerAllowed()) { status(rootEl, 'Přístup byl zamítnut.'); return; }
+        const path = multiply.getAttribute('data-shift-overview-multiply');
+        const input = multiply.parentElement.querySelector('[data-shift-overview-field]');
+        const factor = quantityMultiplier(String(path).split('.').pop());
+        if (input && factor && canMultiply(input.value)) {
+          input.value = String(Number(input.value.trim()) * factor);
+          refreshMultipliers(rootEl);
+          refreshTotals(rootEl);
+        }
+        return;
+      }
       const counter = event.target && event.target.closest ? event.target.closest('[data-shift-overview-count]') : null;
       if (counter && rootEl.contains(counter)) {
         event.preventDefault();
@@ -504,10 +542,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',
       '.rakShiftOverviewPanel.isGreen{border-top:5px solid #87ac3a;}.rakShiftOverviewPanel.isBlue{border-top:5px solid #1472c2;}.rakShiftOverviewPanel.isOrange{border-top:5px solid #ce552f;}',
       '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:12px;}',
-      '.rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;}',
+      '.rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
       '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
       '.rakShiftOverviewStage:nth-child(n+4) .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);}',
+      '.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid:has(>label:only-child){grid-template-columns:minmax(0,1fr);}.rakShiftOverviewQuantity{display:flex;align-items:center;gap:4px;}.rakShiftOverviewQuantity .rakShiftOverviewInput{flex:1;}.rakShiftOverviewQuantity .rakShiftOverviewMultiply{flex:0 0 38px;width:38px;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;font-size:12px;line-height:1;}.rakShiftOverviewMultiply[hidden]{display:none!important;}',
       '.rakShiftOverviewStages .rakShiftOverviewInput{padding:8px 4px;text-align:center;}',
       '.rakShiftOverviewStages label{font-size:11px;}',
       '.rakShiftOverviewPanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;}',
