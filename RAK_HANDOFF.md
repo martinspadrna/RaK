@@ -224,3 +224,9 @@ Po CI:
 - Na žádost uživatele pole 212 v bloku Tvrdé obrábění nahrazeno dvěma poli vedle sebe: „v nouz. skl.“ a „před pračkou“ u všech tří aktivních indexů.
 - Dosavadní hard zachováno v nouzovém skladu; nové beforeWasher nezávislé a zpočátku prázdné. Obě pole TO nabízejí ×32 pro celá čísla 1–99.
 - Pouze development/TEST, main a Supabase beze změny. Ověření dokončeno: 20 cílených testů PASS; dvě čisté canonical sestavy PASS (digest 03c0d0ba31e88e19149c8606d17bc3de7e12aa609a1f1816a86e13da3541475d). Chromium 320/390/768/1366 px: save/reload hard=384 a beforeWasher=256 nezávisle, oba ×32 v rozsahu 1–99, bez horizontálního přetečení a původní funkce PASS. CI #872 / 38082902489 verify i release-preview SUCCESS. Funkční SHA 971519a8fef1eb4c797c579daad07994647b742a. READY dpl_DjkVReB94dqJtaBNbUFyiQaBZTFd (skoda-spada-6notprkbb-martinspadrnas-projects.vercel.app), přesný SHA potvrzen. Veřejný TEST HTTP 200, verze 1.9.13, přesná shoda modulu a TEST konfigurace ověřeny. Main beze změny. Fyzická přejímka iPhone čeká na uživatele.
+
+
+## TEST 1.9.14 – tok podle přiloženého Excelu (2026-10-10)
+- Uživatel požaduje upravit nýtování a TO podle listu Tok dílů v Přehled směny.xlsx: Před 145 patří do Skladu po kalení společně s 120/121; následuje Po nýtování / 145 a Po broušení / 212.
+- Stávající op145, after145 a hard hodnoty zachovány. Nově skryté beforeWasher z 1.9.13 zachováno v uloženém záznamu bez zahrnutí do aktivních polí; žádné automatické sčítání historických polí. ×32 zachováno u 212.
+- Pouze development/TEST. Ověření a nasazení probíhá.
