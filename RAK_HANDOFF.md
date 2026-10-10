@@ -217,4 +217,4 @@ Po CI:
 ## TEST 1.9.12 – rozlišení nýtování (2026-10-10)
 - Na žádost uživatele rozdělen blok Nýtování na Před 145 a Po 145 vedle sebe u každého aktivního indexu.
 - Dosavadní op145 zachováno jako Před 145 (odpovídá původnímu sloupci před 145 v provozní tabulce); nové after145 ukládá nezávisle Po 145. Historické hodnoty nejsou kopírovány do obou polí.
-- Změna pouze development/TEST; produkce, main a Supabase beze změny. Ověření a nasazení probíhá.
+- Změna pouze development/TEST; produkce, main a Supabase beze změny. Ověření a nasazení dokončeno: 19 cílených testů PASS, dvě čisté canonical sestavy PASS (digest cc5f0fdfdc7a806ee21184397f1d21bb534a3ac0097bea18d34729957e1c031b). Chromium 320/390/768/1366 px bez horizontálního přetečení, save/reload Před 145=384 a Po 145=288 nezávisle PASS. CI #870 / 38080358694 verify i release-preview SUCCESS. Funkční SHA ecb3517216773458f5bb65ecd1c35493821b6044. READY dpl_6ZfUk6FfRcXhAbX9r5dnC7DJrk8B (skoda-spada-k5ddex2v8-martinspadrnas-projects.vercel.app). Veřejný TEST HTTP 200, verze 1.9.12, přesná shoda modulu a TEST konfigurace ověřeny. Main nezměněno. Fyzická přejímka iPhone čeká na uživatele.
