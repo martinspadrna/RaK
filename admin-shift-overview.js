@@ -34,7 +34,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     { key: 'op31', label: '31', sub: 'Lis' },
     { key: 'op120', label: '120', sub: 'Volné' },
     { key: 'op121', label: '121', sub: 'Lis' },
-    { key: 'op145', label: '145', sub: '' }
+    { key: 'op145', label: 'Před 145', sub: '' },
+    { key: 'after145', label: 'Po 145', sub: '' }
   ];
   const OAM_RIGHT_COLUMNS = [
     { key: 'hard', label: 'Tvrdé obrábění' },
@@ -320,7 +321,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Měkké obrábění', OAM_LEFT_COLUMNS.slice(0,2)],
       ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
       ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
-      ['Nýtování', [OAM_LEFT_COLUMNS[6]]],
+      ['Nýtování', OAM_LEFT_COLUMNS.slice(6,8)],
       ['Tvrdé obrábění', [{key:'hard',label:'212'}]],
       ['Sklad', [{key:'stock',label:'Sklad'}]],
       ['Montáž', [{key:'assembly',label:'Montáž'}]]

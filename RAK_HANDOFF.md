@@ -212,3 +212,9 @@ Po CI:
 - Po uzavření bodu ponechat nejvýše jednu stručnou finální větu u příslušné invarianty.
 - Historický detail hledat v Git historii, Actions runu nebo konkrétním artifactu.
 - Po větším balíku aktualizovat tento soubor; nevytvářet paralelní plánovací handoff.
+
+
+## TEST 1.9.12 – rozlišení nýtování (2026-10-10)
+- Na žádost uživatele rozdělen blok Nýtování na Před 145 a Po 145 vedle sebe u každého aktivního indexu.
+- Dosavadní op145 zachováno jako Před 145 (odpovídá původnímu sloupci před 145 v provozní tabulce); nové after145 ukládá nezávisle Po 145. Historické hodnoty nejsou kopírovány do obou polí.
+- Změna pouze development/TEST; produkce, main a Supabase beze změny. Ověření a nasazení probíhá.
