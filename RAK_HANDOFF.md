@@ -230,3 +230,9 @@ Po CI:
 - Uživatel požaduje upravit nýtování a TO podle listu Tok dílů v Přehled směny.xlsx: Před 145 patří do Skladu po kalení společně s 120/121; následuje Po nýtování / 145 a Po broušení / 212.
 - Stávající op145, after145 a hard hodnoty zachovány. Nově skryté beforeWasher z 1.9.13 zachováno v uloženém záznamu bez zahrnutí do aktivních polí; žádné automatické sčítání historických polí. ×32 zachováno u 212.
 - Pouze development/TEST. Ověření dokončeno: 20 cílených testů PASS; dvě čisté canonical sestavy PASS (digest 5197848194dad2f8b34aefee1eaa91d8b461d2c501d99b84491570cbfedbef3e). Chromium 320/390/768/1366 px: Před 145/Po 145/212 save-reload, ×32 a původní funkce PASS, bez horizontálního přetečení. CI #874 / 38084277472: první pokus selhal na přechodném čtení documentElement=null při aktualizační navigaci v browser-offline-17052; retry neúspěšných jobs se stejným SHA prošel, verify i release-preview SUCCESS. Bez změny testových limitů či obcházení gate. Funkční SHA d4a97c6d86d859324c8c999ac3967c674be1d8fa. READY dpl_A2WBpprhez93jE1K3SUcxdwV28RY (skoda-spada-ozhuysdie-martinspadrnas-projects.vercel.app), přesný SHA potvrzen. Veřejný TEST HTTP 200, verze 1.9.14, přesná shoda modulu a TEST konfigurace ověřeny. Main beze změny. Fyzická přejímka iPhone čeká na uživatele.
+
+
+## TEST 1.9.15 – samostatná část Před 145 (2026-10-10)
+- Uživatel upřesnil oddělit Před 145 od 120/121: Sklad po kalení má nejprve tři indexové řádky s 120 Volné / 121 Lis, poté uvnitř stejného panelu samostatnou část Před 145 s vlastními třemi barevnými indexovými řádky.
+- Odděleno jemnou čarou a nadpisem. Pole Před 145 je široké, datové klíče a hodnoty beze změny. Po nýtování 145 a Po broušení 212 zachovány.
+- Pouze development/TEST. Ověření a nasazení probíhá.

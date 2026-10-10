@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.14'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview14'"));
-  assert.ok(index.includes("var e='so14',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview14"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.15'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview15'"));
+  assert.ok(index.includes("var e='so15',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview15"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -240,6 +240,10 @@ test('Excel flow groups before-145 under hardened stock and preserves archived w
  assert.ok(!html.includes('v nouz. skl.'));assert.ok(!html.includes('před pračkou'));assert.ok(!html.includes('data-shift-overview-field="oam.rows.ag.beforeWasher"'));
  const panels=html.split('<h3>');
  const hardened=panels.find(p=>p.startsWith('Sklad po kalení'));
+ const before145=hardened.split('<section class="rakShiftOverviewBefore145"')[1];
+ assert.ok(before145,'before 145 has its own section inside hardened stock');
+ assert.ok(!hardened.split('<section class="rakShiftOverviewBefore145"')[0].includes('.op145"'));
+ for(const key of ['ag','af','ah']){assert.ok(before145.includes('oam.rows.'+key+'.op145'));assert.ok(!before145.includes('oam.rows.'+key+'.op120'));assert.ok(!before145.includes('oam.rows.'+key+'.op121'));}
  const riveting=panels.find(p=>p.startsWith('Po nýtování'));
  const grinding=panels.find(p=>p.startsWith('Po broušení'));
  for(const key of ['ag','af','ah']){
