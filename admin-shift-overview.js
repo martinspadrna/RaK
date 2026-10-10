@@ -38,7 +38,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     { key: 'after145', label: 'Po 145', sub: '' }
   ];
   const OAM_RIGHT_COLUMNS = [
-    { key: 'hard', label: 'Tvrdé obrábění' },
+    { key: 'hard', label: 'v nouz. skl.' },
+    { key: 'beforeWasher', label: 'před pračkou' },
     { key: 'stock', label: 'Sklad' },
     { key: 'planStock', label: 'Plán sklad' },
     { key: 'assembly', label: 'Montáž' }
@@ -266,7 +267,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function quantityMultiplier(key) {
-    return { stock: 32, assembly: 32, op1121: 32, hard: 32, op31: 64, op121: 64 }[key] || 0;
+    return { stock: 32, assembly: 32, op1121: 32, hard: 32, beforeWasher: 32, op31: 64, op121: 64 }[key] || 0;
   }
 
   function canMultiply(value) {
@@ -322,7 +323,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
       ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
       ['Nýtování', OAM_LEFT_COLUMNS.slice(6,8)],
-      ['Tvrdé obrábění', [{key:'hard',label:'212'}]],
+      ['Tvrdé obrábění', [{key:'hard',label:'v nouz. skl.'},{key:'beforeWasher',label:'před pračkou'}]],
       ['Sklad', [{key:'stock',label:'Sklad'}]],
       ['Montáž', [{key:'assembly',label:'Montáž'}]]
     ];
