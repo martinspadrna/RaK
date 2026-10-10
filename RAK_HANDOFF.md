@@ -223,4 +223,4 @@ Po CI:
 ## TEST 1.9.13 – nouzový sklad a před pračkou (2026-10-10)
 - Na žádost uživatele pole 212 v bloku Tvrdé obrábění nahrazeno dvěma poli vedle sebe: „v nouz. skl.“ a „před pračkou“ u všech tří aktivních indexů.
 - Dosavadní hard zachováno v nouzovém skladu; nové beforeWasher nezávislé a zpočátku prázdné. Obě pole TO nabízejí ×32 pro celá čísla 1–99.
-- Pouze development/TEST, main a Supabase beze změny. Ověření a nasazení probíhá.
+- Pouze development/TEST, main a Supabase beze změny. Ověření dokončeno: 20 cílených testů PASS; dvě čisté canonical sestavy PASS (digest 03c0d0ba31e88e19149c8606d17bc3de7e12aa609a1f1816a86e13da3541475d). Chromium 320/390/768/1366 px: save/reload hard=384 a beforeWasher=256 nezávisle, oba ×32 v rozsahu 1–99, bez horizontálního přetečení a původní funkce PASS. CI #872 / 38082902489 verify i release-preview SUCCESS. Funkční SHA 971519a8fef1eb4c797c579daad07994647b742a. READY dpl_DjkVReB94dqJtaBNbUFyiQaBZTFd (skoda-spada-6notprkbb-martinspadrnas-projects.vercel.app), přesný SHA potvrzen. Veřejný TEST HTTP 200, verze 1.9.13, přesná shoda modulu a TEST konfigurace ověřeny. Main beze změny. Fyzická přejímka iPhone čeká na uživatele.
