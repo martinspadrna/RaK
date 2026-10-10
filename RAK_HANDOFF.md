@@ -68,13 +68,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- funkční TEST důkazní bod 1.9.6: `9a0d6f5337015a6a1c93b033a7b820c5c5781a28`;
-- poslední ověřený READY deployment: `dpl_8BybeCgshdt1wnbSzjWxNoxwtH8s`;
+- funkční TEST důkazní bod 1.9.7: `29b121597527f0c36bc44b70ee7b718fc6e1018b`;
+- poslední ověřený READY deployment: `dpl_8tYYDyh3ro8ERyWfttjmo7zQsBuN`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-63vbo7mas-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `9a0d6f5337015a6a1c93b033a7b820c5c5781a28`;
-- development validation `#858` / ID `37993452014`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.6, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
-- TEST 1.9.6 obsahuje owner-only přehled podle fotek provozní tabulky: tři indexy AG/AE, AF/AD, AH/AH; devět stavů zásob od měkkého obrábění po montáž; kompaktní ALD1–3, AAR Soustružení/Koncové praní se zmetky a vstupy ALD1/ALD2 po dílech s automatickými součty. Doplňující starší pole jsou sbalená. Žlutý AD/AG je vyřazen ze zobrazení a součtů; historické lokální hodnoty se při uložení zachovají. Ukládání je pouze lokální bez Supabase zápisů;
+- immutable URL: <https://skoda-spada-9vti6ehi4-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `29b121597527f0c36bc44b70ee7b718fc6e1018b`;
+- development validation `#860` / ID `38007770347`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.7, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
+- TEST 1.9.7 obsahuje owner-only přehled podle nové fotky IMG_0603: MO / Před kalírnou / Sklad-vykaleno / Před 145 / Před op. 150 / Nouzový sklad / u pračky / Sklad / Montáž; kompaktní ALD1–3 s Počty vsázek, Zmetky, Počet BK/ST a Závady; AAR op 11+21 a op 212 – do skladu s indexy AG/AE, AF/AD a AH; ALD1/ALD2 vsázka a tabulka dílů v pořadí dle předlohy. Celkem vsázek se počítá ze všech řádků obou ALD sloupců. Žlutý index zůstává vyřazený. Nová pole nepřebírají staré hodnoty s jiným významem; původní sloupce zásob a AAR jsou v Doplňujících údajích. Ukládání je pouze lokální bez Supabase zápisů;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -182,7 +182,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- Vlastník nahradil předlohu novou fotkou IMG_0603. Pro TEST 1.9.7 je připravený přehled: MO / Před kalírnou / Sklad-vykaleno / Před 145 / Před op. 150 / Nouzový sklad / u pračky / Sklad / Montáž; AAR op 11+21 a op 212 – do skladu, indexy AG/AE, AF/AD a AH; ALD1/ALD2 vsázka a Celkem vsázek z tabulky dílů. Nová pole nepřebírají hodnoty s jiným významem ze starých sloupců; starší údaje zůstávají ve sbalených doplňujících údajích. Čeká CI, TEST nasazení a fyzická přejímka vlastníka ve `Více → Správce → Přehled směny`. Sedm unit/VM kontrol, dvě čisté canonical sestavy a CI #858 prošly. Chromium fixture při šířkách 390/1366 px ověřil layout bez horizontálního přetečení stránky, tabulkové posouvání, součty, uložit/reload, zachování archivovaného žlutého indexu mimo součty a owner gate. Fyzický iPhone tím není nahrazen. Datový model zůstává lokální bez DB/Edge zápisu. Produkční deployment i main zůstaly beze změny.
+- TEST 1.9.7 podle nové předlohy IMG_0603 je nasazený a čeká na fyzickou přejímku vlastníka ve `Více → Správce → Přehled směny`. Sedm unit/VM kontrol včetně zachování odlišných starých polí, dvě čisté canonical sestavy a CI #860 prošly. Chromium fixture při 390/1366 px ověřil rozložení bez přetečení stránky, tabulkové posouvání, součty včetně Celkem vsázek, uložit/reload, zachování archivovaného žlutého indexu mimo součty a owner gate. Fyzický iPhone tím není nahrazen. Produkční deployment, main, migration head i Edge Functions se při pre/post kontrole nezměnily.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
