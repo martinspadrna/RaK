@@ -68,13 +68,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- funkční TEST důkazní bod 1.9.7: `29b121597527f0c36bc44b70ee7b718fc6e1018b`;
-- poslední ověřený READY deployment: `dpl_8tYYDyh3ro8ERyWfttjmo7zQsBuN`;
+- funkční TEST důkazní bod 1.9.8: `dc1a079eae7e009c45ce65bf971d96923dbb191d`;
+- poslední ověřený READY deployment: `dpl_2RD1nK6ZYitbzsiMcjkcxq3SHQ5d`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-9vti6ehi4-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `29b121597527f0c36bc44b70ee7b718fc6e1018b`;
-- development validation `#860` / ID `38007770347`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.7, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
-- TEST 1.9.7 obsahuje owner-only přehled podle nové fotky IMG_0603: MO / Před kalírnou / Sklad-vykaleno / Před 145 / Před op. 150 / Nouzový sklad / u pračky / Sklad / Montáž; kompaktní ALD1–3 s Počty vsázek, Zmetky, Počet BK/ST a Závady; AAR op 11+21 a op 212 – do skladu s indexy AG/AE, AF/AD a AH; ALD1/ALD2 vsázka a tabulka dílů v pořadí dle předlohy. Celkem vsázek se počítá ze všech řádků obou ALD sloupců. Žlutý index zůstává vyřazený. Nová pole nepřebírají staré hodnoty s jiným významem; původní sloupce zásob a AAR jsou v Doplňujících údajích. Ukládání je pouze lokální bez Supabase zápisů;
+- immutable URL: <https://skoda-spada-j0p82m8l7-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `dc1a079eae7e009c45ce65bf971d96923dbb191d`;
+- development validation `#862` / ID `38063934361`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.8, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
+- TEST 1.9.8 obsahuje owner-only přehled podle sešitu `Prehled_vyroby_novy_1ku1.xlsx`: deset operací toku dílů se třemi indexy AG/AE, AF/AD a AH; ALD1 SR1–AAR, ALD2 Awa/Awi/TW1–3, poslední vsázky ALD1–3, hodnotu Dusíku a závady obrábění/ALD1–3. Všechny sekce se přizpůsobují šířce bez horizontálního posouvání. Starší odlišná pole jsou v doplňujících údajích, žlutý index mimo zobrazení a součty. Historická data zachována; ukládání pouze lokální bez DB/Edge zápisů;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -182,7 +182,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- TEST 1.9.8 připravuje přehled podle sešitu `Prehled_vyroby_novy_1ku1.xlsx`: Tok dílů s deseti operacemi a třemi aktivními indexy; ALD1 SR1–AAR a ALD2 Awa/Awi/TW1–3; poslední vsázka ALD1–3; hodnota Dusíku; Závady obrábění a ALD1–3. Všechny sekce včetně doplňujících údajů používají responzivní rozložení bez horizontálního posouvání. Zachované významově shodné hodnoty z původního OAM modelu, odlišné starší hodnoty zůstávají v doplňujících údajích. Ukládání je lokální; bez DB/Edge zápisů. Sedm unit/VM kontrol a Chromium při šířkách 320/390/768/1366 px ověřily uložení/reload ALD3 a Dusíku, nulové horizontální přetečení i rozbalených sekcí, zachování archivovaných hodnot a owner gate. Čeká canonical validace, CI, TEST nasazení a fyzická přejímka vlastníka.
+- TEST 1.9.8 má nasazený přehled podle sešitu `Prehled_vyroby_novy_1ku1.xlsx`: Tok dílů s deseti operacemi a třemi aktivními indexy; ALD1 SR1–AAR a ALD2 Awa/Awi/TW1–3; poslední vsázka ALD1–3; hodnota Dusíku; Závady obrábění a ALD1–3. Všechny sekce včetně doplňujících údajů používají responzivní rozložení bez horizontálního posouvání. Zachované významově shodné hodnoty z původního OAM modelu, odlišné starší hodnoty zůstávají v doplňujících údajích. Ukládání je lokální; bez DB/Edge zápisů. Sedm unit/VM kontrol a Chromium při šířkách 320/390/768/1366 px ověřily uložení/reload ALD3 a Dusíku, nulové horizontální přetečení i rozbalených sekcí, zachování archivovaných hodnot a owner gate. Dvě čisté canonical sestavy a CI #862 včetně release-preview prošly. READY deployment odpovídá přesnému funkčnímu SHA, veřejné HTTP 200, metadata 1.9.8, přesná shoda modulu a TEST Supabase izolace ověřeny. Produkční deployment, main, migration head a Edge Functions při pre/post kontrole beze změny. Čeká pouze fyzická přejímka vlastníka ve Více → Správce → Přehled směny; Chromium nenahrazuje fyzický iPhone.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
