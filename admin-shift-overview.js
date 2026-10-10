@@ -326,9 +326,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const label = name.replace('-', ' ');
     const value = nestedGet(record, path);
     return '<div class="rakShiftOverviewCounter"><span>' + esc(label) + '</span>' +
-      '<button type="button" class="appMenuAction rakShiftOverviewCountPlus" data-shift-overview-count="' + esc(path) + '" data-count-step="1" aria-label="Přidat vsázku ' + esc(label) + ' ALD' + id + '">+</button>' +
+      '<button type="button" class="appMenuAction rakShiftOverviewCountMinus" data-shift-overview-count="' + esc(path) + '" data-count-step="-1" aria-label="Odebrat vsázku ' + esc(label) + ' ALD' + id + '">−</button>' +
       '<input class="rakShiftOverviewInput rakShiftOverviewCountValue" data-shift-overview-field="' + esc(path) + '" aria-label="Počet vsázek ' + esc(label) + ' ALD' + id + '" type="text" readonly value="' + esc(value === '' ? '0' : value) + '">' +
-      '<button type="button" class="appMenuAction rakShiftOverviewCountMinus" data-shift-overview-count="' + esc(path) + '" data-count-step="-1" aria-label="Odebrat vsázku ' + esc(label) + ' ALD' + id + '">−</button></div>';
+      '<button type="button" class="appMenuAction rakShiftOverviewCountPlus" data-shift-overview-count="' + esc(path) + '" data-count-step="1" aria-label="Přidat vsázku ' + esc(label) + ' ALD' + id + '">+</button></div>';
   }
 
   function inputsTable(record) {
@@ -603,7 +603,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewUtilities{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));}',
       '.rakShiftOverviewInputRows{display:grid;gap:6px;}.rakShiftOverviewInputRows label{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}',
       '.rakShiftOverviewInputRows input{padding:8px;text-align:center;}',
-      '.rakShiftOverviewCounter{display:grid;grid-template-columns:minmax(40px,.65fr) minmax(44px,1fr) minmax(54px,1fr) minmax(44px,.85fr);gap:8px;align-items:center;padding:8px 0;}.rakShiftOverviewCounter+.rakShiftOverviewCounter{border-top:1px solid rgba(255,255,255,.12);}.rakShiftOverviewCounter>span{font-size:12px;font-weight:800;overflow-wrap:anywhere;}.rakShiftOverviewCounter .appMenuAction{width:100%;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;line-height:1;font-size:24px;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountValue{height:44px;min-height:44px;margin:0;text-align:center;font-weight:900;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);padding:0;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountMinus{width:calc(100% - 8px);justify-self:end;opacity:.75;}',
+      '.rakShiftOverviewCounter{display:grid;grid-template-columns:minmax(40px,.65fr) minmax(44px,.85fr) minmax(54px,1fr) minmax(44px,1fr);gap:8px;align-items:center;padding:8px 0;}.rakShiftOverviewCounter+.rakShiftOverviewCounter{border-top:1px solid rgba(255,255,255,.12);}.rakShiftOverviewCounter>span{font-size:12px;font-weight:800;overflow-wrap:anywhere;}.rakShiftOverviewCounter .appMenuAction{width:100%;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;line-height:1;font-size:24px;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountValue{height:44px;min-height:44px;margin:0;text-align:center;font-weight:900;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);padding:0;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountMinus{width:calc(100% - 8px);justify-self:start;opacity:.75;}',
 
       '.rakShiftOverviewStatus,.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{padding:10px;border-radius:12px;background:rgba(124,255,124,.06);overflow-wrap:anywhere;}',
       '.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{display:flex;justify-content:space-between;gap:10px;}',

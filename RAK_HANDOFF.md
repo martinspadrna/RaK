@@ -244,3 +244,9 @@ Po CI:
 - ×32/×64 se obnoví podle vypočtené hodnoty. Pouze development/TEST. Ověření a nasazení probíhá.
 
 - Uživatel následně požaduje součty naklikaných vsázek: pod seznamem ALD1 a ALD2 samostatný readonly výstup Celkem vsázek. Počítá pouze viditelné díly příslušné ALD, mění se po +/− i načtení; skryté historické kombinace se nezahrnují.
+
+
+## TEST 1.9.17 – plus vpravo u ALD (2026-10-10)
+- Během ověřování 1.9.16 uživatel doplnil přesun + vpravo kvůli ovládání palcem: ALD1 i ALD2 mají pořadí název / − / readonly počet / +. Minus menší/ztlumené vlevo od hodnoty, plus vpravo má plnou dostupnou šířku.
+- Vydání obsahuje všechny průběžné požadavky: samostatnou část Před 145, výpočty +/− po opuštění množství, Celkem vsázek pod každou ALD.
+- Pouze development/TEST. Ověření a nasazení probíhá.

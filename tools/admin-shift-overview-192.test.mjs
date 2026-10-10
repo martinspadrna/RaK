@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.16'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview16'"));
-  assert.ok(index.includes("var e='so16',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview16"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.17'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview17'"));
+  assert.ok(index.includes("var e='so17',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview17"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -186,14 +186,14 @@ test('station panels keep all three indices together before the next workplace',
   assert.ok(!feature.includes('.rakShiftOverviewHeader{grid-template-columns:minmax(0,1fr);}'));
 });
 
-test('batch counters expose plus/count/minus and prohibit typing', () => {
+test('batch counters expose minus/count/plus and prohibit typing', () => {
   const context=vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})},localStorage:{getItem:()=> '{}'}});
   vm.runInContext(feature,context);
   const body={dataset:{},innerHTML:'',querySelector:()=>null};
   context.window.RakAdminShiftOverview.render(body,{date:'2026-10-10',shift:'A:ranni12'});
   const counters=[...body.innerHTML.matchAll(/<div class="rakShiftOverviewCounter">(.*?)<\/div>/g)];
   assert.equal(counters.length,18);
-  for(const [,html] of counters){assert.ok(html.includes('readonly'));assert.ok(html.indexOf('data-count-step="1"')<html.indexOf('readonly'));assert.ok(html.indexOf('readonly')<html.indexOf('data-count-step="-1"'));}
+  for(const [,html] of counters){assert.ok(html.includes('readonly'));assert.ok(html.indexOf('data-count-step="-1"')<html.indexOf('readonly'));assert.ok(html.indexOf('readonly')<html.indexOf('data-count-step="1"'));}
   assert.ok(feature.includes('Math.max(0, numberOrZero(input.value) + step)'));
 });
 

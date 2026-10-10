@@ -37,7 +37,7 @@ test('RaK 1.8 history stays compact while retaining the delivered work areas',()
 test('O aplikaci shows the full visible TEST version so every published TEST update is obvious',()=>{
   const src=read('app-menu-pages.js');
   const metadata=read('rak-release-metadata.js');
-  assert(metadata.includes("visibleTestVersion: '1.9.16'"));
+  assert(metadata.includes("visibleTestVersion: '1.9.17'"));
   assert(src.includes('releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION'));
   assert(src.includes("versionText || '1.9.0'"));
   assert(src.includes("formatRakDisplayVersion(displayVersion)"));
