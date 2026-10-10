@@ -236,3 +236,11 @@ Po CI:
 - Uživatel upřesnil oddělit Před 145 od 120/121: Sklad po kalení má nejprve tři indexové řádky s 120 Volné / 121 Lis, poté uvnitř stejného panelu samostatnou část Před 145 s vlastními třemi barevnými indexovými řádky.
 - Odděleno jemnou čarou a nadpisem. Pole Před 145 je široké, datové klíče a hodnoty beze změny. Po nýtování 145 a Po broušení 212 zachovány.
 - Pouze development/TEST. Ověření a nasazení probíhá.
+
+
+## TEST 1.9.16 – výrazy +/− v číselných polích (2026-10-10)
+- Během ověřování 1.9.15 uživatel doplnil výpočet po opuštění pole: 320+256 → 576, 320−256 → 64. Vydání 1.9.16 obsahuje i vlastní oddělenou část Před 145 z 1.9.15.
+- Editovatelná množství toku a Dusík přijímají +/− včetně řetězení a desetinné tečky/čárky (max. 6 desetinných míst). Parser bez eval, přesné sčítání škálovaných safe integer hodnot. Výpočet při change/focusout i před Uložit. Neplatný/neúplný výraz zůstává beze změny, readonly počítadla a textové poznámky nejsou vyhodnocovány. Množství mají běžnou textovou klávesnici, která umožní zapsat znaménka na mobilu.
+- ×32/×64 se obnoví podle vypočtené hodnoty. Pouze development/TEST. Ověření a nasazení probíhá.
+
+- Uživatel následně požaduje součty naklikaných vsázek: pod seznamem ALD1 a ALD2 samostatný readonly výstup Celkem vsázek. Počítá pouze viditelné díly příslušné ALD, mění se po +/− i načtení; skryté historické kombinace se nezahrnují.

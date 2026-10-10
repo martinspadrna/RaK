@@ -251,7 +251,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (opts.area) {
       return '<textarea class="rakShiftOverviewArea" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" rows="' + String(opts.rows || 3) + '" placeholder="' + esc(opts.placeholder || '') + '">' + esc(value) + '</textarea>';
     }
-    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode || 'text') + '" value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
+    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode === 'numeric' ? 'text' : (opts.inputmode || 'text')) + '"' + (['numeric','decimal'].includes(opts.inputmode) ? ' data-shift-overview-calculate' : '') + ' value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
   }
 
   function shiftOptions(selected) {
@@ -263,6 +263,29 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const value = team + ':' + key;
       return '<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + team + ' · ' + label + '</option>';
     }).join('')).join('');
+  }
+
+
+  function evaluateQuantityExpression(value) {
+    const text = String(value == null ? '' : value).replace(/\s/g, '').replace(/−/g, '-');
+    if (!/^[+-]?\d+(?:[.,]\d+)?(?:[+-]\d+(?:[.,]\d+)?)+$/.test(text)) return null;
+    const tokens = text.match(/[+-]?\d+(?:[.,]\d+)?/g);
+    const precision = Math.max(...tokens.map(token => (token.split(/[.,]/)[1] || '').length));
+    if (precision > 6) return null;
+    const scale = 10 ** precision;
+    let total = 0;
+    for (const token of tokens) {
+      const number = Math.round(Number(token.replace(',', '.')) * scale);
+      if (!Number.isSafeInteger(number) || !Number.isSafeInteger(total + number)) return null;
+      total += number;
+    }
+    return String(total / scale);
+  }
+
+  function calculateQuantity(input) {
+    if (!input || input.readOnly || !input.hasAttribute('data-shift-overview-calculate')) return;
+    const result = evaluateQuantityExpression(input.value);
+    if (result !== null) input.value = result;
   }
 
   function quantityMultiplier(key) {
@@ -311,7 +334,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function inputsTable(record) {
     return '<div class="rakShiftOverviewBatchColumns">' + [[1,ALD1_INPUT_ROWS],[2,ALD2_INPUT_ROWS]].map(([id,rows]) => panel('ALD' + id,
       labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { label: 'ALD' + id + ' · Poslední vsázka' }) +
-      '<div class="rakShiftOverviewInputRows">' + rows.map(name => batchCounter(name,id,record)).join('') + '</div>')).join('') +
+      '<div class="rakShiftOverviewInputRows">' + rows.map(name => batchCounter(name,id,record)).join('') + '</div><div class="rakShiftOverviewAldTotal"><span>Celkem vsázek</span><output data-shift-overview-ald-total="' + id + '" aria-live="polite">0</output></div>')).join('') +
       '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{label:'ALD3 · Poslední vsázka'})) +
       panel('Dusík',labeledField('Hodnota','nitrogen',record,{inputmode:'decimal',label:'Dusík · Hodnota'})) + '</div></div>';
   }
@@ -383,6 +406,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       if (out) out.textContent = String(total);
       batchTotal += total;
     });
+    [[1,ALD1_INPUT_ROWS],[2,ALD2_INPUT_ROWS]].forEach(([id,names]) => {
+      const total = names.reduce((sum,name) => {
+        const input = rootEl.querySelector('[data-shift-overview-field="inputs.rows.' + name + '.ald' + id + '"]');
+        return sum + numberOrZero(input && input.value);
+      },0);
+      const output = rootEl.querySelector('[data-shift-overview-ald-total="' + id + '"]');
+      if (output) output.textContent = String(total);
+    });
     const batches = rootEl.querySelector('[data-shift-overview-batch-total]');
     if (batches) batches.textContent = String(batchTotal);
     AAR_ROWS.forEach((row) => {
@@ -440,7 +471,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     refreshTotals(rootEl);
     refreshMultipliers(rootEl);
 
-    rootEl.addEventListener('change', () => { syncDateDisplay(rootEl); refreshMultipliers(rootEl); });
+    function finishQuantity(event) {
+      if (!ownerAllowed()) return;
+      calculateQuantity(event.target);
+      syncDateDisplay(rootEl);
+      refreshMultipliers(rootEl);
+      refreshTotals(rootEl);
+    }
+    rootEl.addEventListener('change', finishQuantity);
+    rootEl.addEventListener('focusout', finishQuantity);
     rootEl.addEventListener('input', (event) => {
       syncDateDisplay(rootEl);
       refreshMultipliers(rootEl);
@@ -493,6 +532,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       if (action === 'save') {
         if (!/^[ABCD]:(ranni|nocni)(8|12)$/.test(shift)) { status(rootEl, 'Vyber směnu pro tento přehled.'); return; }
         try {
+          rootEl.querySelectorAll('[data-shift-overview-calculate]').forEach(calculateQuantity);
+          refreshMultipliers(rootEl);
+          refreshTotals(rootEl);
           const record = readDom(rootEl);
           const store = readStore();
           store[recordKey(record.date, record.shift)] = record;
@@ -548,7 +590,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',
       '.rakShiftOverviewPanel.isGreen{border-top:5px solid #87ac3a;}.rakShiftOverviewPanel.isBlue{border-top:5px solid #1472c2;}.rakShiftOverviewPanel.isOrange{border-top:5px solid #ce552f;}',
       '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:12px;}',
-      '.rakShiftOverviewBefore145{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);}.rakShiftOverviewSubsectionTitle{margin:0 0 10px;font-size:13px;} .rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
+      '.rakShiftOverviewAldTotal{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);font-weight:700;}.rakShiftOverviewAldTotal output{min-width:44px;text-align:center;} .rakShiftOverviewBefore145{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);}.rakShiftOverviewSubsectionTitle{margin:0 0 10px;font-size:13px;} .rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
       '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
       '.rakShiftOverviewStage:nth-child(n+4) .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);}',

@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.15'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview15'"));
-  assert.ok(index.includes("var e='so15',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview15"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.16'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview16'"));
+  assert.ok(index.includes("var e='so16',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview16"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -256,4 +256,32 @@ test('Excel flow groups before-145 under hardened stock and preserves archived w
  api.setRecord(el,old);const saved=api.readDom(el),reload=api.normalizeRecord(saved,saved.date,saved.shift);
  assert.equal(reload.oam.rows.ag.hard,'640');assert.equal(reload.oam.rows.ag.beforeWasher,'256');
  assert.equal(reload.oam.rows.ag.op145,'96');assert.equal(reload.oam.rows.ag.after145,'288');
+});
+
+
+test('quantity expressions support addition/subtraction, preserve invalid text and protect counters', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={evaluateQuantityExpression,calculateQuantity};'),context);
+ const api=context.window.fixture;
+ for(const [input,result] of [['320+256','576'],['320-256','64'],['320 + 256 - 32','544'],['12-20','-8'],['0,1+0,2','0.3'],['1.005+0.005','1.01'],['320−256','64']])assert.equal(api.evaluateQuantityExpression(input),result);
+ for(const input of ['','320','320+','1*32','abc','1+alert(1)','9007199254740991+1'])assert.equal(api.evaluateQuantityExpression(input),null);
+ const input={value:'320+256',readOnly:false,hasAttribute:()=>true};api.calculateQuantity(input);assert.equal(input.value,'576');
+ input.value='1+2';input.readOnly=true;api.calculateQuantity(input);assert.equal(input.value,'1+2');
+ input.readOnly=false;input.hasAttribute=()=>false;api.calculateQuantity(input);assert.equal(input.value,'1+2');
+ assert.ok(feature.includes("rootEl.addEventListener('focusout', finishQuantity)"));
+});
+
+
+test('ALD totals sum each visible list independently and exclude historic hidden combinations', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={refreshTotals};'),context);
+ const out={1:{textContent:''},2:{textContent:''}};
+ const fields={'inputs.rows.SR1.ald1':3,'inputs.rows.AAR.ald1':2,'inputs.rows.Awa.ald2':4,'inputs.rows.TW3.ald2':1,'inputs.rows.AAR.ald2':99};
+ const root={querySelector(selector){
+  const total=selector.match(/data-shift-overview-ald-total="([12])"/);if(total)return out[total[1]];
+  const path=selector.match(/data-shift-overview-field="([^"]+)"/);return path&&path[1]in fields?{value:String(fields[path[1]])}:null;
+ }};
+ context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'5');assert.equal(out[2].textContent,'5');
+ fields['inputs.rows.SR1.ald1']=4;context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'6');assert.equal(out[2].textContent,'5');
+ assert.ok(feature.includes('Celkem vsázek'));assert.ok(feature.includes('<output data-shift-overview-ald-total='));
 });
