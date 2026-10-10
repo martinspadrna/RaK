@@ -11,9 +11,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const AAR_COLUMNS = [
     { key: 'agAe', label: 'AG / AE', cls: 'isGreen' },
     { key: 'afAd', label: 'AF / AD', cls: 'isBlue' },
-    { key: 'ahAh', label: 'AH / AH', cls: 'isOrange' }
+    { key: 'ahAh', label: 'AH', cls: 'isOrange' }
   ];
   const AAR_ROWS = [
+    { key: 'op1121', label: 'op 11+21' },
+    { key: 'op212Stock', label: 'op 212 – do skladu' },
     { key: 'turning', label: 'Soustružení' },
     { key: 'washing', label: 'Koncové praní' },
     { key: 'toStock', label: 'Do skladu' },
@@ -41,15 +43,22 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     { key: 'assembly', label: 'Montáž' }
   ];
   const PROCESS_COLUMNS = [
-    { key: 'soft', label: 'Měkké obrábění' },
+    { key: 'soft', label: 'MO' },
+    { key: 'beforeKiln', label: 'Před kalírnou' },
+    { key: 'kilnDone', label: 'Sklad-vykaleno' },
+    { key: 'before145', label: 'Před 145' },
+    { key: 'before150', label: 'Před op. 150' },
+    { key: 'emergency', label: 'Nouzový sklad' },
+    { key: 'washer', label: 'u pračky' },
+    { key: 'stock', label: 'Sklad' },
+    { key: 'assembly', label: 'Montáž' }
+  ];
+  const LEGACY_PROCESS_COLUMNS = [
     { key: 'kiln', label: 'Kalírna' },
     { key: 'kilnStock', label: 'Sklad kalírna' },
     { key: 'riveting', label: 'Nýtování' },
-    { key: 'before150', label: 'Před op. 150' },
     { key: 'after150', label: 'Po op. 150' },
-    { key: 'before162', label: 'Před op. 162' },
-    { key: 'stock', label: 'Sklad' },
-    { key: 'assembly', label: 'Montáž' }
+    { key: 'before162', label: 'Před op. 162' }
   ];
   const INPUT_ROWS = ['AAR','SRRG','ZSB-RLR','FR7','FR5','FR3','SR7','SR6','SR5','SR4','SR3','SR2','SR1','TW3','TW2','TW1','Awi','Awa'];
 
@@ -154,7 +163,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     base.process.rows = Object.assign({}, base.process.rows || {});
     OAM_ROWS.forEach((row) => {
       base.process.rows[row.key] = Object.assign({}, base.process.rows[row.key] || {});
-      PROCESS_COLUMNS.forEach((col) => {
+      PROCESS_COLUMNS.concat(LEGACY_PROCESS_COLUMNS).forEach((col) => {
         if (base.process.rows[row.key][col.key] == null) base.process.rows[row.key][col.key] = '';
       });
     });
@@ -224,12 +233,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="' + esc(label) + ', tabulka se posouvá do stran">' + html + '</div>';
   }
 
-  function processTable(record) {
+  function processTable(record, legacy) {
+    const columns = legacy ? LEGACY_PROCESS_COLUMNS : PROCESS_COLUMNS;
     const groups = OAM_ROWS.map((row, index) => {
       const label = AAR_COLUMNS[index].label;
-      const heading = PROCESS_COLUMNS.map((col) => '<th scope="col" class="' + row.cls + '">' + esc(col.label) + '</th>').join('');
-      const cells = PROCESS_COLUMNS.map((col) => '<td>' + field('process.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: label + ' · ' + col.label }) + '</td>').join('');
-      return '<tbody><tr><th scope="rowgroup" rowspan="2" class="' + row.cls + '">' + esc(label) + '</th>' + heading + '</tr><tr>' + cells + '</tr></tbody>';
+      const heading = columns.map((col) => '<th scope="col" class="' + row.cls + '">' + esc(col.label) + '</th>').join('');
+      const cells = columns.map((col) => '<td>' + field('process.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: label + ' · ' + col.label }) + '</td>').join('');
+      return '<tbody aria-label="' + esc(label) + '"><tr>' + heading + '</tr><tr>' + cells + '</tr></tbody>';
     }).join('');
     return scrollTable('Zásoby v provozu', '<table class="rakShiftOverviewPaper rakShiftOverviewProcess"><caption>Zásoby v provozu</caption>' + groups + '</table>');
   }
@@ -237,7 +247,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function aldTable(record) {
     const columns = [
       ['inserts', 'Počty vsázek', 'numeric'], ['rejects', 'Zmetky', 'numeric'],
-      ['running', 'Počet BK/ST v provozu', 'text'], ['faults', 'Závady', 'text']
+      ['running', 'Počet BK/ST', 'text'], ['faults', 'Závady', 'text']
     ];
     const rows = [0, 1, 2].map((index) => '<tr><th scope="row">ALD' + (index + 1) + '</th>' + columns.map(([key, label, mode]) =>
       '<td>' + field('ald.' + index + '.' + key, record, { inputmode: mode, area: key === 'faults', rows: 2, label: 'ALD' + (index + 1) + ' · ' + label }) + '</td>'
@@ -246,10 +256,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function inputsTable(record) {
-    const rows = INPUT_ROWS.map((name) => '<tr><th scope="row">' + esc(name) + '</th>' + ['ald1', 'ald2'].map((key) =>
+    const rows = INPUT_ROWS.map((name) => '<tr><th scope="row">' + esc(name.replace('-', ' ')) + '</th>' + ['ald1', 'ald2'].map((key) =>
       '<td>' + field('inputs.rows.' + name + '.' + key, record, { inputmode: 'numeric', label: name + ' · ' + key.toUpperCase() }) + '</td>'
     ).join('') + '<td class="rakShiftOverviewTotal" data-shift-overview-input-total="' + esc(name) + '">0</td></tr>').join('');
-    return '<div class="rakShiftOverviewHeader"><label>ALD1 Vstup' + field('inputs.ald1', record, { label: 'ALD1 Vstup' }) + '</label><label>ALD2 Vstup' + field('inputs.ald2', record, { label: 'ALD2 Vstup' }) + '</label></div>' +
+    return '<div class="rakShiftOverviewBatchHeader"><label>ALD1 vsázka' + field('inputs.ald1', record, { label: 'ALD1 vsázka' }) + '</label><label>ALD2 vsázka' + field('inputs.ald2', record, { label: 'ALD2 vsázka' }) + '</label></div>' +
       scrollTable('Vstupy ALD1 / ALD2', '<table class="rakShiftOverviewPaper rakShiftOverviewInputs"><thead><tr><th>Díl</th><th scope="col">ALD1</th><th scope="col">ALD2</th><th scope="col">Celkem</th></tr></thead><tbody>' + rows + '</tbody></table>');
   }
 
@@ -271,17 +281,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function aarTable(record, legacy) {
     const head = AAR_COLUMNS.map((col) => '<th class="' + col.cls + '">' + col.label + '</th>').join('');
-    const body = AAR_ROWS.filter((row) => legacy ? ['toStock', 'stock'].includes(row.key) : ['turning', 'washing'].includes(row.key)).map((row) => {
+    const body = AAR_ROWS.filter((row) => legacy ? ['turning', 'washing', 'toStock', 'stock'].includes(row.key) : ['op1121', 'op212Stock'].includes(row.key)).map((row, index) => {
       const cells = AAR_COLUMNS.map((col) =>
         '<td>' + field('aar.matrix.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: row.label + ' · ' + col.label }) + '</td>'
       ).join('');
-      const rejects = legacy ? '' : '<td>' + field('aar.rejects.' + row.key, record, { inputmode: 'numeric', label: row.label + ' · Zmetky' }) + '</td>';
-      return '<tr><th>' + row.label + '</th>' + cells + rejects + '<td class="rakShiftOverviewTotal" data-shift-overview-total="' + row.key + '">0</td></tr>';
+      const extra = legacy
+        ? (['turning', 'washing'].includes(row.key) ? '<td>' + field('aar.rejects.' + row.key, record, { inputmode: 'numeric', label: row.label + ' · Zmetky' }) + '</td>' : '<td></td>') + '<td class="rakShiftOverviewTotal" data-shift-overview-total="' + row.key + '">0</td>'
+        : (index === 0 ? '<td rowspan="2" class="rakShiftOverviewAarNote">' + field('aar.notes', record, { area: true, rows: 3, label: 'Poznámky AAR' }) + '</td>' : '');
+      return '<tr><th>' + row.label + '</th>' + cells + extra + '</tr>';
     }).join('');
     return [
       '<div class="rakShiftOverviewScrollHint" aria-hidden="true"><span>←</span> Posuň tabulku do stran <span>→</span></div>',
       '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="Výroba AAR, tabulka se posouvá do stran">',
-      '<table class="rakShiftOverviewAarTable"><thead><tr><th>AAR</th>' + head + (legacy ? '' : '<th>Zmetky</th>') + '<th>Celkem</th></tr></thead><tbody>' + body + '</tbody></table>',
+      '<table class="rakShiftOverviewAarTable"><thead><tr><th>AAR</th>' + head + (legacy ? '<th>Zmetky</th><th>Celkem</th>' : '<th>Poznámky AAR</th>') + '</tr></thead><tbody>' + body + '</tbody></table>',
       '</div>'
     ].join('');
   }
@@ -326,9 +338,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       aldTable(record),
       '<div class="appMenuSubTitle">Výroba AAR</div>',
       aarTable(record),
-      '<div class="appMenuSubTitle">Vstupy ALD1 / ALD2</div>',
+      '<div class="appMenuSubTitle">Vsázky ALD1 / ALD2</div>',
+      '<div class="rakShiftOverviewLower"><div class="rakShiftOverviewBatchTable">',
       inputsTable(record),
+      '</div><div class="rakShiftOverviewBatchSummary"><span>Celkem vsázek</span><output data-shift-overview-batch-total aria-live="polite">0</output></div></div>',
       '<details class="rakShiftOverviewDetails"><summary>Doplňující údaje</summary><div class="rakShiftOverviewExtra">',
+      '<div class="appMenuSubTitle">Předchozí sloupce zásob</div>',
+      processTable(record, true),
       '<div class="appMenuSubTitle">Vsázky před kalírnou</div>',
       preKilnGrid(record),
       '<div class="appMenuSubTitle">Dlouhodobé závady</div>',
@@ -366,6 +382,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function refreshTotals(rootEl) {
+    let batchTotal = 0;
     INPUT_ROWS.forEach((name) => {
       const total = ['ald1', 'ald2'].reduce((sum, key) => {
         const el = rootEl.querySelector('[data-shift-overview-field="inputs.rows.' + name + '.' + key + '"]');
@@ -373,7 +390,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       }, 0);
       const out = rootEl.querySelector('[data-shift-overview-input-total="' + name + '"]');
       if (out) out.textContent = String(total);
+      batchTotal += total;
     });
+    const batches = rootEl.querySelector('[data-shift-overview-batch-total]');
+    if (batches) batches.textContent = String(batchTotal);
     AAR_ROWS.forEach((row) => {
       let total = 0;
       AAR_COLUMNS.forEach((col) => {
@@ -543,6 +563,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewPaper th:first-child{position:sticky;left:0;z-index:2;background:var(--panel,#25125d);min-width:76px;}',
       '.rakShiftOverviewAldTable{min-width:680px;}.rakShiftOverviewAldTable td:last-child{width:42%;}.rakShiftOverviewAldTable .rakShiftOverviewArea{min-height:64px;padding:6px;}',
       '.rakShiftOverviewInputs{min-width:340px;}.rakShiftOverviewInputs td{width:24%;}',
+      '.rakShiftOverviewLower{display:grid;grid-template-columns:minmax(340px,1fr) minmax(180px,.65fr);gap:18px;align-items:end;}',
+      '.rakShiftOverviewBatchTable{display:grid;gap:8px;min-width:0;}.rakShiftOverviewBatchHeader{display:grid;grid-template-columns:1fr 1fr;gap:6px;}.rakShiftOverviewBatchHeader label{display:grid;gap:6px;font-size:12px;font-weight:800;}',
+      '.rakShiftOverviewBatchSummary{border:1px solid rgba(255,255,255,.22);border-radius:12px;text-align:center;margin-bottom:40px;overflow:hidden;}.rakShiftOverviewBatchSummary span{display:block;padding:8px;border-bottom:1px solid rgba(255,255,255,.22);font-size:12px;font-weight:800;}.rakShiftOverviewBatchSummary output{display:block;padding:18px;font-size:24px;font-weight:900;color:var(--green2);}',
+      '.rakShiftOverviewAarNote{min-width:180px;}.rakShiftOverviewAarNote .rakShiftOverviewArea{min-height:84px;}',
+      '@media(max-width:650px){.rakShiftOverviewLower{grid-template-columns:minmax(0,1fr);}.rakShiftOverviewBatchSummary{margin-bottom:0;}}',
       '.rakShiftOverviewDetails{border:1px solid rgba(124,255,124,.16);border-radius:12px;padding:10px;}.rakShiftOverviewDetails summary{cursor:pointer;font-weight:800;}.rakShiftOverviewExtra{display:grid;gap:12px;margin-top:12px;}.rakShiftOverviewExtra label{display:grid;gap:6px;font-size:12px;}',
       '@media(max-width:430px){.rakShiftOverviewHeader,.rakShiftOverviewTwo{grid-template-columns:1fr;}.rakShiftOverviewFree{grid-template-columns:minmax(0,1fr) 76px;}.rakShiftOverviewPreKiln{grid-template-columns:repeat(2,minmax(0,1fr));}.rakShiftOverviewLastBatch{grid-template-columns:1fr;}.rakShiftOverviewScrollHint{display:flex;}.rakShiftOverviewCard{padding:12px!important;}}'
     ].join('');

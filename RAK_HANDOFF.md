@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 9. 10. 2026
+## Aktuální stav k 10. 10. 2026
 
 ### RaK 1.9.0 je v produkci
 
@@ -182,7 +182,7 @@ Forward rollout SQL už byl aplikovaný. Nespouštět jej znovu naslepo a nepře
 - Vlastník znovu výslovně otevřel stabilizační a výkonnostní plán v TESTu. Etapa odložení nekritického JavaScriptu, kalkulačkových stylů a prokazatelně route-only stylů Nastavení/Statistik je uzavřená výše uvedenými důkazy; Rotace a „kam jdu“ zůstaly v povinném startovacím jádru.
 - Zbývajících 18 blokujících stylesheetů (567 228 B) zatím dále neodkládat naslepo. `styles-menu-polish.css`, dashboardové, theme a rotační jádro ponechat beze změny, dokud nové měření a regresní test neprokážou další bezpečnou hranici.
 - Současně proměřit síťové a databázové požadavky dashboardu a teprve podle důkazu odstranit duplicity nebo paralelizovat nezávislá čtení. Indexy ani datový model neměnit bez naměřeného pomalého dotazu.
-- TEST 1.9.6 je nasazený a čeká na fyzickou přejímku vlastníka ve `Více → Správce → Přehled směny`. Sedm unit/VM kontrol, dvě čisté canonical sestavy a CI #858 prošly. Chromium fixture při šířkách 390/1366 px ověřil layout bez horizontálního přetečení stránky, tabulkové posouvání, součty, uložit/reload, zachování archivovaného žlutého indexu mimo součty a owner gate. Fyzický iPhone tím není nahrazen. Datový model zůstává lokální bez DB/Edge zápisu. Produkční deployment i main zůstaly beze změny.
+- Vlastník nahradil předlohu novou fotkou IMG_0603. Pro TEST 1.9.7 je připravený přehled: MO / Před kalírnou / Sklad-vykaleno / Před 145 / Před op. 150 / Nouzový sklad / u pračky / Sklad / Montáž; AAR op 11+21 a op 212 – do skladu, indexy AG/AE, AF/AD a AH; ALD1/ALD2 vsázka a Celkem vsázek z tabulky dílů. Nová pole nepřebírají hodnoty s jiným významem ze starých sloupců; starší údaje zůstávají ve sbalených doplňujících údajích. Čeká CI, TEST nasazení a fyzická přejímka vlastníka ve `Více → Správce → Přehled směny`. Sedm unit/VM kontrol, dvě čisté canonical sestavy a CI #858 prošly. Chromium fixture při šířkách 390/1366 px ověřil layout bez horizontálního přetečení stránky, tabulkové posouvání, součty, uložit/reload, zachování archivovaného žlutého indexu mimo součty a owner gate. Fyzický iPhone tím není nahrazen. Datový model zůstává lokální bez DB/Edge zápisu. Produkční deployment i main zůstaly beze změny.
 
 Uzavřené administrační série automaticky znovu neotvírat bez nové konkrétní regrese.
 
