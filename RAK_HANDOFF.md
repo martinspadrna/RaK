@@ -68,13 +68,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- funkční TEST důkazní bod 1.9.11: `6f9d8379a860c519a59a0d8c222f92ac45cbca97`;
+- funkční TEST důkazní bod 1.9.17: `c2b8c6b5875322e87859b38566831fcccc5574b6`;
 - poslední ověřený READY deployment: `dpl_4ji2ZJ48PMv5E2LHAF5coyyj1UtN`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
 - immutable URL: <https://skoda-spada-dgbv3dmii-martinspadrnas-projects.vercel.app>;
 - source commit deploymentu: `6f9d8379a860c519a59a0d8c222f92ac45cbca97`;
-- development validation `#868` / ID `38074715518`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.11, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
-- TEST 1.9.11 obsahuje owner-only přehled po pracovištích (v každém všechny tři aktivní indexy); datum/směna vedle sebe i na mobilu; automatickou směnu A–D, ranní/noční a 8/12 h podle aktivního cyklu RaK při otevření. Noční datum odpovídá začátku směny. Vždy dostupný ruční výběr; bez aktivní směny žádná falešná automatická volba. Vsázky ALD1/ALD2 jsou readonly počítadla + / počet / oddělené − s minimem 0. ALD3 a Dusík zachované. Doplňující údaje odstraněny z UI; historická data se při uložení zachovávají. Staré klíče se čtou jako směna D, nové obsahují tým. Datum je v ohraničeném rámečku s českým textem a nativním pickerem; popisky operací vystředěné; řádky ALD1/ALD2 oddělené čarou, počítadla roztažená blíž k názvům, +/hodnota/− mají stejný střed a výšku bez obecného spodního marginu. Celé indexové řádky barevné (zelená/modrá/oranžová). Zadaná celá čísla 1–99 nabízejí ×32 ve Skladu, Montáži, MO Lis a TO; ×64 u Lisů před a po kalení. Jednosloupcová pole roztažená pro nabídku přepočtu; popisky zůstávají nad polem. Kliknutí přepočítá pouze vybrané pole s owner kontrolou. Bez horizontálního posouvání, pouze lokální ukládání bez DB/Edge zápisů;
+- development validation `#878` / ID `38087582230`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.17, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
+- TEST 1.9.17 obsahuje owner-only přehled po pracovištích (v každém všechny tři aktivní indexy); datum/směna vedle sebe i na mobilu; automatickou směnu A–D, ranní/noční a 8/12 h podle aktivního cyklu RaK při otevření. Noční datum odpovídá začátku směny. Vždy dostupný ruční výběr; bez aktivní směny žádná falešná automatická volba. Vsázky ALD1/ALD2 jsou readonly počítadla − / počet / + vpravo s minimem 0. ALD3 a Dusík zachované. Doplňující údaje odstraněny z UI; historická data se při uložení zachovávají. Staré klíče se čtou jako směna D, nové obsahují tým. Datum je v ohraničeném rámečku s českým textem a nativním pickerem; popisky operací vystředěné; řádky ALD1/ALD2 oddělené čarou, počítadla roztažená blíž k názvům, +/hodnota/− mají stejný střed a výšku bez obecného spodního marginu. Celé indexové řádky barevné (zelená/modrá/oranžová). Zadaná celá čísla 1–99 nabízejí ×32 ve Skladu, Montáži, MO Lis a TO; ×64 u Lisů před a po kalení. Jednosloupcová pole roztažená pro nabídku přepočtu; popisky zůstávají nad polem. Kliknutí přepočítá pouze vybrané pole s owner kontrolou. Bez horizontálního posouvání, pouze lokální ukládání bez DB/Edge zápisů;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -235,13 +235,13 @@ Po CI:
 ## TEST 1.9.15 – samostatná část Před 145 (2026-10-10)
 - Uživatel upřesnil oddělit Před 145 od 120/121: Sklad po kalení má nejprve tři indexové řádky s 120 Volné / 121 Lis, poté uvnitř stejného panelu samostatnou část Před 145 s vlastními třemi barevnými indexovými řádky.
 - Odděleno jemnou čarou a nadpisem. Pole Před 145 je široké, datové klíče a hodnoty beze změny. Po nýtování 145 a Po broušení 212 zachovány.
-- Pouze development/TEST. Ověření a nasazení probíhá.
+- Pouze development/TEST. Nahrazeno souhrnným vydáním 1.9.17 po dalších požadavcích uživatele. CI #876 / 38087132855 první pokus selhal na čtení prázdné release identity během aktualizační navigace browser-offline-17052, retry byl automaticky zrušen novějším commitem. Funkční změna byla následně ověřena v 1.9.17.
 
 
 ## TEST 1.9.16 – výrazy +/− v číselných polích (2026-10-10)
 - Během ověřování 1.9.15 uživatel doplnil výpočet po opuštění pole: 320+256 → 576, 320−256 → 64. Vydání 1.9.16 obsahuje i vlastní oddělenou část Před 145 z 1.9.15.
 - Editovatelná množství toku a Dusík přijímají +/− včetně řetězení a desetinné tečky/čárky (max. 6 desetinných míst). Parser bez eval, přesné sčítání škálovaných safe integer hodnot. Výpočet při change/focusout i před Uložit. Neplatný/neúplný výraz zůstává beze změny, readonly počítadla a textové poznámky nejsou vyhodnocovány. Množství mají běžnou textovou klávesnici, která umožní zapsat znaménka na mobilu.
-- ×32/×64 se obnoví podle vypočtené hodnoty. Pouze development/TEST. Ověření a nasazení probíhá.
+- ×32/×64 se obnoví podle vypočtené hodnoty. Pouze development/TEST. Nahrazeno souhrnným vydáním 1.9.17; CI #877 / 38087395045 automaticky zrušeno novějším commitem po požadavku na plus vpravo.
 
 - Uživatel následně požaduje součty naklikaných vsázek: pod seznamem ALD1 a ALD2 samostatný readonly výstup Celkem vsázek. Počítá pouze viditelné díly příslušné ALD, mění se po +/− i načtení; skryté historické kombinace se nezahrnují.
 
@@ -249,4 +249,8 @@ Po CI:
 ## TEST 1.9.17 – plus vpravo u ALD (2026-10-10)
 - Během ověřování 1.9.16 uživatel doplnil přesun + vpravo kvůli ovládání palcem: ALD1 i ALD2 mají pořadí název / − / readonly počet / +. Minus menší/ztlumené vlevo od hodnoty, plus vpravo má plnou dostupnou šířku.
 - Vydání obsahuje všechny průběžné požadavky: samostatnou část Před 145, výpočty +/− po opuštění množství, Celkem vsázek pod každou ALD.
-- Pouze development/TEST. Ověření a nasazení probíhá.
+- Pouze development/TEST. Ověření a nasazení dokončeno.
+
+- Ověření souhrnného vydání 1.9.17: 22 cílených testů PASS. Dvě čisté canonical sestavy PASS, digest 1e459ea423120fc2d2dc865616cec71f1f9ddfb5db42f5453ca79623db57a0ec, zdroje nezměněny.
+- Chromium 320/390/768/1366 px: vlastní sekce Před 145, save/reload, výrazy 320+256=576 / 320−256=64 / řetězení / desetinné 0,1+0,2=0.3 / neúplný výraz zachován, nabídky ×32/×64, readonly počítadla −/počet/+ s minimem 0 a součty ALD1/ALD2 12/8, owner gate a historická data PASS. Vše bez horizontálního přetečení.
+- CI #878 / 38087582230 verify i release-preview SUCCESS. Funkční SHA c2b8c6b5875322e87859b38566831fcccc5574b6. READY dpl_4zrEu4U2DY6Znaxm6EFHVRqZ2KWn (skoda-spada-h34uji5ms-martinspadrnas-projects.vercel.app), přesný SHA potvrzen. Veřejný TEST HTTP 200, verze 1.9.17, přesná shoda modulu a TEST Supabase konfigurace ověřeny. Main 915a75793207b4125a0489dd8e5c824696f227ab nezměněno. Produkce/Supabase bez zápisů. Fyzická přejímka iPhone čeká na uživatele.
