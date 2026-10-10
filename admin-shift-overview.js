@@ -113,6 +113,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       oam: { rows: oamRows },
       process: { rows: {} },
       inputs: { ald1: '', ald2: '', rows: {} },
+      nitrogen: '',
+      machiningFaults: '',
       notes: '',
       updatedAt: ''
     };
@@ -143,6 +145,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     base.date = String(src.date || date || base.date);
     base.shift = String(src.shift || shift || base.shift);
     base.notes = String(src.notes || '');
+    base.nitrogen = String(src.nitrogen ?? '');
+    base.machiningFaults = String(src.machiningFaults || '');
     base.updatedAt = String(src.updatedAt || '');
     base.preKiln = Object.assign({}, base.preKiln, src.preKiln || {});
     PRE_KILN_ROWS.forEach((name) => {
@@ -228,97 +232,64 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     ].map((row) => '<option value="' + row[0] + '"' + (row[0] === selected ? ' selected' : '') + '>' + row[1] + '</option>').join('');
   }
 
-  function scrollTable(label, html) {
-    return '<div class="rakShiftOverviewScrollHint" aria-hidden="true"><span>←</span> Posuň tabulku do stran <span>→</span></div>' +
-      '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="' + esc(label) + ', tabulka se posouvá do stran">' + html + '</div>';
+  function labeledField(label, path, record, options) {
+    return '<label><span>' + esc(label) + '</span>' + field(path, record, Object.assign({ label }, options)) + '</label>';
+  }
+
+  function panel(title, html, cls) {
+    return '<section class="rakShiftOverviewPanel ' + (cls || '') + '"><h3>' + esc(title) + '</h3>' + html + '</section>';
   }
 
   function processTable(record, legacy) {
     const columns = legacy ? LEGACY_PROCESS_COLUMNS : PROCESS_COLUMNS;
-    const groups = OAM_ROWS.map((row, index) => {
-      const label = AAR_COLUMNS[index].label;
-      const heading = columns.map((col) => '<th scope="col" class="' + row.cls + '">' + esc(col.label) + '</th>').join('');
-      const cells = columns.map((col) => '<td>' + field('process.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: label + ' · ' + col.label }) + '</td>').join('');
-      return '<tbody aria-label="' + esc(label) + '"><tr>' + heading + '</tr><tr>' + cells + '</tr></tbody>';
-    }).join('');
-    return scrollTable('Zásoby v provozu', '<table class="rakShiftOverviewPaper rakShiftOverviewProcess"><caption>Zásoby v provozu</caption>' + groups + '</table>');
+    return '<div class="rakShiftOverviewPanels">' + OAM_ROWS.map((row, index) => panel(AAR_COLUMNS[index].label,
+      '<div class="rakShiftOverviewFieldGrid">' + columns.map(col => labeledField(col.label,
+        'process.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: AAR_COLUMNS[index].label + ' · ' + col.label })).join('') + '</div>', row.cls)).join('') + '</div>';
   }
 
   function aldTable(record) {
-    const columns = [
-      ['inserts', 'Počty vsázek', 'numeric'], ['rejects', 'Zmetky', 'numeric'],
-      ['running', 'Počet BK/ST', 'text'], ['faults', 'Závady', 'text']
-    ];
-    const rows = [0, 1, 2].map((index) => '<tr><th scope="row">ALD' + (index + 1) + '</th>' + columns.map(([key, label, mode]) =>
-      '<td>' + field('ald.' + index + '.' + key, record, { inputmode: mode, area: key === 'faults', rows: 2, label: 'ALD' + (index + 1) + ' · ' + label }) + '</td>'
-    ).join('') + '</tr>').join('');
-    return scrollTable('ALD 1–3', '<table class="rakShiftOverviewPaper rakShiftOverviewAldTable"><thead><tr><th>Zařízení</th>' + columns.map((col) => '<th scope="col">' + col[1] + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table>');
+    return '<div class="rakShiftOverviewPanels">' + [0,1,2].map(index => panel('ALD' + (index + 1),
+      '<div class="rakShiftOverviewFieldGrid">' + [['inserts','Počty vsázek'],['rejects','Zmetky'],['running','Počet BK/ST']].map(([key,label]) => labeledField(label,'ald.' + index + '.' + key,record)).join('') + '</div>')).join('') + '</div>';
   }
 
+  const ALD1_INPUT_ROWS = ['SR1','SR2','SR3','SR4','SR5','SR6','SR7','FR3','FR5','FR7','ZSB-RLR','SRRG','AAR'];
+  const ALD2_INPUT_ROWS = ['Awa','Awi','TW1','TW2','TW3'];
+
   function inputsTable(record) {
-    const rows = INPUT_ROWS.map((name) => '<tr><th scope="row">' + esc(name.replace('-', ' ')) + '</th>' + ['ald1', 'ald2'].map((key) =>
-      '<td>' + field('inputs.rows.' + name + '.' + key, record, { inputmode: 'numeric', label: name + ' · ' + key.toUpperCase() }) + '</td>'
-    ).join('') + '<td class="rakShiftOverviewTotal" data-shift-overview-input-total="' + esc(name) + '">0</td></tr>').join('');
-    return '<div class="rakShiftOverviewBatchHeader"><label>ALD1 vsázka' + field('inputs.ald1', record, { label: 'ALD1 vsázka' }) + '</label><label>ALD2 vsázka' + field('inputs.ald2', record, { label: 'ALD2 vsázka' }) + '</label></div>' +
-      scrollTable('Vstupy ALD1 / ALD2', '<table class="rakShiftOverviewPaper rakShiftOverviewInputs"><thead><tr><th>Díl</th><th scope="col">ALD1</th><th scope="col">ALD2</th><th scope="col">Celkem</th></tr></thead><tbody>' + rows + '</tbody></table>');
+    return '<div class="rakShiftOverviewBatchColumns">' + [[1,ALD1_INPUT_ROWS],[2,ALD2_INPUT_ROWS]].map(([id,rows]) => panel('ALD' + id,
+      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { label: 'ALD' + id + ' · Poslední vsázka' }) +
+      '<div class="rakShiftOverviewInputRows">' + rows.map(name => labeledField(name.replace('-', ' '), 'inputs.rows.' + name + '.ald' + id,record,{inputmode:'numeric',label:name + ' · ALD' + id})).join('') + '</div>')).join('') +
+      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{label:'ALD3 · Poslední vsázka'})) +
+      panel('Dusík',labeledField('Hodnota','nitrogen',record,{inputmode:'decimal',label:'Dusík · Hodnota'})) + '</div></div>';
   }
 
   function preKilnGrid(record) {
-    const rows = PRE_KILN_ROWS.map((name) =>
-      '<label><span>' + esc(name) + '</span>' + field('preKiln.' + name, record, { inputmode: 'numeric', placeholder: '0' }) + '</label>'
-    ).join('');
-    return [
-      '<div class="rakShiftOverviewPreKiln">',
-      rows,
-      '</div>',
-      '<div class="rakShiftOverviewLastBatch">',
-      '<label>ALD1 č. posl. vs.:' + field('lastBatch.ald1', record, { placeholder: 'číslo poslední vsázky' }) + '</label>',
-      '<label>ALD2 č. posl. vs.:' + field('lastBatch.ald2', record, { placeholder: 'číslo poslední vsázky' }) + '</label>',
-      '<label>ALD3 č. posl. vs.:' + field('lastBatch.ald3', record, { placeholder: 'číslo poslední vsázky' }) + '</label>',
-      '</div>'
-    ].join('');
+    return '<div class="rakShiftOverviewFieldGrid">' + PRE_KILN_ROWS.map(name => labeledField(name,'preKiln.' + name,record,{inputmode:'numeric'})).join('') + '</div>';
   }
 
   function aarTable(record, legacy) {
-    const head = AAR_COLUMNS.map((col) => '<th class="' + col.cls + '">' + col.label + '</th>').join('');
-    const body = AAR_ROWS.filter((row) => legacy ? ['turning', 'washing', 'toStock', 'stock'].includes(row.key) : ['op1121', 'op212Stock'].includes(row.key)).map((row, index) => {
-      const cells = AAR_COLUMNS.map((col) =>
-        '<td>' + field('aar.matrix.' + row.key + '.' + col.key, record, { inputmode: 'numeric', label: row.label + ' · ' + col.label }) + '</td>'
-      ).join('');
-      const extra = legacy
-        ? (['turning', 'washing'].includes(row.key) ? '<td>' + field('aar.rejects.' + row.key, record, { inputmode: 'numeric', label: row.label + ' · Zmetky' }) + '</td>' : '<td></td>') + '<td class="rakShiftOverviewTotal" data-shift-overview-total="' + row.key + '">0</td>'
-        : (index === 0 ? '<td rowspan="2" class="rakShiftOverviewAarNote">' + field('aar.notes', record, { area: true, rows: 3, label: 'Poznámky AAR' }) + '</td>' : '');
-      return '<tr><th>' + row.label + '</th>' + cells + extra + '</tr>';
-    }).join('');
-    return [
-      '<div class="rakShiftOverviewScrollHint" aria-hidden="true"><span>←</span> Posuň tabulku do stran <span>→</span></div>',
-      '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="Výroba AAR, tabulka se posouvá do stran">',
-      '<table class="rakShiftOverviewAarTable"><thead><tr><th>AAR</th>' + head + (legacy ? '<th>Zmetky</th><th>Celkem</th>' : '<th>Poznámky AAR</th>') + '</tr></thead><tbody>' + body + '</tbody></table>',
-      '</div>'
-    ].join('');
+    return '<div class="rakShiftOverviewPanels">' + AAR_ROWS.filter(row => legacy ? ['turning','washing','toStock','stock'].includes(row.key) : ['op1121','op212Stock'].includes(row.key)).map(row => panel(row.label,
+      '<div class="rakShiftOverviewFieldGrid">' + AAR_COLUMNS.map(col => labeledField(col.label,'aar.matrix.' + row.key + '.' + col.key,record,{inputmode:'numeric',label:row.label + ' · ' + col.label})).join('') + '</div>' +
+      (legacy ? '<div class="rakShiftOverviewSummary"><span>Celkem</span><output data-shift-overview-total="' + row.key + '">0</output></div>' + (['turning','washing'].includes(row.key) ? labeledField('Zmetky','aar.rejects.' + row.key,record,{inputmode:'numeric'}) : '') : ''))).join('') + '</div>' + (legacy ? '' : labeledField('Poznámky AAR','aar.notes',record,{area:true}));
   }
 
   function oamTable(record) {
-    const leftHead = OAM_LEFT_COLUMNS.map((col) => '<th><b>' + esc(col.label) + '</b>' + (col.sub ? '<span>' + esc(col.sub) + '</span>' : '') + '</th>').join('');
-    const rightHead = OAM_RIGHT_COLUMNS.map((col) => '<th>' + esc(col.label) + '</th>').join('');
-    const rows = OAM_ROWS.map((row) => {
-      const leftCells = OAM_LEFT_COLUMNS.map((col) => '<td>' + field('oam.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric' }) + '</td>').join('');
-      const rightCells = OAM_RIGHT_COLUMNS.map((col) => '<td>' + field('oam.rows.' + row.key + '.' + col.key, record, { inputmode: 'numeric' }) + '</td>').join('');
-      return '<tr><th class="' + row.cls + '">' + esc(row.left) + '</th>' + leftCells + '<th class="' + row.cls + '">' + esc(row.right) + '</th>' + rightCells + '</tr>';
-    }).join('');
-    const leftTotals = OAM_LEFT_COLUMNS.map((col) => '<td data-shift-overview-oam-total="' + col.key + '">0</td>').join('');
-    const rightTotals = OAM_RIGHT_COLUMNS.map((col) => '<td data-shift-overview-oam-total="' + col.key + '">0</td>').join('');
-    return [
-      '<div class="rakShiftOverviewScrollHint" aria-hidden="true"><span>←</span> Posuň tabulku do stran <span>→</span></div>',
-      '<div class="rakShiftOverviewTableScroll" tabindex="0" aria-label="0AM 409 155 a 409 111, tabulka se posouvá do stran"><table class="rakShiftOverviewOamTable">',
-      '<thead>',
-      '<tr><th>0AM 409 155</th><th colspan="2">Měkké obrábění</th><th colspan="2">Sklad před kalením</th><th colspan="2">Sklad po kalení</th><th>Nýtování</th><th>0AM 409 111</th><th>Tvrdé obrábění</th><th>Sklad</th><th>Plán sklad</th><th>Montáž</th></tr>',
-      '<tr><th>Číslo dílu / op</th>' + leftHead + '<th>Číslo dílu / op</th>' + rightHead + '</tr>',
-      '</thead><tbody>',
-      rows,
-      '<tr class="rakShiftOverviewOamTotals"><th>Σ po operacích</th>' + leftTotals + '<th>Σ po operacích</th>' + rightTotals + '</tr>',
-      '</tbody></table></div>'
-    ].join('');
+    const groups = [
+      ['Měkké obrábění', OAM_LEFT_COLUMNS.slice(0,2)],
+      ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
+      ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
+      ['Nýtování', [OAM_LEFT_COLUMNS[6]]],
+      ['Tvrdé obrábění', [{key:'hard',label:'212'}]],
+      ['Sklad', [{key:'stock',label:'Sklad'}]],
+      ['Montáž', [{key:'assembly',label:'Montáž'}]]
+    ];
+    return '<div class="rakShiftOverviewFlow">' + OAM_ROWS.map((row,index) => panel(AAR_COLUMNS[index].label,
+      '<div class="rakShiftOverviewStages">' + groups.map(([title,cols]) => '<div class="rakShiftOverviewStage"><h4>' + title + '</h4><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{inputmode:'numeric',label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>',row.cls)).join('') + '</div>';
+  }
+
+  function archivedInputs(record) {
+    return '<div class="rakShiftOverviewPanels">' + [[1,ALD2_INPUT_ROWS],[2,ALD1_INPUT_ROWS]].map(([id,rows]) => panel('Dřívější vstupy ALD' + id,
+      '<div class="rakShiftOverviewFieldGrid">' + rows.map(name => labeledField(name.replace('-',' '),'inputs.rows.' + name + '.ald' + id,record,{inputmode:'numeric'})).join('') + '</div>')).join('') + '</div>';
   }
 
   function buildHtml(record) {
@@ -332,23 +303,28 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '</div>',
       '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction" data-shift-overview-action="previous">Načíst předchozí</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button></div>',
       '<div class="smallText rakShiftOverviewStatus" data-shift-overview-status role="status" aria-live="polite">' + (record.updatedAt ? 'Načteno · naposledy uloženo ' + esc(new Date(record.updatedAt).toLocaleString('cs-CZ')) : 'Pro tento den zatím není uložený přehled.') + '</div>',
-      '<div class="appMenuSubTitle">Zásoby v provozu</div>',
-      processTable(record),
-      '<div class="appMenuSubTitle">ALD 1–3</div>',
-      aldTable(record),
-      '<div class="appMenuSubTitle">Výroba AAR</div>',
-      aarTable(record),
-      '<div class="appMenuSubTitle">Vsázky ALD1 / ALD2</div>',
-      '<div class="rakShiftOverviewLower"><div class="rakShiftOverviewBatchTable">',
+      '<div class="appMenuSubTitle">Tok dílů</div>',
+      oamTable(record),
+      '<div class="rakShiftOverviewLower">',
       inputsTable(record),
-      '</div><div class="rakShiftOverviewBatchSummary"><span>Celkem vsázek</span><output data-shift-overview-batch-total aria-live="polite">0</output></div></div>',
+      panel('Závady', labeledField('Obrábění','machiningFaults',record,{area:true,rows:3}) + [0,1,2].map(index => labeledField('ALD' + (index + 1),'ald.' + index + '.faults',record,{area:true,rows:3,label:'ALD' + (index + 1) + ' · Závady'})).join('')),
+      '</div>',
       '<details class="rakShiftOverviewDetails"><summary>Doplňující údaje</summary><div class="rakShiftOverviewExtra">',
+      '<div class="appMenuSubTitle">Zásoby v provozu z dřívější předlohy</div>',
+      processTable(record),
       '<div class="appMenuSubTitle">Předchozí sloupce zásob</div>',
       processTable(record, true),
       '<div class="appMenuSubTitle">Vsázky před kalírnou</div>',
       preKilnGrid(record),
       '<div class="appMenuSubTitle">Dlouhodobé závady</div>',
       [0, 1, 2].map((index) => '<label>ALD' + (index + 1) + field('ald.' + index + '.longFaults', record, { area: true, rows: 2, label: 'ALD' + (index + 1) + ' · Dlouhodobé závady' }) + '</label>').join(''),
+      '<div class="appMenuSubTitle">ALD 1–3</div>',
+      aldTable(record),
+      '<div class="appMenuSubTitle">Výroba AAR</div>',
+      aarTable(record),
+      archivedInputs(record),
+      '<div class="rakShiftOverviewTwo">' + labeledField('ALD1 vsázka z dřívější předlohy','inputs.ald1',record) + labeledField('ALD2 vsázka z dřívější předlohy','inputs.ald2',record) + '</div>',
+      '<div class="rakShiftOverviewBatchSummary"><span>Celkem vsázek z obou předloh</span><output data-shift-overview-batch-total>0</output></div>',
       '<label class="rakShiftOverviewPlan">PLÁN' + field('aar.plan', record, { placeholder: 'Po–So 1184/1184 · Ne 704/800' }) + '</label>',
       aarTable(record, true),
       '<div class="rakShiftOverviewSummary"><span>Stav skladu celkem</span><b data-shift-overview-grand-total>0</b></div>',
@@ -358,8 +334,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<label>Volné kalení – zakaleno ALD1 + ALD2 / AAR' + field('aar.freeHardened', record, { placeholder: 'poznámka / stav' }) + '</label><label>ks' + field('aar.freeHardenedKs', record, { inputmode: 'numeric' }) + '</label>',
       '</div>',
       '<label>Závady na zařízení AAR' + field('aar.faults', record, { area: true, rows: 3, placeholder: 'např. TBKR07 – přestavba z AE na AD' }) + '</label>',
-      '<div class="appMenuSubTitle">0AM 409 155 / 409 111</div>',
-      oamTable(record),
+      '<div class="appMenuSubTitle">Plán sklad</div>',
+      '<div class="rakShiftOverviewFieldGrid">' + OAM_ROWS.map((row,index) => labeledField(AAR_COLUMNS[index].label,'oam.rows.' + row.key + '.planStock',record,{inputmode:'numeric'})).join('') + '</div>',
       '</div></details>',
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
@@ -513,63 +489,37 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const style = document.createElement('style');
     style.id = 'rakShiftOverviewStyle';
     style.textContent = [
-      '#appMenuBody[data-admin-view="shift-overview"] .rakShiftOverviewCard{display:grid;gap:12px;}',
-      '.rakShiftOverviewHeader{display:grid;grid-template-columns:1fr 1fr;gap:10px;}',
-      '.rakShiftOverviewHeader label,.rakShiftOverviewAldCard label,.rakShiftOverviewPlan,.rakShiftOverviewFree label{display:grid;gap:6px;font-size:12px;font-weight:800;}',
-      '.rakShiftOverviewInput,.rakShiftOverviewArea{box-sizing:border-box;width:100%;min-width:0;}',
-      '.rakShiftOverviewArea{resize:vertical;min-height:68px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;box-shadow:0 10px 22px rgba(0,0,0,.16);}',
-      '.rakShiftOverviewAldCard{display:grid;gap:10px;padding:12px;border:1px solid rgba(124,255,124,.16);border-radius:16px;background:rgba(255,255,255,.025);}',
-      '.rakShiftOverviewAldTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px;}',
-      '.rakShiftOverviewAldTitle span{font-size:11px;opacity:.55;text-transform:uppercase;letter-spacing:.12em;}',
-      '.rakShiftOverviewTwo{display:grid;grid-template-columns:1fr 1fr;gap:10px;}',
-      '.rakShiftOverviewScrollHint{display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:-6px;color:var(--green2);font-size:11px;font-weight:900;letter-spacing:.02em;}',
-      '.rakShiftOverviewScrollHint span{font-size:16px;line-height:1;}',
-      '.rakShiftOverviewTableScroll{overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-color:rgba(255,255,255,.55) rgba(255,255,255,.08);border-radius:14px;border:1px solid rgba(124,255,124,.14);}',
-      '.rakShiftOverviewTableScroll:focus-visible{outline:2px solid var(--green2);outline-offset:2px;}',
-      '.rakShiftOverviewAarTable{width:100%;min-width:620px;border-collapse:collapse;background:rgba(0,0,0,.12);}',
-      '.rakShiftOverviewAarTable th,.rakShiftOverviewAarTable td{border:1px solid rgba(255,255,255,.10);padding:6px;text-align:center;vertical-align:middle;}',
-      '.rakShiftOverviewAarTable th{font-size:11px;font-weight:900;}',
-      '.rakShiftOverviewAarTable thead th.isGreen{background:#48c92f;color:#071006;}',
-      '.rakShiftOverviewAarTable thead th.isBlue{background:#22a9ef;color:#061019;}',
-      '.rakShiftOverviewAarTable thead th.isYellow{background:#ffe21f;color:#171300;}',
-      '.rakShiftOverviewAarTable thead th.isOrange{background:#ff6b18;color:#1b0900;}',
-      '.rakShiftOverviewAarTable .rakShiftOverviewInput{min-height:34px;padding:6px;text-align:center;}',
-      '.rakShiftOverviewAarTable thead th:first-child,.rakShiftOverviewAarTable tbody th:first-child{position:sticky;left:0;z-index:2;background:#25125d;box-shadow:8px 0 14px rgba(0,0,0,.22);}',
-      '.rakShiftOverviewAarTable thead th:first-child{z-index:3;}',
-      '.rakShiftOverviewTotal{font-weight:900;min-width:58px;}',
-      '.rakShiftOverviewSummary{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid rgba(124,255,124,.14);border-radius:12px;background:rgba(255,255,255,.025);}',
-      '.rakShiftOverviewSummary b{font-size:18px;color:var(--green2);}',
-      '.rakShiftOverviewFree{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:10px;}',
-      '.rakShiftOverviewStatus{padding:8px 10px;border-radius:12px;background:rgba(124,255,124,.06);border:1px solid rgba(124,255,124,.10);}',
-      '.rakShiftOverviewPreKiln{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}',
-      '.rakShiftOverviewPreKiln label{display:grid;grid-template-columns:minmax(54px,auto) 1fr;align-items:center;gap:7px;font-size:11px;font-weight:900;}',
-      '.rakShiftOverviewPreKiln .rakShiftOverviewInput{min-height:36px;padding:6px 8px;text-align:center;}',
-      '.rakShiftOverviewLastBatch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:2px;}',
-      '.rakShiftOverviewLastBatch label{display:grid;gap:5px;font-size:11px;font-weight:900;}',
-      '.rakShiftOverviewOamTable{width:100%;min-width:1040px;border-collapse:collapse;background:rgba(0,0,0,.12);}',
-      '.rakShiftOverviewOamTable th,.rakShiftOverviewOamTable td{border:1px solid rgba(255,255,255,.10);padding:5px;text-align:center;vertical-align:middle;font-size:10px;}',
-      '.rakShiftOverviewOamTable thead th{font-weight:900;background:rgba(255,255,255,.045);}',
-      '.rakShiftOverviewOamTable thead th span{display:block;font-size:9px;font-weight:700;opacity:.75;margin-top:2px;}',
-      '.rakShiftOverviewOamTable th.isGreen{background:#68b832;color:#071006;}.rakShiftOverviewOamTable th.isBlue{background:#1598db;color:#061019;}.rakShiftOverviewOamTable th.isYellow{background:#ffe11e;color:#171300;}.rakShiftOverviewOamTable th.isOrange{background:#df5d1b;color:#1b0900;}',
-      '.rakShiftOverviewOamTable .rakShiftOverviewInput{min-width:54px;min-height:34px;padding:5px;text-align:center;}',
-      '.rakShiftOverviewOamTotals th,.rakShiftOverviewOamTotals td{font-weight:900;background:rgba(124,255,124,.05);}',
-      '.rakShiftOverviewCard{min-width:0;}.rakShiftOverviewCard>*,.rakShiftOverviewExtra>*{min-width:0;}',
-      '.rakShiftOverviewPaper{width:100%;border-collapse:collapse;background:rgba(0,0,0,.12);font-size:12px;}',
-      '.rakShiftOverviewPaper caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}',
-      '.rakShiftOverviewPaper th,.rakShiftOverviewPaper td{border:1px solid rgba(255,255,255,.22);padding:5px;text-align:center;}',
-      '.rakShiftOverviewPaper .rakShiftOverviewInput{min-height:36px;padding:6px;text-align:center;}',
-      '.rakShiftOverviewProcess{min-width:970px;}.rakShiftOverviewProcess th{font-size:11px;min-width:85px;}.rakShiftOverviewProcess tbody+tbody{border-top:8px solid transparent;}',
-      '.rakShiftOverviewProcess th.isGreen,.rakShiftOverviewProcess th:first-child.isGreen{background:#68b832;color:#071006;}.rakShiftOverviewProcess th.isBlue,.rakShiftOverviewProcess th:first-child.isBlue{background:#1598db;color:#061019;}.rakShiftOverviewProcess th.isOrange,.rakShiftOverviewProcess th:first-child.isOrange{background:#df5d1b;color:#1b0900;}',
-      '.rakShiftOverviewPaper th:first-child{position:sticky;left:0;z-index:2;background:var(--panel,#25125d);min-width:76px;}',
-      '.rakShiftOverviewAldTable{min-width:680px;}.rakShiftOverviewAldTable td:last-child{width:42%;}.rakShiftOverviewAldTable .rakShiftOverviewArea{min-height:64px;padding:6px;}',
-      '.rakShiftOverviewInputs{min-width:340px;}.rakShiftOverviewInputs td{width:24%;}',
-      '.rakShiftOverviewLower{display:grid;grid-template-columns:minmax(340px,1fr) minmax(180px,.65fr);gap:18px;align-items:end;}',
-      '.rakShiftOverviewBatchTable{display:grid;gap:8px;min-width:0;}.rakShiftOverviewBatchHeader{display:grid;grid-template-columns:1fr 1fr;gap:6px;}.rakShiftOverviewBatchHeader label{display:grid;gap:6px;font-size:12px;font-weight:800;}',
-      '.rakShiftOverviewBatchSummary{border:1px solid rgba(255,255,255,.22);border-radius:12px;text-align:center;margin-bottom:40px;overflow:hidden;}.rakShiftOverviewBatchSummary span{display:block;padding:8px;border-bottom:1px solid rgba(255,255,255,.22);font-size:12px;font-weight:800;}.rakShiftOverviewBatchSummary output{display:block;padding:18px;font-size:24px;font-weight:900;color:var(--green2);}',
-      '.rakShiftOverviewAarNote{min-width:180px;}.rakShiftOverviewAarNote .rakShiftOverviewArea{min-height:84px;}',
-      '@media(max-width:650px){.rakShiftOverviewLower{grid-template-columns:minmax(0,1fr);}.rakShiftOverviewBatchSummary{margin-bottom:0;}}',
-      '.rakShiftOverviewDetails{border:1px solid rgba(124,255,124,.16);border-radius:12px;padding:10px;}.rakShiftOverviewDetails summary{cursor:pointer;font-weight:800;}.rakShiftOverviewExtra{display:grid;gap:12px;margin-top:12px;}.rakShiftOverviewExtra label{display:grid;gap:6px;font-size:12px;}',
-      '@media(max-width:430px){.rakShiftOverviewHeader,.rakShiftOverviewTwo{grid-template-columns:1fr;}.rakShiftOverviewFree{grid-template-columns:minmax(0,1fr) 76px;}.rakShiftOverviewPreKiln{grid-template-columns:repeat(2,minmax(0,1fr));}.rakShiftOverviewLastBatch{grid-template-columns:1fr;}.rakShiftOverviewScrollHint{display:flex;}.rakShiftOverviewCard{padding:12px!important;}}'
+      '#appMenuBody[data-admin-view="shift-overview"] .rakShiftOverviewCard{display:grid;gap:12px;min-width:0;}',
+      '.rakShiftOverviewCard *{box-sizing:border-box;min-width:0;}',
+      '.rakShiftOverviewCard label{display:grid;gap:6px;font-size:12px;font-weight:800;overflow-wrap:anywhere;}',
+      '.rakShiftOverviewHeader,.rakShiftOverviewTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
+      '.rakShiftOverviewInput,.rakShiftOverviewArea,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{width:100%;max-width:100%;min-width:0;}.rakShiftOverviewInput,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{min-height:44px;font-size:16px;}',
+      '.rakShiftOverviewArea{resize:vertical;min-height:76px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;}',
+      '.rakShiftOverviewPanel{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.025);}',
+      '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',
+      '.rakShiftOverviewPanel.isGreen{border-top:5px solid #87ac3a;}.rakShiftOverviewPanel.isBlue{border-top:5px solid #1472c2;}.rakShiftOverviewPanel.isOrange{border-top:5px solid #ce552f;}',
+      '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:12px;}',
+      '.rakShiftOverviewStages{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;}',
+      '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
+      '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
+      '.rakShiftOverviewStage:nth-child(n+4) .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);}',
+      '.rakShiftOverviewStages .rakShiftOverviewInput{padding:8px 4px;text-align:center;}',
+      '.rakShiftOverviewStages label{font-size:11px;}',
+      '.rakShiftOverviewPanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;}',
+      '.rakShiftOverviewLower{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px;align-items:start;}',
+      '.rakShiftOverviewBatchColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;}',
+      '.rakShiftOverviewUtilities{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));}',
+      '.rakShiftOverviewInputRows{display:grid;gap:6px;}.rakShiftOverviewInputRows label{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}',
+      '.rakShiftOverviewInputRows input{padding:8px;text-align:center;}',
+      '.rakShiftOverviewStatus,.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{padding:10px;border-radius:12px;background:rgba(124,255,124,.06);overflow-wrap:anywhere;}',
+      '.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{display:flex;justify-content:space-between;gap:10px;}',
+      '.rakShiftOverviewDetails{border:1px solid rgba(124,255,124,.16);border-radius:12px;padding:10px;}.rakShiftOverviewDetails summary{cursor:pointer;font-weight:800;}',
+      '.rakShiftOverviewExtra{display:grid;gap:12px;margin-top:12px;}',
+      '.rakShiftOverviewFree{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:10px;}',
+      '.rakShiftOverviewCard .appMenuActionRow{flex-wrap:wrap;}',
+      '@media(max-width:1100px){.rakShiftOverviewStages{grid-template-columns:repeat(3,minmax(0,1fr));}}',
+      '@media(max-width:650px){.rakShiftOverviewStages{grid-template-columns:repeat(2,minmax(0,1fr));}.rakShiftOverviewLower{grid-template-columns:minmax(0,1fr);}.rakShiftOverviewBatchColumns{grid-template-columns:minmax(0,1fr);}}',
+      '@media(max-width:430px){.rakShiftOverviewHeader{grid-template-columns:minmax(0,1fr);}.rakShiftOverviewCard{padding:12px!important;}.rakShiftOverviewUtilities{grid-template-columns:minmax(0,1fr);}}'
     ].join('');
     document.head.appendChild(style);
   }

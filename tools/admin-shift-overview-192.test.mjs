@@ -40,23 +40,24 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.7'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview7'"));
-  assert.ok(index.includes("var e='so7',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview7"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.8'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview8'"));
+  assert.ok(index.includes("var e='so8',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview8"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
 test('first version is local-only and covers the paper table fields', () => {
-  for (const label of ['Vsázky před kalírnou','Zmetky','Počet BK/ST','Dlouhodobé závady','Výroba AAR','Volné kalení','Závady na zařízení AAR','Celkové poznámky ke směně','0AM 409 155 / 409 111','Měkké obrábění','Sklad před kalením','Sklad po kalení','Nýtování','Tvrdé obrábění','Plán sklad','Montáž','ALD1 č. posl. vs.:']) {
+  for (const label of ['Vsázky před kalírnou','Zmetky','Počet BK/ST','Dlouhodobé závady','Výroba AAR','Volné kalení','Závady na zařízení AAR','Celkové poznámky ke směně','Měkké obrábění','Sklad před kalením','Sklad po kalení','Nýtování','Tvrdé obrábění','Plán sklad','Montáž','Poslední vsázka']) {
     assert.ok(feature.includes(label), label);
   }
   for (const code of ['AG / AE','AF / AD','AH','Soustružení','Do skladu','Stav skladu','Awa','Awi','TW1','SR7','FR7','ZSB-RLR','SRRG','0AM 409 155 AG','0AM 409 111 AE']) {
     assert.ok(feature.includes(code), code);
   }
-  assert.ok(feature.includes('data-shift-overview-oam-total'));
+  assert.ok(feature.includes('Dusík'));
+  assert.ok(feature.includes("'lastBatch.ald3'"));
   assert.ok(feature.includes('rak_admin_shift_overview_v1'));
   assert.ok(feature.includes('localStorage'));
   assert.ok(feature.includes('data-menu-back="1"'));
@@ -66,15 +67,15 @@ test('first version is local-only and covers the paper table fields', () => {
   assert.ok(!feature.includes('.rpc('));
 });
 
-test('wide tables explain mobile scrolling and keep AAR row labels visible', () => {
-  assert.ok(feature.includes('Posuň tabulku do stran'));
-  assert.ok(feature.includes('tabulka se posouvá do stran'));
-  assert.ok(feature.includes('tabindex="0"'));
-  assert.ok(feature.includes('overscroll-behavior-inline:contain'));
-  assert.ok(feature.includes('.rakShiftOverviewAarTable tbody th:first-child{position:sticky'));
+test('every section uses responsive grids without sideways scrolling', () => {
+  assert.ok(!feature.includes('Posuň tabulku do stran'));
+  assert.ok(!feature.includes('overflow-x:auto'));
+  assert.ok(!feature.includes('<table'));
+  assert.ok(feature.includes('repeat(2,minmax(0,1fr))'));
+  assert.ok(feature.includes('@media(max-width:650px)'));
 });
 
-test('paper overview renders only three active indices and all nine process stages', () => {
+test('paper overview renders only three active indices and all ten production flow operations', () => {
   const context = vm.createContext({
     window: { rakAdminCanManageAdmins: () => true },
     document: { getElementById: () => ({}), head: { appendChild() {} } },
@@ -87,16 +88,21 @@ test('paper overview renders only three active indices and all nine process stag
     process: { rows: { ag: { before150: '42', kiln: '23' } } },
     aar: { matrix: { turning: { adAg: '999', agAe: '17' } } }
   }), true);
-  for (const label of ['AG / AE', 'AF / AD', 'AH', 'Počty vsázek', 'Koncové praní', 'ALD1 vsázka', 'ALD2 vsázka', 'op 11+21', 'op 212 – do skladu', 'Celkem vsázek']) assert.ok(body.innerHTML.includes(label), label);
+  for (const label of ['AG / AE', 'AF / AD', 'AH', 'Počty vsázek', 'Koncové praní', 'ALD1', 'ALD2', 'ALD3', 'Dusík', 'Poslední vsázka', 'op 11+21', 'op 212 – do skladu', 'Celkem vsázek']) assert.ok(body.innerHTML.includes(label), label);
   assert.ok(!body.innerHTML.includes('AD / AG'));
   assert.ok(!body.innerHTML.includes('aar.matrix.turning.adAg'));
   assert.ok(!body.innerHTML.includes('oam.rows.ad.'));
-  assert.equal((body.innerHTML.slice(0, body.innerHTML.indexOf('<details')).match(/data-shift-overview-field="process.rows./g) || []).length, 27);
+  assert.equal((body.innerHTML.slice(0, body.innerHTML.indexOf('<details')).match(/data-shift-overview-field="oam.rows./g) || []).length, 30);
   assert.equal((body.innerHTML.match(/data-shift-overview-field="inputs.rows./g) || []).length, 36);
   assert.ok(body.innerHTML.includes('value="42"'));
   assert.ok(body.innerHTML.includes('data-shift-overview-field="process.rows.ag.beforeKiln" aria-label="AG / AE · Před kalírnou" type="text" inputmode="numeric" value=""'));
   assert.ok(body.innerHTML.includes('data-shift-overview-field="process.rows.ag.kiln" aria-label="AG / AE · Kalírna" type="text" inputmode="numeric" value="23"'));
   assert.ok(body.innerHTML.includes('data-shift-overview-field="aar.matrix.op1121.agAe" aria-label="op 11+21 · AG / AE" type="text" inputmode="numeric" value=""'));
+  const main = body.innerHTML.slice(0, body.innerHTML.indexOf('<details'));
+  assert.equal((main.match(/data-shift-overview-field="inputs.rows./g) || []).length, 18);
+  assert.ok(main.includes('lastBatch.ald3'));
+  assert.ok(main.includes('inputmode="decimal"'));
+  assert.ok(!main.includes('oam.rows.ag.planStock'));
   const paths = [...body.innerHTML.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m => m[1]);
   assert.equal(new Set(paths).size, paths.length, 'a field must never be rendered twice and overwrite edits on save');
 });
@@ -121,7 +127,7 @@ test('editing the active table preserves archived yellow values and excludes the
   ]);
   for (const [path, value] of [
     ['aar.matrix.turning.agAe', '12'], ['aar.matrix.turning.afAd', '8'], ['aar.matrix.turning.ahAh', '2'],
-    ['inputs.rows.AAR.ald1', '11'], ['inputs.rows.AAR.ald2', '9'], ['process.rows.ag.before150', '43']
+    ['inputs.rows.AAR.ald1', '11'], ['inputs.rows.AAR.ald2', '9'], ['process.rows.ag.before150', '43'], ['lastBatch.ald3', '12345'], ['nitrogen', '99,8']
   ]) values.set('[data-shift-overview-field="' + path + '"]', { value, getAttribute: () => path });
   const total = { textContent: '' };
   const inputTotal = { textContent: '' };
@@ -139,6 +145,10 @@ test('editing the active table preserves archived yellow values and excludes the
   assert.equal(inputTotal.textContent, '20');
   assert.equal(batchTotal.textContent, '20');
   const saved = api.readDom(el);
+  assert.equal(saved.lastBatch.ald3, '12345');
+  assert.equal(saved.nitrogen, '99,8');
+  assert.equal(api.normalizeRecord(saved).nitrogen, '99,8');
+  assert.equal(api.normalizeRecord({nitrogen: 0}).nitrogen, '0');
   assert.equal(saved.date, '2026-10-10');
   assert.equal(saved.shift, 'nocni12');
   assert.equal(saved.process.rows.ag.before150, '43');
