@@ -33,3 +33,8 @@ test('completion of an older save cannot overwrite a cleared or replaced editor 
  const f=fixture(),old=f.editor('999'),fresh=f.editor('');f.api.persistDraft(fresh);old.isConnected=false;f.api.persistDraft(old);
  assert.equal(f.api.readDraft().record.nitrogen,'');
 });
+
+test('pending save identity and editor revision survive reload for idempotent acknowledgement',()=>{
+ const f=fixture(),el=f.editor('77',3);el.dataset={cloudMutation:'pending-save'};f.api.persistDraft(el);
+ const next=fixture(f.storage);assert.equal(next.api.readDraft().mutationId,'pending-save');assert.equal(next.api.readDraft().revision,3);
+});

@@ -25,7 +25,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const key = draftKey();
     if (!key || rootEl?.isConnected === false || !ownerAllowed() || draftOwners.get(rootEl) !== key) return;
     try {
-      localStorage.setItem(key, JSON.stringify({ record: readDom(rootEl), revision: renderedRevisions.get(rootEl) ?? null }));
+      localStorage.setItem(key, JSON.stringify({ record: readDom(rootEl), revision: renderedRevisions.get(rootEl) ?? null, mutationId: rootEl.dataset?.cloudMutation || '' }));
     } catch (_) { status(rootEl, 'Rozepsaný přehled se nepodařilo uložit v zařízení.'); }
   }
   const cloudJobs = new Map();
@@ -965,7 +965,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       renderedRecords.set(rootEl, clone(record));
       const identity = currentIdentity();
       renderedRevisions.set(rootEl, draft ? draft.revision : (identity ? (cloudRead(identity).revisions[recordKey(date, shift)] ?? null) : null));
-      if (draft) rootEl.dataset.edited = '1';
+      if (draft) { rootEl.dataset.edited = '1'; rootEl.dataset.cloudMutation = draft.mutationId || ''; }
     }
     bind(body);
     if (rootEl && bridge()) {
@@ -1115,6 +1115,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
             const base = opened && opened.date === record.date && opened.shift === record.shift ? renderedRevisions.get(rootEl) : null;
             const queued = localCloudSave(record, base ?? null);
             rootEl.dataset.cloudMutation = queued.mutationId;
+            persistDraft(rootEl);
             status(rootEl, 'Uloženo v zařízení · zálohuji online…');
             await syncCloud();
             const identity = currentIdentity();
