@@ -416,6 +416,154 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     )).join('') + '</div>';
   }
 
+  function summaryNumber(value) {
+    const result = evaluateQuantityExpression(value);
+    return numberOrZero(result === null ? value : result);
+  }
+
+  function summaryValue(value) {
+    const text = String(value ?? '').trim();
+    return evaluateQuantityExpression(text) ?? text;
+  }
+
+  // A vector image stays sharp when zoomed; only active, editable data is shown.
+  function summarySvg(record) {
+    const width = 1460;
+    const parts = [];
+    const colors = ['#a8cf60','#8ac5ed','#f19a76'];
+    function cell(x,y,w,h,text,fill,bold,size) {
+      parts.push('<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + (fill || '#fff') + '" stroke="#25313d" stroke-width="1.4"/>');
+      const lines = String(text ?? '').split('\n');
+      const font = Math.min(size || 18, (w-12) / Math.max(1, ...lines.map(line=>line.length)) / 0.62);
+      lines.forEach((line,i) => parts.push('<text x="' + (x+w/2) + '" y="' + (y+h/2+(i-(lines.length-1)/2)*font*1.2) + '" text-anchor="middle" dominant-baseline="middle" font-size="' + font + '" font-weight="' + (bold ? 700 : 400) + '">' + esc(line) + '</text>'));
+    }
+    function heading(y,text) { parts.push('<text x="24" y="' + y + '" font-size="24" font-weight="700">' + esc(text) + '</text>'); }
+    const team = String(record.shift).split(':');
+    const shift = team[1] ? team[0] + ' · ' + (team[1].startsWith('nocni') ? 'Noční ' : 'Ranní ') + (team[1].endsWith('12') ? '12 h' : '8 h') : 'Směna nevybrána';
+    heading(40, 'Přehled směny · ' + displayDate(record.date) + ' · ' + shift);
+    const header='#e9edf1';
+    const columns=[['op1020','10+20\nVolné',1],['op1121','11+21\nLis',2],['op30','30\nVolné',3],['op31','31\nLis',4],['op120','120\nVolné',5],['op121','121\nLis',6],['op145','Před 145',7],['after145','145',8],['hard','212',9],['stock','Sklad',10],['assembly','Montáž',11]];
+    // Layout: identity, 7 left quantities, identity, 4 right quantities.
+    const positions=[24,192,290,388,486,584,682,780,878,1046,1144,1242,1340,1436];
+    cell(24,65,168,104,'0AM 409 155\nČíslo dílu',header,true);
+    [['Měkké\nobrábění',1,2],['Sklad před\nkalením',3,2],['Sklad po kalení',5,3],['Po 145',9,1],['Po broušení',10,1],['Sklad',11,1],['Montáž',12,1]].forEach(([label,col,count]) => cell(positions[col],65,positions[col+count]-positions[col],52,label,header,true,16));
+    cell(positions[8],65,168,104,'0AM 409 111\nČíslo dílu',header,true);
+    columns.forEach(([key,label,col]) => {
+      const index=col>=8?col+1:col;
+      cell(positions[index],117,positions[index+1]-positions[index],52,label,header,true,17);
+    });
+    const sums={};columns.forEach(([key])=>sums[key]=0);
+    OAM_ROWS.forEach((row,index) => {
+      const y=169+index*58;
+      cell(24,y,168,58,row.left,colors[index],true,16);
+      cell(positions[8],y,168,58,row.right,colors[index],true,16);
+      columns.forEach(([key,,col])=>{
+        const position=col>=8?col+1:col;
+        const value=record.oam.rows[row.key][key];
+        sums[key]+=summaryNumber(value);
+        cell(positions[position],y,positions[position+1]-positions[position],58,summaryValue(value),colors[index],true,20);
+      });
+    });
+    cell(24,343,168,48,'Σ po operacích',header,true,17);
+    cell(positions[8],343,168,48,'Σ po operacích',header,true,17);
+    columns.forEach(([key,,col])=>{const position=col>=8?col+1:col;cell(positions[position],343,positions[position+1]-positions[position],48,String(Number(sums[key].toFixed(6))),header,true,20);});
+    const flow=columns.filter(([key])=>!['stock','assembly'].includes(key)).reduce((total,[key])=>total+sums[key],0);
+    const overall=flow+sums.stock+sums.assembly;
+    [['Díly v toku',flow],['Sklad',sums.stock],['Montáž',sums.assembly],['Celkem kusů',overall]].forEach(([label,total],index)=>{
+      cell(24+index*353,411,220,44,label,header,true,18);
+      cell(244+index*353,411,133,44,String(Number(total.toFixed(6))),'#fff',true,22);
+    });
+    heading(498,'Vsázky a dusík');
+    const aldTotals=[ALD1_INPUT_ROWS,ALD2_INPUT_ROWS].map((names,index)=>names.reduce((total,name)=>total+summaryNumber(record.inputs.rows[name]['ald'+(index+1)]),0));
+    const total3=summaryNumber(record.inputs.ald3);
+    cell(24,515,180,42,'',header,true);['ALD1','ALD2','ALD3'].forEach((label,i)=>cell(204+i*190,515,190,42,label,header,true));
+    cell(24,557,180,44,'Poslední vsázka',header,true,17);[1,2,3].forEach((id,i)=>cell(204+i*190,557,190,44,summaryValue(record.lastBatch['ald'+id]),'#fff',true));
+    cell(24,601,180,44,'Celkem vsázek',header,true,17);[...aldTotals,record.inputs.ald3?total3:''].forEach((total,i)=>cell(204+i*190,601,190,44,total,'#fff',true));
+    cell(820,515,270,42,'Dusík',header,true);cell(820,557,270,88,summaryValue(record.nitrogen),'#fff',true,25);
+    cell(1120,515,316,42,'Celkem vsázek',header,true);cell(1120,557,316,88,aldTotals[0]+aldTotals[1]+total3,'#fff',true,25);
+    let y=675;
+    const visibleParts=INPUT_ROWS.filter(name=>ALD1_INPUT_ROWS.includes(name)||ALD2_INPUT_ROWS.includes(name));
+    const usedParts=visibleParts.filter(name=>[1,2].some(id=>(id===1?ALD1_INPUT_ROWS:ALD2_INPUT_ROWS).includes(name)&&summaryNumber(record.inputs.rows[name]['ald'+id])>0));
+    if(usedParts.length){
+      heading(y+22,'Zapsané díly ve vsázkách');y+=40;
+      const colWidth=353;
+      usedParts.forEach((name,index)=>{
+        const x=24+(index%4)*colWidth,top=y+Math.floor(index/4)*42;
+        const counts=[1,2].map(id=>(id===1?ALD1_INPUT_ROWS:ALD2_INPUT_ROWS).includes(name)?summaryNumber(record.inputs.rows[name]['ald'+id]):0);
+        cell(x,top,150,42,name.replace('-',' '),header,true,17);
+        cell(x+150,top,203,42,'ALD1: '+counts[0]+' · ALD2: '+counts[1],'#fff',false,16);
+      });
+      y+=Math.ceil(usedParts.length/4)*42+26;
+    }
+    const notes=[['Obrábění',record.machiningFaults],...record.ald.map((row,i)=>['ALD'+(i+1),row.faults]),['Poznámky',record.notes]].filter(([,value])=>String(value??'').trim());
+    if(notes.length){
+      heading(y+22,'Závady a poznámky');y+=40;
+      notes.forEach(([label,value])=>{
+        const lines=String(value).split('\n').flatMap(line=>{
+          const words=line.split(/\s+/);const wrapped=[];let current='';
+          words.forEach(word=>{while(word.length>95){if(current){wrapped.push(current);current='';}wrapped.push(word.slice(0,95));word=word.slice(95);}if((current+' '+word).trim().length>95){wrapped.push(current);current=word;}else current=(current+' '+word).trim();});wrapped.push(current);return wrapped;
+        });
+        const height=Math.max(44,lines.length*24+16);
+        cell(24,y,180,height,label,header,true,17);
+        parts.push('<rect x="204" y="'+y+'" width="1232" height="'+height+'" fill="#fff" stroke="#25313d" stroke-width="1.4"/>');
+        lines.forEach((line,index)=>parts.push('<text x="220" y="'+(y+25+index*24)+'" font-size="18">'+esc(line)+'</text>'));y+=height;
+      });
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+(y+24)+'" viewBox="0 0 '+width+' '+(y+24)+'"><rect width="100%" height="100%" fill="#fff"/><g font-family="Arial,sans-serif" fill="#172433">'+parts.join('')+'</g></svg>';
+  }
+
+  function refreshSummary(rootEl) {
+    if (!ownerAllowed()) return;
+    const img = rootEl.querySelector('[data-shift-overview-summary-image]');
+    if (!img) return;
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(summarySvg(readDom(rootEl)));
+  }
+
+  let closeSummaryViewer = () => {};
+  function openSummaryViewer(rootEl) {
+    if (!ownerAllowed()) return;
+    closeSummaryViewer();
+    refreshSummary(rootEl);
+    const trigger = rootEl.querySelector('[data-shift-overview-summary-open]');
+    const dialog = document.createElement('dialog');
+    dialog.className = 'rakShiftOverviewViewer';
+    dialog.setAttribute('aria-label','Celkový přehled směny');
+    dialog.innerHTML = '<div class="rakShiftOverviewViewerToolbar"><strong>Celkový přehled</strong><button type="button" data-summary-zoom="out" aria-label="Zmenšit náhled">−</button><button type="button" data-summary-zoom="fit" aria-label="Zobrazit celý přehled">Celek</button><button type="button" data-summary-zoom="in" aria-label="Zvětšit náhled">+</button><button type="button" data-summary-close aria-label="Zavřít náhled">×</button></div><div class="rakShiftOverviewViewerViewport"><img alt="Souhrnná tabulka směny" draggable="false"></div>';
+    const viewport=dialog.querySelector('.rakShiftOverviewViewerViewport'),img=dialog.querySelector('img');
+    img.src=rootEl.querySelector('[data-shift-overview-summary-image]').src;
+    document.body.appendChild(dialog);
+    let scale=1,closed=false;
+    function zoom(next,x=viewport.clientWidth/2,y=viewport.clientHeight/2){
+      const previous=scale;scale=Math.max(1,Math.min(6,next));
+      img.style.width=(scale*100)+'%';
+      viewport.scrollLeft=(viewport.scrollLeft+x)*scale/previous-x;
+      viewport.scrollTop=(viewport.scrollTop+y)*scale/previous-y;
+    }
+    dialog.addEventListener('click',event=>{
+      if(event.target.closest('[data-summary-close]')){dialog.close();return;}
+      const control=event.target.closest('[data-summary-zoom]');if(control){const action=control.getAttribute('data-summary-zoom');zoom(action==='fit'?1:scale*(action==='in'?1.5:1/1.5));}
+    });
+    const pointers=new Map();let gesture=null;
+    function startGesture(){
+      const points=[...pointers.values()],rect=viewport.getBoundingClientRect();
+      gesture={points,scale,left:viewport.scrollLeft,top:viewport.scrollTop,rect};
+    }
+    viewport.addEventListener('pointerdown',event=>{if(event.pointerType==='mouse'&&event.button!==0)return;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});viewport.setPointerCapture(event.pointerId);startGesture();});
+    viewport.addEventListener('pointermove',event=>{
+      if(!pointers.has(event.pointerId)||!gesture)return;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});const points=[...pointers.values()];
+      if(points.length===1&&gesture.points.length===1){viewport.scrollLeft=gesture.left+gesture.points[0].x-points[0].x;viewport.scrollTop=gesture.top+gesture.points[0].y-points[0].y;}
+      if(points.length>=2&&gesture.points.length>=2){const distance=p=>Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),base=distance(gesture.points);if(!base)return;const x=(gesture.points[0].x+gesture.points[1].x)/2-gesture.rect.left,y=(gesture.points[0].y+gesture.points[1].y)/2-gesture.rect.top;scale=Math.max(1,Math.min(6,gesture.scale*distance(points)/base));img.style.width=scale*100+'%';viewport.scrollLeft=(gesture.left+x)*scale/gesture.scale-x;viewport.scrollTop=(gesture.top+y)*scale/gesture.scale-y;}
+    });
+    ['pointerup','pointercancel'].forEach(type=>viewport.addEventListener(type,event=>{pointers.delete(event.pointerId);startGesture();}));
+    viewport.addEventListener('dblclick',()=>zoom(scale===1?2:1));
+    const observer=new MutationObserver(()=>{if(!rootEl.isConnected||!ownerAllowed())cleanup();});
+    observer.observe(document.body,{childList:true,subtree:true});
+    function cleanup(){if(closed)return;closed=true;observer.disconnect();if(dialog.open)dialog.close();dialog.remove();if(trigger?.isConnected&&ownerAllowed())trigger.focus({preventScroll:true});}
+    dialog.addEventListener('close',cleanup);
+    closeSummaryViewer=cleanup;
+    dialog.showModal();
+  }
+
   function buildHtml(record) {
     return [
       '<div class="appMenuCard appMenuAdminCard rakShiftOverviewCard" id="rakShiftOverviewRoot">',
@@ -436,6 +584,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
       '<div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit přehled</button><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>',
+      panel('Celkový přehled','<button type="button" class="rakShiftOverviewPreview" data-shift-overview-summary-open aria-label="Zvětšit celkový přehled směny"><img data-shift-overview-summary-image alt="Barevná souhrnná tabulka směny"><span>Klepnutím zvětšíš přehled</span></button>'),
       '</div>'
     ].join('');
   }
@@ -568,6 +717,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function render(body, forcedRecord) {
     removeQuantityKeyboard();
+    closeSummaryViewer();
     if (!body) return false;
     if (!ownerAllowed()) {
       body.dataset.adminView = 'shift-overview';
@@ -593,6 +743,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     bindQuantityKeyboard(rootEl);
     refreshTotals(rootEl);
     refreshMultipliers(rootEl);
+    refreshSummary(rootEl);
 
     function finishQuantity(event) {
       if (!ownerAllowed()) return;
@@ -600,6 +751,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       syncDateDisplay(rootEl);
       refreshMultipliers(rootEl);
       refreshTotals(rootEl);
+      refreshSummary(rootEl);
     }
     rootEl.addEventListener('change', finishQuantity);
     rootEl.addEventListener('focusout', finishQuantity);
@@ -613,9 +765,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         || event.target.matches('[data-shift-overview-field^="oam.rows."]')
         || event.target.matches('[data-shift-overview-field^="inputs.rows."]')
       )) refreshTotals(rootEl);
+      refreshSummary(rootEl);
     });
 
     rootEl.addEventListener('click', (event) => {
+      if (event.target.closest?.('[data-shift-overview-summary-open]')) { event.preventDefault(); openSummaryViewer(rootEl); return; }
       const restore = event.target?.closest?.('[data-quantity-restore]');
       if (restore && rootEl.contains(restore)) {
         event.preventDefault();
@@ -626,6 +780,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           clearQuantityUndo(rootEl);
           refreshMultipliers(rootEl);
           refreshTotals(rootEl);
+          refreshSummary(rootEl);
         }
         return;
       }
@@ -642,6 +797,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           rememberQuantityHistory(input, expression, input.value, factor);
           refreshMultipliers(rootEl);
           refreshTotals(rootEl);
+          refreshSummary(rootEl);
         }
         return;
       }
@@ -656,6 +812,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           input.value = String(Math.max(0, numberOrZero(input.value) + step));
           input.dispatchEvent(new Event('input', { bubbles: true }));
           refreshTotals(rootEl);
+          refreshSummary(rootEl);
         }
         return;
       }
@@ -676,6 +833,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           rootEl.querySelectorAll('[data-shift-overview-calculate]').forEach(calculateQuantity);
           refreshMultipliers(rootEl);
           refreshTotals(rootEl);
+          refreshSummary(rootEl);
           const record = readDom(rootEl);
           const store = readStore();
           store[recordKey(record.date, record.shift)] = record;
@@ -720,6 +878,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const style = document.createElement('style');
     style.id = 'rakShiftOverviewStyle';
     style.textContent = [
+      '#rakShiftOverviewRoot .rakShiftOverviewPreview{display:grid;gap:8px;width:100%;margin:0;padding:0;background:transparent;border:0;color:var(--text);font:inherit;cursor:pointer;}.rakShiftOverviewPreview img{display:block;width:100%;height:auto;border:1px solid #ffffff44;border-radius:8px;background:white;}.rakShiftOverviewPreview span{font-size:12px;opacity:.7;}',
+      'dialog.rakShiftOverviewViewer{position:fixed;inset:0;margin:0;padding:0;border:0;border-radius:0;width:100vw;max-width:none;height:100dvh;max-height:none;background:#161827;color:#fff;overflow:hidden;}dialog.rakShiftOverviewViewer[open]{display:flex;flex-direction:column;}dialog.rakShiftOverviewViewer::backdrop{background:#111d;}.rakShiftOverviewViewerToolbar{display:flex;align-items:center;gap:6px;flex:none;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;}.rakShiftOverviewViewerToolbar strong{flex:1;min-width:0;font:700 14px Arial,sans-serif;}.rakShiftOverviewViewerToolbar button{width:auto;min-width:38px;min-height:44px;margin:0;padding:4px 8px;border:1px solid #ffffff55;border-radius:8px;background:#ffffff15;color:inherit;font:700 16px Arial,sans-serif;}.rakShiftOverviewViewerViewport{flex:1;min-height:0;overflow:auto;touch-action:none;padding-bottom:env(safe-area-inset-bottom);}.rakShiftOverviewViewerViewport img{display:block;width:100%;max-width:none;height:auto;user-select:none;}',
       '.rakShiftOverviewHistory{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;font-weight:400;color:var(--text);opacity:.72;overflow-wrap:anywhere;}.rakShiftOverviewHistory[hidden]{display:none}.rakShiftOverviewHistory>span{flex:1;}#rakShiftOverviewRoot .rakShiftOverviewHistory button{display:inline-block;width:auto;max-width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:0;box-shadow:none;text-decoration:underline;min-height:32px;padding:4px 0;margin:0;cursor:pointer;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel>span{text-align:left;font-size:13px;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel .rakShiftOverviewHistory{grid-column:1/-1;}.rakShiftOverviewIndexIdentity{display:grid;gap:4px;}.rakShiftOverviewIndexIdentity .rakShiftOverviewHistory{display:grid;gap:0;font-size:10px;}.rakShiftOverviewIndexIdentity .rakShiftOverviewHistory[hidden]{display:none;}#rakShiftOverviewRoot .rakShiftOverviewIndexIdentity .rakShiftOverviewHistory button{justify-self:start;min-height:24px;padding:2px 0;}',
       '.rakShiftOverviewKeyboard{position:fixed;z-index:2147483646;transform:translateX(-50%);display:flex;gap:8px;padding:6px;background:#30235d;color:#fff68a;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 2px 12px #0006;max-width:calc(100% - 16px);box-sizing:border-box}',
       '.rakShiftOverviewKeyboard[hidden]{display:none}.rakShiftOverviewKeyboard button{font:inherit;font-weight:700;color:inherit;background:#ffffff18;border:1px solid #ffffff44;border-radius:10px;min-width:56px;height:44px;margin:0;padding:0 14px;touch-action:manipulation}',

@@ -289,3 +289,12 @@ Po CI:
 - Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny. Pouze frontend development/TEST; žádné DB/Edge zápisy.
 - Dvě čisté canonical sestavy PASS, digest 697fd0240ec6fce9799e976404d5c201e90fab38510ba0d6f0e7f013f148dda4; zdroje nezměněny. CI #884 / 38117165792, attempt 1 verify i release-preview SUCCESS bez opakování nebo změny limitů.
 - Funkční SHA c5e3700b674de9fb0c57d2fb960634fa3b73a574; READY dpl_BwpMi9PAATQugpMPPNKDhveZVoyi, https://skoda-spada-5jj3z7e10-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.20, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Main 915a75793207b4125a0489dd8e5c824696f227ab beze změny, pouze development zápisy. Implementace/nasazení/automatické ověření 100 %; fyzická přejímka těchto úprav iPhone čeká na vlastníka.
+
+## TEST 1.9.21 – živý obrázkový souhrn směny (2026-10-11)
+
+- Vlastník potvrdil vzhled a chování TEST 1.9.20 slovy „Vypada to ok“; fyzická přejímka této verze PASS.
+- Nová objednávka: úplně dole automatický celkový přehled ve stylu Excelu, náhled obrázku s otevřením přes celou obrazovku.
+- Vektorový SVG náhled bere aktuální zadané hodnoty i před uložením, všechny tři aktivní indexy a součty po operacích. Obsahuje ALD1/2 součty viditelných dílů, ALD3 ruční součet, poslední vsázky, dusík, zapsané díly a neprázdné závady/poznámky. Žádné nové editovatelné nebo uložené hodnoty; žlutý index a archivní skrytá data v součtech chybí. Plán skladu, normativ a Min/Max se nevymýšlejí. Díly v toku = devět operací před skladem/montáží; Celkem kusů = tok + sklad + montáž.
+- Native fullscreen dialog: +/− zoom, Celek, tažení/pinch/dvojklik a zavření ×/Escape. Vrací focus na náhled, odstraní se při renderu/opuštění obrazovky; owner kontrola před otevřením. SVG escapuje uživatelský text.
+- Cílené testy 26/26 PASS. Chromium 320/390/768/1366 px: live hodnoty, výpočty, součty, counter, SVG/XML escaping, žádný horizontální overflow, dialog/zoom/pan/fit/Escape/focus, route cleanup a owner gate PASS. Fyzická přejímka nového náhledu na iPhone čeká na vlastníka.
+- Nasazení a canonical důkaz budou doplněny po CI.

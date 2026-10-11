@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.20'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview20'"));
-  assert.ok(index.includes("var e='so20',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview20"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.21'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview21'"));
+  assert.ok(index.includes("var e='so21',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview21"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -329,4 +329,15 @@ test('only the latest calculation exposes transient undo and it cannot return fo
  api.clearQuantityUndo(root);assert(displays.every(d=>d.hidden));assert.equal(api.quantityUndo.get(root),undefined);
  const restore=feature.slice(feature.indexOf("const restore = event.target"),feature.indexOf('const multiply = event.target'));
  assert.ok(!restore.includes('.focus('));assert.ok(!restore.includes('setSelectionRange'));
+});
+
+test('summary image derives active values and totals, excludes archived data and escapes notes', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({date:'2026-10-11',shift:'B:ranni12',oam:{rows:{ag:{op1020:'320+256'},af:{stock:'192'},ah:{assembly:'39'},ad:{stock:'987654'}}},inputs:{ald3:'7',rows:{SR1:{ald1:2,ald2:999}}},nitrogen:'99,8',notes:'<script>alert(1)</script> & poznámka'});
+ const svg=api.summarySvg(record);
+ for(const value of ['576','807','99,8','ALD1: 2','&lt;script&gt;alert(1)&lt;/script&gt; &amp; poznámka'])assert.ok(svg.includes(value),value);
+ for(const value of ['987654','999','<script>','Plán sklad','AD / AG'])assert.ok(!svg.includes(value),value);
+ assert.match(svg,/width="1460"/);assert.ok(feature.includes('data-shift-overview-summary-open'));
 });
