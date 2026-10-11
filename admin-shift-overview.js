@@ -142,7 +142,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       },
       oam: { rows: oamRows },
       process: { rows: {} },
-      inputs: { ald1: '', ald2: '', rows: {} },
+      inputs: { ald1: '', ald2: '', ald3: '', rows: {} },
       nitrogen: '',
       machiningFaults: '',
       notes: '',
@@ -251,7 +251,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (opts.area) {
       return '<textarea class="rakShiftOverviewArea" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" rows="' + String(opts.rows || 3) + '" placeholder="' + esc(opts.placeholder || '') + '">' + esc(value) + '</textarea>';
     }
-    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode === 'numeric' ? 'text' : (opts.inputmode || 'text')) + '"' + (['numeric','decimal'].includes(opts.inputmode) ? ' data-shift-overview-calculate' : '') + ' value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
+    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode || 'text') + '"' + (['numeric','decimal'].includes(opts.inputmode) ? ' data-shift-overview-calculate' : '') + ' value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
   }
 
   function shiftOptions(selected) {
@@ -333,9 +333,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function inputsTable(record) {
     return '<div class="rakShiftOverviewBatchColumns">' + [[1,ALD1_INPUT_ROWS],[2,ALD2_INPUT_ROWS]].map(([id,rows]) => panel('ALD' + id,
-      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { label: 'ALD' + id + ' · Poslední vsázka' }) +
+      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { inputmode: 'numeric', label: 'ALD' + id + ' · Poslední vsázka' }) +
       '<div class="rakShiftOverviewInputRows">' + rows.map(name => batchCounter(name,id,record)).join('') + '</div><div class="rakShiftOverviewAldTotal"><span>Celkem vsázek</span><output data-shift-overview-ald-total="' + id + '" aria-live="polite">0</output></div>')).join('') +
-      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{label:'ALD3 · Poslední vsázka'})) +
+      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{inputmode:'numeric',label:'ALD3 · Poslední vsázka'}) + labeledField('Celkem vsázek','inputs.ald3',record,{inputmode:'numeric',label:'ALD3 · Celkem vsázek'})) +
       panel('Dusík',labeledField('Hodnota','nitrogen',record,{inputmode:'decimal',label:'Dusík · Hodnota'})) + '</div></div>';
   }
 
@@ -445,7 +445,69 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (el) el.textContent = String(message || '');
   }
 
+  let removeQuantityKeyboard = () => {};
+
+  // Native numeric keyboards lack operators on iOS. Keep the focused numeric
+  // input and place a small accessory in the visible viewport above the keyboard.
+  function bindQuantityKeyboard(rootEl) {
+    const bar = document.createElement('div');
+    bar.className = 'rakShiftOverviewKeyboard';
+    bar.hidden = true;
+    bar.setAttribute('role', 'group');
+    bar.setAttribute('aria-label', 'Výpočet v číselném poli');
+    bar.innerHTML = '<button type="button" data-quantity-operator="+" aria-label="Přidat plus">+</button><button type="button" data-quantity-operator="-" aria-label="Přidat mínus">−</button><button type="button" data-quantity-done>Hotovo</button>';
+    document.body.appendChild(bar);
+    let input = null;
+    const viewport = root.visualViewport;
+    function position() {
+      if (!rootEl.isConnected) { cleanup(); return; }
+      const visible = ownerAllowed() && input && input.isConnected && document.activeElement === input;
+      bar.hidden = !visible;
+      if (!visible) return;
+      bar.style.top = Math.max(0, (viewport ? viewport.offsetTop + viewport.height : root.innerHeight) - bar.offsetHeight - 8) + 'px';
+      bar.style.left = ((viewport ? viewport.offsetLeft : 0) + (viewport ? viewport.width : root.innerWidth) / 2) + 'px';
+    }
+    function focus(event) {
+      input = event.target.matches('[data-shift-overview-calculate]:not([readonly])') ? event.target : null;
+      position();
+    }
+    function blur() { input = null; bar.hidden = true; }
+    function insert(event) {
+      const button = event.target.closest('button');
+      if (!button || !ownerAllowed() || !input || !input.isConnected || document.activeElement !== input) return;
+      if (button.hasAttribute('data-quantity-done')) { input.blur(); return; }
+      const operator = button.getAttribute('data-quantity-operator');
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      input.setRangeText(operator, start, end, 'end');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    // Prevent a pointer tap from closing the keyboard or evaluating too early.
+    bar.addEventListener('pointerdown', event => event.preventDefault());
+    bar.addEventListener('mousedown', event => event.preventDefault());
+    bar.addEventListener('click', insert);
+    rootEl.addEventListener('focusin', focus);
+    rootEl.addEventListener('focusout', blur);
+    viewport?.addEventListener('resize', position);
+    viewport?.addEventListener('scroll', position);
+    root.addEventListener('resize', position);
+    const observer = new MutationObserver(() => { if (!rootEl.isConnected) cleanup(); });
+    observer.observe(document.body, { childList: true, subtree: true });
+    function cleanup() {
+      input = null;
+      bar.remove();
+      observer.disconnect();
+      rootEl.removeEventListener('focusin', focus);
+      rootEl.removeEventListener('focusout', blur);
+      viewport?.removeEventListener('resize', position);
+      viewport?.removeEventListener('scroll', position);
+      root.removeEventListener('resize', position);
+    }
+    removeQuantityKeyboard = cleanup;
+  }
+
   function render(body, forcedRecord) {
+    removeQuantityKeyboard();
     if (!body) return false;
     if (!ownerAllowed()) {
       body.dataset.adminView = 'shift-overview';
@@ -468,6 +530,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const rootEl = body && body.querySelector ? body.querySelector('#rakShiftOverviewRoot') : null;
     if (!rootEl || rootEl.dataset.bound === '1') return;
     rootEl.dataset.bound = '1';
+    bindQuantityKeyboard(rootEl);
     refreshTotals(rootEl);
     refreshMultipliers(rootEl);
 
@@ -579,6 +642,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const style = document.createElement('style');
     style.id = 'rakShiftOverviewStyle';
     style.textContent = [
+      '.rakShiftOverviewKeyboard{position:fixed;z-index:2147483646;transform:translateX(-50%);display:flex;gap:8px;padding:6px;background:#30235d;color:#fff68a;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 2px 12px #0006;max-width:calc(100% - 16px);box-sizing:border-box}',
+      '.rakShiftOverviewKeyboard[hidden]{display:none}.rakShiftOverviewKeyboard button{font:inherit;font-weight:700;color:inherit;background:#ffffff18;border:1px solid #ffffff44;border-radius:10px;min-width:56px;height:44px;margin:0;padding:0 14px;touch-action:manipulation}', 
       '#appMenuBody[data-admin-view="shift-overview"] .rakShiftOverviewCard{display:grid;gap:12px;min-width:0;}',
       '.rakShiftOverviewCard *{box-sizing:border-box;min-width:0;}',
       '.rakShiftOverviewCard label{display:grid;gap:6px;font-size:12px;font-weight:800;overflow-wrap:anywhere;}',

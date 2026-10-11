@@ -35,7 +35,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 10. 10. 2026
+## Aktuální stav k 11. 10. 2026
 
 ### RaK 1.9.0 je v produkci
 
@@ -254,3 +254,13 @@ Po CI:
 - Ověření souhrnného vydání 1.9.17: 22 cílených testů PASS. Dvě čisté canonical sestavy PASS, digest 1e459ea423120fc2d2dc865616cec71f1f9ddfb5db42f5453ca79623db57a0ec, zdroje nezměněny.
 - Chromium 320/390/768/1366 px: vlastní sekce Před 145, save/reload, výrazy 320+256=576 / 320−256=64 / řetězení / desetinné 0,1+0,2=0.3 / neúplný výraz zachován, nabídky ×32/×64, readonly počítadla −/počet/+ s minimem 0 a součty ALD1/ALD2 12/8, owner gate a historická data PASS. Vše bez horizontálního přetečení.
 - CI #878 / 38087582230 verify i release-preview SUCCESS. Funkční SHA c2b8c6b5875322e87859b38566831fcccc5574b6. READY dpl_4zrEu4U2DY6Znaxm6EFHVRqZ2KWn (skoda-spada-h34uji5ms-martinspadrnas-projects.vercel.app), přesný SHA potvrzen. Veřejný TEST HTTP 200, verze 1.9.17, přesná shoda modulu a TEST Supabase konfigurace ověřeny. Main 915a75793207b4125a0489dd8e5c824696f227ab nezměněno. Produkce/Supabase bez zápisů. Fyzická přejímka iPhone čeká na uživatele.
+
+
+## TEST 1.9.18 – ALD3 celkem a číselná klávesnice (2026-10-11)
+
+- ALD3 má samostatné ruční pole Celkem vsázek (`inputs.ald3`); uloží se a načte nezávisle na součtech ALD1/ALD2. Staré záznamy dostanou prázdnou hodnotu.
+- Všechna editovatelná číselná pole mají inputmode numeric; Dusík decimal. Nativní číselná klávesnice iOS nemá operátory, proto je při zaměření pole nad viditelnou klávesnicí pomocná lišta + / − / Hotovo. Vkládá na místo kurzoru nebo nahradí výběr, zachovává focus, výpočet proběhne při opuštění pole. Poslední vsázky také otevírají číselnou klávesnici.
+- Lišta sleduje visualViewport (resize/scroll), při odchodu z přehledu se odstraní a odpojí listenery. Owner kontrola zachována. Pouze frontend development/TEST; DB ani Edge se nemění.
+- 23 cílených testů PASS. Browser fixture Chromium 320/390/768/1366 px PASS: operátory, kurzor/výběr, focus, Hotovo/blur výpočty, ALD3 save/reload, součty ALD1/2, ×32/×64, owner gate, historická data, bez horizontálního posouvání. Nativní klávesnice fyzického iPhonu vyžaduje přejímku vlastníka.
+- Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, produkční migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny proti poslednímu strojovému důkazu.
+- Canonical build, CI a nasazení: čekají na ověření tohoto vydání.

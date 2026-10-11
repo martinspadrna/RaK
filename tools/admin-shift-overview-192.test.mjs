@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.17'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview17'"));
-  assert.ok(index.includes("var e='so17',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview17"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.18'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview18'"));
+  assert.ok(index.includes("var e='so18',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview18"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -284,4 +284,17 @@ test('ALD totals sum each visible list independently and exclude historic hidden
  context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'5');assert.equal(out[2].textContent,'5');
  fields['inputs.rows.SR1.ald1']=4;context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'6');assert.equal(out[2].textContent,'5');
  assert.ok(feature.includes('Celkem vsázek'));assert.ok(feature.includes('<output data-shift-overview-ald-total='));
+});
+
+
+test('ALD3 manual total persists independently and numeric inputs retain arithmetic access', () => {
+ const context=vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})},localStorage:{getItem:()=> '{}'}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,readDom,setRecord:(el,r)=>renderedRecords.set(el,r)};'),context);
+ const api=context.window.fixture,record=api.normalizeRecord({date:'2026-10-11',shift:'B:nocni12',inputs:{ald3:'17',rows:{AAR:{ald1:2}}}});
+ const body={dataset:{},innerHTML:'',querySelector:()=>null};context.window.RakAdminShiftOverview.render(body,record);
+ const inputs=[...body.innerHTML.matchAll(/<input[^>]+data-shift-overview-field="([^"]+)"[^>]*>/g)];
+ for(const [tag,path]of inputs){if(!tag.includes('readonly')){assert.match(tag,/inputmode="(?:numeric|decimal)"/,path);assert.ok(tag.includes('data-shift-overview-calculate'),path);}}
+ assert.match(body.innerHTML,/data-shift-overview-field="inputs.ald3"[^>]+value="17"/);
+ const el={querySelector:s=>s.includes('date')?{value:record.date}:{value:record.shift},querySelectorAll:()=>[{getAttribute:()=> 'inputs.ald3',value:'19'}]};
+ api.setRecord(el,record);const saved=api.readDom(el);assert.equal(saved.inputs.ald3,'19');assert.equal(saved.inputs.rows.AAR.ald1,2);assert.equal(api.normalizeRecord(saved).inputs.ald3,'19');
 });
