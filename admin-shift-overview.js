@@ -143,6 +143,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       oam: { rows: oamRows },
       process: { rows: {} },
       inputs: { ald1: '', ald2: '', ald3: '', rows: {} },
+      calculations: {},
       nitrogen: '',
       machiningFaults: '',
       notes: '',
@@ -174,6 +175,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const src = record && typeof record === 'object' ? record : {};
     base.date = String(src.date || date || base.date);
     base.shift = normalizeShift(src.shift || shift || base.shift);
+    base.calculations = Object.fromEntries(Object.entries(src.calculations && typeof src.calculations === 'object' ? src.calculations : {}).map(([path,history]) => [path, validQuantityHistory(history)]).filter(([,history]) => history));
     base.notes = String(src.notes || '');
     base.nitrogen = String(src.nitrogen ?? '');
     base.machiningFaults = String(src.machiningFaults || '');
@@ -248,10 +250,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function field(path, record, options) {
     const opts = options || {};
     const value = nestedGet(record, path);
+    const history = validQuantityHistory(record.calculations?.[path]);
+    const historyAttrs = history ? ' data-quantity-expression="' + esc(history.expression) + '" data-quantity-result="' + esc(history.result) + '" data-quantity-factor="' + history.factor + '"' : '';
     if (opts.area) {
       return '<textarea class="rakShiftOverviewArea" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" rows="' + String(opts.rows || 3) + '" placeholder="' + esc(opts.placeholder || '') + '">' + esc(value) + '</textarea>';
     }
-    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode || 'text') + '"' + (['numeric','decimal'].includes(opts.inputmode) ? ' data-shift-overview-calculate' : '') + ' value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
+    return '<input class="appMenuInlineInput rakShiftOverviewInput" data-shift-overview-field="' + esc(path) + '" aria-label="' + esc(opts.label || path) + '" type="text" inputmode="' + esc(opts.inputmode || 'text') + '"' + (['numeric','decimal'].includes(opts.inputmode) ? ' data-shift-overview-calculate' : '') + historyAttrs + ' value="' + esc(value) + '" placeholder="' + esc(opts.placeholder || '') + '">';
   }
 
   function shiftOptions(selected) {
@@ -284,12 +288,51 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function calculateQuantity(input) {
     if (!input || input.readOnly || !input.hasAttribute('data-shift-overview-calculate')) return;
-    const result = evaluateQuantityExpression(input.value);
-    if (result !== null) input.value = result;
+    const expression = input.value;
+    const result = evaluateQuantityExpression(expression);
+    if (result !== null) {
+      input.value = result;
+      rememberQuantityHistory(input, expression, result);
+    }
+  }
+
+  function validQuantityHistory(value) {
+    if (!value || typeof value !== 'object') return null;
+    const expression = String(value.expression ?? '');
+    const result = String(value.result ?? '');
+    const factor = Number(value.factor || 0);
+    const expected = factor === 32 || factor === 64
+      ? (canMultiply(expression) ? String(Number(expression.trim()) * factor) : null)
+      : factor === 0 ? evaluateQuantityExpression(expression) : null;
+    return expected !== null && expected === result ? { expression, result, factor } : null;
+  }
+
+  function inputQuantityHistory(input) {
+    if (!input?.getAttribute) return null;
+    return validQuantityHistory({ expression: input.getAttribute('data-quantity-expression'), result: input.getAttribute('data-quantity-result'), factor: input.getAttribute('data-quantity-factor') });
+  }
+
+  function quantityHistoryText(history) {
+    const expression = history.factor ? history.expression.trim() + ' × ' + history.factor : history.expression.trim();
+    return expression + ' = ' + history.result;
+  }
+
+  function rememberQuantityHistory(input, expression, result, factor) {
+    if (!input.setAttribute) return;
+    const history = validQuantityHistory({expression, result, factor});
+    if (!history) return;
+    input.setAttribute('data-quantity-expression', history.expression);
+    input.setAttribute('data-quantity-result', history.result);
+    input.setAttribute('data-quantity-factor', String(history.factor));
+    const display = input.closest('label')?.querySelector('[data-quantity-history]');
+    if (display) {
+      display.hidden = false;
+      display.querySelector('[data-quantity-history-text]').textContent = quantityHistoryText(history);
+    }
   }
 
   function quantityMultiplier(key) {
-    return { stock: 32, assembly: 32, op1121: 32, hard: 32, op31: 64, op121: 64 }[key] || 0;
+    return { stock: 32, assembly: 32, op1121: 32, hard: 32, after145: 32, op31: 64, op121: 64, op145: 64 }[key] || 0;
   }
 
   function canMultiply(value) {
@@ -306,12 +349,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function labeledField(label, path, record, options) {
     const opts = Object.assign({ label }, options);
+    if (opts.insetLabel) opts.placeholder = label;
     let control = field(path, record, opts);
     if (opts.multiplier) {
       control = '<div class="rakShiftOverviewQuantity">' + control +
         '<button type="button" class="appMenuAction rakShiftOverviewMultiply" data-shift-overview-multiply="' + esc(path) + '" aria-label="Vynásobit ' + esc(opts.label) + ' číslem ' + opts.multiplier + '"' + (canMultiply(nestedGet(record,path)) ? '' : ' hidden') + '>×' + opts.multiplier + '</button></div>';
     }
-    return '<label><span>' + esc(label) + '</span>' + control + '</label>';
+    const history = validQuantityHistory(record.calculations?.[path]);
+    const historyControl = ['numeric','decimal'].includes(opts.inputmode) ? '<div class="rakShiftOverviewHistory" data-quantity-history' + (history ? '' : ' hidden') + '><span data-quantity-history-text>' + (history ? esc(quantityHistoryText(history)) : '') + '</span><button type="button" data-quantity-restore aria-label="Vrátit poslední zadání · ' + esc(opts.label) + '">Vrátit</button></div>' : '';
+    return '<label' + (opts.insetLabel ? ' class="rakShiftOverviewInsetLabel"' : '') + '>' + (label && !opts.insetLabel ? '<span>' + esc(label) + '</span>' : '') + control + historyControl + '</label>';
   }
 
   function panel(title, html, cls) {
@@ -333,10 +379,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function inputsTable(record) {
     return '<div class="rakShiftOverviewBatchColumns">' + [[1,ALD1_INPUT_ROWS],[2,ALD2_INPUT_ROWS]].map(([id,rows]) => panel('ALD' + id,
-      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { inputmode: 'numeric', label: 'ALD' + id + ' · Poslední vsázka' }) +
+      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { insetLabel: true, inputmode: 'numeric', label: 'ALD' + id + ' · Poslední vsázka' }) +
       '<div class="rakShiftOverviewInputRows">' + rows.map(name => batchCounter(name,id,record)).join('') + '</div><div class="rakShiftOverviewAldTotal"><span>Celkem vsázek</span><output data-shift-overview-ald-total="' + id + '" aria-live="polite">0</output></div>')).join('') +
-      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{inputmode:'numeric',label:'ALD3 · Poslední vsázka'}) + labeledField('Celkem vsázek','inputs.ald3',record,{inputmode:'numeric',label:'ALD3 · Celkem vsázek'})) +
-      panel('Dusík',labeledField('Hodnota','nitrogen',record,{inputmode:'decimal',label:'Dusík · Hodnota'})) + '</div></div>';
+      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{insetLabel:true,inputmode:'numeric',label:'ALD3 · Poslední vsázka'}) + labeledField('Celkem vsázek','inputs.ald3',record,{insetLabel:true,inputmode:'numeric',label:'ALD3 · Celkem vsázek'})) +
+      panel('Dusík',labeledField('','nitrogen',record,{inputmode:'decimal',label:'Dusík'})) + '</div></div>';
   }
 
   function oamTable(record) {
@@ -344,7 +390,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Měkké obrábění', OAM_LEFT_COLUMNS.slice(0,2)],
       ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
       ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
-      ['Po nýtování', [OAM_LEFT_COLUMNS[7]]],
+      ['Po 145', [OAM_LEFT_COLUMNS[7]]],
       ['Po broušení', [{key:'hard',label:'212'}]],
       ['Sklad', [{key:'stock',label:'Sklad'}]],
       ['Montáž', [{key:'assembly',label:'Montáž'}]]
@@ -389,7 +435,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     record.date = date;
     record.shift = normalizeShift(shift);
     rootEl.querySelectorAll('[data-shift-overview-field]').forEach((el) => {
-      nestedSet(record, el.getAttribute('data-shift-overview-field'), String(el.value || '').trim());
+      const path = el.getAttribute('data-shift-overview-field');
+      nestedSet(record, path, String(el.value || '').trim());
+      const history = inputQuantityHistory(el);
+      if (history) record.calculations[path] = history;
     });
     record.updatedAt = new Date().toISOString();
     return record;
@@ -455,7 +504,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     bar.hidden = true;
     bar.setAttribute('role', 'group');
     bar.setAttribute('aria-label', 'Výpočet v číselném poli');
-    bar.innerHTML = '<button type="button" data-quantity-operator="+" aria-label="Přidat plus">+</button><button type="button" data-quantity-operator="-" aria-label="Přidat mínus">−</button><button type="button" data-quantity-done>Hotovo</button>';
+    bar.innerHTML = '<button type="button" data-quantity-operator="+" aria-label="Přidat plus">+</button><button type="button" data-quantity-operator="-" aria-label="Přidat mínus">−</button>';
     document.body.appendChild(bar);
     let input = null;
     const viewport = root.visualViewport;
@@ -475,7 +524,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     function insert(event) {
       const button = event.target.closest('button');
       if (!button || !ownerAllowed() || !input || !input.isConnected || document.activeElement !== input) return;
-      if (button.hasAttribute('data-quantity-done')) { input.blur(); return; }
       const operator = button.getAttribute('data-quantity-operator');
       const start = input.selectionStart ?? input.value.length;
       const end = input.selectionEnd ?? start;
@@ -554,6 +602,20 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
 
     rootEl.addEventListener('click', (event) => {
+      const restore = event.target?.closest?.('[data-quantity-restore]');
+      if (restore && rootEl.contains(restore)) {
+        event.preventDefault();
+        if (!ownerAllowed()) { status(rootEl, 'Přístup byl zamítnut.'); return; }
+        const input = restore.closest('label').querySelector('[data-shift-overview-field]');
+        const history = inputQuantityHistory(input);
+        if (history && !input.readOnly) {
+          input.value = history.expression;
+          input.focus({ preventScroll: true });
+          input.setSelectionRange(input.value.length, input.value.length);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
       const multiply = event.target && event.target.closest ? event.target.closest('[data-shift-overview-multiply]') : null;
       if (multiply && rootEl.contains(multiply)) {
         event.preventDefault();
@@ -562,7 +624,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         const input = multiply.parentElement.querySelector('[data-shift-overview-field]');
         const factor = quantityMultiplier(String(path).split('.').pop());
         if (input && factor && canMultiply(input.value)) {
-          input.value = String(Number(input.value.trim()) * factor);
+          const expression = input.value;
+          input.value = String(Number(expression.trim()) * factor);
+          rememberQuantityHistory(input, expression, input.value, factor);
           refreshMultipliers(rootEl);
           refreshTotals(rootEl);
         }
@@ -642,8 +706,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const style = document.createElement('style');
     style.id = 'rakShiftOverviewStyle';
     style.textContent = [
+      '.rakShiftOverviewHistory{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;font-weight:400;color:var(--text);opacity:.72;overflow-wrap:anywhere;}.rakShiftOverviewHistory[hidden]{display:none}.rakShiftOverviewHistory>span{flex:1;}#rakShiftOverviewRoot .rakShiftOverviewHistory button{display:inline-block;width:auto;max-width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:0;box-shadow:none;text-decoration:underline;min-height:32px;padding:4px 0;margin:0;cursor:pointer;}.rakShiftOverviewInsetLabel input::placeholder{color:var(--text);opacity:.55;font-size:13px;}',
       '.rakShiftOverviewKeyboard{position:fixed;z-index:2147483646;transform:translateX(-50%);display:flex;gap:8px;padding:6px;background:#30235d;color:#fff68a;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 2px 12px #0006;max-width:calc(100% - 16px);box-sizing:border-box}',
-      '.rakShiftOverviewKeyboard[hidden]{display:none}.rakShiftOverviewKeyboard button{font:inherit;font-weight:700;color:inherit;background:#ffffff18;border:1px solid #ffffff44;border-radius:10px;min-width:56px;height:44px;margin:0;padding:0 14px;touch-action:manipulation}', 
+      '.rakShiftOverviewKeyboard[hidden]{display:none}.rakShiftOverviewKeyboard button{font:inherit;font-weight:700;color:inherit;background:#ffffff18;border:1px solid #ffffff44;border-radius:10px;min-width:56px;height:44px;margin:0;padding:0 14px;touch-action:manipulation}',
       '#appMenuBody[data-admin-view="shift-overview"] .rakShiftOverviewCard{display:grid;gap:12px;min-width:0;}',
       '.rakShiftOverviewCard *{box-sizing:border-box;min-width:0;}',
       '.rakShiftOverviewCard label{display:grid;gap:6px;font-size:12px;font-weight:800;overflow-wrap:anywhere;}',

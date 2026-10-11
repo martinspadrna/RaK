@@ -265,3 +265,14 @@ Po CI:
 - Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, produkční migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny proti poslednímu strojovému důkazu.
 - Dvě čisté canonical sestavy PASS; digest faca26f6cd33dae87206eb5b76e381dbc4d1a25049d24f2ae74a7293d1ccb577, zdroje nezměněny. CI #880 / 38114086625 attempt 2 verify i release-preview SUCCESS. První pokus selhal na známé update-navigation race v browser-offline-17052 (prázdná release identity během navigace); opakování stejného SHA bez změny kódu/limitů prošlo.
 - Funkční SHA ab494f600dc9510d98e7bd055b8169f01903b172; READY dpl_4XepGgBJN9LUvRrGnDJ3qaDYnwGE, https://skoda-spada-k9ydp9o3r-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.18, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Main 915a75793207b4125a0489dd8e5c824696f227ab nezměněno; pouze development zápisy. Fyzická přejímka klávesnice iPhone čeká na vlastníka.
+
+
+## TEST 1.9.19 – vrácení výpočtu a kompaktní popisky (2026-10-11)
+
+- Odstraněno Hotovo z pomocné číselné lišty, zůstává + / −. Nativní dokončení klávesnice nebo opuštění pole nadále provede výpočet.
+- Pod každým číselným polem se jemně zobrazí poslední výpočet a odkaz Vrátit. Obnoví původní výraz do stejného pole, zaměří jej a umístí kurzor na konec pro opravu/dopsání. Samostatná historie na pole je lokálně uložena v calculations a zachována při save/load. Záznam se ověřuje podle skutečného výsledku; nepoužívá eval. Výpočet se nepřepíše druhou událostí blur po change.
+- Totéž platí pro ×32/×64: historie ukazuje např. 5 × 64 = 320 a Vrátit obnoví 5. Před 145 (op145) nově ×64, Po nýtování přejmenováno na Po 145 (after145) s ×32, stále nabídka pouze pro celá čísla 1–99. Datové klíče i oddělení od 120/121 zůstaly stejné.
+- Poslední vsázka u ALD1/2/3 a ruční Celkem vsázek ALD3 jsou placeholdery uvnitř polí; přístupné názvy zachovány. Hodnota u Dusíku odstraněna, pole má přístupný název Dusík. Automatické součty ALD1/2 zůstávají čitelné jako výstup pod počítadly.
+- 24 cílených testů PASS. Chromium fixture 320/390/768/1366px PASS: 200+32 → 232 → Vrátit → doplnění 1 → 521, odečítání, opakovaný blur, kurzor/focus, save/load historie, multiplier undo, nabídky 1–99, placeholdery, owner gate, součty a archivovaná data, bez horizontálního posouvání. Vizuálně ověřeno jemné Vrátit bez velkého tlačítka. Fyzická přejímka iPhone čeká na vlastníka.
+- Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny proti poslednímu strojovému důkazu. Pouze development frontend, žádné DB/Edge zápisy.
+- Canonical build, CI a nasazení čekají na ověření.

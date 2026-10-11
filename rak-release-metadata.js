@@ -1,11 +1,11 @@
 (function installRakReleaseMetadata(root) {
   const metadata = Object.freeze({
     displayVersion: '1.9.0',
-    visibleTestVersion: '1.9.18',
+    visibleTestVersion: '1.9.19',
     technicalVersion: '1.9.0',
     moduleCacheVersion: '1.9.0',
     cacheVersion: 'v1.9.0',
-    buildId: 'v1.9.0-shift-overview18'
+    buildId: 'v1.9.0-shift-overview19'
   });
   if (root) root.RAK_RELEASE_METADATA = metadata;
   if (typeof module !== 'undefined' && module.exports) module.exports = metadata;

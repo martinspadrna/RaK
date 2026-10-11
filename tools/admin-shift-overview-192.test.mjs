@@ -40,17 +40,17 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.18'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview18'"));
-  assert.ok(index.includes("var e='so18',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview18"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.19'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview19'"));
+  assert.ok(index.includes("var e='so19',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview19"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
 test('first version is local-only and covers the paper table fields', () => {
-  for (const label of ['Měkké obrábění','Sklad před kalením','Sklad po kalení','Po nýtování','Po broušení','Montáž','Poslední vsázka','Dusík','Závady','Celkové poznámky ke směně']) assert.ok(feature.includes(label),label);
+  for (const label of ['Měkké obrábění','Sklad před kalením','Sklad po kalení','Po 145','Po broušení','Montáž','Poslední vsázka','Dusík','Závady','Celkové poznámky ke směně']) assert.ok(feature.includes(label),label);
   for (const code of ['AG / AE','AF / AD','AH','Soustružení','Do skladu','Stav skladu','Awa','Awi','TW1','SR7','FR7','ZSB-RLR','SRRG','0AM 409 155 AG','0AM 409 111 AE']) {
     assert.ok(feature.includes(code), code);
   }
@@ -203,9 +203,9 @@ test('multiplication offers cover only requested stages and integers 1–99', ()
   const api=context.window.fixture;
   for(const value of ['1','9','10','99','01',' 42 '])assert.equal(api.canMultiply(value),true,value);
   for(const value of ['', '0','00','100','999','-1','1.5','1,5','1e1','abc','001'])assert.equal(api.canMultiply(value),false,value);
-  for(const key of ['stock','assembly','op1121','hard'])assert.equal(api.quantityMultiplier(key),32,key);
-  for(const key of ['op31','op121'])assert.equal(api.quantityMultiplier(key),64,key);
-  for(const key of ['op1020','op30','op120','op145','after145'])assert.equal(api.quantityMultiplier(key),0,key);
+  for(const key of ['stock','assembly','op1121','hard','after145'])assert.equal(api.quantityMultiplier(key),32,key);
+  for(const key of ['op31','op121','op145'])assert.equal(api.quantityMultiplier(key),64,key);
+  for(const key of ['op1020','op30','op120'])assert.equal(api.quantityMultiplier(key),0,key);
 });
 
 
@@ -217,7 +217,7 @@ test('riveting keeps historic before-145 values and saves after-145 independentl
   assert.equal(old.oam.rows.ag.op145,'384');
   assert.equal(old.oam.rows.ag.after145,'');
   const html=api.oamTable(old);
-  assert.ok(html.includes('Před 145'));assert.ok(html.includes('Po nýtování'));
+  assert.ok(html.includes('Před 145'));assert.ok(html.includes('Po 145'));
   for(const key of ['ag','af','ah'])for(const stage of ['op145','after145'])assert.ok(html.includes('oam.rows.'+key+'.'+stage));
   const nodes=[{value:'384',getAttribute:()=> 'oam.rows.ag.op145'},{value:'288',getAttribute:()=> 'oam.rows.ag.after145'}];
   const el={querySelector:()=>null,querySelectorAll:()=>nodes};
@@ -236,7 +236,7 @@ test('Excel flow groups before-145 under hardened stock and preserves archived w
  const api=context.window.fixture;
  const old=api.normalizeRecord({oam:{rows:{ag:{hard:'384',beforeWasher:'256',op145:'96',after145:'288'}}}},'2026-10-10','D:nocni12');
  const html=api.oamTable(old);
- assert.ok(html.includes('Po nýtování'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('>212<'));
+ assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('>212<'));
  assert.ok(!html.includes('v nouz. skl.'));assert.ok(!html.includes('před pračkou'));assert.ok(!html.includes('data-shift-overview-field="oam.rows.ag.beforeWasher"'));
  const panels=html.split('<h3>');
  const hardened=panels.find(p=>p.startsWith('Sklad po kalení'));
@@ -244,7 +244,7 @@ test('Excel flow groups before-145 under hardened stock and preserves archived w
  assert.ok(before145,'before 145 has its own section inside hardened stock');
  assert.ok(!hardened.split('<section class="rakShiftOverviewBefore145"')[0].includes('.op145"'));
  for(const key of ['ag','af','ah']){assert.ok(before145.includes('oam.rows.'+key+'.op145'));assert.ok(!before145.includes('oam.rows.'+key+'.op120'));assert.ok(!before145.includes('oam.rows.'+key+'.op121'));}
- const riveting=panels.find(p=>p.startsWith('Po nýtování'));
+ const riveting=panels.find(p=>p.startsWith('Po 145'));
  const grinding=panels.find(p=>p.startsWith('Po broušení'));
  for(const key of ['ag','af','ah']){
   assert.ok(hardened.includes('oam.rows.'+key+'.op145'));
@@ -297,4 +297,22 @@ test('ALD3 manual total persists independently and numeric inputs retain arithme
  assert.match(body.innerHTML,/data-shift-overview-field="inputs.ald3"[^>]+value="17"/);
  const el={querySelector:s=>s.includes('date')?{value:record.date}:{value:record.shift},querySelectorAll:()=>[{getAttribute:()=> 'inputs.ald3',value:'19'}]};
  api.setRecord(el,record);const saved=api.readDom(el);assert.equal(saved.inputs.ald3,'19');assert.equal(saved.inputs.rows.AAR.ald1,2);assert.equal(api.normalizeRecord(saved).inputs.ald3,'19');
+});
+
+
+test('last calculation is validated, preserved per field and escaped in rendering', () => {
+ const context=vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})},localStorage:{getItem:()=> '{}'}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,readDom,validQuantityHistory,calculateQuantity,setRecord:(el,r)=>renderedRecords.set(el,r)};'),context);
+ const api=context.window.fixture,attrs={'data-shift-overview-field':'oam.rows.ag.op1020','data-shift-overview-calculate':''};
+ const input={value:'200 + 32',readOnly:false,hasAttribute:k=>k in attrs,getAttribute:k=>attrs[k]??null,setAttribute:(k,v)=>attrs[k]=v,closest:()=>null};
+ api.calculateQuantity(input);assert.equal(input.value,'232');assert.equal(attrs['data-quantity-expression'],'200 + 32');
+ api.calculateQuantity(input);assert.equal(attrs['data-quantity-expression'],'200 + 32','change then blur retains expression');
+ assert.equal(api.validQuantityHistory({expression:'1+alert(1)',result:'2'}),null);
+ assert.equal(api.validQuantityHistory({expression:'1+2',result:'4'}),null);
+ assert.equal(api.validQuantityHistory({expression:'5',factor:64,result:'320'}).result,'320');
+ const record=api.normalizeRecord({date:'2026-10-11',shift:'D:ranni12',calculations:{'oam.rows.af.op1020':{expression:'3-1',result:'2'},bad:{expression:'<script>',result:'1'}}});
+ const el={querySelector:s=>s.includes('date')?{value:record.date}:{value:record.shift},querySelectorAll:()=>[input]};api.setRecord(el,record);
+ const saved=api.readDom(el);assert.equal(saved.calculations['oam.rows.ag.op1020'].expression,'200 + 32');assert.equal(saved.calculations['oam.rows.af.op1020'].result,'2');assert.equal(saved.calculations.bad,undefined);
+ const body={dataset:{},innerHTML:'',querySelector:()=>null};context.window.RakAdminShiftOverview.render(body,saved);assert.ok(body.innerHTML.includes('200 + 32 = 232'));assert.ok(body.innerHTML.includes('data-quantity-restore'));
+ assert.ok(!body.innerHTML.includes('Hotovo'));assert.ok(body.innerHTML.includes('placeholder="Poslední vsázka"'));assert.ok(body.innerHTML.includes('placeholder="Celkem vsázek"'));assert.ok(!body.innerHTML.includes('>Hodnota<'));assert.ok(!body.innerHTML.includes('Po nýtování'));
 });
