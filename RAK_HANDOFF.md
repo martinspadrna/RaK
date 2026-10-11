@@ -37,7 +37,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 
 ## Aktuální stav k 11. 10. 2026
 
-TEST 1.9.26 – role Mistr (ve Více pouze Přehled směny a jeho vlastní online záloha), ověřená owner výjimka pro Rotace při směně A mimo rozpis, nefocusovatelná počítadla ALD a oprava staré cache administračních rozpisů. Produkce zůstává zmrazená.
+TEST 1.9.28 – akce rozpisu vedle sebe, na mobilu Odebrat jako ×; Načíst měsíc a Obnovit náhled reportu odstraněny. Načíst online a živý náhled zachovány. Role Mistr a přehled směny z 1.9.26 beze změny. Produkce zůstává zmrazená.
 
 ### RaK 1.9.0 je v produkci
 
@@ -70,13 +70,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- funkční TEST důkazní bod 1.9.26: `7a5752272dc759277fca4ebfad1933299e771918`;
-- poslední ověřený READY deployment: `dpl_6TZo7cYwFA3SSUC53eazth5Z3w54`;
+- funkční TEST důkazní bod 1.9.28: `c1ca6a6ed8d117b0f2489d525b861cc551da239c`;
+- poslední ověřený READY deployment: `dpl_DUddE9kpfij6q8octskPc7vbd7D8`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
-- immutable URL: <https://skoda-spada-emzssd2v7-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `7a5752272dc759277fca4ebfad1933299e771918`;
-- development validation `#899` / ID `38141084533`, attempt 2: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, verze 1.9.26, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
-- Nad Tvrdotou/Měkotou jsou samostatná tlačítka Výjimky dne / Neplánovaná dovolená / Odebrat. Plovoucí nabídka při běžném nebo výjimkovém kliknutí je odstraněna. Režimy jsou výlučné v každé tabulce; výběr dovolené otevře původní dialog a ukončí readonly režim pro Ručně upravit. Odebrat mění jen místní návrh do Uložit rozpis. Absence mají také samostatné Odebrat. Mobilní toolbar se zalamuje, dotykové cíle nejméně 44px.
+- immutable URL: <https://skoda-spada-3b8j1cy64-martinspadrnas-projects.vercel.app>;
+- source commit deploymentu: `c1ca6a6ed8d117b0f2489d525b861cc551da239c`;
+- development validation `#902` / ID `38153649170`, attempt 2: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, verze 1.9.28, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
+- Nad Tvrdotou/Měkotou jsou samostatná tlačítka Výjimky dne / Neplánovaná dovolená / Odebrat. Plovoucí nabídka při běžném nebo výjimkovém kliknutí je odstraněna. Režimy jsou výlučné v každé tabulce; výběr dovolené otevře původní dialog a ukončí readonly režim pro Ručně upravit. Odebrat mění jen místní návrh do Uložit rozpis. Absence mají také samostatné Odebrat. Mobilní toolbar má tři akce vedle sebe podle dostupné šířky; do 420px Odebrat jako ×, dotykové cíle nejméně 44px. Načíst měsíc a Obnovit náhled reportu odstraněny, živý náhled a Načíst online zachovány.
 - TEST 1.9.26 obsahuje owner/Mistr přehled po pracovištích (v každém všechny tři aktivní indexy); datum/směna vedle sebe i na mobilu; automatickou směnu A–D, ranní/noční a 8/12 h podle aktivního cyklu RaK při otevření. Noční datum odpovídá začátku směny. Vždy dostupný ruční výběr; bez aktivní směny žádná falešná automatická volba. Vsázky ALD1/ALD2 jsou nefocusovatelná output počítadla − / počet / + vpravo s minimem 0. ALD3 má Poslední vsázku i ruční Celkem vsázek. Editovatelná číselná pole otevírají numeric/decimal klávesnici, pomocná lišta + / − umožňuje výpočty bez změny focusu. Poslední výpočet a Vrátit jsou přechodně pod indexem, zmizí při zápisu jinde a po vrácení; Vrátit neotevírá pole ani klávesnici. Historická calculations data jsou uchována bez trvalého UI. Párová pole mají stejnou pevnou výšku a zarovnání. Poslední vsázka a ruční Celkem vsázek mají název vlevo a pole vpravo; názvy dílů ALD1/2 zvětšené na 16px, Hodnota u Dusíku odstraněna. Před 145 nabízí ×64, Po nýtování je přejmenováno Po 145 s ×32. Doplňující údaje odstraněny z UI; historická data se při uložení zachovávají. Staré klíče se čtou jako směna D, nové obsahují tým. Datum je v ohraničeném rámečku s českým textem a nativním pickerem; popisky operací vystředěné; řádky ALD1/ALD2 oddělené čarou, počítadla roztažená blíž k názvům, +/hodnota/− mají stejný střed a výšku bez obecného spodního marginu. Celé indexové řádky barevné (zelená/modrá/oranžová). Zadaná celá čísla 1–99 nabízejí ×32 ve Skladu, Montáži, MO Lis a TO; ×64 u Lisů před a po kalení. Jednosloupcová pole roztažená pro nabídku přepočtu; popisky zůstávají nad polem. Kliknutí přepočítá pouze vybrané pole s owner kontrolou. Bez horizontálního posouvání, online záloha k ověřenému owner/Mistr účtu, místní kopie a trvalá offline fronta; nová DB/RPC pouze v TESTu, bez Edge zápisů;
 - Úplně dole je živý SVG obrázkový souhrn na výšku: jedna celá souvislá výrobní tabulka podle Excelu, všech 18 dílů svisle bez opakování ALD a s prázdnými nulovými počty, automatické součty a readonly fullscreen dialog (pinch, pan, dvojklik, ×/Escape; tlačítka −/+ a Celek odstraněna). Vlastník fyzicky schválil předchozí 1.9.20; nový náhled 1.9.24 čeká na jeho přejímku. Načíst předchozí odstraněno z UI i obsluhy.
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
@@ -383,4 +383,8 @@ Po CI:
 - Na žádost vlastníka odstraněny Načíst měsíc i Obnovit náhled reportu z UI/obsluhy. Zachovány Načíst online, ochrana rozepsaného návrhu i automatický náhled a místní draft při input/change.
 - Do 420px má Odebrat pouze ×, aria-label/title Odebrat, 44px cíl. Flex základy 76/112/44px s mezerami 6px; větší displeje plný text. Tlačítka se při nedostatku šířky zalomí. Akce, data a oprávnění beze změny.
 - Oba změněné report moduly přidány ke stávajícímu ověřenému SW stagingu pro stejné runtime URL. Žádné mazání uživatelských dat.
-- Implementace probíhá pouze development/TEST; finální důkazy budou doplněny po ověření a nasazení.
+- Implementace/nasazení/automatické ověření 100 %; fyzická přejímka aktuálního mobilního toolbaru na iPhone čeká na vlastníka. Chromium není Safari důkaz.
+- Chromium 320/384/390/768/1366px PASS: tři tlačítka v jednom řádku, mobilní × a přístupný název, minimálně 44px, výlučnost režimů, explicitní dovolená, odebrání se stávajícími draft input/change bez focusu, bez overflow/chyb; skutečný Report směny bez Obnovit náhled, aktualizace při psaní a místní draft zachovány. Šest SW regresí PASS včetně seeded OLD pěti modulů ve static/runtime/prewarm, zachování nesouvisející cache a fail-closed stagingu.
+- Dvě čisté canonical sestavy na exact SHA PASS, 166 souborů, digest 7f86208761f1d33f7d3d72e52156c63024a766a5624a1ee2f2ff41fd6a829ea9. StartupCore 470891B <=471314B. CI #902 / 38153649170 attempt1 selhalo pouze proměnlivým FCP P90 468ms vs447ms; attempt2 na stejném SHA bez změny kódu/limitů SUCCESS včetně verify/release-preview. FCP P90 344ms, baseline344ms, limit419ms.
+- Funkční SHA c1ca6a6ed8d117b0f2489d525b861cc551da239c; READY dpl_DUddE9kpfij6q8octskPc7vbd7D8, https://skoda-spada-3b8j1cy64-martinspadrnas-projects.vercel.app. Veřejný stabilní TEST HTTP200, verze1.9.28, index epochso28, přesná byte shoda devíti assetů a TEST isolation PASS; immutable/stable HTTP release proof v CI PASS. Rollback TEST dpl_GQ53ZzKpAKYN3EVLncpfx11ixLRm.
+- Produkční pre/post beze změny: main915a75793207b4125a0489dd8e5c824696f227ab, READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, DB head20260930112049, Edge absence17/admin15/hradnik3/export2. Žádné DB/Edge ani produkční zápisy.
