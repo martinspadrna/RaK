@@ -21,7 +21,7 @@ test('1.7.119 keeps five reasons, Kalírna availability and compact popup in suc
   const end=wizard.indexOf('\nfunction adminRotationUnplannedReasonOption',start);
   const block=wizard.slice(start,end);
   const values=[...block.matchAll(/value: '([^']+)'/g)].map(m=>m[1]);
-  assert.deepEqual(values,['D','NV','§','LEK','kalirnaOut']);
+  assert.deepEqual(values,['D','NV','§','N','kalirnaOut']);
   assert(rotation.includes('const absent = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);'));
   assert(wizard.includes('height:auto!important'));
   assert(wizard.includes('max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'));

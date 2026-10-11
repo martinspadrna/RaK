@@ -838,7 +838,7 @@ const ADMIN_UNPLANNED_REASON_OPTIONS = Object.freeze([
   Object.freeze({ value: 'D', label: 'Dovolená', kind: 'absence' }),
   Object.freeze({ value: 'NV', label: 'Náhradní volno', kind: 'absence' }),
   Object.freeze({ value: '§', label: 'Paragraf', kind: 'absence' }),
-  Object.freeze({ value: 'LEK', label: 'Lékař', kind: 'absence' }),
+  Object.freeze({ value: 'N', label: 'Neschopenka (N)', kind: 'absence' }),
   Object.freeze({ value: 'kalirnaOut', label: 'Odešel na kalírnu', kind: 'daymod' })
 ]);
 

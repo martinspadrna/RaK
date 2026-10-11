@@ -388,3 +388,17 @@ Po CI:
 - Dvě čisté canonical sestavy na exact SHA PASS, 166 souborů, digest 7f86208761f1d33f7d3d72e52156c63024a766a5624a1ee2f2ff41fd6a829ea9. StartupCore 470891B <=471314B. CI #902 / 38153649170 attempt1 selhalo pouze proměnlivým FCP P90 468ms vs447ms; attempt2 na stejném SHA bez změny kódu/limitů SUCCESS včetně verify/release-preview. FCP P90 344ms, baseline344ms, limit419ms.
 - Funkční SHA c1ca6a6ed8d117b0f2489d525b861cc551da239c; READY dpl_DUddE9kpfij6q8octskPc7vbd7D8, https://skoda-spada-3b8j1cy64-martinspadrnas-projects.vercel.app. Veřejný stabilní TEST HTTP200, verze1.9.28, index epochso28, přesná byte shoda devíti assetů a TEST isolation PASS; immutable/stable HTTP release proof v CI PASS. Rollback TEST dpl_GQ53ZzKpAKYN3EVLncpfx11ixLRm.
 - Produkční pre/post beze změny: main915a75793207b4125a0489dd8e5c824696f227ab, READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, DB head20260930112049, Edge absence17/admin15/hradnik3/export2. Žádné DB/Edge ani produkční zápisy.
+
+
+## 2026-10-11 — RaK v2.0.0 TEST release preparation
+
+- Request: glass Kantýna/Jídelna, strong current/next times, Neschopenka (N), new-device secured-login verification, v2 everywhere and short About summary; prepare TEST for a later main transfer only.
+- Runtime/PWA/package/module-cache identity `2.0.0`, build `v2.0.0-release1`, update epoch `v200`. About leads with compact RaK 2 summary; historical release entries stay intact.
+- Food actual CSS owner fixed including the final old override: overlay rgba(.22)/blur28, modal rgba(.14)/blur38; current green and next amber with dark text.
+- Secured intro login now waits for menu sign-in function AND sync bridge AND SDK. No new startup bucket, no local role/password fallback.
+- UI/client offer N instead of LEK. Narrow forward-only TEST migration `rak_unplanned_sick_leave_v200` applied, remote head `20261011170805`; CLI file `20261011164201_rak_unplanned_sick_leave_v200.sql`. Legacy LEK remains server-compatible; no existing records rewritten.
+- New tests: readiness race both orders/SDK delay, timeout+retry, identities/N catalog/CAS preservation. Browser: real gate/unlock/auth bridge functions with fictional credentials/mock SDK; empty storage, wrong password, account mismatch denied, correct foreman session/context/device flow passed. Food actual CSS+qr at Prague timezone 320/390/768px both locations/current+next/close/no horizontal overflow passed. Actual Safari/iPhone new-device password login not yet physically confirmed.
+- `supabase/ops/VERIFY_TEST_200.sql` transaction/ROLLBACK passed: new session context/device, N and legacy LEK writes, idempotent retry, stale P0001, selected-day scope, revoked-device denial, anonymous denial. No fixture/session/audit/schedule writes persisted. Anonymous login lookup v4 returns server requiresAdminAuth correctly for existing account directory, independent of local storage.
+- Supabase security advisors unchanged: RLS-no-policy23, anonymous-definer13, authenticated-definer50, leaked-password warning1.
+- Production rollout preparation: `supabase/ops/PRODUCTION_ROLLOUT_200.md`; required overview/Mistr/N migrations and JWT=true account-management function, production-config conversion, preflight/acceptance/rollback. No production mutations authorized or made. Current production function inventory differs from older expected documentation; reconcile before later approval.
+- Final exact SHA/build/CI/HTTP evidence follows after completion. Do not claim a production-ready merge from version text alone.

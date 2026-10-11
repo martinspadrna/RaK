@@ -14,8 +14,8 @@ test('1.7.115 five owner-approved reasons remain exact in successors', () => {
   const block = wizard.slice(start, end);
   const values = [...block.matchAll(/value: '([^']+)'/g)].map((m) => m[1]);
   const labels = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
-  assert.deepEqual(values, ['D','NV','§','LEK','kalirnaOut']);
-  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Lékař','Odešel na kalírnu']);
+  assert.deepEqual(values, ['D','NV','§','N','kalirnaOut']);
+  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Neschopenka (N)','Odešel na kalírnu']);
   assert(wizard.includes('<select id="adminUnplannedReason" class="appMenuSelect">'));
   assert(!wizard.includes('adminUnplannedReasonOptions'), 'old free-text datalist returned');
 });
@@ -35,7 +35,7 @@ test('1.7.115 client/server reason catalog remains locked to four absences plus 
   const end = bridge.indexOf('\n  async function listRotationBackups(', start);
   assert(start >= 0 && end > start);
   const block = bridge.slice(start, end);
-  assert(block.includes("['D','NV','§','LEK'].includes(reason)"));
+  assert(block.includes("['D','NV','§','N'].includes(reason)"));
   assert(block.includes("changeKind === 'daymod' && reason === 'kalirnaOut'"));
   assert(block.includes("client.rpc('rak_admin_apply_unplanned_change_v2'"));
   assert(migration.includes("if v_reason not in ('D','NV','§','LEK') then"));

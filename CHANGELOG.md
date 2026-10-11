@@ -1,3 +1,11 @@
+## RaK 2.0.0 (development)
+
+- Přehled směny s počítadly, výpočty, celkovou tabulkou a online zálohou k účtu; role Mistr.
+- Jednodušší ovládání rozpisů a neplánované absence včetně Neschopenky (N).
+- Průhlednější kantýna/jídelna, výrazné aktuální a nejbližší časy.
+- Zabezpečené přihlášení čeká na oba potřebné moduly i na novém zařízení. Aktualizace chrání rozepsaná data.
+- Verze 2.0.0 sjednocena v runtime, PWA, cache a balíčku. Převod na main se pouze připravuje.
+
 ## TEST 1.9.28 – jednodušší ovládání rozpisu a reportu
 
 - Odstraněna tlačítka Načíst měsíc a Obnovit náhled reportu. Načíst online a automatický živý náhled zachovány.

@@ -4,6 +4,16 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
+    {
+      range: 'RaK 2',
+      title: 'Přehled směny a jednodušší ovládání',
+      lines: [
+        'Nový Přehled směny: počítadla vsázek, výpočty, celková tabulka a online záloha k účtu.',
+        'Role Mistr s vlastní směnou a přehledem; hlavní správce má dál přístup ke všemu.',
+        'Přehlednější rozpisy, neplánované absence a Neschopenka (N); výraznější časy kantýny a jídelny.',
+        'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
+      ]
+    },
     // RAK_190_ABOUT_START
     {
       range: 'RaK 1.9',
@@ -101,7 +111,7 @@ function buildAppMenuAboutHistoryHtml() {
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
       const releaseMetadata = window.RAK_RELEASE_METADATA || {};
-      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '1.9.0').trim();
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.0').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',

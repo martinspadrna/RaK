@@ -5083,7 +5083,7 @@
     const reason = String(opts.reason || '').trim();
     const allowedDateLabels = Array.isArray(opts.allowedDateLabels) ? opts.allowedDateLabels.map((value) => String(value || '').trim()).filter(Boolean) : [];
     const reasonAllowed = changeKind === 'absence'
-      ? ['D','NV','§','LEK'].includes(reason)
+      ? ['D','NV','§','N'].includes(reason)
       : (changeKind === 'daymod' && reason === 'kalirnaOut');
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
         || !monthKey || !person || !reasonAllowed || !allowedDateLabels.length) {
