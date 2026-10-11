@@ -37,7 +37,7 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 
 ## Aktuální stav k 11. 10. 2026
 
-TEST 1.9.28 – akce rozpisu vedle sebe, na mobilu Odebrat jako ×; Načíst měsíc a Obnovit náhled reportu odstraněny. Načíst online a živý náhled zachovány. Role Mistr a přehled směny z 1.9.26 beze změny. Produkce zůstává zmrazená.
+TEST v2.0.0 je nasazený: průhlednější glass kantýny/jídelny, aktuální čas zeleně a nejbližší oranžově; Neschopenka (N), oprava readiness přihlášení na čistém zařízení a stručné O aplikaci. Přehled směny, role Mistr, mobilní toolbar a online záloha zachovány. Kandidát pro pozdější převod na main připravený; fyzická iPhone přejímka čeká na vlastníka. Produkce zůstává zmrazená.
 
 ### RaK 1.9.0 je v produkci
 
@@ -401,4 +401,8 @@ Po CI:
 - `supabase/ops/VERIFY_TEST_200.sql` transaction/ROLLBACK passed: new session context/device, N and legacy LEK writes, idempotent retry, stale P0001, selected-day scope, revoked-device denial, anonymous denial. No fixture/session/audit/schedule writes persisted. Anonymous login lookup v4 returns server requiresAdminAuth correctly for existing account directory, independent of local storage.
 - Supabase security advisors unchanged: RLS-no-policy23, anonymous-definer13, authenticated-definer50, leaked-password warning1.
 - Production rollout preparation: `supabase/ops/PRODUCTION_ROLLOUT_200.md`; required overview/Mistr/N migrations and JWT=true account-management function, production-config conversion, preflight/acceptance/rollback. No production mutations authorized or made. Current production function inventory differs from older expected documentation; reconcile before later approval.
-- Final exact SHA/build/CI/HTTP evidence follows after completion. Do not claim a production-ready merge from version text alone.
+- Funkční TEST SHA `fb12479eacbf4e2a2bee60827cf9d9f0825a804a`; větev `release/v2.0.0-test-candidate` připnutá na stejný commit. Jde o TEST kandidáta, stále s TEST configem; není to production-target PR a nesmí se přímo mergovat do main bez přípravy produkčního configu a databáze.
+- CI #904 / `38158904390`, attempt1: SUCCESS. Dvě čistá exact-SHA sestavení i CI: 166 souborů, digest `18b9fe90becc70601232f45fa9d2aa9e593cce94553dac9b8e9a33a7d17ad0bd`. Všechny regresní, mobilní Chromium/offline/update, PWA budgety, parity proti 1.7.69, quality a HTTP kontroly PASS bez změny limitů. StartupCore469179B /471314B; index57177B /57414B; rootJS/CSS4742787B /4796255B.
+- READY TEST `dpl_6zjUuNKkHQPuoDbE3BQhy4mLFeAC`; immutable `https://skoda-spada-q5hucgqay-martinspadrnas-projects.vercel.app`; veřejný stabilní TEST `https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/`. Veřejný HTTP200, přesná byte shoda 11 assetů (index/metadata/SW/core/access/CSS/wizard/About/bridge/config/manifest), v2 identity a TEST isolation PASS. Rollback TEST `dpl_DUddE9kpfij6q8octskPc7vbd7D8`.
+- Produkční postcheck: main `915a75793207b4125a0489dd8e5c824696f227ab`, READY `dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF`, DB head `20260930112049`, Edge absence17/admin15/hradnik3/export2 beze změny. TEST fixture postcheck: 0 trvalých rotation/device záznamů; anon nemá EXECUTE unplanned RPC, authenticated ano s původní serverovou role/session kontrolou.
+- Implementace, nasazení TESTu, automatické ověření a příprava rollout postupu dokončené. Fyzické přihlášení na novém Safari/iPhone, glass vzhled a provozní přejímka v2 čekají na vlastníka; Chromium/mock credentials nejsou fyzický důkaz. Main ani produkční DB/Edge/alias nebyly měněny.
