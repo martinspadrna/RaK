@@ -6,17 +6,19 @@ function buildAppMenuAboutHistoryHtml() {
   const sections = [
     {
       range: 'RaK 2',
+      published: '11. 10. 2026 · TEST',
       title: 'Přehled směny a jednodušší ovládání',
       lines: [
         'Nový Přehled směny: počítadla vsázek, výpočty, celková tabulka a online záloha k účtu.',
-        'Role Mistr s vlastní směnou a přehledem; hlavní správce má dál přístup ke všemu.',
-        'Přehlednější rozpisy, neplánované absence a Neschopenka (N); výraznější časy kantýny a jídelny.',
+        'Rozepsaný přehled se průběžně ukládá v zařízení; lze jej vymazat, online záloha se ukládá tlačítkem Uložit.',
+        'Přehlednější rozpisy a neplánované absence s Neschopenkou (N). Kantýna a jídelna mají okna vedle sebe a výrazné časy.',
         'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
       ]
     },
     // RAK_190_ABOUT_START
     {
       range: 'RaK 1.9',
+      published: '3. 10. 2026',
       title: 'Rychlejší start bez změny funkcí a vzhledu',
       lines: [
         'První načtení je lehčí: dashboard, přihlášení, dnešní směna a údaj „kam jdu“ zůstávají v rychlém jádru, zatímco nepoužívané části se načtou až při otevření.',
@@ -99,7 +101,7 @@ function buildAppMenuAboutHistoryHtml() {
     '<div class="appMenuHistory">',
     sections.map(section => [
       '<div class="appMenuHistoryGroup">',
-      '  <div class="appMenuHistoryRange">' + escapeHtml(section.range) + '</div>',
+      '  <div class="appMenuHistoryRange">' + escapeHtml(section.range) + '</div>' + (section.published ? '<div class="smallText">Publikováno: ' + escapeHtml(section.published) + '</div>' : ''),
       '  <div class="appMenuHistoryTitle">' + escapeHtml(section.title) + '</div>',
       '  <div class="appMenuHistoryList">' + (section.lines || []).map(line => '<div class="appMenuHistoryItem">' + escapeHtml(line) + '</div>').join('') + '</div>',
       '</div>'
@@ -111,7 +113,7 @@ function buildAppMenuAboutHistoryHtml() {
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
       const releaseMetadata = window.RAK_RELEASE_METADATA || {};
-      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.0').trim();
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.1').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',

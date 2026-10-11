@@ -1593,7 +1593,7 @@ function adminEnsureRotationNameActionMenuStyles() {
   const style = document.createElement('style');
   style.id = 'rakRotationNameActionMenuStyles';
   style.textContent = [
-    '.adminRotationActionBar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0}',
+    '.adminRotationActionBar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0;padding:0 8px;box-sizing:border-box}',
     '.adminRotationActionBar .rakDayModModeBtn{flex:1 1 80px;width:auto;min-width:0;max-width:100%;min-height:44px;padding:7px 8px;margin:0!important;white-space:normal;line-height:1.2}',
     '.adminRotationActionBar [data-rotation-name-mode=unplanned]{flex-basis:120px}',
     '.adminRotationRemoveIcon{display:none}',

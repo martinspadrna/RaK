@@ -1889,3 +1889,9 @@ html body:is(.ladaMode,.lowEndDevice,.lightweightMode) #home.page.active .dashbo
   background:var(--panel2) !important;
   border-color:var(--rakThemeBorder) !important;
 }
+
+/* Regular opening-day panels stay in pairs, including portrait phones. */
+html body .foodScheduleRegularGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+html body .foodScheduleRegularGrid .foodScheduleRow{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0;padding:10px 8px}
+html body .foodScheduleRegularGrid .foodScheduleDay,html body .foodScheduleRegularGrid .foodScheduleWindows{min-width:0;width:100%;text-align:left;overflow-wrap:anywhere}
+html body .foodScheduleRegularGrid .foodScheduleWindowLine{min-width:0;white-space:normal;font-size:14px}

@@ -7,15 +7,15 @@ const wizard = read('admin-rotation-generator-wizard.js');
 const bridge = read('supabase-bridge.js');
 const migration = read('supabase/migrations/20260926081926_rak_unplanned_reason_catalog_17115.sql');
 
-test('1.7.115 five owner-approved reasons remain exact in successors', () => {
+test('1.7.115 four absence choices (Kalírna remains in day exceptions) remain exact in successors', () => {
   const start = wizard.indexOf('const ADMIN_UNPLANNED_REASON_OPTIONS');
   const end = wizard.indexOf('\nfunction adminRotationUnplannedReasonOption', start);
   assert(start >= 0 && end > start);
   const block = wizard.slice(start, end);
   const values = [...block.matchAll(/value: '([^']+)'/g)].map((m) => m[1]);
   const labels = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
-  assert.deepEqual(values, ['D','NV','§','N','kalirnaOut']);
-  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Neschopenka (N)','Odešel na kalírnu']);
+  assert.deepEqual(values, ['D','NV','§','N']);
+  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Neschopenka (N)']);
   assert(wizard.includes('<select id="adminUnplannedReason" class="appMenuSelect">'));
   assert(!wizard.includes('adminUnplannedReasonOptions'), 'old free-text datalist returned');
 });

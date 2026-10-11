@@ -10,6 +10,24 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const renderedRecords = new WeakMap();
   const renderedRevisions = new WeakMap();
   const quantityUndo = new WeakMap();
+  const draftOwners = new WeakMap();
+  const DRAFT_PREFIX = 'rak_shift_overview_draft_v1:';
+  function draftKey() {
+    const identity = currentIdentity();
+    return identity ? DRAFT_PREFIX + identity.userId : (!bridge() && ownerAllowed() ? DRAFT_PREFIX + 'local' : null);
+  }
+  function readDraft() {
+    const key = draftKey();
+    const draft = key && jsonRead(key, null);
+    return draft?.record && /^\d{4}-\d{2}-\d{2}$/.test(draft.record.date || '') ? draft : null;
+  }
+  function persistDraft(rootEl) {
+    const key = draftKey();
+    if (!key || !ownerAllowed() || draftOwners.get(rootEl) !== key) return;
+    try {
+      localStorage.setItem(key, JSON.stringify({ record: readDom(rootEl), revision: renderedRevisions.get(rootEl) ?? null }));
+    } catch (_) { status(rootEl, 'Rozepsaný přehled se nepodařilo uložit v zařízení.'); }
+  }
   const cloudJobs = new Map();
   const CLOUD_PREFIX = 'rak_shift_overview_account_v1:';
   let cloudView = null;
@@ -81,6 +99,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (view && sameIdentity(identity) && view.root.dataset.cloudMutation === head.id) {
       renderedRevisions.set(view.root, revision);
       renderedRecords.set(view.root, clone(head.payload));
+      persistDraft(view.root);
     }
   }
   function showCloudState(identity, message) {
@@ -781,7 +800,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<label>Datum<div class="rakShiftOverviewDateShell"><span data-shift-overview-date-display aria-hidden="true">' + esc(displayDate(record.date)) + '</span><input class="appMenuInlineInput" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></div></label>',
       '<label>Směna<select class="appMenuSelect" data-shift-overview-shift>' + shiftOptions(record.shift) + '</select></label>',
       '</div>',
-      '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button></div>',
+      '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button><button type="button" class="appMenuAction" data-shift-overview-action="clear">Vymazat přehled</button></div>',
       '<div class="smallText rakShiftOverviewStatus" data-shift-overview-status role="status" aria-live="polite">' + (record.updatedAt ? 'Načteno · naposledy uloženo ' + esc(new Date(record.updatedAt).toLocaleString('cs-CZ')) : 'Pro tento den zatím není uložený přehled.') + '</div>',
       '<div class="appMenuSubTitle">Tok dílů</div>',
       oamTable(record),
@@ -932,7 +951,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Přehled směny je dostupný hlavnímu správci a mistrům.</div><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>';
       return false;
     }
+    const draft = !forcedRecord ? readDraft() : null;
     const defaults = currentShiftContext();
+    if (draft) forcedRecord = draft.record;
     const date = forcedRecord && forcedRecord.date ? String(forcedRecord.date) : defaults.date;
     const shift = forcedRecord ? normalizeShift(forcedRecord.shift) : defaults.shift;
     const record = normalizeRecord(forcedRecord || getSaved(date, shift) || defaultRecord(date, shift), date, shift);
@@ -940,9 +961,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     body.innerHTML = buildHtml(record);
     const rootEl = body.querySelector('#rakShiftOverviewRoot');
     if (rootEl) {
+      draftOwners.set(rootEl, draftKey());
       renderedRecords.set(rootEl, clone(record));
       const identity = currentIdentity();
-      renderedRevisions.set(rootEl, identity ? (cloudRead(identity).revisions[recordKey(date, shift)] ?? null) : null);
+      renderedRevisions.set(rootEl, draft ? draft.revision : (identity ? (cloudRead(identity).revisions[recordKey(date, shift)] ?? null) : null));
+      if (draft) rootEl.dataset.edited = '1';
     }
     bind(body);
     if (rootEl && bridge()) {
@@ -953,7 +976,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       conflict.innerHTML = '<button type="button" class="appMenuAction" data-shift-overview-action="cloud-load">Načíst online verzi</button><button type="button" class="appMenuAction" data-shift-overview-action="cloud-save">Zálohovat místní verzi místo online</button>';
       rootEl.querySelector('[data-shift-overview-status]')?.after(conflict);
       const identity = currentIdentity();
-      if (identity) showCloudState(identity, 'Místní kopie · ověřuji online zálohu…');
+      if (identity) showCloudState(identity, draft ? 'Rozepsaný přehled obnoven z tohoto zařízení.' : 'Místní kopie · ověřuji online zálohu…');
+      if (draft) void syncCloud();
       if (!forcedRecord) {
         void syncCloud().then((online) => {
           if (cloudView?.root !== rootEl || rootEl.dataset.edited === '1' || !ownerAllowed() || !rootEl.isConnected) return;
@@ -981,11 +1005,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
     function finishQuantity(event) {
       if (!ownerAllowed()) return;
+      if (event.type === 'change') rootEl.dataset.edited = '1';
       calculateQuantity(event.target);
       syncDateDisplay(rootEl);
       refreshMultipliers(rootEl);
       refreshTotals(rootEl);
       refreshSummary(rootEl);
+      persistDraft(rootEl);
     }
     rootEl.addEventListener('change', finishQuantity);
     rootEl.addEventListener('focusout', finishQuantity);
@@ -1001,6 +1027,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         || event.target.matches('[data-shift-overview-field^="inputs.rows."]')
       )) refreshTotals(rootEl);
       refreshSummary(rootEl);
+      persistDraft(rootEl);
     });
 
     rootEl.addEventListener('click', async (event) => {
@@ -1016,6 +1043,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           refreshMultipliers(rootEl);
           refreshTotals(rootEl);
           refreshSummary(rootEl);
+          persistDraft(rootEl);
         }
         return;
       }
@@ -1034,6 +1062,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           refreshMultipliers(rootEl);
           refreshTotals(rootEl);
           refreshSummary(rootEl);
+          persistDraft(rootEl);
         }
         return;
       }
@@ -1049,6 +1078,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           input.dispatchEvent(new Event('input', { bubbles: true }));
           refreshTotals(rootEl);
           refreshSummary(rootEl);
+          persistDraft(rootEl);
         }
         return;
       }
@@ -1063,6 +1093,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const date = String(rootEl.querySelector('[data-shift-overview-date]')?.value || localDateString());
       const shift = String(rootEl.querySelector('[data-shift-overview-shift]')?.value || '');
 
+      if (action === 'clear') {
+        const empty = defaultRecord(date, shift);
+        render(body, empty);
+        const next = body.querySelector('#rakShiftOverviewRoot');
+        if (next) { next.dataset.edited = '1'; persistDraft(next); status(next, 'Rozepsaný přehled vymazán v zařízení. Online záloha zůstala zachována.'); }
+        return;
+      }
+
       if (action === 'save') {
         if (!/^[ABCD]:(ranni|nocni)(8|12)$/.test(shift)) { status(rootEl, 'Vyber směnu pro tento přehled.'); return; }
         try {
@@ -1071,6 +1109,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           refreshTotals(rootEl);
           refreshSummary(rootEl);
           const record = readDom(rootEl);
+          persistDraft(rootEl);
           if (bridge()) {
             const opened = renderedRecords.get(rootEl);
             const base = opened && opened.date === record.date && opened.shift === record.shift ? renderedRevisions.get(rootEl) : null;
@@ -1085,6 +1124,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
                 renderedRevisions.set(rootEl, state.revisions[recordKey(record.date, record.shift)] ?? null);
                 renderedRecords.set(rootEl, clone(record));
               }
+              persistDraft(rootEl);
               showCloudState(identity, state.pending[recordKey(record.date, record.shift)]?.length
                 ? 'Uloženo v zařízení · čeká na online zálohu.' : 'Zálohováno online k přihlášenému účtu ✓');
               if (state.pending[recordKey(record.date, record.shift)]?.length && !state.conflicts[recordKey(record.date, record.shift)]
@@ -1113,6 +1153,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         const saved = getSaved(date, shift);
         render(body, saved || defaultRecord(date, shift));
         const next = body.querySelector('#rakShiftOverviewRoot');
+        if (next) persistDraft(next);
         if (next && !saved) status(next, 'Pro vybraný den a směnu zatím není nic uložené.');
         else if (next && bridge() && currentIdentity()) showCloudState(currentIdentity(), online
           ? 'Načteno z online zálohy účtu ✓' : 'Načtena místní kopie · offline nebo online záloha nedostupná.');
@@ -1123,7 +1164,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         try {
           const record = cloudResolution(action === 'cloud-load', date, shift);
           if (!record) return;
-          if (action === 'cloud-load') render(body, record);
+          if (action === 'cloud-load') { render(body, record); persistDraft(body.querySelector('#rakShiftOverviewRoot')); }
           else {
             const identity = currentIdentity();
             rootEl.dataset.cloudMutation = identity ? (cloudRead(identity).pending[recordKey(date, shift)]?.[0]?.id || '') : '';

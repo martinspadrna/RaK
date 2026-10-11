@@ -1,3 +1,10 @@
+## RaK 2.0.1 (development)
+
+- Kantýna a jídelna: denní okna ve dvojicích i na telefonu; tři tlačítka rozpisu odsazená od okraje.
+- Kalírna zůstává ve Výjimkách dne, v neplánované dovolené se již nenabízí.
+- Přehled směny průběžně ukládá rozepsaná data offline, obnoví je po zavření a nabízí Vymazat přehled bez smazání online zálohy. Uložit nadále zálohuje online.
+- O aplikaci bez zmínky o roli Mistr; stručný souhrn a doložená data publikování (1.9 a 2 TEST).
+
 ## RaK 2.0.0 (development)
 
 - Přehled směny s počítadly, výpočty, celkovou tabulkou a online zálohou k účtu; role Mistr.
