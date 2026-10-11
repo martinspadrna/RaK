@@ -23,7 +23,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
   function persistDraft(rootEl) {
     const key = draftKey();
-    if (!key || !ownerAllowed() || draftOwners.get(rootEl) !== key) return;
+    if (!key || rootEl?.isConnected === false || !ownerAllowed() || draftOwners.get(rootEl) !== key) return;
     try {
       localStorage.setItem(key, JSON.stringify({ record: readDom(rootEl), revision: renderedRevisions.get(rootEl) ?? null }));
     } catch (_) { status(rootEl, 'Rozepsaný přehled se nepodařilo uložit v zařízení.'); }

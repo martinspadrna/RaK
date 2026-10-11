@@ -28,3 +28,8 @@ test('empty draft remains authoritative after clearing and does not remove saved
  f.api.persistDraft(f.editor(''));const reopened=fixture(f.storage);assert.equal(reopened.api.readDraft().record.nitrogen,'');
  assert.equal(reopened.api.cloudRead(reopened.state.identity).records.saved.nitrogen,'999');
 });
+
+test('completion of an older save cannot overwrite a cleared or replaced editor draft',()=>{
+ const f=fixture(),old=f.editor('999'),fresh=f.editor('');f.api.persistDraft(fresh);old.isConnected=false;f.api.persistDraft(old);
+ assert.equal(f.api.readDraft().record.nitrogen,'');
+});
