@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.22'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview22'"));
-  assert.ok(index.includes("var e='so22',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview22"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.23'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview23'"));
+  assert.ok(index.includes("var e='so23',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview23"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -356,4 +356,19 @@ test('portrait summary lists every part vertically, omits zero counts and remove
  assert.ok(!svg.includes('ALD1:'));assert.ok(!svg.includes('ALD2:'));
  assert.ok(Number(svg.match(/height="(\d+)"/)[1])>900);
  assert.ok(!feature.includes('Načíst předchozí'));assert.ok(!feature.includes("action === 'previous'"));
+});
+
+
+test('production preview is one continuous table with both part numbers in each index row', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg};'),context);
+ const svg=context.window.fixture.summarySvg(context.window.fixture.normalizeRecord({oam:{rows:{ag:{op1020:576,stock:192}}}}));
+ assert.equal([...svg.matchAll(/data-summary-production="whole"/g)].length,1);
+ const rows=[...svg.matchAll(/<g data-summary-index="([^"]+)">(.*?)<\/g>/g)];assert.equal(rows.length,3);
+ for(const [,index,body]of rows){
+  const rects=[...body.matchAll(/<rect x="([^"]+)" y="([^"]+)"/g)];
+  assert.equal(rects.length,13);assert.equal(new Set(rects.map(m=>m[2])).size,1);
+  assert.ok(body.includes('0AM 409 155'));assert.ok(body.includes('0AM 409 111'));
+ }
+ assert.ok(rows[0][2].includes('>576</text>'));assert.ok(rows[0][2].includes('>192</text>'));
 });

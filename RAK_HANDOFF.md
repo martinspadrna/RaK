@@ -312,3 +312,10 @@ Po CI:
 - Canonical dva čisté buildy PASS, 166 souborů, digest 8db9a37820496a863af1587d910f46f7a4632423ca98a2518b37d9746bd4f81a. GitHub development validation #888 / 38120226357 attempt 1 SUCCESS včetně release-preview.
 - Funkční SHA 15fecb53421a7506b4cf6dd2178ef5c16269a5fc; READY dpl_8v5FCzHuM1SqZn8cRVZwK3GcBoFj, https://skoda-spada-hx3agql5n-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.22, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Implementace/nasazení/automatické ověření 100 %, fyzická přejímka nového layoutu čeká na vlastníka.
 - Živý main 915a75793207b4125a0489dd8e5c824696f227ab, produkční deployment dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge versions 17/15/3/2 ověřeny beze změny. Pouze development frontend a handoff zápisy.
+
+## TEST 1.9.23 – výrobní tabulka v jednom celku (2026-10-11)
+
+- Vlastník upřesnil: „Tu tabulku bych chtel v celku“. Obě výrobní poloviny spojeny do jedné souvislé Excel-style tabulky s MO až montáží ve společných barevných řádcích AG/AE, AF/AD a AH. Zachovány všechny operace a součty, bez žlutého indexu a bez domýšlení nevyplňovaných polí.
+- Celý obrázek zůstává na výšku; pod výrobní tabulkou všech 18 dílů svisle, bez ALD popisků u jednotlivých počtů a bez nul v nevyplněných řádcích. Vsázky, dusík, souhrny a poznámky zůstávají. Načíst předchozí zůstává odstraněno.
+- Cílené testy 28/28 PASS. Chromium 320/390/768/1366px: právě jedna výrobní tabulka se 13 buňkami v každém společném řádku, hodnoty/součty, 18 dílů/prázdné nuly, SVG/XML escaping, zoom/pan/pinch/fit/Escape/focus, owner gate/route cleanup a formulářové regrese PASS. Screenshot nového celku zkontrolován. Fyzická přejímka 1.9.23 na iPhone čeká na vlastníka.
+- Canonical/CI/nasazení budou doplněny po ověření.

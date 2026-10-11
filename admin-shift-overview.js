@@ -446,24 +446,35 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const rightColumns=[['after145','145'],['hard','212'],['stock',''],['assembly','VHLV']];
     const columns=leftColumns.concat(rightColumns),sums={};
     columns.forEach(([key])=>{sums[key]=OAM_ROWS.reduce((total,row)=>total+summaryNumber(record.oam.rows[row.key][key]),0);});
-    function flowTable(top,quantityColumns,right){
-      const identityWidth=166,columnWidth=(852-identityWidth)/quantityColumns.length;
-      cell(24,top,identityWidth,104,(right?'0AM 409 111':'0AM 409 155')+'\nČíslo dílu / op',header,true,20);
-      const groups=right?[['Po 145',0,1],['Po broušení',1,1],['Sklad',2,1],['Montáž',3,1]]:[['Měkké\nobrábění',0,2],['Sklad před\nkalením',2,2],['Sklad po kalení',4,3]];
-      groups.forEach(([label,col,count])=>cell(190+col*columnWidth,top,columnWidth*count,52,label,header,true,22));
-      quantityColumns.forEach(([,label],i)=>cell(190+i*columnWidth,top+52,columnWidth,52,label,header,true,22));
-      OAM_ROWS.forEach((row,index)=>{
-        const y=top+104+index*58,identity=(right?row.right:row.left).replace(/ (AG|AE|AF|AD|AH)$/,'\n$1');
-        cell(24,y,identityWidth,58,identity,colors[index],true,21);
-        quantityColumns.forEach(([key],i)=>cell(190+i*columnWidth,y,columnWidth,58,summaryValue(record.oam.rows[row.key][key]),colors[index],true,26));
+    // One continuous Excel-style table: both part numbers share each colored row.
+    const positions=[24,192,290,388,486,584,682,780,878,1046,1144,1242,1340,1436];
+    const tableScale=852/1412;
+    parts.push('<g data-summary-production="whole" transform="translate('+(24-24*tableScale)+' '+(74-65*tableScale)+') scale('+tableScale+')">');
+    cell(24,65,168,104,'0AM 409 155\nČíslo dílu / op',header,true,18);
+    cell(878,65,168,104,'0AM 409 111\nČíslo dílu / op',header,true,18);
+    [['Měkké\nobrábění',1,2],['Sklad před\nkalením',3,2],['Sklad po kalení',5,3],['Po 145',9,1],['Po broušení',10,1],['Sklad',11,1],['Montáž',12,1]].forEach(([label,col,count])=>cell(positions[col],65,positions[col+count]-positions[col],52,label,header,true,18));
+    columns.forEach(([,label],col)=>{
+      const position=col>=7?col+2:col+1;
+      cell(positions[position],117,positions[position+1]-positions[position],52,label,header,true,19);
+    });
+    OAM_ROWS.forEach((row,index)=>{
+      const y=169+index*58;
+      parts.push('<g data-summary-index="'+row.key+'">');
+      cell(24,y,168,58,row.left,colors[index],true,17);
+      cell(878,y,168,58,row.right,colors[index],true,17);
+      columns.forEach(([key],col)=>{
+        const position=col>=7?col+2:col+1;
+        cell(positions[position],y,positions[position+1]-positions[position],58,summaryValue(record.oam.rows[row.key][key]),colors[index],true,24);
       });
-      const y=top+278;
-      cell(24,y,identityWidth,48,'Σ po operacích',header,true,20);
-      quantityColumns.forEach(([key],i)=>cell(190+i*columnWidth,y,columnWidth,48,String(Number(sums[key].toFixed(6))),header,true,24));
-    }
-    // Preserve Excel's column groups; stack the two part-number tables for portrait screens.
-    flowTable(74,leftColumns,false);
-    flowTable(430,rightColumns,true);
+      parts.push('</g>');
+    });
+    cell(24,343,168,48,'Σ po operacích',header,true,18);
+    cell(878,343,168,48,'Σ po operacích',header,true,18);
+    columns.forEach(([key],col)=>{
+      const position=col>=7?col+2:col+1;
+      cell(positions[position],343,positions[position+1]-positions[position],48,String(Number(sums[key].toFixed(6))),header,true,24);
+    });
+    parts.push('</g><g transform="translate(0 -480)">');
     const flow=columns.filter(([key])=>!['stock','assembly'].includes(key)).reduce((total,[key])=>total+sums[key],0);
     const overall=flow+sums.stock+sums.assembly;
     heading(800,'Přehled dílů ve vsázkách');
@@ -514,7 +525,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         lines.forEach((line,index)=>parts.push('<text x="220" y="'+(y+27+index*28)+'" font-size="'+Math.min(22,640/Math.max(1,line.length))+'">'+esc(line)+'</text>'));y+=height;
       });
     }
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+(y+24)+'" viewBox="0 0 '+width+' '+(y+24)+'"><rect width="100%" height="100%" fill="#fff"/><g font-family="Arial,sans-serif" fill="#172433">'+parts.join('')+'</g></svg>';
+    parts.push('</g>');
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+(y+24-480)+'" viewBox="0 0 '+width+' '+(y+24-480)+'"><rect width="100%" height="100%" fill="#fff"/><g font-family="Arial,sans-serif" fill="#172433">'+parts.join('')+'</g></svg>';
   }
 
   function refreshSummary(rootEl) {
