@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.21'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview21'"));
-  assert.ok(index.includes("var e='so21',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview21"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.22'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview22'"));
+  assert.ok(index.includes("var e='so22',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview22"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -337,7 +337,23 @@ test('summary image derives active values and totals, excludes archived data and
  const api=context.window.fixture;
  const record=api.normalizeRecord({date:'2026-10-11',shift:'B:ranni12',oam:{rows:{ag:{op1020:'320+256'},af:{stock:'192'},ah:{assembly:'39'},ad:{stock:'987654'}}},inputs:{ald3:'7',rows:{SR1:{ald1:2,ald2:999}}},nitrogen:'99,8',notes:'<script>alert(1)</script> & poznámka'});
  const svg=api.summarySvg(record);
- for(const value of ['576','807','99,8','ALD1: 2','&lt;script&gt;alert(1)&lt;/script&gt; &amp; poznámka'])assert.ok(svg.includes(value),value);
+ for(const value of ['576','807','99,8','&lt;script&gt;alert(1)&lt;/script&gt; &amp; poznámka'])assert.ok(svg.includes(value),value);
  for(const value of ['987654','999','<script>','Plán sklad','AD / AG'])assert.ok(!svg.includes(value),value);
- assert.match(svg,/width="1460"/);assert.ok(feature.includes('data-shift-overview-summary-open'));
+ assert.match(svg,/width="900"/);assert.ok(feature.includes('data-shift-overview-summary-open'));
+});
+
+
+test('portrait summary lists every part vertically, omits zero counts and removes previous load', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({inputs:{rows:{SR1:{ald1:2,ald2:999},TW1:{ald2:3}}}});
+ const svg=api.summarySvg(record);
+ const rows=[...svg.matchAll(/<g data-summary-part="([^"]+)">(.*?)<\/g>/g)];
+ assert.equal(rows.length,18);
+ const values=Object.fromEntries(rows.map(([,name,body])=>[name,[...body.matchAll(/<text [^>]+>(.*?)<\/text>/g)].map(m=>m[1])]));
+ assert.deepEqual(values.SR1,['SR1','2']);assert.deepEqual(values.TW1,['TW1','3']);assert.deepEqual(values.AAR,['AAR','']);
+ assert.ok(!svg.includes('ALD1:'));assert.ok(!svg.includes('ALD2:'));
+ assert.ok(Number(svg.match(/height="(\d+)"/)[1])>900);
+ assert.ok(!feature.includes('Načíst předchozí'));assert.ok(!feature.includes("action === 'previous'"));
 });

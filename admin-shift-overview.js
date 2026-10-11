@@ -428,7 +428,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   // A vector image stays sharp when zoomed; only active, editable data is shown.
   function summarySvg(record) {
-    const width = 1460;
+    const width = 900;
     const parts = [];
     const colors = ['#a8cf60','#8ac5ed','#f19a76'];
     function cell(x,y,w,h,text,fill,bold,size) {
@@ -437,76 +437,81 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const font = Math.min(size || 18, (w-12) / Math.max(1, ...lines.map(line=>line.length)) / 0.62);
       lines.forEach((line,i) => parts.push('<text x="' + (x+w/2) + '" y="' + (y+h/2+(i-(lines.length-1)/2)*font*1.2) + '" text-anchor="middle" dominant-baseline="middle" font-size="' + font + '" font-weight="' + (bold ? 700 : 400) + '">' + esc(line) + '</text>'));
     }
-    function heading(y,text) { parts.push('<text x="24" y="' + y + '" font-size="24" font-weight="700">' + esc(text) + '</text>'); }
+    function heading(y,text) { parts.push('<text x="24" y="' + y + '" font-size="28" font-weight="700">' + esc(text) + '</text>'); }
     const team = String(record.shift).split(':');
     const shift = team[1] ? team[0] + ' · ' + (team[1].startsWith('nocni') ? 'Noční ' : 'Ranní ') + (team[1].endsWith('12') ? '12 h' : '8 h') : 'Směna nevybrána';
     heading(40, 'Přehled směny · ' + displayDate(record.date) + ' · ' + shift);
     const header='#e9edf1';
-    const columns=[['op1020','10+20\nVolné',1],['op1121','11+21\nLis',2],['op30','30\nVolné',3],['op31','31\nLis',4],['op120','120\nVolné',5],['op121','121\nLis',6],['op145','Před 145',7],['after145','145',8],['hard','212',9],['stock','Sklad',10],['assembly','Montáž',11]];
-    // Layout: identity, 7 left quantities, identity, 4 right quantities.
-    const positions=[24,192,290,388,486,584,682,780,878,1046,1144,1242,1340,1436];
-    cell(24,65,168,104,'0AM 409 155\nČíslo dílu',header,true);
-    [['Měkké\nobrábění',1,2],['Sklad před\nkalením',3,2],['Sklad po kalení',5,3],['Po 145',9,1],['Po broušení',10,1],['Sklad',11,1],['Montáž',12,1]].forEach(([label,col,count]) => cell(positions[col],65,positions[col+count]-positions[col],52,label,header,true,16));
-    cell(positions[8],65,168,104,'0AM 409 111\nČíslo dílu',header,true);
-    columns.forEach(([key,label,col]) => {
-      const index=col>=8?col+1:col;
-      cell(positions[index],117,positions[index+1]-positions[index],52,label,header,true,17);
-    });
-    const sums={};columns.forEach(([key])=>sums[key]=0);
-    OAM_ROWS.forEach((row,index) => {
-      const y=169+index*58;
-      cell(24,y,168,58,row.left,colors[index],true,16);
-      cell(positions[8],y,168,58,row.right,colors[index],true,16);
-      columns.forEach(([key,,col])=>{
-        const position=col>=8?col+1:col;
-        const value=record.oam.rows[row.key][key];
-        sums[key]+=summaryNumber(value);
-        cell(positions[position],y,positions[position+1]-positions[position],58,summaryValue(value),colors[index],true,20);
+    const leftColumns=[['op1020','10+20\nVolné'],['op1121','11+21\nLis'],['op30','30\nVolné'],['op31','31\nLis'],['op120','120\nVolné'],['op121','121\nLis'],['op145','Před 145']];
+    const rightColumns=[['after145','145'],['hard','212'],['stock',''],['assembly','VHLV']];
+    const columns=leftColumns.concat(rightColumns),sums={};
+    columns.forEach(([key])=>{sums[key]=OAM_ROWS.reduce((total,row)=>total+summaryNumber(record.oam.rows[row.key][key]),0);});
+    function flowTable(top,quantityColumns,right){
+      const identityWidth=166,columnWidth=(852-identityWidth)/quantityColumns.length;
+      cell(24,top,identityWidth,104,(right?'0AM 409 111':'0AM 409 155')+'\nČíslo dílu / op',header,true,20);
+      const groups=right?[['Po 145',0,1],['Po broušení',1,1],['Sklad',2,1],['Montáž',3,1]]:[['Měkké\nobrábění',0,2],['Sklad před\nkalením',2,2],['Sklad po kalení',4,3]];
+      groups.forEach(([label,col,count])=>cell(190+col*columnWidth,top,columnWidth*count,52,label,header,true,22));
+      quantityColumns.forEach(([,label],i)=>cell(190+i*columnWidth,top+52,columnWidth,52,label,header,true,22));
+      OAM_ROWS.forEach((row,index)=>{
+        const y=top+104+index*58,identity=(right?row.right:row.left).replace(/ (AG|AE|AF|AD|AH)$/,'\n$1');
+        cell(24,y,identityWidth,58,identity,colors[index],true,21);
+        quantityColumns.forEach(([key],i)=>cell(190+i*columnWidth,y,columnWidth,58,summaryValue(record.oam.rows[row.key][key]),colors[index],true,26));
       });
-    });
-    cell(24,343,168,48,'Σ po operacích',header,true,17);
-    cell(positions[8],343,168,48,'Σ po operacích',header,true,17);
-    columns.forEach(([key,,col])=>{const position=col>=8?col+1:col;cell(positions[position],343,positions[position+1]-positions[position],48,String(Number(sums[key].toFixed(6))),header,true,20);});
+      const y=top+278;
+      cell(24,y,identityWidth,48,'Σ po operacích',header,true,20);
+      quantityColumns.forEach(([key],i)=>cell(190+i*columnWidth,y,columnWidth,48,String(Number(sums[key].toFixed(6))),header,true,24));
+    }
+    // Preserve Excel's column groups; stack the two part-number tables for portrait screens.
+    flowTable(74,leftColumns,false);
+    flowTable(430,rightColumns,true);
     const flow=columns.filter(([key])=>!['stock','assembly'].includes(key)).reduce((total,[key])=>total+sums[key],0);
     const overall=flow+sums.stock+sums.assembly;
-    [['Díly v toku',flow],['Sklad',sums.stock],['Montáž',sums.assembly],['Celkem kusů',overall]].forEach(([label,total],index)=>{
-      cell(24+index*353,411,220,44,label,header,true,18);
-      cell(244+index*353,411,133,44,String(Number(total.toFixed(6))),'#fff',true,22);
-    });
-    heading(498,'Vsázky a dusík');
+    heading(800,'Přehled dílů ve vsázkách');
+    cell(24,822,276,44,'Díl',header,true,24);
+    cell(300,822,132,44,'Počet',header,true,24);
     const aldTotals=[ALD1_INPUT_ROWS,ALD2_INPUT_ROWS].map((names,index)=>names.reduce((total,name)=>total+summaryNumber(record.inputs.rows[name]['ald'+(index+1)]),0));
     const total3=summaryNumber(record.inputs.ald3);
-    cell(24,515,180,42,'',header,true);['ALD1','ALD2','ALD3'].forEach((label,i)=>cell(204+i*190,515,190,42,label,header,true));
-    cell(24,557,180,44,'Poslední vsázka',header,true,17);[1,2,3].forEach((id,i)=>cell(204+i*190,557,190,44,summaryValue(record.lastBatch['ald'+id]),'#fff',true));
-    cell(24,601,180,44,'Celkem vsázek',header,true,17);[...aldTotals,record.inputs.ald3?total3:''].forEach((total,i)=>cell(204+i*190,601,190,44,total,'#fff',true));
-    cell(820,515,270,42,'Dusík',header,true);cell(820,557,270,88,summaryValue(record.nitrogen),'#fff',true,25);
-    cell(1120,515,316,42,'Celkem vsázek',header,true);cell(1120,557,316,88,aldTotals[0]+aldTotals[1]+total3,'#fff',true,25);
-    let y=675;
-    const visibleParts=INPUT_ROWS.filter(name=>ALD1_INPUT_ROWS.includes(name)||ALD2_INPUT_ROWS.includes(name));
-    const usedParts=visibleParts.filter(name=>[1,2].some(id=>(id===1?ALD1_INPUT_ROWS:ALD2_INPUT_ROWS).includes(name)&&summaryNumber(record.inputs.rows[name]['ald'+id])>0));
-    if(usedParts.length){
-      heading(y+22,'Zapsané díly ve vsázkách');y+=40;
-      const colWidth=353;
-      usedParts.forEach((name,index)=>{
-        const x=24+(index%4)*colWidth,top=y+Math.floor(index/4)*42;
-        const counts=[1,2].map(id=>(id===1?ALD1_INPUT_ROWS:ALD2_INPUT_ROWS).includes(name)?summaryNumber(record.inputs.rows[name]['ald'+id]):0);
-        cell(x,top,150,42,name.replace('-',' '),header,true,17);
-        cell(x+150,top,203,42,'ALD1: '+counts[0]+' · ALD2: '+counts[1],'#fff',false,16);
-      });
-      y+=Math.ceil(usedParts.length/4)*42+26;
-    }
+    // Each active part belongs to one visible ALD list. Archived combinations stay excluded.
+    INPUT_ROWS.forEach((name,index)=>{
+      const count=[ALD1_INPUT_ROWS,ALD2_INPUT_ROWS].reduce((total,names,id)=>total+(names.includes(name)?summaryNumber(record.inputs.rows[name]['ald'+(id+1)]):0),0);
+      parts.push('<g data-summary-part="'+esc(name)+'">');
+      cell(24,866+index*42,276,42,name.replace('-',' '),'#fff',true,25);
+      cell(300,866+index*42,132,42,count?String(count):'','#fff',true,25);
+      parts.push('</g>');
+    });
+    const partTotal=aldTotals[0]+aldTotals[1];
+    const partsBottom=866+INPUT_ROWS.length*42;
+    cell(24,partsBottom,276,44,'Celkem',header,true,24);
+    cell(300,partsBottom,132,44,String(partTotal),header,true,25);
+    [['Díly v toku',flow],['Sklad celkem',sums.stock],['Montáž',sums.assembly],['Celkem kusů',overall]].forEach(([label,total],index)=>{
+      cell(458,822+index*48,266,48,label,header,true,24);
+      cell(724,822+index*48,152,48,String(Number(total.toFixed(6))),'#fff',true,26);
+    });
+    parts.push('<text x="458" y="1070" font-size="28" font-weight="700">Vsázky</text>');
+    const batchX=[458,626,709,792,876];
+    cell(458,1092,168,44,'',header,true);
+    ['ALD1','ALD2','ALD3'].forEach((label,i)=>cell(batchX[i+1],1092,batchX[i+2]-batchX[i+1],44,label,header,true,22));
+    cell(458,1136,168,56,'Poslední\nvsázka',header,true,21);
+    [1,2,3].forEach((id,i)=>cell(batchX[i+1],1136,batchX[i+2]-batchX[i+1],56,summaryValue(record.lastBatch['ald'+id]),'#fff',true,22));
+    cell(458,1192,168,56,'Celkem\nvsázek',header,true,21);
+    [...aldTotals,record.inputs.ald3?total3:''].forEach((total,i)=>cell(batchX[i+1],1192,batchX[i+2]-batchX[i+1],56,total,'#fff',true,25));
+    cell(458,1276,266,52,'Celkem vsázek',header,true,24);
+    cell(724,1276,152,52,aldTotals[0]+aldTotals[1]+total3,'#fff',true,26);
+    cell(458,1356,266,52,'Dusík',header,true,24);
+    cell(724,1356,152,52,summaryValue(record.nitrogen),'#fff',true,26);
+    let y=partsBottom+78;
     const notes=[['Obrábění',record.machiningFaults],...record.ald.map((row,i)=>['ALD'+(i+1),row.faults]),['Poznámky',record.notes]].filter(([,value])=>String(value??'').trim());
     if(notes.length){
       heading(y+22,'Závady a poznámky');y+=40;
       notes.forEach(([label,value])=>{
         const lines=String(value).split('\n').flatMap(line=>{
           const words=line.split(/\s+/);const wrapped=[];let current='';
-          words.forEach(word=>{while(word.length>95){if(current){wrapped.push(current);current='';}wrapped.push(word.slice(0,95));word=word.slice(95);}if((current+' '+word).trim().length>95){wrapped.push(current);current=word;}else current=(current+' '+word).trim();});wrapped.push(current);return wrapped;
+          words.forEach(word=>{while(word.length>46){if(current){wrapped.push(current);current='';}wrapped.push(word.slice(0,46));word=word.slice(46);}if((current+' '+word).trim().length>46){wrapped.push(current);current=word;}else current=(current+' '+word).trim();});wrapped.push(current);return wrapped;
         });
-        const height=Math.max(44,lines.length*24+16);
+        const height=Math.max(44,lines.length*28+16);
         cell(24,y,180,height,label,header,true,17);
-        parts.push('<rect x="204" y="'+y+'" width="1232" height="'+height+'" fill="#fff" stroke="#25313d" stroke-width="1.4"/>');
-        lines.forEach((line,index)=>parts.push('<text x="220" y="'+(y+25+index*24)+'" font-size="18">'+esc(line)+'</text>'));y+=height;
+        parts.push('<rect x="204" y="'+y+'" width="672" height="'+height+'" fill="#fff" stroke="#25313d" stroke-width="1.4"/>');
+        lines.forEach((line,index)=>parts.push('<text x="220" y="'+(y+27+index*28)+'" font-size="'+Math.min(22,640/Math.max(1,line.length))+'">'+esc(line)+'</text>'));y+=height;
       });
     }
     return '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+(y+24)+'" viewBox="0 0 '+width+' '+(y+24)+'"><rect width="100%" height="100%" fill="#fff"/><g font-family="Arial,sans-serif" fill="#172433">'+parts.join('')+'</g></svg>';
@@ -573,7 +578,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<label>Datum<div class="rakShiftOverviewDateShell"><span data-shift-overview-date-display aria-hidden="true">' + esc(displayDate(record.date)) + '</span><input class="appMenuInlineInput" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></div></label>',
       '<label>Směna<select class="appMenuSelect" data-shift-overview-shift>' + shiftOptions(record.shift) + '</select></label>',
       '</div>',
-      '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction" data-shift-overview-action="previous">Načíst předchozí</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button></div>',
+      '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button></div>',
       '<div class="smallText rakShiftOverviewStatus" data-shift-overview-status role="status" aria-live="polite">' + (record.updatedAt ? 'Načteno · naposledy uloženo ' + esc(new Date(record.updatedAt).toLocaleString('cs-CZ')) : 'Pro tento den zatím není uložený přehled.') + '</div>',
       '<div class="appMenuSubTitle">Tok dílů</div>',
       oamTable(record),
@@ -853,23 +858,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         return;
       }
 
-      if (action === 'previous') {
-        const records = Object.values(readStore())
-          .map((row) => normalizeRecord(row))
-          .filter((row) => row.date && row.date < date && row.shift === shift)
-          .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-        if (!records.length) {
-          status(rootEl, 'Předchozí uložený přehled pro tento typ směny nebyl nalezen.');
-          return;
-        }
-        const previous = clone(records[0]);
-        previous.date = date;
-        previous.shift = shift;
-        previous.updatedAt = '';
-        render(body, previous);
-        const next = body.querySelector('#rakShiftOverviewRoot');
-        if (next) status(next, 'Načtena předchozí směna z ' + records[0].date + ' jako základ. Změny ještě nejsou uložené.');
-      }
     });
   }
 

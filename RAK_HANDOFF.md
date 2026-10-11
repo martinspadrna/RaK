@@ -301,3 +301,12 @@ Po CI:
 - Canonical dva čisté buildy PASS, 166 souborů, digest d2f9160f96453a25326bb06cb244d99f2aa729638305d178f15b0aa2631e4a80. GitHub development validation #886 / 38118849331 attempt 1 SUCCESS včetně release-preview.
 - Funkční SHA 33dcc6059693c00cf1ee743bf54869ce1fa51385; READY dpl_S5BbeqJdu5eMbeyayxVqmsjXMMxr, https://skoda-spada-e0f4wqia4-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.21, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Chromium dvouprstý pinch rovněž PASS.
 - Živý main 915a75793207b4125a0489dd8e5c824696f227ab, produkční deployment dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge versions 17/15/3/2 ověřeny beze změny. Opraven pouze zastaralý text immutable produkčního odkazu dle živého deploymentu; produkce se neměnila.
+
+## TEST 1.9.22 – mobilní souhrn na výšku a odstranění předchozího načítání (2026-10-11)
+
+- Objednávka vlastníka: odstranit Načíst předchozí; obrázkový souhrn více na výšku a blíže tabulkové předloze; díly ALD pod sebou, bez ALD popisků u jednotlivých počtů, všechny názvy včetně nenaklikaných a jejich nuly ponechat prázdné.
+- Tlačítko i obsluha Načíst předchozí odstraněny. Načíst dál otevírá vybraný den/směnu a lokální uložená data zůstávají zachována.
+- SVG má 900px šířku a portrétní poměr: tabulka 0AM 409 155 s Excel seskupením MO/před a po kalení nahoře, tabulka 0AM 409 111 Po 145/Po broušení/Sklad/Montáž pod ní. Všechny tři aktivní barevné řádky a součty zůstávají. Existující operace 212 zachována bez přeznačení uložených dat na jinou operaci.
+- Pod tabulkami všech 18 dílů v pořadí předlohy, jeden díl/jeden řádek s celkovým viditelným počtem; názvy nezávisí na počtu, 0 je prázdná buňka. Historické skryté ALD kombinace se do počtů nezapočítávají. Vedle je kompaktní celkový souhrn, poslední a celkové vsázky ALD1/2/3 a dusík; závady/poznámky dole.
+- Cílené testy 27/27 PASS. Chromium 320/390/768/1366px: portrétní SVG, 18 svislých řádků, prázdné nulové počty, živé součty, SVG/XML escaping, odstranění předchozího načítání, zoom/pan/pinch/fit/Escape/focus, route cleanup/owner gate a formulářové regrese PASS. Render ručně zkontrolován ze screenshotu. Fyzická přejímka 1.9.22 na iPhone čeká na vlastníka.
+- Canonical/CI/nasazení budou doplněny po ověření.
