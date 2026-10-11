@@ -8,9 +8,9 @@ function fixture(storage=new Map()) {
  const window={rakAdminCanManageAdmins:()=>!!state.identity,rakAdminGetActiveAccountId:()=>state.identity?.accountId,
  RotationSupabaseBridge:{getShiftOverviewIdentity:()=>state.identity},addEventListener(){}};
  const context=vm.createContext({window,document:{getElementById:()=>({})},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
- vm.runInContext(source.replace('  const AAR_COLUMNS = [','  root.draftTest={readDraft,persistDraft,draftKey,draftOwners,renderedRecords,renderedRevisions,defaultRecord,cloudRead};\n  const AAR_COLUMNS = ['),context);
+ vm.runInContext(source.replace('  const AAR_COLUMNS = [','  root.draftTest={readDraft,persistDraft,draftKey,draftOwners,renderedRecords,renderedRevisions,defaultRecord,cloudRead,showCloudState,setView:view=>cloudView=view};\n  const AAR_COLUMNS = ['),context);
  const api=window.draftTest;
- function editor(value,revision=3){const field={value,getAttribute:()=> 'nitrogen'};const el={querySelector:s=>s.includes('date]')?{value:'2026-10-11'}:s.includes('shift]')?{value:'B:nocni12'}:null,querySelectorAll:()=>[field]};
+ function editor(value,revision=3){const field={value,getAttribute:()=> 'nitrogen'};const message={textContent:''};const el={message,isConnected:true,querySelector:s=>s.includes('status]')?message:s.includes('date]')?{value:'2026-10-11'}:s.includes('shift]')?{value:'B:nocni12'}:null,querySelectorAll:()=>[field]};
  api.draftOwners.set(el,api.draftKey());api.renderedRecords.set(el,api.defaultRecord('2026-10-11','B:nocni12'));api.renderedRevisions.set(el,revision);return el;}
  return {api,state,storage,editor};
 }
@@ -37,4 +37,10 @@ test('completion of an older save cannot overwrite a cleared or replaced editor 
 test('pending save identity and editor revision survive reload for idempotent acknowledgement',()=>{
  const f=fixture(),el=f.editor('77',3);el.dataset={cloudMutation:'pending-save'};f.api.persistDraft(el);
  const next=fixture(f.storage);assert.equal(next.api.readDraft().mutationId,'pending-save');assert.equal(next.api.readDraft().revision,3);
+});
+
+test('background online refresh never labels unsubmitted draft changes as backed up',()=>{
+ const f=fixture(),el=f.editor('77');f.api.persistDraft(el);f.api.setView({root:el});
+ f.api.showCloudState(f.state.identity,'Zálohováno online');assert.match(el.message.textContent,/Rozepsaný přehled uložen v zařízení/);
+ assert.doesNotMatch(el.message.textContent,/Zálohováno online/);
 });

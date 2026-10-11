@@ -110,7 +110,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const shift = view.root.querySelector('[data-shift-overview-shift]')?.value;
     const key = recordKey(date, shift);
     const conflict = state.conflicts[key];
-    status(view.root, conflict ? 'Online je jiná verze. Místní přehled zůstává uložený.' : message);
+    const draft = readDraft();
+    const unsubmitted = draft && draftOwners.get(view.root) === draftKey()
+      && recordKey(draft.record.date, draft.record.shift) === key
+      && (!state.records[key] || comparable(draft.record) !== comparable(normalizeRecord(state.records[key], date, shift)));
+    status(view.root, conflict ? 'Online je jiná verze. Místní přehled zůstává uložený.'
+      : unsubmitted ? 'Rozepsaný přehled uložen v zařízení · pro online zálohu stiskni Uložit.' : message);
     const panel = view.root.querySelector('[data-shift-overview-cloud-conflict]');
     if (panel) panel.hidden = !conflict;
   }
