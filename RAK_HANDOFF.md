@@ -337,3 +337,11 @@ Po CI:
 - TEST databázová migrace rak_shift_overview_account_cloud_1924 aplikována pod serverovou verzí 20261011105302; CLI source soubor 20261011105146_rak_shift_overview_account_cloud_1924.sql. Fixture rollback ověřen (0 testovacích profilů). Produkce beze změny: main 915a75793207b4125a0489dd8e5c824696f227ab, READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, DB head 20260930112049, tabulka rak_shift_overviews v produkci neexistuje, Edge 17/15/3/2.
 
 - Finální funkční SHA 9d4b71957483844e10cb4acbfe35508b60a2a11e; READY dpl_4vvxsAwZnXr6uER5KhiRjUozCCzG, https://skoda-spada-266i7612w-martinspadrnas-projects.vercel.app. GitHub development validation #893 / 38134566095, attempt 1 SUCCESS včetně verify/release-preview. Veřejná stabilní TEST URL HTTP 200, 1.9.24 a přesná byte shoda feature/bridge/config PASS. Immutable preview je záměrně chráněný Vercel Auth; autentizovaná HTTP verifikace přes vercel curl v CI PASS, ochrana nebyla vypnuta. Implementace/nasazení/automatické ověření dokončené; fyzický účet na iPhone čeká na vlastníka.
+
+## TEST 1.9.25 – režimy nad rozpisem (2026-10-11)
+
+- Nová autorizovaná oprava: při Výjimkách dne nesmí vyskočit neplánovaná dovolená; dovolená i Odebrat patří na samostatná tlačítka nad rozpisem.
+- Tvrdota/Měkota mají Výjimky dne / Neplánovaná dovolená / Odebrat mimo summary. Jeden režim v příslušné tabulce, nezávisle na druhé; aktivace výjimek zruší jmennou akci a naopak. Běžné obsazené jméno jde ručně upravit bez automatické nabídky.
+- Dovolená používá stávající velký dialog a původní generátor/CAS. Odebrat vyprázdní jen zvolené jméno, vydá input/change pro stávající trvalý místní návrh a publikuje se až Uložit rozpis. Absence mají samostatné Odebrat. Číselníky absence ani data se nemění. Nový document router používá existující signed-role gate fail-closed; neotevírá klávesnici v akčních režimech.
+- Tlačítka se na mobilu zalamují, minimálně 44px; aktivní režim je označen i aria-pressed a krátkým pokynem. Legacy focus/input callbacky pouze zavírají již nepoužívanou plovoucí nabídku.
+- Pouze frontend development/TEST, bez DB/Edge zápisů. Předchozí online záloha Přehledu směny zůstává zachována. Finální release důkazy budou doplněny po CI a nasazení.

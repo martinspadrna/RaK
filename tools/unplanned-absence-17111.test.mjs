@@ -46,9 +46,9 @@ test('partial generator never persists a full generated draft and explicitly pro
   assert(wizard.includes('scopedDateLabels: fallbackDateLabels'));
   assert(wizard.includes('adminRotationUnplannedAssertIsolation(original, candidate, allowedDateLabels)'));
   assert(wizard.includes("throw new Error('Částečný přepočet sáhl na jiný den: ' + date + '.')"));
-  assert(editor.includes('adminRotationQuickUnplannedBtn'));
+  assert(editor.includes('data-rotation-name-mode="unplanned"'));
   assert(editor.includes("adminOpenUnplannedChangeDialog(target)"));
-  assert(renderer.includes('klikni přímo na jméno v konkrétním dni a zvol Neplánovaná změna'));
+  assert(renderer.includes('vyber Neplánovaná dovolená nad rozpisem a potom klikni na jméno v konkrétním dni'));
 });
 
 test('splicing generated days changes only allowlisted rows', () => {

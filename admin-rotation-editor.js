@@ -19,7 +19,7 @@ function renderAdminInlineFieldHtml(fieldAttr, fieldName, value, placeholder, ti
     fieldAttr ? fieldAttr + '="' + escapeHtml(fieldName) + '"' : '',
     'value="' + escapeHtml(safeValue) + '"',
     'placeholder="' + escapeHtml(placeholder || '') + '"',
-    'title="' + escapeHtml(isDateField ? 'Datum upravíš ručně.' : (isAbsenceCodeField ? 'Klikni a vyber zkratku absence, nebo napiš vlastní.' : 'Uprav text ručně. Po kliknutí na obsazené jméno se ukáže Odebrat přímo u pole.')) + '"',
+    'title="' + escapeHtml(isDateField ? 'Datum upravíš ručně.' : (isAbsenceCodeField ? 'Klikni a vyber zkratku absence, nebo napiš vlastní.' : 'Uprav text ručně. Dovolenou nebo odebrání vyber tlačítkem nad rozpisem.')) + '"',
     isAbsenceCodeField ? 'list="adminAbsenceCodeOptions"' : '',
     'autocomplete="off"',
     'autocorrect="off"',
@@ -1036,7 +1036,8 @@ function buildAdminRotationTableHtml(monthKey) {
     '  </div>',
     buildAdminPressRotationOverridesHtml(month, monthKey, hardRows),
     '  <details class="appMenuFoldSection adminRotationFold" open>',
-    '    <summary>Tvrdota <button type="button" class="rakDayModModeBtn" data-daymod-mode="hard">✎ Výjimky dne</button></summary>',
+    '    <summary>Tvrdota</summary>',
+    buildAdminRotationActionBarHtml('hard'),
     '    <div class="tableWrap appMenuTableWrap">',
     // RAK_17067_EQUAL_GRID_MARKUP: identical 84px dates / 52px names for BOTH sections.
     '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="hard" style="--rak-grid-width:' + String(84 + hardMachines.length * 52) + 'px;">',
@@ -1047,7 +1048,8 @@ function buildAdminRotationTableHtml(monthKey) {
     '    </div>',
     '  </details>',
     '  <details class="appMenuFoldSection adminRotationFold" open>',
-    '    <summary>Měkota <button type="button" class="rakDayModModeBtn" data-daymod-mode="soft">✎ Výjimky dne</button></summary>',
+    '    <summary>Měkota</summary>',
+    buildAdminRotationActionBarHtml('soft'),
     '    <div class="tableWrap appMenuTableWrap">',
     // RAK_17066_SOFT_GRID_MARKUP: date + compact machine columns, no wasted space.
     '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="soft" style="--rak-grid-width:' + String(84 + softMachines.length * 52) + 'px;">',
@@ -1059,8 +1061,9 @@ function buildAdminRotationTableHtml(monthKey) {
     '  </details>',
     '  <details class="appMenuFoldSection adminRotationFold" open>',
     '    <summary>Absence</summary>',
+    buildAdminRotationActionBarHtml('absence'),
     '    <div class="tableWrap appMenuTableWrap">',
-    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminAbsenceTable">',
+    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminAbsenceTable" data-rotation-action-section="absence">',
     '        ' + absenceColgroup,
     '        <thead><tr><th>Datum</th><th>Jméno</th><th>Kód</th></tr></thead>',
     '        <tbody>' + renderNotes() + '</tbody>',
@@ -1340,136 +1343,27 @@ async function saveAdminRotationFromDom(monthKey, options) {
 }
 
 
-function adminShowRotationSelectedRemove(input) {
-  try {
-    const body = document.getElementById('appMenuBody');
-    const btn = adminGetSelectedRemoveButton();
-    if (!body || body.dataset.adminView !== 'rotation' || !btn || !input || !body.contains(input)) {
-      adminHideRotationSelectedRemove();
-      return;
-    }
-    if (!input.matches('[data-rot-field^="cell-"], [data-note-field="person"]')) {
-      adminHideRotationSelectedRemove();
-      return;
-    }
-    const value = String(input.value || '').trim();
-    if (!value || adminRotationIsRemoveValue(value)) {
-      adminHideRotationSelectedRemove();
-      return;
-    }
-    window.__rakAdminRotationSelectedInput = input;
-    // RaK 1.2 (1.155) – horní sticky tlačítko už při kliknutí do jména nevytahujeme.
-    // Rychlé Odebrat se vykreslí přímo u aktivního pole přes adminShowRotationQuickRemove().
-    btn.hidden = true;
-    btn.dataset.targetReady = '1';
-    btn.textContent = 'Odebrat vybrané';
-    const status = document.getElementById('adminRotationDraftStatus');
-    if (status) status.textContent = 'Vybrané: ' + value + ' · odebrání je přímo u jména.';
-  } catch (err) {
-    console.warn('Admin selected remove failed', err);
-  }
+function adminShowRotationSelectedRemove() {
+  // Compatibility for legacy focus/input handlers: actions now live above the table.
+  adminHideRotationSelectedRemove();
 }
 
 
 function adminCloseRotationQuickRemove() {
+  window.clearTimeout(window.__rakAdminRotationQuickRemoveTimer || 0);
+  window.__rakAdminRotationQuickRemoveTimer = 0;
   const box = document.getElementById('adminRotationQuickRemove');
   if (box) box.remove();
   window.__rakAdminRotationQuickRemoveInput = null;
 }
 
 
-function adminShowRotationQuickRemove(input) {
-  try {
-    const body = document.getElementById('appMenuBody');
-    if (!body || body.dataset.adminView !== 'rotation' || !input || !body.contains(input)) return;
-    if (!input.matches('[data-rot-field^="cell-"], [data-note-field="person"]')) {
-      adminCloseRotationQuickRemove();
-      return;
-    }
-    const value = String(input.value || '').trim();
-    if (!value || adminRotationIsRemoveValue(value)) {
-      adminCloseRotationQuickRemove();
-      return;
-    }
-    let box = document.getElementById('adminRotationQuickRemove');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'adminRotationQuickRemove';
-      box.className = 'adminRotationQuickRemove';
-      box.innerHTML = '<span class="adminRotationQuickRemoveText"></span><div class="adminRotationQuickRemoveActions"><button type="button" class="adminRotationQuickUnplannedBtn">Neplánovaná dovolená</button><button type="button" class="adminRotationQuickRemoveBtn">Odebrat</button></div>';
-      document.body.appendChild(box);
-      box.addEventListener('click', (ev) => {
-        const unplannedBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickUnplannedBtn') : null;
-        const removeBtn = ev.target && ev.target.closest ? ev.target.closest('.adminRotationQuickRemoveBtn') : null;
-        if (!unplannedBtn && !removeBtn) return;
-        ev.preventDefault();
-        const target = window.__rakAdminRotationQuickRemoveInput;
-        if (unplannedBtn) {
-          if (target && target.isConnected && target.matches('[data-rot-field^="cell-"]') && typeof adminOpenUnplannedChangeDialog === 'function') {
-            adminCloseRotationQuickRemove();
-            adminOpenUnplannedChangeDialog(target);
-          }
-          return;
-        }
-        if (target && target.isConnected) {
-          target.value = '';
-          target.dispatchEvent(new Event('input', { bubbles: true }));
-          target.dispatchEvent(new Event('change', { bubbles: true }));
-          try { target.focus({ preventScroll: true }); } catch (err) { try { target.focus(); } catch (err2) {} }
-        }
-        adminCloseRotationQuickRemove();
-      });
-    }
-    window.__rakAdminRotationQuickRemoveInput = input;
-    window.__rakAdminRotationQuickRemoveShownAt = Date.now();
-    const txt = box.querySelector('.adminRotationQuickRemoveText');
-    if (txt) txt.textContent = 'Jméno: ' + value;
-    const unplannedBtn = box.querySelector('.adminRotationQuickUnplannedBtn');
-    if (unplannedBtn) unplannedBtn.hidden = !input.matches('[data-rot-field^="cell-"]');
-    const actions = box.querySelector('.adminRotationQuickRemoveActions');
-    const removeBtn = box.querySelector('.adminRotationQuickRemoveBtn');
-    if (actions) {
-      actions.style.setProperty('display', 'grid', 'important');
-      actions.style.setProperty('grid-template-columns', '1fr', 'important');
-      actions.style.setProperty('width', '100%', 'important');
-      actions.style.setProperty('gap', '8px', 'important');
-    }
-    for (const button of [unplannedBtn, removeBtn]) {
-      if (!button) continue;
-      button.style.setProperty('display', 'block', 'important');
-      button.style.setProperty('width', '100%', 'important');
-      button.style.setProperty('min-width', '0', 'important');
-      button.style.setProperty('white-space', 'normal', 'important');
-      button.style.setProperty('box-sizing', 'border-box', 'important');
-    }
-    const rect = input.getBoundingClientRect();
-    const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 320);
-    const vh = Math.max(480, window.innerHeight || document.documentElement.clientHeight || 480);
-    const pickerHeight = input.matches('[data-rot-field^="cell-"]') ? 142 : 48;
-    let top = Math.round(rect.bottom + 6);
-    if (top + pickerHeight > vh - 8) top = Math.max(8, Math.round(rect.top - pickerHeight - 6));
-    const pickerWidth = input.matches('[data-rot-field^="cell-"]') ? Math.min(260, vw - 16) : 196;
-    const left = Math.max(8, Math.min(vw - pickerWidth - 8, Math.round(rect.left + (rect.width / 2) - (pickerWidth / 2))));
-    box.style.top = String(top) + 'px';
-    box.style.left = String(left) + 'px';
-    box.style.setProperty('display', 'grid', 'important');
-    box.style.setProperty('grid-template-columns', '1fr', 'important');
-    box.style.setProperty('align-items', 'stretch', 'important');
-    box.style.setProperty('justify-content', 'stretch', 'important');
-    box.classList.add('isVisible');
-  } catch (err) {
-    console.warn('Admin quick remove failed', err);
-  }
+function adminShowRotationQuickRemove() {
+  adminCloseRotationQuickRemove();
 }
 
-
-function adminScheduleRotationQuickRemove(input) {
-  try {
-    window.clearTimeout(window.__rakAdminRotationQuickRemoveTimer || 0);
-    window.__rakAdminRotationQuickRemoveTimer = window.setTimeout(() => adminShowRotationQuickRemove(input), 35);
-  } catch (err) {
-    adminShowRotationQuickRemove(input);
-  }
+function adminScheduleRotationQuickRemove() {
+  adminCloseRotationQuickRemove();
 }
 
 
@@ -1652,16 +1546,57 @@ function scheduleAdminRotationEditorMaintenance(body, reason, delayMs) {
 }
 
 
+function buildAdminRotationActionBarHtml(section) {
+  if (!['hard', 'soft', 'absence'].includes(section)) return '';
+  const actions = section === 'absence' ? ''
+    : '<button type="button" class="rakDayModModeBtn" data-daymod-mode="' + section + '" aria-pressed="false">✎ Výjimky dne</button>'
+      + '<button type="button" class="rakDayModModeBtn" data-admin-action="rotation-name-mode" data-rotation-name-mode="unplanned" data-rotation-action-section="' + section + '" aria-pressed="false">Neplánovaná dovolená</button>';
+  return '<div class="adminRotationActionBar">' + actions
+    + '<button type="button" class="rakDayModModeBtn" data-admin-action="rotation-name-mode" data-rotation-name-mode="remove" data-rotation-action-section="' + section + '" aria-pressed="false">Odebrat</button>'
+    + '<span class="adminRotationActionHint" data-rotation-action-hint="' + section + '" hidden></span></div>';
+}
+
+function adminRotationActionTable(body, section) {
+  if (!body || !['hard', 'soft', 'absence'].includes(section)) return null;
+  return body.querySelector(section === 'absence'
+    ? 'table[data-rotation-action-section="absence"]'
+    : 'table[data-daymod-section="' + section + '"]');
+}
+
+function adminSetRotationNameActionMode(section, mode) {
+  const body = document.getElementById('appMenuBody');
+  if (!body || body.dataset.adminView !== 'rotation') return;
+  const table = adminRotationActionTable(body, section);
+  if (!table || !['', 'unplanned', 'remove'].includes(mode) || (section === 'absence' && mode === 'unplanned')) return;
+  if (mode && typeof window.rakDayModSetEditMode === 'function') window.rakDayModSetEditMode(section, false);
+  adminCloseRotationQuickRemove();
+  adminHideRotationSelectedRemove();
+  table.dataset.rotationNameMode = mode;
+  table.classList.toggle('rakRotationNameMode', !!mode);
+  table.querySelectorAll('input[data-rot-field^="cell-"], input[data-note-field="person"]').forEach(input => {
+    input.readOnly = !!mode || table.classList.contains('rakDayModEditMode');
+  });
+  body.querySelectorAll('button[data-rotation-name-mode][data-rotation-action-section="' + section + '"]').forEach(button => {
+    const active = button.dataset.rotationNameMode === mode;
+    button.classList.toggle('isActive', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  const hint = body.querySelector('[data-rotation-action-hint="' + section + '"]');
+  if (hint) {
+    hint.hidden = !mode;
+    hint.textContent = mode === 'unplanned' ? 'Vyber jméno pro neplánovanou dovolenou.' : 'Kliknutím na jméno ho odebereš. Změny potvrď tlačítkem Uložit rozpis.';
+  }
+}
+
 function adminEnsureRotationNameActionMenuStyles() {
   if (document.getElementById('rakRotationNameActionMenuStyles')) return;
   const style = document.createElement('style');
   style.id = 'rakRotationNameActionMenuStyles';
   style.textContent = [
-    '.adminRotationQuickRemove{width:min(260px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;padding:12px!important;box-sizing:border-box!important}',
-    '.adminRotationQuickRemove.isVisible{display:grid!important;grid-template-columns:1fr!important;align-items:stretch!important;justify-content:stretch!important}',
-    '.adminRotationQuickRemoveActions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;margin-top:8px!important}',
-    '.adminRotationQuickRemoveActions button{width:100%!important;min-width:0!important;min-height:44px!important;padding:8px 12px!important;border-radius:12px!important;white-space:normal!important;line-height:1.15!important}',
-    '.adminRotationQuickRemoveText{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}'
+    '.adminRotationActionBar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0}',
+    '.adminRotationActionBar .rakDayModModeBtn{flex:1 1 auto;min-width:0;max-width:100%;min-height:44px;margin:0!important;white-space:normal;line-height:1.2}',
+    '.adminRotationActionHint{flex-basis:100%;font-size:12px;opacity:.8}',
+    '.rakRotationNameMode input[data-rot-field],.rakRotationNameMode input[data-note-field="person"]{cursor:pointer}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -1670,21 +1605,55 @@ function adminBindRotationNameActionMenuRoute() {
   if (window.__rakAdminRotationNameActionMenuBound) return;
   window.__rakAdminRotationNameActionMenuBound = true;
   adminEnsureRotationNameActionMenuStyles();
-  document.addEventListener('pointerdown', (event) => {
+  const authorized = () => typeof appMenuCanRunAdminInteraction === 'function' && appMenuCanRunAdminInteraction('rotation');
+  const actionTarget = event => {
+    const body = document.getElementById('appMenuBody');
+    if (!body || body.dataset.adminView !== 'rotation' || !authorized()) return null;
+    const target = event.target && event.target.closest ? event.target.closest('[data-rot-field^="cell-"], [data-note-field="person"]') : null;
+    if (!target || !body.contains(target)) return null;
+    const table = target.closest('table');
+    if (!table || table.classList.contains('rakDayModEditMode')) return null;
+    const mode = table.dataset.rotationNameMode;
+    if (mode !== 'unplanned' && mode !== 'remove') return null;
+    if (mode === 'unplanned' && !target.matches('[data-rot-field^="cell-"]')) return null;
+    const value = String(target.value || '').trim();
+    if (!value || adminRotationIsRemoveValue(value)) return null;
+    return { target, mode };
+  };
+  document.addEventListener('pointerdown', event => {
+    if (!actionTarget(event)) return;
+    // Readonly modes select a person; normal editing and exceptions pass through.
+    event.preventDefault();
+  }, true);
+  document.addEventListener('click', event => {
     const body = document.getElementById('appMenuBody');
     if (!body || body.dataset.adminView !== 'rotation') return;
-    const target = event.target && event.target.closest ? event.target.closest('[data-rot-field^="cell-"]') : null;
-    if (!target || !body.contains(target)) return;
-    const value = String(target.value || '').trim();
-    if (!value || (typeof adminRotationIsRemoveValue === 'function' && adminRotationIsRemoveValue(value))) return;
+    const button = event.target && event.target.closest ? event.target.closest('button[data-rotation-name-mode][data-rotation-action-section]') : null;
+    if (button && body.contains(button)) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!authorized()) return;
+      const section = button.dataset.rotationActionSection;
+      const table = adminRotationActionTable(body, section);
+      if (!table) return;
+      adminSetRotationNameActionMode(section, table.dataset.rotationNameMode === button.dataset.rotationNameMode ? '' : button.dataset.rotationNameMode);
+      return;
+    }
+    const action = actionTarget(event);
+    if (!action) return;
     event.preventDefault();
     event.stopPropagation();
-    try {
-      const active = document.activeElement;
-      if (active && active !== document.body && typeof active.blur === 'function') active.blur();
-    } catch (_) {}
-    try { adminCloseAbsenceCodePicker(); } catch (_) {}
-    adminShowRotationQuickRemove(target);
+    const { target, mode } = action;
+    const active = document.activeElement;
+    if (active && active !== document.body && typeof active.blur === 'function') active.blur();
+    adminCloseAbsenceCodePicker();
+    if (mode === 'unplanned') {
+      if (typeof adminOpenUnplannedChangeDialog === 'function') adminOpenUnplannedChangeDialog(target);
+    } else {
+      target.value = '';
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }, true);
 }
 

@@ -101,7 +101,7 @@ function renderAdminMenuBody(body, section) {
     '  <div class="appMenuCardTitle">Rozpisy</div>',
     '  <div class="appMenuText">',
     '    <div>Vyber měsíc, nejdřív doplň absence / svátek / odstávku a až potom vygeneruj návrh. Změny jdou online až po kliknutí na Uložit rozpis.</div>',
-    '    <div class="smallText">Pro nečekanou absenci klikni přímo na jméno v konkrétním dni a zvol Neplánovaná změna.</div>',
+    '    <div class="smallText">Pro nečekanou absenci vyber Neplánovaná dovolená nad rozpisem a potom klikni na jméno v konkrétním dni.</div>',
     '    <div class="smallText" id="adminOnlineSaveStatus">Před generováním zkontroluj absence a dny měsíce. Stav uložení se zobrazí po kliknutí na Uložit rozpis.</div>',
     '  </div>',
     renderAdminMonthPickerHtml(monthKey),

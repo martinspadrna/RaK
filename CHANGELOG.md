@@ -1,3 +1,10 @@
+## TEST 1.9.25 – samostatné akce nad rozpisem
+
+- Výjimky dne, Neplánovaná dovolená a Odebrat jsou tlačítka nad Tvrdotou/Měkotou. Aktivní je vždy jen jeden režim v příslušné tabulce.
+- Kliknutí při výjimkách otevře jen výjimku; běžné kliknutí umožňuje ruční úpravu bez vyskakovací nabídky. Dovolená nadále používá původní dialog.
+- Odebrat vyprázdní pouze vybrané jméno a zachová místní návrh do Uložit rozpis. Nad Absencemi je samostatné Odebrat. Mobilní tlačítka se zalamují a mají 44px dotykovou výšku.
+- Pouze development/TEST, produkce a DB beze změny.
+
 ## RaK 1.9.5 (development)
 
 - Přímý vstup `Více → Správce → Přehled směny` nově před otevřením bezpečně načte administrační modul; první klepnutí tedy otevře přehled místo návratu do stejné nabídky.
