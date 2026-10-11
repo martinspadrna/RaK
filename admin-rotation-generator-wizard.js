@@ -838,7 +838,7 @@ const ADMIN_UNPLANNED_REASON_OPTIONS = Object.freeze([
   Object.freeze({ value: 'D', label: 'Dovolená', kind: 'absence' }),
   Object.freeze({ value: 'NV', label: 'Náhradní volno', kind: 'absence' }),
   Object.freeze({ value: '§', label: 'Paragraf', kind: 'absence' }),
-  Object.freeze({ value: 'N', label: 'Neschopenka (N)', kind: 'absence' })
+  Object.freeze({ value: 'N', label: 'Neschopenka', kind: 'absence' })
 ]);
 
 function adminRotationUnplannedReasonOption(value) {

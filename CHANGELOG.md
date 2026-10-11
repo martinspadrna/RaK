@@ -1,3 +1,8 @@
+## RaK 2.0.2 (development)
+
+- Neplánovaná změna nabízí Neschopenku bez závorky; kód absence N zůstává zachován.
+- O aplikaci doplněno datum všech generací: doložené release dny, u nejstarších verzí měsíc a rok.
+
 ## RaK 2.0.1 (development)
 
 - Kantýna a jídelna: denní okna ve dvojicích i na telefonu; tři tlačítka rozpisu odsazená od okraje.

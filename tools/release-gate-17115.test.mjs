@@ -13,7 +13,7 @@ test('1.7.115 reason-picker milestone remains active in successors',()=>{
   assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
   const wizard=read('admin-rotation-generator-wizard.js');
   const bridge=read('supabase-bridge.js');
-  for(const label of ['Dovolená','Náhradní volno','Paragraf','Neschopenka (N)']) assert(wizard.includes(label),label);
+  for(const label of ['Dovolená','Náhradní volno','Paragraf','Neschopenka']) assert(wizard.includes(label),label);
   assert(wizard.includes('adminRotationBuildUnplannedDayModCandidate'));
   assert(bridge.includes("client.rpc('rak_admin_apply_unplanned_change_v2'"));
 });

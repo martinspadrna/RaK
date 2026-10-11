@@ -34,17 +34,17 @@ test('missing authentication module times out closed and can be retried',async()
   assert.equal(await f.context.waitForSecureSignIn(12000),f.signIn);
 });
 test('v2 identities agree and About has a compact new section above history',()=>{
-  const pkg=JSON.parse(read('package.json'));assert.equal(pkg.version,'2.0.1');
+  const pkg=JSON.parse(read('package.json'));assert.equal(pkg.version,'2.0.2');
   assert.equal(JSON.parse(read('package-lock.json')).version,pkg.version);
-  assert.match(read('core.js'),/const APP_VERSION = "2\.0\.1"/);
+  assert.match(read('core.js'),/const APP_VERSION = "2\.0\.2"/);
   const about=read('app-menu-pages.js');
   assert(about.indexOf("range: 'RaK 2'")<about.indexOf("range: 'RaK 1.9'"));
-  assert.match(read('rak-release-metadata.js'),/moduleCacheVersion: '2\.0\.1'/);
-  assert.match(read('index.html'),/var e='v201'/);
+  assert.match(read('rak-release-metadata.js'),/moduleCacheVersion: '2\.0\.2'/);
+  assert.match(read('index.html'),/var e='v202'/);
 });
 test('N is offered by UI and accepted by client; migration preserves legacy/CAS/security',()=>{
   const wizard=read('admin-rotation-generator-wizard.js');
-  assert.match(wizard,/value: 'N', label: 'Neschopenka \(N\)'/);
+  assert.match(wizard,/value: 'N', label: 'Neschopenka'/);
   assert.doesNotMatch(wizard,/value: 'LEK', label: 'Lékař'/);
   assert.match(read('supabase-bridge.js'),/\['D','NV','§','N'\]\.includes\(reason\)/);
   const sql=read('supabase/migrations/20261011164201_rak_unplanned_sick_leave_v200.sql');

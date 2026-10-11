@@ -24,7 +24,7 @@ assert.equal(pkg.version, '1.7.0', 'package technical version must be 1.7.0');
 assert(app.includes('const RAK_MODULE_CACHE_VERSION = "1.7.0";'), 'module cache version mismatch');
 assert(app.includes('const RAK_DEV_UPDATE_BUILD = "v1.7.0";'), 'app update build mismatch');
 assert(app.includes('window.RAK_RELEASE_VERSION = "1.7";'), 'public release version mismatch');
-assert(core.includes('const APP_VERSION = "2.0.1";'), 'core release marker must match 2.0.1');
+assert(core.includes('const APP_VERSION = "2.0.2";'), 'core release marker must match 2.0.2');
 assert(sw.includes("const CACHE_VERSION = 'v1.7.0';"), 'PWA cache version mismatch');
 assert(sw.includes("const SW_APP_VERSION = '1.7.0';"), 'SW technical version mismatch');
 assert(sw.includes("const DEVELOPMENT_TEST_DISPLAY_VERSION = '1.7';"), 'SW display version mismatch');

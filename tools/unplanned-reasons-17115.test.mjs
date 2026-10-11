@@ -15,7 +15,7 @@ test('1.7.115 four absence choices (Kalírna remains in day exceptions) remain e
   const values = [...block.matchAll(/value: '([^']+)'/g)].map((m) => m[1]);
   const labels = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
   assert.deepEqual(values, ['D','NV','§','N']);
-  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Neschopenka (N)']);
+  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Neschopenka']);
   assert(wizard.includes('<select id="adminUnplannedReason" class="appMenuSelect">'));
   assert(!wizard.includes('adminUnplannedReasonOptions'), 'old free-text datalist returned');
 });
