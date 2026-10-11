@@ -153,7 +153,7 @@ function rakAdminNormalizeSessionEntry(entry) {
 function rakAdminGetAccountsSettings() {
   if (typeof app !== 'undefined' && app && app.adminAuthVersion === 2 && Array.isArray(app.adminProfilesV2)) {
     const entries = app.adminProfilesV2
-      .filter((entry) => entry && ['admin', 'deputy'].includes(String(entry.role || '')))
+      .filter((entry) => entry && ['admin', 'deputy', 'foreman'].includes(String(entry.role || '')))
       .map((entry) => ({
         accountId: String(entry.account_id || entry.accountId || '').trim(),
         label: String(entry.display_name || entry.displayName || '').trim(),
@@ -214,7 +214,7 @@ function rakAdminAccountRequiresPassword(accountId) {
   return profiles.some((entry) => (
     entry
     && entry.enabled !== false
-    && ['admin', 'deputy'].includes(String(entry.role || ''))
+    && ['admin', 'deputy', 'foreman'].includes(String(entry.role || ''))
     && String(entry.account_id || entry.accountId || '').trim() === id
   ));
 }
@@ -235,7 +235,7 @@ function rakAdminApplySecureContext(context, capabilities) {
   const safe = context && typeof context === 'object' ? context : {};
   const accountId = String(safe.account_id || safe.accountId || '').trim();
   const role = String(safe.role || '').trim();
-  if (!accountId || !['owner','admin','deputy'].includes(role)) return false;
+  if (!accountId || !['owner','admin','deputy','foreman'].includes(role)) return false;
   if (typeof app !== 'undefined' && app) {
     app.adminUnlocked = true;
     app.adminPin = '';
@@ -340,9 +340,9 @@ async function rakAdminSaveSecureAccounts(root) {
   if (desired.some((entry) => !entry.accountId || !entry.displayName || entry.accountId === RAK_OWNER_ADMIN_ACCOUNT_ID)) {
     return { ok: false, reason: 'invalid-admin-profile' };
   }
-  if (desired.some((entry) => !['admin', 'deputy'].includes(entry.role))) return { ok:false, reason:'invalid-role' };
+  if (desired.some((entry) => !['admin', 'deputy', 'foreman'].includes(entry.role))) return { ok:false, reason:'invalid-role' };
   const existing = (Array.isArray(app.adminProfilesV2) ? app.adminProfilesV2 : [])
-    .filter((entry) => entry && ['admin', 'deputy'].includes(entry.role));
+    .filter((entry) => entry && ['admin', 'deputy', 'foreman'].includes(entry.role));
   const desiredIds = new Set(desired.map((entry) => entry.accountId));
   const requests = desired.concat(existing
     .filter((entry) => !desiredIds.has(String(entry.account_id || '')))
@@ -386,7 +386,7 @@ async function rakAdminRestoreSecureSessionForActiveAccount(reason) {
   const activeId = rakAdminGetActiveAccountId();
   const bridge = window.RotationSupabaseBridge;
   if (!activeId || !bridge || typeof bridge.restoreAdminAuthSession !== 'function') return false;
-  if (rakAdminCanOpenShiftReport()
+  if (rakAdminHasVerifiedRole()
     && typeof app !== 'undefined' && app
     && String(app.adminAccountId || '') === activeId) return true;
   if (rakAdminSecureRestorePromise && rakAdminSecureRestoreAccountId === activeId) {
@@ -751,17 +751,26 @@ async function rakAdminLoadSettingsThenCheck(reason) {
 }
 
 // RAK_REPORT_ONLY_DEPUTY_17019
-function rakAdminCanOpenShiftReport() {
+function rakAdminHasVerifiedRole() {
   const activeId = rakAdminGetActiveAccountId();
   return !!(activeId && typeof app !== 'undefined' && app && app.adminAuthVersion === 2
     && app.adminUnlocked === true && String(app.adminAccountId || '') === activeId
-    && ['owner', 'admin', 'deputy'].includes(String(app.adminRole || '')));
+    && ['owner', 'admin', 'deputy', 'foreman'].includes(String(app.adminRole || '')));
+}
+function rakAdminCanOpenShiftReport() {
+  return rakAdminHasVerifiedRole() && app.adminRole !== 'foreman';
+}
+function rakAdminIsForeman() {
+  return rakAdminHasVerifiedRole() && app.adminRole === 'foreman';
+}
+function rakAdminCanOpenShiftOverview() {
+  return rakAdminHasVerifiedRole() && (app.adminRole === 'owner' || app.adminRole === 'foreman');
 }
 function rakAdminIsDeputy() {
   return rakAdminCanOpenShiftReport() && app.adminRole === 'deputy';
 }
 function rakAdminCanOpenAdmin() {
-  return rakAdminCanOpenShiftReport() && (app.adminRole === 'owner' || app.adminRole === 'admin');
+  return rakAdminHasVerifiedRole() && (app.adminRole === 'owner' || app.adminRole === 'admin');
 }
 
 function rakAdminCanManageAdmins() {
@@ -992,7 +1001,7 @@ function buildAdminAccountEditableRowHtml(entry) {
     '  <td><input class="appMenuInlineInput" data-admin-account-field="accountId" data-admin-account-id list="rakAdminExistingAccounts17024" value="' + escapeHtml(safe.accountId || '') + '" placeholder="os. c."></td>',
     '  <td><input class="appMenuInlineInput" data-admin-account-field="label" data-admin-account-label value="' + escapeHtml(safe.label || '') + '" placeholder="jmeno / poznamka"></td>',
     '  <td><input class="appMenuInlineInput" data-admin-account-field="password" data-admin-account-password type="password" minlength="6" maxlength="128" value="" placeholder="' + (safe.passwordHash ? 'necháš prázdné = beze změny' : 'heslo') + '"></td>',
-    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (safe.role === 'deputy' ? '' : ' selected') + '>Správce</option><option value="deputy"' + (safe.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option></select></td>',
+    '  <td><select class="appMenuInlineInput" data-admin-account-field="role" data-admin-account-role aria-label="Role účtu"><option value="admin"' + (!['deputy', 'foreman'].includes(safe.role) ? ' selected' : '') + '>Správce</option><option value="deputy"' + (safe.role === 'deputy' ? ' selected' : '') + '>Zástupce – pouze Report směny</option><option value="foreman"' + (safe.role === 'foreman' ? ' selected' : '') + '>Mistr – pouze Přehled směny</option></select></td>',
     '  <td><label class="adminRotationOvertimeSwitch"><input type="checkbox" data-admin-account-field="enabled" data-admin-account-enabled ' + (safe.enabled === false ? '' : 'checked') + '><span>ANO</span></label></td>',
     '  <td><button type="button" class="adminRotationGeneratorIconBtn" data-admin-action="admin-account-row-clear" title="Vyprázdnit řádek">×</button></td>',
     '</tr>'
@@ -1173,7 +1182,7 @@ async function rakAdminChangeOwnerPassword(root) {
 async function rakAdminChangeOwnPassword(root) {
   // RaK 1.7.149: owner/admin/deputy may change only their own password from Settings.
   // This does not grant deputy access to any admin management surface.
-  if (!rakAdminCanOpenShiftReport() || typeof app === 'undefined' || !app || app.adminAuthVersion !== 2) return { ok: false, reason: 'not-allowed' };
+  if (!rakAdminHasVerifiedRole() || typeof app === 'undefined' || !app || app.adminAuthVersion !== 2) return { ok: false, reason: 'not-allowed' };
   const accountId = rakAdminGetActiveAccountId();
   const scope = root && root.querySelector ? root : document;
   const currentPassword = String(scope.querySelector('[data-admin-own-password="current"]')?.value || '');
@@ -1322,6 +1331,9 @@ try {
   window.rakAdminLock = rakAdminLock;
   window.rakAdminCanOpenAdmin = rakAdminCanOpenAdmin;
 window.ensureAdminAccountsBlankRow = ensureAdminAccountsBlankRow;
+  window.rakAdminHasVerifiedRole = rakAdminHasVerifiedRole;
+  window.rakAdminIsForeman = rakAdminIsForeman;
+  window.rakAdminCanOpenShiftOverview = rakAdminCanOpenShiftOverview;
   window.rakAdminCanOpenShiftReport = rakAdminCanOpenShiftReport;
   window.rakAdminIsDeputy = rakAdminIsDeputy;
   window.rakAdminLoadAccountsDirectoryForViewer = rakAdminLoadAccountsDirectoryForViewer;

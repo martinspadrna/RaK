@@ -2622,7 +2622,7 @@
   function hasSignedAdminRoleContext() {
     const context = state.adminAuth && state.adminAuth.context;
     return !!(context && context.authenticated === true && context.account_id
-      && ['owner', 'admin', 'deputy'].includes(String(context.role || '')));
+      && ['owner', 'admin', 'deputy', 'foreman'].includes(String(context.role || '')));
   }
 
   function hasSecureAdminContext() {
@@ -5624,7 +5624,7 @@
   function getShiftOverviewIdentity() {
     const context = state.adminAuth.context;
     const selected = typeof window.rakAdminGetActiveAccountId === 'function' ? window.rakAdminGetActiveAccountId() : '';
-    if (!context || context.authenticated !== true || context.role !== 'owner' || !context.user_id
+    if (!context || context.authenticated !== true || !['owner', 'foreman'].includes(context.role) || !context.user_id
         || !context.session_id || String(selected) !== String(context.account_id)) return null;
     return { userId: String(context.user_id), accountId: String(context.account_id) };
   }

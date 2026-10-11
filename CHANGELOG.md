@@ -1,3 +1,11 @@
+## TEST 1.9.26 – obnova rozpisů po aktualizaci a čistý náhled
+
+- Opraveno zobrazení starého rozpisu navzdory novému TEST číslu verze: před dokončením aktualizace se ověřeně obnoví editor, výjimky a renderer ze sítě; cíleně se nahradí pouze jejich cache kopie. Rozepsaná data ani nesouvisející cache se nemažou.
+- Z fullscreen náhledu Přehledu směny odstraněna tlačítka −, + a Celek. V liště zůstává název a × pro zavření.
+- Počty vsázek ALD1/2 jsou nefocusovatelný výstup, nikoli readonly textový vstup: klepnutí neotevírá pole ani nespouští přechod klávesnice/spodního panelu. Změna pouze +/−, vzhled a uložení zachovány.
+- Přiblížení prsty, posouvání a dvojklik zachovány. Data, celá výrobní tabulka i online záloha beze změny.
+- Pouze development/TEST, bez DB/Edge/produkčních změn.
+
 ## TEST 1.9.25 – samostatné akce nad rozpisem
 
 - Výjimky dne, Neplánovaná dovolená a Odebrat jsou tlačítka nad Tvrdotou/Měkotou. Aktivní je vždy jen jeden režim v příslušné tabulce.
@@ -2715,3 +2723,5 @@
 - Rotace: panel jmen se při otevření stránky nejdřív stabilizuje skrytě a až potom se ukáže ve finální poloze, aby nebylo vidět poskočení.
 - Aktualizované release manifesty, service worker, smoke test Piškvorek a kontrola načtených modulů pro nový soubor.
 - Supabase DB, policies ani online flow beze změny.
+
+- TEST 1.9.26: Mistr má vlastní Přehled směny a online zálohu; dashboard podle Pracovníků, owner přístup nezávislý na zařazení.

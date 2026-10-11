@@ -334,6 +334,23 @@ async function clearSameVersionHotfixAssets() {
   } catch (_) {}
 }
 
+// Changed deferred admin modules keep the same runtime URL in TEST releases.
+// Stage all verified replacements before removing older copies; leave unrelated caches intact.
+async function prewarmRotationToolbarUpdate() {
+  const assets = ['./admin-rotation-editor.js?v=1.9.0', './admin-daymods.js?v=1.9.0', './app-menu-admin-renderer.js?v=1.9.0'];
+  const replacements = await Promise.all(assets.map(async url => {
+    const response = await fetchBuildAsset(url);
+    if (!cacheable(response)) throw new Error('[RaK] missing rotation toolbar update');
+    return { url, response };
+  }));
+  const staged = await caches.open(PREWARM_CACHE);
+  for (const { url, response } of replacements) await staged.put(prewarmKey(url), response.clone());
+  for (const name of [STATIC_CACHE, RUNTIME_CACHE]) {
+    const cache = await caches.open(name);
+    await Promise.all(assets.map(url => cache.delete(url, { ignoreSearch: false })));
+  }
+}
+
 async function installCoreAndPrewarm() {
   const staticCache = await caches.open(STATIC_CACHE);
   const prewarmCache = await caches.open(PREWARM_CACHE);
@@ -415,6 +432,7 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     await clearSameVersionHotfixAssets();
     await installCoreAndPrewarm();
+    await prewarmRotationToolbarUpdate();
     // Záměrně bez skipWaiting(): nový build nejdřív zůstane waiting,
     // aplikace ukáže potvrzení a aktivace proběhne až po klepnutí na Aktualizovat.
   })());

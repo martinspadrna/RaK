@@ -114,7 +114,8 @@ function rakAdminMenuResolveActiveAccountId() {
 }
 
 function appMenuShouldShowAdminEntry() {
-  return !!(typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport());
+  return !!((typeof rakAdminCanOpenShiftReport === 'function' && rakAdminCanOpenShiftReport())
+    || (typeof rakAdminIsForeman === 'function' && rakAdminIsForeman()));
 }
 
 function appMenuLiveAuthDiagnosticEnabled() {
@@ -333,17 +334,19 @@ function appMenuRenderRoot(body) {
   if (!body) return;
   const verifiedRole = appMenuShouldShowAdminEntry();
   const deputy = verifiedRole && typeof rakAdminIsDeputy === 'function' && rakAdminIsDeputy();
-  const liveRoleDiagnostic = verifiedRole && appMenuLiveAuthDiagnosticEnabled()
+  const foreman = verifiedRole && typeof rakAdminIsForeman === 'function' && rakAdminIsForeman();
+  const roleTitle = foreman ? 'Mistr' : deputy ? 'Zástupce' : 'Správce';
+  const liveRoleDiagnostic = verifiedRole && !foreman && appMenuLiveAuthDiagnosticEnabled()
     ? '<button type="button" class="appMenuAction" data-menu-action="live-auth-check">Ověřit oprávnění</button>'
       + '<div class="smallText" id="rakLiveAuthDiagnosticStatus" role="status" aria-live="polite"></div>'
     : '';
   const roleSection = verifiedRole
-    ? '<section class="appMenuAdminQuickLinks" aria-label="' + (deputy ? 'Zástupce' : 'Správce') + '">' +
-        '<div class="appMenuAdminQuickLinksTitle">' + (deputy ? 'Zástupce' : 'Správce') + '</div>' +
+    ? '<section class="appMenuAdminQuickLinks" aria-label="' + roleTitle + '">' +
+        '<div class="appMenuAdminQuickLinksTitle">' + roleTitle + '</div>' +
         '<div class="appMenuGrid">' +
-          (deputy ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
-          (!deputy && typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins() ? '<button type="button" class="appMenuAction isActive" data-menu-action="shift-overview">Přehled směny</button>' : '') +
-          '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>' +
+          (deputy || foreman ? '' : '<button type="button" class="appMenuAction isActive" data-menu-action="admin">Administrace</button><button type="button" class="appMenuAction isActive" data-admin-action="vacation-report">Report dovolené</button>') +
+          (typeof rakAdminCanOpenShiftOverview === 'function' && rakAdminCanOpenShiftOverview() ? '<button type="button" class="appMenuAction isActive" data-menu-action="shift-overview">Přehled směny</button>' : '') +
+          (foreman ? '' : '<button type="button" class="appMenuAction isActive" data-rak-shift-report-entry="1">Report směny</button>') +
           liveRoleDiagnostic +
         '</div>' +
       '</section>'
@@ -362,7 +365,7 @@ function appMenuRenderRoot(body) {
     '</div>',
     roleSection
   ].join('');
-  if (verifiedRole && !deputy) {
+  if (verifiedRole && !deputy && !foreman) {
     void appMenuWarmAdminShellFeature();
   }
 }
@@ -407,7 +410,10 @@ async function appMenuRefreshRoleAccess(reason) {
 }
 
 async function appMenuEnsureAdminAccessFromMenu() {
-  const canOpen = () => appMenuCanOpenAdminNow();
+  const overview = arguments[0] === 'shift-overview';
+  const canOpen = () => overview
+    ? typeof rakAdminCanOpenShiftOverview === 'function' && rakAdminCanOpenShiftOverview()
+    : appMenuCanOpenAdminNow();
   if (canOpen()) return true;
   const activeId = typeof rakAdminGetActiveAccountId === 'function' ? String(rakAdminGetActiveAccountId() || '').trim() : '';
   if (!activeId) return false;
@@ -739,15 +745,12 @@ function bindAppMenuHandlers(body) {
       }
       if (menuAction === 'shift-overview') {
         event.preventDefault();
-        const adminReady = await appMenuEnsureAdminAccessFromMenu();
-        if (!adminReady || !(typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins())) {
+        const adminReady = await appMenuEnsureAdminAccessFromMenu('shift-overview');
+        if (!adminReady || !(typeof rakAdminCanOpenShiftOverview === 'function' && rakAdminCanOpenShiftOverview())) {
           openAppMenu('menu');
           return;
         }
-        if (!(await appMenuEnsureAdminTools(body))) {
-          openAppMenu('menu');
-          return;
-        }
+        if (typeof window.rakEnsureFeature === 'function') await window.rakEnsureFeature('admin');
         openAppMenu('admin-shift-overview');
         return;
       }
@@ -2256,7 +2259,7 @@ function openAppMenu(view) {
   if (body) {
     bindAppMenuHandlers(body);
     if (!adminViews.has(v)) body.dataset.adminView = '';
-    if (adminViews.has(v) && !(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
+    if (adminViews.has(v) && v !== 'admin-shift-overview' && !(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
       body.innerHTML = [
         '<div class="appMenuCard appMenuAdminCard">',
         '  <div class="appMenuCardTitle">Administrace zamčena</div>',
@@ -2286,11 +2289,11 @@ function openAppMenu(view) {
       ].join('');
       return;
     }
-    if (v === 'admin-shift-overview' && !(typeof rakAdminCanManageAdmins === 'function' && rakAdminCanManageAdmins())) {
+    if (v === 'admin-shift-overview' && !(typeof rakAdminCanOpenShiftOverview === 'function' && rakAdminCanOpenShiftOverview())) {
       body.innerHTML = [
         '<div class="appMenuCard appMenuAdminCard">',
         '  <div class="appMenuCardTitle">Přehled směny</div>',
-        '  <div class="appMenuText">Tato testovací funkce je zatím dostupná pouze hlavnímu správci.</div>',
+        '  <div class="appMenuText">Přehled směny je dostupný hlavnímu správci a mistrům.</div>',
         '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
         '</div>'
       ].join('');

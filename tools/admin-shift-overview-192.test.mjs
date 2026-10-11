@@ -153,9 +153,9 @@ test('account switch while upload is in flight cannot acknowledge a different ac
   assert.equal(a.api.cloudRead(old).pending[cloudKey].length, 1);
 });
 
-test('Přehled směny is owner-only and lives directly under More / Správce', () => {
+test('Přehled směny is owner/foreman-only and lives directly under More', () => {
   const managerSection = menu.slice(menu.indexOf('const roleSection = verifiedRole'), menu.indexOf('body.innerHTML = [', menu.indexOf('const roleSection = verifiedRole')));
-  assert.ok(managerSection.includes('rakAdminCanManageAdmins'));
+  assert.ok(managerSection.includes('rakAdminCanOpenShiftOverview'));
   assert.ok(managerSection.includes('data-menu-action="shift-overview"'));
   assert.ok(managerSection.includes('Přehled směny'));
   assert.ok(!shell.includes('data-admin-action="open-shift-overview"'));
@@ -165,7 +165,7 @@ test('Přehled směny is owner-only and lives directly under More / Správce', (
   assert.ok(menu.includes('await appMenuEnsureAdminTools(body)'));
   assert.ok(menu.includes("'admin-shift-overview'"));
   assert.ok(menu.includes("adminAction === 'open-shift-overview'"));
-  assert.ok(menu.includes("v === 'admin-shift-overview' && !(typeof rakAdminCanManageAdmins"));
+  assert.ok(menu.includes("v === 'admin-shift-overview' && !(typeof rakAdminCanOpenShiftOverview"));
   assert.ok(renderer.includes("mode === 'shift-overview'"));
   assert.ok(renderer.includes('renderAdminShiftOverview'));
 });
@@ -180,10 +180,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.25'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-rotation-actions25'"));
-  assert.ok(index.includes("var e='so25',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-rotation-actions25"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.26'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-summary-toolbar26'"));
+  assert.ok(index.includes("var e='so26',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-summary-toolbar26"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -333,7 +333,7 @@ test('batch counters expose minus/count/plus and prohibit typing', () => {
   context.window.RakAdminShiftOverview.render(body,{date:'2026-10-10',shift:'A:ranni12'});
   const counters=[...body.innerHTML.matchAll(/<div class="rakShiftOverviewCounter">(.*?)<\/div>/g)];
   assert.equal(counters.length,18);
-  for(const [,html] of counters){assert.ok(html.includes('readonly'));assert.ok(html.indexOf('data-count-step="-1"')<html.indexOf('readonly'));assert.ok(html.indexOf('readonly')<html.indexOf('data-count-step="1"'));}
+  for(const [,html] of counters){assert.ok(html.includes('<output'));assert.ok(!html.includes('<input'));assert.ok(!html.includes('tabindex'));assert.ok(!html.includes('contenteditable'));assert.ok(html.indexOf('data-count-step="-1"')<html.indexOf('<output'));assert.ok(html.indexOf('</output>')<html.indexOf('data-count-step="1"'));}
   assert.ok(feature.includes('Math.max(0, numberOrZero(input.value) + step)'));
 });
 

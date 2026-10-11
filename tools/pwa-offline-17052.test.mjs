@@ -14,12 +14,12 @@ test('release version rather than historical APP_VERSION drives SW matching',()=
  ctx.window.RAK_TEST_DISPLAY_VERSION='';ctx.window.RAK_RELEASE_VERSION='1.7.51';assert.equal(ctx.cache(),'v1.7.51');
  ctx.window.RAK_RELEASE_VERSION='';assert.equal(ctx.version(),'1.5');
 });
-function worker(failShell=false){
+function worker(failShell=false,failToolbarCache=false){
  const store=new Map(),listeners={},sent=[],url='http://localhost/';
  const key=input=>String(typeof input==='string'?new URL(input,url):new URL(input.url,url));
  function makeCache(name){
   if(!store.has(name))store.set(name,new Map());const map=store.get(name);
-  return {async put(req,res){map.set(key(req),res.clone());},async match(req,opts={}){
+  return {async put(req,res){if(failToolbarCache&&name.includes('prewarm')&&key(req).includes('admin-rotation-editor.js'))throw Error('toolbar quota');map.set(key(req),res.clone());},async match(req,opts={}){
    const wanted=key(req);if(map.has(wanted))return map.get(wanted).clone();
    if(opts.ignoreSearch){for(const [u,v] of map)if(new URL(u).pathname===new URL(wanted).pathname)return v.clone();}
    return undefined;
@@ -72,3 +72,26 @@ test('offline package prewarms Rotation and sync feature modules',()=>{
  assert(sw.includes("DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict'"));
 });
 
+
+test('same-runtime TEST update refreshes cached rotation toolbar modules without wiping unrelated assets',async()=>{
+ const env=worker(),v=RELEASE_METADATA.moduleCacheVersion;
+ const assets=['admin-rotation-editor.js','admin-daymods.js','app-menu-admin-renderer.js'];
+ for(const type of ['static','runtime','prewarm']){
+  const cache=await env.makeCache('rotace-'+type+'-'+RELEASE_METADATA.cacheVersion);
+  for(const asset of assets){const url='./'+asset+'?v='+v;const key=type==='prewarm'?'./__rak_prewarm__/'+encodeURIComponent(url):url;await cache.put(key,new Response('OLD:'+asset));}
+  await cache.put('./untouched-fixture.js',new Response('KEEP'));
+ }
+ await env.trigger('install');await env.trigger('activate');
+ for(const asset of assets){const response=await env.trigger('fetch',new Request('http://localhost/'+asset+'?v='+v));assert.equal(await response.text(),'CONTENT:/'+asset,asset+' must not be shadowed by a same-runtime cache');}
+ for(const type of ['static','runtime','prewarm']){const cache=await env.makeCache('rotace-'+type+'-'+RELEASE_METADATA.cacheVersion);assert.equal(await(await cache.match('./untouched-fixture.js')).text(),'KEEP');}
+});
+
+
+test('failed staging keeps the old rotation editor and does not activate an incomplete update',async()=>{
+ const env=worker(false,true),v=RELEASE_METADATA.moduleCacheVersion;
+ const cache=await env.makeCache('rotace-static-'+RELEASE_METADATA.cacheVersion);
+ for(const asset of ['admin-rotation-editor.js','admin-daymods.js'])await cache.put('./'+asset+'?v='+v,new Response('OLD:'+asset));
+ await assert.rejects(()=>env.trigger('install'),/toolbar quota/);
+ assert.equal(env.getSkipWaiting(),0);
+ for(const asset of ['admin-rotation-editor.js','admin-daymods.js'])assert.equal(await(await cache.match('./'+asset+'?v='+v)).text(),'OLD:'+asset);
+});

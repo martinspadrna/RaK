@@ -797,7 +797,11 @@ function getRakActiveAccountShiftInfo() {
   return {team:'D',outside:false,accountId:id,calendarAssignment:'obrabeni-D'};
 }
 function getRakActiveAccountShiftTeam() { return getRakActiveAccountShiftInfo().team; }
-function rakCanAccessRotations() { return getRakActiveAccountShiftTeam() === 'D'; }
+function rakCanAccessRotations() {
+  // Owner authority is independent of roster/team assignment and requires a verified role.
+  if (typeof window.rakAdminCanManageAdmins === 'function' && window.rakAdminCanManageAdmins()) return true;
+  return getRakActiveAccountShiftTeam() === 'D';
+}
 function rakApplyShiftAccess() {
   if(typeof document==='undefined') return;
   const allowed=rakCanAccessRotations();

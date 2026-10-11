@@ -8,7 +8,7 @@ begin
   insert into auth.users(id) values(a),(b),(c);
   insert into auth.sessions(id,user_id,created_at) values(sa,a,now()),(sb,b,now()),(sc,c,now());
   insert into public.rak_admin_profiles(user_id,account_id,display_name,role,enabled)
-    values(a,'9999999901','Cloud fixture A','owner',true),(b,'9999999902','Cloud fixture B','owner',true),
+    values(a,'9999999901','Cloud fixture A','owner',true),(b,'9999999902','Cloud fixture B','foreman',true),
       (c,'9999999903','Cloud fixture C','admin',true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'session_id',sa,'role','authenticated')::text,true);
   payload := '{"date":"2026-10-11","shift":"B:nocni12","nitrogen":"999"}'::jsonb;
@@ -23,6 +23,11 @@ begin
   if jsonb_array_length(public.rak_list_shift_overviews()) <> 1 then raise exception 'Own read failed'; end if;
   perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'session_id',sb,'role','authenticated')::text,true);
   if jsonb_array_length(public.rak_list_shift_overviews()) <> 0 then raise exception 'Foreign account leak'; end if;
+  perform public.rak_admin_touch_device('fixture-foreman-device','Fixture','1.9.26');
+  begin perform public.rak_owner_list_admin_profiles(); raise exception 'Foreman owner directory accepted';
+    exception when insufficient_privilege then null; end;
+  begin perform public.rak_admin_list_audit_v2(1); raise exception 'Foreman admin audit accepted';
+    exception when insufficient_privilege then null; end;
   answer := public.rak_save_shift_overview('2026-10-11','B:nocni12',payload,0,gen_random_uuid());
   if answer->'row'->>'revision' <> '1' then raise exception 'Account key isolation failed'; end if;
   begin
@@ -57,4 +62,4 @@ begin
   if not (select relrowsecurity from pg_class where oid='public.rak_shift_overviews'::regclass) then raise exception 'Missing RLS'; end if;
 end $$;
 rollback;
-select 'PASS: account isolation, auth, owner gate, CAS, idempotency, size/date validation, grants and RLS; fixtures rolled back' as result;
+select 'PASS: account isolation, auth, owner/foreman gate, CAS, idempotency, size/date validation, grants and RLS; fixtures rolled back' as result;

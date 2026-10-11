@@ -2,6 +2,10 @@
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-menu-admin-renderer.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 function renderAdminMenuBody(body, section) {
+  if (section === 'shift-overview' && typeof rakAdminCanOpenShiftOverview === 'function' && rakAdminCanOpenShiftOverview()) {
+    if (typeof renderAdminShiftOverview === 'function') renderAdminShiftOverview(body);
+    return;
+  }
   // RAK_REPORT_ONLY_DEPUTY_17019
   if (!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
     if (body) body.innerHTML = '<div class="appMenuCard">Administrace není přístupná.<button type="button" class="appMenuAction" data-menu-back="1">Zpět</button></div>';
