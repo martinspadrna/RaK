@@ -55,7 +55,7 @@ První pokus production-target PR CI #807 selhal pouze na proměnlivém FCP P90 
 
 - veřejný alias: <https://skoda-spada.vercel.app>;
 - aktivní deployment: `dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF`;
-- immutable URL: <https://skoda-spada-ourw28jh8-martinspadrnas-projects.vercel.app>;
+- immutable URL: <https://skoda-spada-k9ydp9o3r-martinspadrnas-projects.vercel.app>;
 - stav: READY, target production;
 - source branch: `main`;
 - source commit: `915a75793207b4125a0489dd8e5c824696f227ab`;
@@ -68,13 +68,13 @@ Release 1.9.0 byl frontendový rollout přes auditovaný Vercel workflow; produk
 
 ### TEST Vercel – pracovní prostředí
 
-- funkční TEST důkazní bod 1.9.17: `c2b8c6b5875322e87859b38566831fcccc5574b6`;
-- poslední ověřený READY deployment: `dpl_4ji2ZJ48PMv5E2LHAF5coyyj1UtN`;
+- funkční TEST důkazní bod 1.9.18: `ab494f600dc9510d98e7bd055b8169f01903b172`;
+- poslední ověřený READY deployment: `dpl_4XepGgBJN9LUvRrGnDJ3qaDYnwGE`;
 - stabilní development URL: <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>;
 - immutable URL: <https://skoda-spada-dgbv3dmii-martinspadrnas-projects.vercel.app>;
-- source commit deploymentu: `6f9d8379a860c519a59a0d8c222f92ac45cbca97`;
-- development validation `#878` / ID `38087582230`: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, viditelná verze 1.9.17, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
-- TEST 1.9.17 obsahuje owner-only přehled po pracovištích (v každém všechny tři aktivní indexy); datum/směna vedle sebe i na mobilu; automatickou směnu A–D, ranní/noční a 8/12 h podle aktivního cyklu RaK při otevření. Noční datum odpovídá začátku směny. Vždy dostupný ruční výběr; bez aktivní směny žádná falešná automatická volba. Vsázky ALD1/ALD2 jsou readonly počítadla − / počet / + vpravo s minimem 0. ALD3 a Dusík zachované. Doplňující údaje odstraněny z UI; historická data se při uložení zachovávají. Staré klíče se čtou jako směna D, nové obsahují tým. Datum je v ohraničeném rámečku s českým textem a nativním pickerem; popisky operací vystředěné; řádky ALD1/ALD2 oddělené čarou, počítadla roztažená blíž k názvům, +/hodnota/− mají stejný střed a výšku bez obecného spodního marginu. Celé indexové řádky barevné (zelená/modrá/oranžová). Zadaná celá čísla 1–99 nabízejí ×32 ve Skladu, Montáži, MO Lis a TO; ×64 u Lisů před a po kalení. Jednosloupcová pole roztažená pro nabídku přepočtu; popisky zůstávají nad polem. Kliknutí přepočítá pouze vybrané pole s owner kontrolou. Bez horizontálního posouvání, pouze lokální ukládání bez DB/Edge zápisů;
+- source commit deploymentu: `ab494f600dc9510d98e7bd055b8169f01903b172`;
+- development validation `#880` / ID `38114086625`, attempt 2: SUCCESS včetně release-preview jobu. Veřejný TEST HTTP 200, verze 1.9.18, TEST Supabase isolation a přesná shoda nasazeného modulu ověřeny;
+- TEST 1.9.18 obsahuje owner-only přehled po pracovištích (v každém všechny tři aktivní indexy); datum/směna vedle sebe i na mobilu; automatickou směnu A–D, ranní/noční a 8/12 h podle aktivního cyklu RaK při otevření. Noční datum odpovídá začátku směny. Vždy dostupný ruční výběr; bez aktivní směny žádná falešná automatická volba. Vsázky ALD1/ALD2 jsou readonly počítadla − / počet / + vpravo s minimem 0. ALD3 má Poslední vsázku i ruční Celkem vsázek. Editovatelná číselná pole otevírají numeric/decimal klávesnici, pomocná lišta + / − / Hotovo umožňuje výpočty bez změny focusu. Dusík zachovaný. Doplňující údaje odstraněny z UI; historická data se při uložení zachovávají. Staré klíče se čtou jako směna D, nové obsahují tým. Datum je v ohraničeném rámečku s českým textem a nativním pickerem; popisky operací vystředěné; řádky ALD1/ALD2 oddělené čarou, počítadla roztažená blíž k názvům, +/hodnota/− mají stejný střed a výšku bez obecného spodního marginu. Celé indexové řádky barevné (zelená/modrá/oranžová). Zadaná celá čísla 1–99 nabízejí ×32 ve Skladu, Montáži, MO Lis a TO; ×64 u Lisů před a po kalení. Jednosloupcová pole roztažená pro nabídku přepočtu; popisky zůstávají nad polem. Kliknutí přepočítá pouze vybrané pole s owner kontrolou. Bez horizontálního posouvání, pouze lokální ukládání bez DB/Edge zápisů;
 - vlastník fyzicky potvrdil relevantní vizuální paritu, cross-shift spodní navigaci a dvousloupcové rozložení Kalendář/Nastavení;
 - přibližně 608 KiB nekritického JavaScriptu už není v čekané startovací cestě;
 - kalkulačkové styly a route-only styly Nastavení/Statistik jsou odložené mimo kritický start při zachování pořadí kaskády;
@@ -263,4 +263,5 @@ Po CI:
 - Lišta sleduje visualViewport (resize/scroll), při odchodu z přehledu se odstraní a odpojí listenery. Owner kontrola zachována. Pouze frontend development/TEST; DB ani Edge se nemění.
 - 23 cílených testů PASS. Browser fixture Chromium 320/390/768/1366 px PASS: operátory, kurzor/výběr, focus, Hotovo/blur výpočty, ALD3 save/reload, součty ALD1/2, ×32/×64, owner gate, historická data, bez horizontálního posouvání. Nativní klávesnice fyzického iPhonu vyžaduje přejímku vlastníka.
 - Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, produkční migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny proti poslednímu strojovému důkazu.
-- Canonical build, CI a nasazení: čekají na ověření tohoto vydání.
+- Dvě čisté canonical sestavy PASS; digest faca26f6cd33dae87206eb5b76e381dbc4d1a25049d24f2ae74a7293d1ccb577, zdroje nezměněny. CI #880 / 38114086625 attempt 2 verify i release-preview SUCCESS. První pokus selhal na známé update-navigation race v browser-offline-17052 (prázdná release identity během navigace); opakování stejného SHA bez změny kódu/limitů prošlo.
+- Funkční SHA ab494f600dc9510d98e7bd055b8169f01903b172; READY dpl_4XepGgBJN9LUvRrGnDJ3qaDYnwGE, https://skoda-spada-k9ydp9o3r-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.18, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Main 915a75793207b4125a0489dd8e5c824696f227ab nezměněno; pouze development zápisy. Fyzická přejímka klávesnice iPhone čeká na vlastníka.
