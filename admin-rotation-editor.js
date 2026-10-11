@@ -1648,6 +1648,8 @@ function adminBindRotationNameActionMenuRoute() {
     if (active && active !== document.body && typeof active.blur === 'function') active.blur();
     adminCloseAbsenceCodePicker();
     if (mode === 'unplanned') {
+      // Selecting a person consumes this mode; the dialog's Manual action must remain editable.
+      adminSetRotationNameActionMode(target.closest('table').dataset.daymodSection, '');
       if (typeof adminOpenUnplannedChangeDialog === 'function') adminOpenUnplannedChangeDialog(target);
     } else {
       target.value = '';

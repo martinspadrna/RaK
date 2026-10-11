@@ -12,7 +12,7 @@ function actionFixture() {
   const handlers = {}, fields = [], buttons = [], tables = {}, state = { authorized: true, opened: [], events: [], blur: 0 };
   const classes = () => { const set = new Set(); return { contains: x => set.has(x), toggle: (x, on) => on ? set.add(x) : set.delete(x) }; };
   for (const section of ['hard', 'soft', 'absence']) {
-    const table = tables[section] = { dataset: {}, classList: classes(), querySelectorAll: () => fields.filter(f => f.section === section) };
+    const table = tables[section] = { dataset: { daymodSection: section }, classList: classes(), querySelectorAll: () => fields.filter(f => f.section === section) };
     fields.push({ section, value: 'TEST', readOnly: false, setAttribute(k) { if (k === 'readonly') this.readOnly = true; }, removeAttribute(k) { if (k === 'readonly') this.readOnly = false; }, closest: selector => selector === 'table' || (section === 'absence' && selector.startsWith('[data-rotation-name-mode]') && table.dataset.rotationNameMode) ? table : selector.includes('[data-rot-field') ? fields.find(f => f.section === section) : null, matches: () => section !== 'absence', dispatchEvent: e => state.events.push(e.type) });
     for (const mode of ['unplanned', 'remove']) buttons.push({ dataset: { rotationNameMode: mode, rotationActionSection: section }, classList: classes(), setAttribute(k, v) { this[k] = v; }, closest: selector => selector.includes('[data-rotation-name-mode]') ? buttons.find(b => b.dataset.rotationActionSection === section && b.dataset.rotationNameMode === mode) : null });
   }
@@ -57,7 +57,9 @@ test('explicit modes select only their section and hand vacation to the existing
   assert.equal(button['aria-pressed'], 'true');
   const pointer = f.event(f.fields[0]); f.handlers.pointerdown(pointer); assert(pointer.prevented);
   f.handlers.click(f.event(f.fields[0])); assert.equal(f.state.opened[0], f.fields[0]);
-  f.handlers.click(f.event(button)); assert.equal(f.fields[0].readOnly, false);
+  assert.equal(f.fields[0].readOnly, false, 'Manual action must receive an editable input');
+  assert.equal(f.tables.hard.dataset.rotationNameMode, '');
+  f.handlers.click(f.event(button)); f.handlers.click(f.event(button)); assert.equal(f.fields[0].readOnly, false);
   assert.equal(button['aria-pressed'], 'false');
 });
 
