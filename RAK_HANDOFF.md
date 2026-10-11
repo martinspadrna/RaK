@@ -372,3 +372,8 @@ Po CI:
 - Finální funkční SHA 7a5752272dc759277fca4ebfad1933299e771918; CI #899 / 38141084533 attempt2 SUCCESS včetně verify/release-preview na stejném SHA bez změny limitů. READY dpl_6TZo7cYwFA3SSUC53eazth5Z3w54, https://skoda-spada-emzssd2v7-martinspadrnas-projects.vercel.app. Stabilní veřejná TEST URL HTTP200, verze1.9.26, přesná byte shoda 12 dotčených assetů a TEST isolation PASS. Immutable preview chráněný Vercel Auth; autentizovaná HTTP verifikace v CI PASS.
 - Dvě čisté canonical sestavy na tomto exact SHA PASS: 166 souborů, stable digest 0c77fdc70b1a17f00c64297851776e5e45817fd45c72fee2fcd0fb618fd5f310.
 - Produkční pre/post beze změny: main915a75793207b4125a0489dd8e5c824696f227ab, READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, DB head20260930112049, role constraint bez foreman, Edge absence17/admin15/hradnik3/export2. Žádný produkční zápis; vlastník nebyl převeden na Mistra ani přenastaven v rosteru.
+
+## TEST 1.9.27 – kompaktní toolbar rozpisu (2026-10-11)
+
+- Objednávka vlastníka: tlačítka nad rozpisem ideálně vedle sebe, pokud se vejdou. Opraven zděděný globální button width:100%; scoped width:auto a flex základy 80/120/80px s 6px mezerami. Popisky se mohou zalomit uvnitř tlačítka, samotná tlačítka při nedostatku šířky do dalšího řádku. Dotykové cíle minimálně 44px, akce/data beze změny.
+- Rozpracováno pouze development/TEST; ověření a nasazení níže budou doplněny po dokončení.

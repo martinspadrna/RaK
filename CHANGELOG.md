@@ -1,3 +1,8 @@
+## TEST 1.9.27 – tlačítka rozpisu vedle sebe
+
+- Výjimky dne, Neplánovaná dovolená a Odebrat se řadí vedle sebe podle dostupné šířky; při nedostatku místa se zalomí. Zachovaná dotyková výška 44px, popisky i funkce.
+- Pouze development/TEST, bez změny dat nebo produkce.
+
 ## TEST 1.9.26 – obnova rozpisů po aktualizaci a čistý náhled
 
 - Opraveno zobrazení starého rozpisu navzdory novému TEST číslu verze: před dokončením aktualizace se ověřeně obnoví editor, výjimky a renderer ze sítě; cíleně se nahradí pouze jejich cache kopie. Rozepsaná data ani nesouvisející cache se nemažou.

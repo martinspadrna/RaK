@@ -1594,7 +1594,8 @@ function adminEnsureRotationNameActionMenuStyles() {
   style.id = 'rakRotationNameActionMenuStyles';
   style.textContent = [
     '.adminRotationActionBar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0}',
-    '.adminRotationActionBar .rakDayModModeBtn{flex:1 1 auto;min-width:0;max-width:100%;min-height:44px;margin:0!important;white-space:normal;line-height:1.2}',
+    '.adminRotationActionBar .rakDayModModeBtn{flex:1 1 80px;width:auto;min-width:0;max-width:100%;min-height:44px;padding:7px 8px;margin:0!important;white-space:normal;line-height:1.2}',
+    '.adminRotationActionBar [data-rotation-name-mode=unplanned]{flex-basis:120px}',
     '.adminRotationActionHint{flex-basis:100%;font-size:12px;opacity:.8}',
     '.rakRotationNameMode input[data-rot-field],.rakRotationNameMode input[data-note-field="person"]{cursor:pointer}'
   ].join('');
