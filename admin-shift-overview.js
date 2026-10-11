@@ -1,5 +1,5 @@
 // RaK TEST – owner-only Přehled směny.
-// První iterace ukládá provozní přehled pouze lokálně v zařízení.
+// Account-scoped online backup with a durable local outbox.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-shift-overview.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 (function installRakAdminShiftOverview(root) {
@@ -8,7 +8,180 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const STORAGE_KEY = 'rak_admin_shift_overview_v1';
   const MAX_RECORDS = 120;
   const renderedRecords = new WeakMap();
+  const renderedRevisions = new WeakMap();
   const quantityUndo = new WeakMap();
+  const cloudJobs = new Map();
+  const CLOUD_PREFIX = 'rak_shift_overview_account_v1:';
+  let cloudView = null;
+  function bridge() { return root.RotationSupabaseBridge; }
+  function jsonRead(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null') || fallback; } catch (_) { return fallback; }
+  }
+  function currentIdentity() {
+    if (!ownerAllowed()) return null;
+    const signed = bridge()?.getShiftOverviewIdentity?.();
+    if (signed) return signed;
+    const accountId = String(root.rakAdminGetActiveAccountId?.() || '');
+    const userId = accountId && jsonRead(CLOUD_PREFIX + 'identities', {})[accountId];
+    return userId ? { accountId, userId } : null;
+  }
+  function sameIdentity(identity) {
+    const current = currentIdentity();
+    return !!current && current.userId === identity.userId && current.accountId === identity.accountId;
+  }
+  function cloudRead(identity) {
+    const value = jsonRead(CLOUD_PREFIX + identity.userId, {});
+    return { records: value.records || {}, revisions: value.revisions || {}, pending: value.pending || {},
+      conflicts: value.conflicts || {}, recovery: value.recovery || [] };
+  }
+  function cloudWrite(identity, value) { localStorage.setItem(CLOUD_PREFIX + identity.userId, JSON.stringify(value)); }
+  function mutationId() { return root.crypto.randomUUID(); }
+  function comparable(payload) {
+    function sorted(value) {
+      if (Array.isArray(value)) return value.map(sorted);
+      if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().filter(k => k !== 'updatedAt').map(k => [k, sorted(value[k])]));
+      return value;
+    }
+    return JSON.stringify(sorted(payload));
+  }
+  function migrateLocal(identity) {
+    const identities = jsonRead(CLOUD_PREFIX + 'identities', {});
+    identities[identity.accountId] = identity.userId;
+    localStorage.setItem(CLOUD_PREFIX + 'identities', JSON.stringify(identities));
+    if (localStorage.getItem(CLOUD_PREFIX + 'legacy-owner')) return;
+    const state = cloudRead(identity);
+    const legacy = jsonRead(STORAGE_KEY, {});
+    Object.values(legacy).forEach(record => {
+      if (!record || !/^\d{4}-\d{2}-\d{2}$/.test(record.date || '')) return;
+      const payload = normalizeRecord(record, record.date, normalizeShift(record.shift));
+      const key = recordKey(payload.date, payload.shift);
+      if (!state.records[key]) {
+        state.records[key] = payload;
+        state.pending[key] = [{ id: mutationId(), revision: null, payload }];
+      }
+    });
+    cloudWrite(identity, state);
+    // Original local data remains untouched as a recovery copy. Claim it once.
+    localStorage.setItem(CLOUD_PREFIX + 'legacy-owner', identity.userId);
+  }
+  function localCloudSave(record, editorRevision) {
+    const identity = currentIdentity();
+    if (!identity) throw new Error('Pro zálohování se přihlas ke svému účtu online.');
+    const state = cloudRead(identity), key = recordKey(record.date, record.shift);
+    state.records[key] = clone(record);
+    const queue = state.pending[key] || (state.pending[key] = []);
+    // Keep the in-flight mutation, including across reloads, for idempotent retry.
+    const id = mutationId();
+    queue.push({ id, revision: queue.length ? null : (arguments.length > 1 ? editorRevision : (state.revisions[key] ?? null)), payload: clone(record) });
+    cloudWrite(identity, state);
+    return { ...identity, mutationId: id };
+  }
+  function acknowledgeEditor(identity, head, revision) {
+    const view = cloudView;
+    if (view && sameIdentity(identity) && view.root.dataset.cloudMutation === head.id) {
+      renderedRevisions.set(view.root, revision);
+      renderedRecords.set(view.root, clone(head.payload));
+    }
+  }
+  function showCloudState(identity, message) {
+    const view = cloudView;
+    if (!view || !sameIdentity(identity) || !view.root.isConnected) return;
+    const state = cloudRead(identity);
+    const date = view.root.querySelector('[data-shift-overview-date]')?.value;
+    const shift = view.root.querySelector('[data-shift-overview-shift]')?.value;
+    const key = recordKey(date, shift);
+    const conflict = state.conflicts[key];
+    status(view.root, conflict ? 'Online je jiná verze. Místní přehled zůstává uložený.' : message);
+    const panel = view.root.querySelector('[data-shift-overview-cloud-conflict]');
+    if (panel) panel.hidden = !conflict;
+  }
+  async function syncCloud() {
+    if (!ownerAllowed() || !bridge()?.ensureShiftOverviewIdentity || root.navigator?.onLine === false) return false;
+    let identity;
+    try { identity = await bridge().ensureShiftOverviewIdentity(); } catch (_) { return false; }
+    if (!identity || !sameIdentity(identity)) return false;
+    if (cloudJobs.has(identity.userId)) return cloudJobs.get(identity.userId);
+    const job = (async () => {
+      migrateLocal(identity);
+      const listed = await bridge().listShiftOverviews(identity);
+      if (!listed.ok || !sameIdentity(identity)) return false;
+      const state = cloudRead(identity);
+      const remote = new Map((Array.isArray(listed.data) ? listed.data : []).map(row => [recordKey(row.shift_date, row.shift_code), row]));
+      for (const [key, row] of remote) {
+        if (!state.pending[key]?.length) {
+          state.records[key] = row.payload;
+          state.revisions[key] = row.revision;
+          delete state.conflicts[key];
+        }
+      }
+      for (const [key, queue] of Object.entries(state.pending)) {
+        const row = remote.get(key), head = queue[0];
+        if (!head) continue;
+        if (row && (row.mutation_id === head.id || (head.revision === null && comparable(row.payload) === comparable(head.payload)))) {
+          acknowledgeEditor(identity, head, row.revision);
+          queue.shift(); state.revisions[key] = row.revision;
+          if (queue.length) queue[0].revision = row.revision;
+          else delete state.pending[key];
+          delete state.conflicts[key];
+        } else if (head.revision === null) {
+          if (row) state.conflicts[key] = row;
+          else head.revision = 0;
+        } else if (row && row.revision !== head.revision) state.conflicts[key] = row;
+      }
+      cloudWrite(identity, state);
+      let allSaved = true;
+      for (const key of Object.keys(state.pending)) {
+        while (sameIdentity(identity)) {
+          const current = cloudRead(identity), head = current.pending[key]?.[0];
+          if (!head) break;
+          if (current.conflicts[key]) { allSaved = false; break; }
+          const result = await bridge().saveShiftOverview(identity, head);
+          if (!sameIdentity(identity)) return false;
+          if (!result.ok) return false;
+          const next = cloudRead(identity);
+          if (next.pending[key]?.[0]?.id !== head.id) return false;
+          if (!result.data?.ok) {
+            if (result.data?.conflict) next.conflicts[key] = result.data.row || { revision: 0 };
+            cloudWrite(identity, next); allSaved = false; break;
+          }
+          next.pending[key].shift();
+          acknowledgeEditor(identity, head, result.data.row.revision);
+          next.revisions[key] = result.data.row.revision;
+          if (next.pending[key].length) next.pending[key][0].revision = result.data.row.revision;
+          else delete next.pending[key];
+          delete next.conflicts[key];
+          cloudWrite(identity, next);
+        }
+      }
+      return allSaved;
+    })();
+    cloudJobs.set(identity.userId, job);
+    try {
+      const ok = await job;
+      showCloudState(identity, ok ? 'Zálohováno online k přihlášenému účtu ✓' : 'Uloženo v zařízení · čeká na online zálohu.');
+      return ok;
+    } catch (_) {
+      showCloudState(identity, 'Uloženo v zařízení · online záloha se nyní nepodařila.');
+      return false;
+    } finally { cloudJobs.delete(identity.userId); }
+  }
+  function cloudResolution(useRemote, date, shift) {
+    const identity = currentIdentity();
+    if (!identity) return null;
+    const state = cloudRead(identity), key = recordKey(date, shift), remote = state.conflicts[key];
+    if (!remote) return null;
+    state.recovery.push({ key, record: state.records[key], pending: state.pending[key], at: new Date().toISOString() });
+    state.recovery = state.recovery.slice(-20);
+    if (useRemote) {
+      if (!remote.payload) return null;
+      state.records[key] = remote.payload; state.revisions[key] = remote.revision; delete state.pending[key];
+    } else state.pending[key] = [{ id: mutationId(), revision: remote.revision, payload: clone(state.records[key]) }];
+    delete state.conflicts[key]; cloudWrite(identity, state);
+    return state.records[key];
+  }
+  root.addEventListener?.('online', () => { void syncCloud(); });
+  root.addEventListener?.('focus', () => { void syncCloud(); });
+  document.addEventListener?.('visibilitychange', () => { if (document.visibilityState === 'visible') void syncCloud(); });
   const AAR_COLUMNS = [
     { key: 'agAe', label: 'AG / AE', cls: 'isGreen' },
     { key: 'afAd', label: 'AF / AD', cls: 'isBlue' },
@@ -153,6 +326,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function readStore() {
+    if (bridge()) { const identity = currentIdentity(); return identity ? cloudRead(identity).records : {}; }
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
@@ -160,6 +334,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function writeStore(store) {
+    if (bridge()) {
+      const identity = currentIdentity();
+      if (!identity) throw new Error('Přihlášení k účtu je nutné.');
+      const state = cloudRead(identity); state.records = store; cloudWrite(identity, state); return;
+    }
     const rows = Object.entries(store || {}).sort((a, b) => {
       const aa = String(a[1] && a[1].updatedAt || '');
       const bb = String(b[1] && b[1].updatedAt || '');
@@ -585,7 +764,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return [
       '<div class="appMenuCard appMenuAdminCard rakShiftOverviewCard" id="rakShiftOverviewRoot">',
       '<div class="appMenuCardTitle">Přehled směny</div>',
-      '<div class="appMenuText smallText">Přehled podle provozní tabulky · ukládá se v tomto zařízení.</div>',
+      '<div class="appMenuText smallText">Přehled podle provozní tabulky · záloha k přihlášenému účtu.</div>',
       '<div class="rakShiftOverviewHeader">',
       '<label>Datum<div class="rakShiftOverviewDateShell"><span data-shift-overview-date-display aria-hidden="true">' + esc(displayDate(record.date)) + '</span><input class="appMenuInlineInput" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></div></label>',
       '<label>Směna<select class="appMenuSelect" data-shift-overview-shift>' + shiftOptions(record.shift) + '</select></label>',
@@ -748,8 +927,34 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     body.dataset.adminView = 'shift-overview';
     body.innerHTML = buildHtml(record);
     const rootEl = body.querySelector('#rakShiftOverviewRoot');
-    if (rootEl) renderedRecords.set(rootEl, clone(record));
+    if (rootEl) {
+      renderedRecords.set(rootEl, clone(record));
+      const identity = currentIdentity();
+      renderedRevisions.set(rootEl, identity ? (cloudRead(identity).revisions[recordKey(date, shift)] ?? null) : null);
+    }
     bind(body);
+    if (rootEl && bridge()) {
+      cloudView = { root: rootEl, body };
+      const conflict = document.createElement('div');
+      conflict.hidden = true;
+      conflict.setAttribute('data-shift-overview-cloud-conflict', '');
+      conflict.innerHTML = '<button type="button" class="appMenuAction" data-shift-overview-action="cloud-load">Načíst online verzi</button><button type="button" class="appMenuAction" data-shift-overview-action="cloud-save">Zálohovat místní verzi místo online</button>';
+      rootEl.querySelector('[data-shift-overview-status]')?.after(conflict);
+      const identity = currentIdentity();
+      if (identity) showCloudState(identity, 'Místní kopie · ověřuji online zálohu…');
+      if (!forcedRecord) {
+        void syncCloud().then((online) => {
+          if (cloudView?.root !== rootEl || rootEl.dataset.edited === '1' || !ownerAllowed() || !rootEl.isConnected) return;
+          const saved = getSaved(date, shift);
+          if (saved) {
+            render(body, saved);
+            const nextIdentity = currentIdentity();
+            if (nextIdentity) showCloudState(nextIdentity, !online || cloudRead(nextIdentity).pending[recordKey(date, shift)]?.length
+              ? 'Místní kopie v zařízení · online záloha nyní není potvrzená.' : 'Zálohováno online k přihlášenému účtu ✓');
+          } else status(rootEl, root.navigator?.onLine === false ? 'Offline · místní kopie v zařízení.' : 'Pro tuto směnu zatím není uložený přehled.');
+        }).catch(() => { status(rootEl, 'Online záloha se nyní nepodařila. Místní data zůstala zachována.'); });
+      }
+    }
     return true;
   }
 
@@ -773,6 +978,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     rootEl.addEventListener('change', finishQuantity);
     rootEl.addEventListener('focusout', finishQuantity);
     rootEl.addEventListener('input', (event) => {
+      rootEl.dataset.edited = '1';
       const undo = quantityUndo.get(rootEl);
       if (undo && undo.input !== event.target) clearQuantityUndo(rootEl);
       syncDateDisplay(rootEl);
@@ -785,7 +991,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       refreshSummary(rootEl);
     });
 
-    rootEl.addEventListener('click', (event) => {
+    rootEl.addEventListener('click', async (event) => {
       if (event.target.closest?.('[data-shift-overview-summary-open]')) { event.preventDefault(); openSummaryViewer(rootEl); return; }
       const restore = event.target?.closest?.('[data-quantity-restore]');
       if (restore && rootEl.contains(restore)) {
@@ -809,6 +1015,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         const input = multiply.parentElement.querySelector('[data-shift-overview-field]');
         const factor = quantityMultiplier(String(path).split('.').pop());
         if (input && factor && canMultiply(input.value)) {
+          rootEl.dataset.edited = '1';
           const expression = input.value;
           input.value = String(Number(expression.trim()) * factor);
           rememberQuantityHistory(input, expression, input.value, factor);
@@ -852,6 +1059,27 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           refreshTotals(rootEl);
           refreshSummary(rootEl);
           const record = readDom(rootEl);
+          if (bridge()) {
+            const opened = renderedRecords.get(rootEl);
+            const base = opened && opened.date === record.date && opened.shift === record.shift ? renderedRevisions.get(rootEl) : null;
+            const queued = localCloudSave(record, base ?? null);
+            rootEl.dataset.cloudMutation = queued.mutationId;
+            status(rootEl, 'Uloženo v zařízení · zálohuji online…');
+            await syncCloud();
+            const identity = currentIdentity();
+            if (identity) {
+              const state = cloudRead(identity);
+              if (!state.pending[recordKey(record.date, record.shift)]?.length && !state.conflicts[recordKey(record.date, record.shift)]) {
+                renderedRevisions.set(rootEl, state.revisions[recordKey(record.date, record.shift)] ?? null);
+                renderedRecords.set(rootEl, clone(record));
+              }
+              showCloudState(identity, state.pending[recordKey(record.date, record.shift)]?.length
+                ? 'Uloženo v zařízení · čeká na online zálohu.' : 'Zálohováno online k přihlášenému účtu ✓');
+              if (state.pending[recordKey(record.date, record.shift)]?.length && !state.conflicts[recordKey(record.date, record.shift)]
+                  && root.navigator?.onLine !== false) await syncCloud();
+            }
+            return;
+          }
           const store = readStore();
           store[recordKey(record.date, record.shift)] = record;
           writeStore(store);
@@ -863,11 +1091,33 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       }
 
       if (action === 'load') {
+        const identity = currentIdentity();
+        const beforeLoad = comparable(readDom(rootEl));
+        status(rootEl, 'Načítám přehled…');
+        const online = bridge() ? await syncCloud() : false;
+        if (bridge() && identity && !sameIdentity(identity)) return;
+        if (cloudView && cloudView.root !== rootEl) return;
+        if (comparable(readDom(rootEl)) !== beforeLoad) { status(rootEl, 'Online kopie načtena. Rozepsané změny zůstaly ve formuláři.'); return; }
         const saved = getSaved(date, shift);
         render(body, saved || defaultRecord(date, shift));
         const next = body.querySelector('#rakShiftOverviewRoot');
         if (next && !saved) status(next, 'Pro vybraný den a směnu zatím není nic uložené.');
+        else if (next && bridge() && currentIdentity()) showCloudState(currentIdentity(), online
+          ? 'Načteno z online zálohy účtu ✓' : 'Načtena místní kopie · offline nebo online záloha nedostupná.');
         return;
+      }
+
+      if (action === 'cloud-load' || action === 'cloud-save') {
+        try {
+          const record = cloudResolution(action === 'cloud-load', date, shift);
+          if (!record) return;
+          if (action === 'cloud-load') render(body, record);
+          else {
+            const identity = currentIdentity();
+            rootEl.dataset.cloudMutation = identity ? (cloudRead(identity).pending[recordKey(date, shift)]?.[0]?.id || '') : '';
+          }
+          await syncCloud();
+        } catch (_) { status(rootEl, 'Změna se nepodařila. Místní data zůstala zachována.'); }
       }
 
     });

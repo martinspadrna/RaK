@@ -37,6 +37,8 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 
 ## Aktuální stav k 11. 10. 2026
 
+TEST 1.9.24 – připraveno online zálohování Přehledu směny na přihlášený owner účet; nasazení a CI se ověřují. Vlastník nově autorizoval nezbytné DB změny pouze v TESTu. Produkce zůstává zmrazená.
+
 ### RaK 1.9.0 je v produkci
 
 Rollout 1.9.0 je dokončený. Produkční release byl proveden auditovaným workflow po exact-main validaci; nejde už o kandidáta ani čekající plán.
@@ -312,6 +314,14 @@ Po CI:
 - Canonical dva čisté buildy PASS, 166 souborů, digest 8db9a37820496a863af1587d910f46f7a4632423ca98a2518b37d9746bd4f81a. GitHub development validation #888 / 38120226357 attempt 1 SUCCESS včetně release-preview.
 - Funkční SHA 15fecb53421a7506b4cf6dd2178ef5c16269a5fc; READY dpl_8v5FCzHuM1SqZn8cRVZwK3GcBoFj, https://skoda-spada-hx3agql5n-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.22, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Implementace/nasazení/automatické ověření 100 %, fyzická přejímka nového layoutu čeká na vlastníka.
 - Živý main 915a75793207b4125a0489dd8e5c824696f227ab, produkční deployment dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge versions 17/15/3/2 ověřeny beze změny. Pouze development frontend a handoff zápisy.
+
+## TEST 1.9.24 – online záloha přehledů směn k účtu (2026-10-11)
+
+- Objednávka: „Ted bych potřeboval at se to zalohuje online na prihlaseny ucet.“ Nová TEST tabulka rak_shift_overviews a owner RPC rak_list_shift_overviews/rak_save_shift_overview; žádné produkční DB ani Edge zápisy.
+- Server odvozuje user_id z ověřeného Supabase Auth + rak_admin_context, kontroluje enabled owner a platnou správní session. RLS zapnuté, přímá práva tabulky PUBLIC/anon/authenticated odebraná, RPC execute pouze authenticated. Security definer s prázdným search_path je záměrný pro stejnou session/profile kontrolu jako ostatní správní funkce. Advisor INFO pro RLS bez policy znamená záměrné deny-all přímých přístupů; authenticated definer WARN je pokryt explicitním owner/session gate. Žádný nový anonymní definer endpoint.
+- Uložit zapisuje trvalou místní frontu oddělenou podle auth user_id a následně online zálohu; potvrzení online až po úspěchu. Offline kopie se odešle po online/focus/visibility nebo příštím otevření/Načíst. Fronta drží in-flight UUID pro idempotentní retry i po reloadu; CAS revision chrání novější záznam jiného zařízení. Konflikt nabízí Načíst online verzi / Zálohovat místní verzi místo online; původní místní kopie se uchová v recovery. Starý rak_admin_shift_overview_v1 zůstává nedotčený a jednorázově se připojí k prvnímu ověřenému owner účtu. Další účet jej nedostane.
+- Načíst i otevření přehledu načítá serverová data vlastního účtu. Odpověď po změně účtu se nepřijme; opožděné načtení nepřepíše právě rozepsaný formulář. Výpočty, counters, celá tabulka/SVG náhled a layout zachovány.
+- 28 cílených testů PASS, z toho 7 nových: druhé zařízení, izolace účtů, offline/reload, ztracená odpověď, legacy migrace, CAS konflikt, save během in-flight a přepnutí účtu. Reálný TEST SQL fixture test PASS (rollback všech testovacích uživatelů/session/dat): auth/owner/disabled/session gate, oddělení účtů, CAS/idempotence, date/size validace, grants a RLS. Fyzická přejímka účtu na iPhone čeká na vlastníka.
 
 ## TEST 1.9.23 – výrobní tabulka v jednom celku (2026-10-11)
 

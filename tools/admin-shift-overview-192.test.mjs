@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { randomUUID } from 'node:crypto';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const shell = read('app-menu-admin-shell.js');
@@ -12,6 +13,143 @@ const feature = read('admin-shift-overview.js');
 const sw = read('sw.js');
 const index = read('index.html');
 const metadata = read('rak-release-metadata.js');
+
+function cloudFixture({ storage = new Map(), server = new Map(), legacy, delaySave } = {}) {
+  const state = { identity: { accountId: '9811', userId: 'owner-a' }, online: true, fail: false, lost: false, calls: 0 };
+  if (legacy) storage.set('rak_admin_shift_overview_v1', JSON.stringify(legacy));
+  const events = {};
+  const window = {
+    crypto: { randomUUID }, navigator: {}, rakAdminCanManageAdmins: () => !!state.identity,
+    rakAdminGetActiveAccountId: () => state.identity?.accountId || '',
+    addEventListener: (name, handler) => { events[name] = handler; }
+  };
+  Object.defineProperty(window.navigator, 'onLine', { get: () => state.online });
+  window.RotationSupabaseBridge = {
+    getShiftOverviewIdentity: () => state.identity,
+    ensureShiftOverviewIdentity: async () => state.identity,
+    listShiftOverviews: async identity => state.fail ? { ok: false } : { ok: true, data: [...server.values()].filter(r => r.uid === identity.userId) },
+    saveShiftOverview: async (identity, entry) => {
+      state.calls++;
+      if (delaySave) await delaySave(entry);
+      if (state.fail) return { ok: false };
+      const key = identity.userId + '|' + entry.payload.date + '|' + entry.payload.shift;
+      const prior = server.get(key);
+      if (prior?.mutation_id === entry.id) return { ok: true, data: { ok: true, row: prior } };
+      if ((prior?.revision || 0) !== entry.revision) return { ok: true, data: { ok: false, conflict: true, row: prior } };
+      const row = { uid: identity.userId, shift_date: entry.payload.date, shift_code: entry.payload.shift,
+        payload: structuredClone(entry.payload), revision: (prior?.revision || 0) + 1, mutation_id: entry.id };
+      server.set(key, row);
+      if (state.lost) { state.lost = false; return { ok: false }; }
+      return { ok: true, data: { ok: true, row } };
+    }
+  };
+  const context = vm.createContext({ window, document: { getElementById: () => ({}) },
+    localStorage: { getItem: k => storage.get(k) || null, setItem: (k, v) => storage.set(k, v) } });
+  // Expose the controller only inside this VM; production has no test hooks.
+  vm.runInContext(feature.replace('  const AAR_COLUMNS = [', '  root.testCloud = { localCloudSave, syncCloud, cloudRead, migrateLocal, cloudResolution, readStore };\n  const AAR_COLUMNS = ['), context);
+  return { api: window.testCloud, state, storage, server, events };
+}
+const cloudRecord = (nitrogen = '10') => ({ date: '2026-10-11', shift: 'B:nocni12', nitrogen });
+const cloudKey = '2026-10-11|B:nocni12';
+
+test('cloud backup restores the same account on a second device and isolates other accounts', async () => {
+  const first = cloudFixture();
+  first.api.localCloudSave(cloudRecord('123'));
+  assert.equal(await first.api.syncCloud(), true);
+  const second = cloudFixture({ server: first.server });
+  assert.equal(await second.api.syncCloud(), true);
+  assert.equal(second.api.readStore()[cloudKey].nitrogen, '123');
+  second.state.identity = { accountId: '9812', userId: 'owner-b' };
+  assert.equal(Object.keys(second.api.readStore()).length, 0);
+  await second.api.syncCloud();
+  assert.equal(Object.keys(second.api.readStore()).length, 0);
+  second.state.identity = null;
+  assert.equal(Object.keys(second.api.readStore()).length, 0);
+  assert.throws(() => second.api.localCloudSave(cloudRecord()), /přihlas/);
+});
+
+test('offline outbox survives reload and uploads on reconnection', async () => {
+  const first = cloudFixture();
+  first.state.online = false;
+  first.api.localCloudSave(cloudRecord('777'));
+  assert.equal(await first.api.syncCloud(), false);
+  assert.equal(first.server.size, 0);
+  const reloaded = cloudFixture({ storage: first.storage, server: first.server });
+  await reloaded.api.syncCloud();
+  assert.equal([...first.server.values()][0].payload.nitrogen, '777');
+  assert.equal(Object.keys(reloaded.api.cloudRead(reloaded.state.identity).pending).length, 0);
+});
+
+test('lost cloud response retries idempotently without discarding local data', async () => {
+  const first = cloudFixture();
+  first.api.localCloudSave(cloudRecord('42')); first.state.lost = true;
+  assert.equal(await first.api.syncCloud(), false);
+  assert.equal(first.api.cloudRead(first.state.identity).pending[cloudKey].length, 1);
+  await first.api.syncCloud();
+  assert.equal([...first.server.values()][0].revision, 1);
+  assert.equal(Object.keys(first.api.cloudRead(first.state.identity).pending).length, 0);
+});
+
+test('background refresh cannot silently rebase a stale open editor', async () => {
+  const a = cloudFixture(); a.api.localCloudSave(cloudRecord('1')); await a.api.syncCloud();
+  const b = cloudFixture({ server: a.server }); await b.api.syncCloud();
+  const openedRevision = b.api.cloudRead(b.state.identity).revisions[cloudKey];
+  a.api.localCloudSave(cloudRecord('2')); await a.api.syncCloud();
+  await b.api.syncCloud(); // foreground/visibility refresh updates cache, not editor base
+  b.api.localCloudSave(cloudRecord('3'), openedRevision);
+  assert.equal(await b.api.syncCloud(), false);
+  assert.equal([...a.server.values()][0].payload.nitrogen, '2');
+  assert.equal(b.api.readStore()[cloudKey].nitrogen, '3');
+});
+
+test('legacy records are backed up once and never assigned to a second account', async () => {
+  const legacy = { '2026-10-11|B:nocni12': cloudRecord('456') };
+  const first = cloudFixture({ legacy });
+  await first.api.syncCloud();
+  assert.equal([...first.server.values()][0].payload.nitrogen, '456');
+  assert.deepEqual(JSON.parse(first.storage.get('rak_admin_shift_overview_v1')), legacy);
+  first.state.identity = { accountId: '9812', userId: 'owner-b' };
+  await first.api.syncCloud();
+  assert.equal(first.server.size, 1);
+});
+
+test('two-device stale save preserves both versions until explicit conflict resolution', async () => {
+  const a = cloudFixture(); a.api.localCloudSave(cloudRecord('1')); await a.api.syncCloud();
+  const b = cloudFixture({ server: a.server }); await b.api.syncCloud();
+  a.api.localCloudSave(cloudRecord('2')); await a.api.syncCloud();
+  b.api.localCloudSave(cloudRecord('3')); assert.equal(await b.api.syncCloud(), false);
+  assert.equal([...a.server.values()][0].payload.nitrogen, '2');
+  assert.equal(b.api.readStore()[cloudKey].nitrogen, '3');
+  b.api.cloudResolution(false, '2026-10-11', 'B:nocni12');
+  assert.equal(await b.api.syncCloud(), true);
+  assert.equal([...a.server.values()][0].payload.nitrogen, '3');
+  assert.equal(b.api.cloudRead(b.state.identity).recovery.length, 1);
+});
+
+test('new saves during in-flight upload keep their own mutation and are eventually backed up', async () => {
+  let release, started;
+  const waiting = new Promise(r => { started = r; });
+  const delay = new Promise(r => { release = r; });
+  let once = true;
+  const a = cloudFixture({ delaySave: async () => { if (once) { once = false; started(); await delay; } } });
+  a.api.localCloudSave(cloudRecord('1')); const job = a.api.syncCloud();
+  await waiting; a.api.localCloudSave(cloudRecord('2')); release(); await job;
+  assert.equal([...a.server.values()][0].payload.nitrogen, '2');
+  assert.equal([...a.server.values()][0].revision, 2);
+  assert.equal(Object.keys(a.api.cloudRead(a.state.identity).pending).length, 0);
+});
+
+test('account switch while upload is in flight cannot acknowledge a different account cache', async () => {
+  let release, started;
+  const waiting = new Promise(r => { started = r; }); const delay = new Promise(r => { release = r; });
+  const a = cloudFixture({ delaySave: async () => { started(); await delay; } });
+  const old = a.state.identity;
+  a.api.localCloudSave(cloudRecord('1')); const job = a.api.syncCloud();
+  await waiting; a.state.identity = { accountId: '9812', userId: 'owner-b' }; release();
+  assert.equal(await job, false);
+  assert.equal(Object.keys(a.api.readStore()).length, 0);
+  assert.equal(a.api.cloudRead(old).pending[cloudKey].length, 1);
+});
 
 test('Přehled směny is owner-only and lives directly under More / Správce', () => {
   const managerSection = menu.slice(menu.indexOf('const roleSection = verifiedRole'), menu.indexOf('body.innerHTML = [', menu.indexOf('const roleSection = verifiedRole')));
@@ -40,16 +178,16 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.23'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview23'"));
-  assert.ok(index.includes("var e='so23',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview23"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.24'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview24'"));
+  assert.ok(index.includes("var e='so24',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview24"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
-test('first version is local-only and covers the paper table fields', () => {
+test('account backup preserves all paper fields and keeps network access in authenticated bridge', () => {
   for (const label of ['Měkké obrábění','Sklad před kalením','Sklad po kalení','Po 145','Po broušení','Montáž','Poslední vsázka','Dusík','Závady','Celkové poznámky ke směně']) assert.ok(feature.includes(label),label);
   for (const code of ['AG / AE','AF / AD','AH','Soustružení','Do skladu','Stav skladu','Awa','Awi','TW1','SR7','FR7','ZSB-RLR','SRRG','0AM 409 155 AG','0AM 409 111 AE']) {
     assert.ok(feature.includes(code), code);
@@ -61,7 +199,7 @@ test('first version is local-only and covers the paper table fields', () => {
   assert.ok(feature.includes('data-menu-back="1"'));
   assert.ok(!feature.includes('data-admin-action="back-admin"'));
   assert.ok(!feature.includes('fetch('));
-  assert.ok(!feature.includes('RotationSupabaseBridge'));
+  assert.ok(feature.includes('RotationSupabaseBridge'));
   assert.ok(!feature.includes('.rpc('));
 });
 
