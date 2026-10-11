@@ -799,7 +799,8 @@ function getRakActiveAccountShiftInfo() {
 function getRakActiveAccountShiftTeam() { return getRakActiveAccountShiftInfo().team; }
 function rakCanAccessRotations() {
   // Owner authority is independent of roster/team assignment and requires a verified role.
-  if (typeof window.rakAdminCanManageAdmins === 'function' && window.rakAdminCanManageAdmins()) return true;
+  if (typeof window.rakAdminHasVerifiedRole === 'function' && window.rakAdminHasVerifiedRole()
+    && typeof window.rakAdminCanManageAdmins === 'function' && window.rakAdminCanManageAdmins()) return true;
   return getRakActiveAccountShiftTeam() === 'D';
 }
 function rakApplyShiftAccess() {

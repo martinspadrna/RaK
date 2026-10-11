@@ -21,9 +21,9 @@ test('Mistr More section exposes exactly overview and no diagnostic/admin/report
  f.render(body);const section=body.innerHTML.split('<section')[1];assert(section.includes('Mistr'));assert(section.includes('Přehled směny'));assert.equal((section.match(/<button/g)||[]).length,1);assert(!section.includes('Administrace'));assert(!section.includes('Report směny'));
 });
 test('owner A outside has A dashboard assignment and rotation; all other A/B/C stay blocked',()=>{
- let owner=false;let team='A';
- const api=runNamedDeclarations({modules:[{source:read('core.js'),names:['rakCanAccessRotations']}],globals:{window:{rakAdminCanManageAdmins:()=>owner},getRakActiveAccountShiftTeam:()=>team},exports:{allowed:'rakCanAccessRotations'}}).api;
- for(team of ['A','B','C'])assert.equal(api.allowed(),false);team='D';assert.equal(api.allowed(),true);team='A';owner=true;assert.equal(api.allowed(),true);
+ let owner=false;let verified=true;let team='A';
+ const api=runNamedDeclarations({modules:[{source:read('core.js'),names:['rakCanAccessRotations']}],globals:{window:{rakAdminHasVerifiedRole:()=>verified,rakAdminCanManageAdmins:()=>owner},getRakActiveAccountShiftTeam:()=>team},exports:{allowed:'rakCanAccessRotations'}}).api;
+ for(team of ['A','B','C'])assert.equal(api.allowed(),false);team='D';assert.equal(api.allowed(),true);team='A';owner=true;assert.equal(api.allowed(),true);verified=false;assert.equal(api.allowed(),false,'stale owner state cannot override team access');
  const dash=read('dashboard.js');assert(dash.includes('if(assigned.outside)'));assert(dash.includes('getDashboardAccountTeamStatus(now,assigned.team)'));
 });
 test('Mistr backend management denied and owner role cannot be overwritten by role editor',()=>{
