@@ -1552,7 +1552,7 @@ function buildAdminRotationActionBarHtml(section) {
     : '<button type="button" class="rakDayModModeBtn" data-daymod-mode="' + section + '" aria-pressed="false">✎ Výjimky dne</button>'
       + '<button type="button" class="rakDayModModeBtn" data-admin-action="rotation-name-mode" data-rotation-name-mode="unplanned" data-rotation-action-section="' + section + '" aria-pressed="false">Neplánovaná dovolená</button>';
   return '<div class="adminRotationActionBar">' + actions
-    + '<button type="button" class="rakDayModModeBtn" data-admin-action="rotation-name-mode" data-rotation-name-mode="remove" data-rotation-action-section="' + section + '" aria-pressed="false">Odebrat</button>'
+    + '<button type="button" class="rakDayModModeBtn" data-admin-action="rotation-name-mode" data-rotation-name-mode="remove" data-rotation-action-section="' + section + '" aria-pressed="false" aria-label="Odebrat" title="Odebrat"><span class="adminRotationRemoveLabel" aria-hidden="true">Odebrat</span><span class="adminRotationRemoveIcon" aria-hidden="true">×</span></button>'
     + '<span class="adminRotationActionHint" data-rotation-action-hint="' + section + '" hidden></span></div>';
 }
 
@@ -1596,6 +1596,8 @@ function adminEnsureRotationNameActionMenuStyles() {
     '.adminRotationActionBar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-width:0}',
     '.adminRotationActionBar .rakDayModModeBtn{flex:1 1 80px;width:auto;min-width:0;max-width:100%;min-height:44px;padding:7px 8px;margin:0!important;white-space:normal;line-height:1.2}',
     '.adminRotationActionBar [data-rotation-name-mode=unplanned]{flex-basis:120px}',
+    '.adminRotationRemoveIcon{display:none}',
+    '@media(max-width:420px){.adminRotationActionBar .rakDayModModeBtn{flex-basis:76px}.adminRotationActionBar [data-rotation-name-mode=unplanned]{flex-basis:112px}.adminRotationActionBar [data-rotation-name-mode=remove]{flex:0 0 44px;width:44px}.adminRotationRemoveLabel{display:none}.adminRotationRemoveIcon{display:block;font-size:22px}}',
     '.adminRotationActionHint{flex-basis:100%;font-size:12px;opacity:.8}',
     '.rakRotationNameMode input[data-rot-field],.rakRotationNameMode input[data-note-field="person"]{cursor:pointer}'
   ].join('');

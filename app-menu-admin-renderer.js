@@ -111,7 +111,6 @@ function renderAdminMenuBody(body, section) {
     renderAdminMonthPickerHtml(monthKey),
     '  <select id="adminMonthSelect" class="appMenuSelect appMenuHiddenSelect">' + months.map(m => '<option value="' + escapeHtml(m) + '"' + (m === monthKey ? ' selected' : '') + '>' + escapeHtml(m) + '</option>').join('') + '</select>',
     '  <div class="appMenuActionRow">',
-    '    <button type="button" class="appMenuAction" data-admin-action="load-month">Načíst měsíc</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="generate-rotation">Vygenerovat návrh</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="load-online">Načíst online</button>',
     '    <button type="button" class="appMenuAction isActive" data-admin-action="save-rotation">Uložit rozpis</button>',

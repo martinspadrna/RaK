@@ -376,4 +376,11 @@ Po CI:
 ## TEST 1.9.27 – kompaktní toolbar rozpisu (2026-10-11)
 
 - Objednávka vlastníka: tlačítka nad rozpisem ideálně vedle sebe, pokud se vejdou. Opraven zděděný globální button width:100%; scoped width:auto a flex základy 80/120/80px s 6px mezerami. Popisky se mohou zalomit uvnitř tlačítka, samotná tlačítka při nedostatku šířky do dalšího řádku. Dotykové cíle minimálně 44px, akce/data beze změny.
-- Rozpracováno pouze development/TEST; ověření a nasazení níže budou doplněny po dokončení.
+- TEST 1.9.27 nasazen: SHA 7b2e7ce5df98c2b9944eb5546e0693e4febe8689, CI #901 / 38143254079 SUCCESS, READY dpl_GQ53ZzKpAKYN3EVLncpfx11ixLRm. Během validace vlastník upřesnil rozsah, dokončuje se 1.9.28.
+
+## TEST 1.9.28 – jednodušší ovládání rozpisu a reportu (2026-10-11)
+
+- Na žádost vlastníka odstraněny Načíst měsíc i Obnovit náhled reportu z UI/obsluhy. Zachovány Načíst online, ochrana rozepsaného návrhu i automatický náhled a místní draft při input/change.
+- Do 420px má Odebrat pouze ×, aria-label/title Odebrat, 44px cíl. Flex základy 76/112/44px s mezerami 6px; větší displeje plný text. Tlačítka se při nedostatku šířky zalomí. Akce, data a oprávnění beze změny.
+- Oba změněné report moduly přidány ke stávajícímu ověřenému SW stagingu pro stejné runtime URL. Žádné mazání uživatelských dat.
+- Implementace probíhá pouze development/TEST; finální důkazy budou doplněny po ověření a nasazení.

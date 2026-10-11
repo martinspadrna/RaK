@@ -1,3 +1,9 @@
+## TEST 1.9.28 – jednodušší ovládání rozpisu a reportu
+
+- Odstraněna tlačítka Načíst měsíc a Obnovit náhled reportu. Načíst online a automatický živý náhled zachovány.
+- Na malém displeji má Odebrat jen křížek s přístupným názvem; tři akce rozpisu vedle sebe podle dostupné šířky, minimálně 44px.
+- Změněné report moduly se při aktualizaci ověřeně obnoví v cache bez mazání rozepsaných dat. Pouze TEST.
+
 ## TEST 1.9.27 – tlačítka rozpisu vedle sebe
 
 - Výjimky dne, Neplánovaná dovolená a Odebrat se řadí vedle sebe podle dostupné šířky; při nedostatku místa se zalomí. Zachovaná dotyková výška 44px, popisky i funkce.

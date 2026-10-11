@@ -1379,15 +1379,6 @@ function bindAppMenuHandlers(body) {
         }
         return;
       }
-      if (adminAction === 'load-month') {
-        if (monthKey) {
-          app.selectedMonth = monthKey;
-          setRotaceView('months');
-          renderRotace();
-          if (typeof renderMonth === 'function') renderMonth(monthKey);
-        }
-        return;
-      }
       // RAK_17069_EXPLICIT_DRAFT_DISCARD: all local, online read-only preflight, never server overwrite.
       if(adminAction==='discard-local-rotation-drafts'){
         if(body.dataset.adminView!=='rotation'||!app||app.adminUnlocked!==true)throw Error('Administrace rozpisů není odemčená.');

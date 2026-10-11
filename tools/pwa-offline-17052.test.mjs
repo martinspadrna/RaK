@@ -75,7 +75,7 @@ test('offline package prewarms Rotation and sync feature modules',()=>{
 
 test('same-runtime TEST update refreshes cached rotation toolbar modules without wiping unrelated assets',async()=>{
  const env=worker(),v=RELEASE_METADATA.moduleCacheVersion;
- const assets=['admin-rotation-editor.js','admin-daymods.js','app-menu-admin-renderer.js'];
+ const assets=['admin-rotation-editor.js','admin-daymods.js','app-menu-admin-renderer.js','rak-shift-report.js','rak-shift-report-share.js'];
  for(const type of ['static','runtime','prewarm']){
   const cache=await env.makeCache('rotace-'+type+'-'+RELEASE_METADATA.cacheVersion);
   for(const asset of assets){const url='./'+asset+'?v='+v;const key=type==='prewarm'?'./__rak_prewarm__/'+encodeURIComponent(url):url;await cache.put(key,new Response('OLD:'+asset));}

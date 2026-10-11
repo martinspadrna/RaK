@@ -337,7 +337,7 @@ async function clearSameVersionHotfixAssets() {
 // Changed deferred admin modules keep the same runtime URL in TEST releases.
 // Stage all verified replacements before removing older copies; leave unrelated caches intact.
 async function prewarmRotationToolbarUpdate() {
-  const assets = ['./admin-rotation-editor.js?v=1.9.0', './admin-daymods.js?v=1.9.0', './app-menu-admin-renderer.js?v=1.9.0'];
+  const assets = ['./admin-rotation-editor.js?v=1.9.0', './admin-daymods.js?v=1.9.0', './app-menu-admin-renderer.js?v=1.9.0', './rak-shift-report.js?v=1.9.0', './rak-shift-report-share.js?v=1.9.0'];
   const replacements = await Promise.all(assets.map(async url => {
     const response = await fetchBuildAsset(url);
     if (!cacheable(response)) throw new Error('[RaK] missing rotation toolbar update');
