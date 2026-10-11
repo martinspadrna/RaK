@@ -105,6 +105,8 @@ test('background refresh cannot silently rebase a stale open editor', async () =
 test('legacy records are backed up once and never assigned to a second account', async () => {
   const legacy = { '2026-10-11|B:nocni12': cloudRecord('456') };
   const first = cloudFixture({ legacy });
+  assert.equal(first.api.readStore()[cloudKey].nitrogen, '456');
+  assert.equal(first.server.size, 0); // visible before the first cloud request finishes
   await first.api.syncCloud();
   assert.equal([...first.server.values()][0].payload.nitrogen, '456');
   assert.deepEqual(JSON.parse(first.storage.get('rak_admin_shift_overview_v1')), legacy);

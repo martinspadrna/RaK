@@ -326,7 +326,18 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
 
   function readStore() {
-    if (bridge()) { const identity = currentIdentity(); return identity ? cloudRead(identity).records : {}; }
+    if (bridge()) {
+      const identity = currentIdentity();
+      if (!identity) return {};
+      const records = cloudRead(identity).records;
+      // Show existing local records immediately while their first upload runs.
+      // Only a verified signed identity may claim the previously unscoped copy.
+      const signed = bridge().getShiftOverviewIdentity?.();
+      if (signed?.userId === identity.userId && !localStorage.getItem(CLOUD_PREFIX + 'legacy-owner')) {
+        return { ...jsonRead(STORAGE_KEY, {}), ...records };
+      }
+      return records;
+    }
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
