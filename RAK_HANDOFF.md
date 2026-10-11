@@ -277,3 +277,14 @@ Po CI:
 - Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny proti poslednímu strojovému důkazu. Pouze development frontend, žádné DB/Edge zápisy.
 - Dvě čisté canonical sestavy PASS, digest 2915af5472de2f693d162dcbb2caab0d9977c4aff2784bccae347232a3e2acdb; zdroje nezměněny. CI #882 / 38115343524, attempt 1 verify i release-preview SUCCESS bez změny limitů nebo opakování.
 - Funkční SHA 4758f72bc092730fb6b2af2cd65f32af1253a922; READY dpl_7pf9XAT5rBHsjJojP2KPVJyhTRCT, https://skoda-spada-ctqbmnto8-martinspadrnas-projects.vercel.app. Veřejný TEST HTTP 200, verze 1.9.19, přesná shoda admin-shift-overview.js a TEST Supabase isolation PASS. Main 915a75793207b4125a0489dd8e5c824696f227ab beze změny, pouze development zápisy. Fyzická přejímka aktuálních úprav čeká na vlastníka.
+
+
+## TEST 1.9.20 – přechodné Vrátit pod indexem a ALD popisky (2026-10-11)
+
+- Fyzický screenshot 1.9.19 ukázal natahování sousedních polí historií. Historie a Vrátit v toku dílů jsou nyní pod názvem indexu, mimo sloupce vyplňovacích polí. Pole mají pevnou výšku 44px a operace jednotný prostor nad polem; sousední pole zůstávají stejně vysoká a zarovnaná.
+- Viditelné je pouze Vrátit posledního výpočtu v právě otevřeném přehledu. Zápis do jiného pole (i poznámky/datum nebo +/- počítadlo) ho skryje; samotné zaměření jiného pole ho neskryje. Uložení/načtení neobnoví staré viditelné nabídky. Historická calculations data se zachovávají bez trvalého zobrazování v UI.
+- Vrátit obnoví původní výraz/operand bez focus(), otevření klávesnice, přesunu kurzoru nebo automatického scrollování. Po vrácení nabídka zmizí. Owner kontrola zachována.
+- Názvy dílů ALD1/ALD2 16px místo 12px. Poslední vsázka ALD1/2/3 a Celkem vsázek ALD3 jsou řádky název vlevo / vstup vpravo, stejné zarovnání. Dusík bez Hodnota. ×64 Před 145, ×32 Po 145 a ostatní pravidla zachována.
+- 25 cílených testů PASS. Chromium fixture 320/390/768/1366px PASS: rovná výška i horní hrana párových polí s historií, jedno přechodné Vrátit pod indexem, obnova bez focusu a klávesnice, zmizení při jiné editaci i počítadle, žádné obnovení po reload, side-label geometrie, větší názvy, owner gate, archivovaná data/součty/multipliers, bez horizontálního overflow. Mobilní screenshoty vizuálně ověřeny. Fyzická přejímka iPhone čeká na vlastníka.
+- Před změnou online potvrzen main 915a75793207b4125a0489dd8e5c824696f227ab, produkční READY dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF, migration head 20260930112049 a Edge absence v17/admin v15/hradnik v3/export v2 beze změny. Pouze frontend development/TEST; žádné DB/Edge zápisy.
+- Canonical build, CI a nasazení čekají na ověření.

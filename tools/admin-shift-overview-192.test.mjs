@@ -40,10 +40,10 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '1.9.19'"));
-  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview19'"));
-  assert.ok(index.includes("var e='so19',k='rak_ue'"));
-  assert.ok(!index.includes("v1.9.0-shift-overview19"));
+  assert.ok(metadata.includes("visibleTestVersion: '1.9.20'"));
+  assert.ok(metadata.includes("buildId: 'v1.9.0-shift-overview20'"));
+  assert.ok(index.includes("var e='so20',k='rak_ue'"));
+  assert.ok(!index.includes("v1.9.0-shift-overview20"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
   assert.ok(sw.includes("'./admin-shift-overview.js?v=1.9.0'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
@@ -313,6 +313,20 @@ test('last calculation is validated, preserved per field and escaped in renderin
  const record=api.normalizeRecord({date:'2026-10-11',shift:'D:ranni12',calculations:{'oam.rows.af.op1020':{expression:'3-1',result:'2'},bad:{expression:'<script>',result:'1'}}});
  const el={querySelector:s=>s.includes('date')?{value:record.date}:{value:record.shift},querySelectorAll:()=>[input]};api.setRecord(el,record);
  const saved=api.readDom(el);assert.equal(saved.calculations['oam.rows.ag.op1020'].expression,'200 + 32');assert.equal(saved.calculations['oam.rows.af.op1020'].result,'2');assert.equal(saved.calculations.bad,undefined);
- const body={dataset:{},innerHTML:'',querySelector:()=>null};context.window.RakAdminShiftOverview.render(body,saved);assert.ok(body.innerHTML.includes('200 + 32 = 232'));assert.ok(body.innerHTML.includes('data-quantity-restore'));
- assert.ok(!body.innerHTML.includes('Hotovo'));assert.ok(body.innerHTML.includes('placeholder="Poslední vsázka"'));assert.ok(body.innerHTML.includes('placeholder="Celkem vsázek"'));assert.ok(!body.innerHTML.includes('>Hodnota<'));assert.ok(!body.innerHTML.includes('Po nýtování'));
+ const body={dataset:{},innerHTML:'',querySelector:()=>null};context.window.RakAdminShiftOverview.render(body,saved);assert.ok(!body.innerHTML.includes('200 + 32 = 232'),'saved history must not reopen undo');assert.ok(body.innerHTML.includes('data-quantity-restore'));
+ assert.ok(!body.innerHTML.includes('Hotovo'));assert.ok(body.innerHTML.includes('rakShiftOverviewSideLabel'));assert.ok(body.innerHTML.includes('>Poslední vsázka</span>'));assert.ok(body.innerHTML.includes('>Celkem vsázek</span>'));assert.ok(!body.innerHTML.includes('>Hodnota<'));assert.ok(!body.innerHTML.includes('Po nýtování'));
+});
+
+
+test('only the latest calculation exposes transient undo and it cannot return focus', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={calculateQuantity,clearQuantityUndo,quantityUndo};'),context);
+ const api=context.window.fixture,displays=[0,1].map(()=>({hidden:true,text:{textContent:''},querySelector(){return this.text;}}));
+ const root={querySelectorAll:()=>displays};
+ const inputs=displays.map((display,i)=>{const attrs={};return {value:i?'320-256':'200+32',readOnly:false,hasAttribute:()=>true,setAttribute:(k,v)=>attrs[k]=v,closest:s=>s==='#rakShiftOverviewRoot'?root:{querySelector:()=>display}};});
+ api.calculateQuantity(inputs[0]);assert.equal(displays[0].hidden,false);assert.equal(displays[1].hidden,true);assert.equal(displays[0].text.textContent,'200+32 = 232');
+ api.calculateQuantity(inputs[1]);assert.equal(displays[0].hidden,true);assert.equal(displays[1].hidden,false);assert.equal(api.quantityUndo.get(root).input,inputs[1]);
+ api.clearQuantityUndo(root);assert(displays.every(d=>d.hidden));assert.equal(api.quantityUndo.get(root),undefined);
+ const restore=feature.slice(feature.indexOf("const restore = event.target"),feature.indexOf('const multiply = event.target'));
+ assert.ok(!restore.includes('.focus('));assert.ok(!restore.includes('setSelectionRange'));
 });

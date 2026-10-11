@@ -8,6 +8,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const STORAGE_KEY = 'rak_admin_shift_overview_v1';
   const MAX_RECORDS = 120;
   const renderedRecords = new WeakMap();
+  const quantityUndo = new WeakMap();
   const AAR_COLUMNS = [
     { key: 'agAe', label: 'AG / AE', cls: 'isGreen' },
     { key: 'afAd', label: 'AF / AD', cls: 'isBlue' },
@@ -324,11 +325,24 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     input.setAttribute('data-quantity-expression', history.expression);
     input.setAttribute('data-quantity-result', history.result);
     input.setAttribute('data-quantity-factor', String(history.factor));
-    const display = input.closest('label')?.querySelector('[data-quantity-history]');
+    const rootEl = input.closest('#rakShiftOverviewRoot');
+    if (!rootEl) return;
+    clearQuantityUndo(rootEl);
+    const display = input.closest('.rakShiftOverviewIndexRow')?.querySelector('[data-quantity-history]') || input.closest('label')?.querySelector('[data-quantity-history]');
     if (display) {
+      quantityUndo.set(rootEl, { input, history, display });
       display.hidden = false;
       display.querySelector('[data-quantity-history-text]').textContent = quantityHistoryText(history);
     }
+  }
+
+  function clearQuantityUndo(rootEl) {
+    rootEl.querySelectorAll('[data-quantity-history]').forEach(display => { display.hidden = true; });
+    quantityUndo.delete(rootEl);
+  }
+
+  function quantityUndoControl(label) {
+    return '<div class="rakShiftOverviewHistory" data-quantity-history hidden><span data-quantity-history-text></span><button type="button" data-quantity-restore aria-label="Vrátit poslední zadání · ' + esc(label) + '">Vrátit</button></div>';
   }
 
   function quantityMultiplier(key) {
@@ -349,15 +363,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function labeledField(label, path, record, options) {
     const opts = Object.assign({ label }, options);
-    if (opts.insetLabel) opts.placeholder = label;
     let control = field(path, record, opts);
     if (opts.multiplier) {
       control = '<div class="rakShiftOverviewQuantity">' + control +
         '<button type="button" class="appMenuAction rakShiftOverviewMultiply" data-shift-overview-multiply="' + esc(path) + '" aria-label="Vynásobit ' + esc(opts.label) + ' číslem ' + opts.multiplier + '"' + (canMultiply(nestedGet(record,path)) ? '' : ' hidden') + '>×' + opts.multiplier + '</button></div>';
     }
-    const history = validQuantityHistory(record.calculations?.[path]);
-    const historyControl = ['numeric','decimal'].includes(opts.inputmode) ? '<div class="rakShiftOverviewHistory" data-quantity-history' + (history ? '' : ' hidden') + '><span data-quantity-history-text>' + (history ? esc(quantityHistoryText(history)) : '') + '</span><button type="button" data-quantity-restore aria-label="Vrátit poslední zadání · ' + esc(opts.label) + '">Vrátit</button></div>' : '';
-    return '<label' + (opts.insetLabel ? ' class="rakShiftOverviewInsetLabel"' : '') + '>' + (label && !opts.insetLabel ? '<span>' + esc(label) + '</span>' : '') + control + historyControl + '</label>';
+    const historyControl = ['numeric','decimal'].includes(opts.inputmode) && !opts.indexRow ? quantityUndoControl(opts.label) : '';
+    return '<label' + (opts.sideLabel ? ' class="rakShiftOverviewSideLabel"' : '') + '>' + (label ? '<span>' + esc(label) + '</span>' : '') + control + historyControl + '</label>';
   }
 
   function panel(title, html, cls) {
@@ -379,9 +391,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function inputsTable(record) {
     return '<div class="rakShiftOverviewBatchColumns">' + [[1,ALD1_INPUT_ROWS],[2,ALD2_INPUT_ROWS]].map(([id,rows]) => panel('ALD' + id,
-      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { insetLabel: true, inputmode: 'numeric', label: 'ALD' + id + ' · Poslední vsázka' }) +
+      labeledField('Poslední vsázka', 'lastBatch.ald' + id, record, { sideLabel: true, inputmode: 'numeric', label: 'ALD' + id + ' · Poslední vsázka' }) +
       '<div class="rakShiftOverviewInputRows">' + rows.map(name => batchCounter(name,id,record)).join('') + '</div><div class="rakShiftOverviewAldTotal"><span>Celkem vsázek</span><output data-shift-overview-ald-total="' + id + '" aria-live="polite">0</output></div>')).join('') +
-      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{insetLabel:true,inputmode:'numeric',label:'ALD3 · Poslední vsázka'}) + labeledField('Celkem vsázek','inputs.ald3',record,{insetLabel:true,inputmode:'numeric',label:'ALD3 · Celkem vsázek'})) +
+      '<div class="rakShiftOverviewUtilities">' + panel('ALD3',labeledField('Poslední vsázka','lastBatch.ald3',record,{sideLabel:true,inputmode:'numeric',label:'ALD3 · Poslední vsázka'}) + labeledField('Celkem vsázek','inputs.ald3',record,{sideLabel:true,inputmode:'numeric',label:'ALD3 · Celkem vsázek'})) +
       panel('Dusík',labeledField('','nitrogen',record,{inputmode:'decimal',label:'Dusík'})) + '</div></div>';
   }
 
@@ -397,7 +409,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     ];
 
     function stationRows(cols, title) {
-      return '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>';
+      return '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) + '</div><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{indexRow:true,inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>';
     }
     return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) => panel(title,
       stationRows(cols,title) + (title === 'Sklad po kalení' ? '<section class="rakShiftOverviewBefore145" aria-label="Před 145"><h4 class="rakShiftOverviewSubsectionTitle">Před 145</h4>' + stationRows([OAM_LEFT_COLUMNS[6]],title) + '</section>' : '')
@@ -592,6 +604,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     rootEl.addEventListener('change', finishQuantity);
     rootEl.addEventListener('focusout', finishQuantity);
     rootEl.addEventListener('input', (event) => {
+      const undo = quantityUndo.get(rootEl);
+      if (undo && undo.input !== event.target) clearQuantityUndo(rootEl);
       syncDateDisplay(rootEl);
       refreshMultipliers(rootEl);
       if (event.target && event.target.matches && (
@@ -606,13 +620,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       if (restore && rootEl.contains(restore)) {
         event.preventDefault();
         if (!ownerAllowed()) { status(rootEl, 'Přístup byl zamítnut.'); return; }
-        const input = restore.closest('label').querySelector('[data-shift-overview-field]');
-        const history = inputQuantityHistory(input);
-        if (history && !input.readOnly) {
-          input.value = history.expression;
-          input.focus({ preventScroll: true });
-          input.setSelectionRange(input.value.length, input.value.length);
-          input.dispatchEvent(new Event('input', { bubbles: true }));
+        const undo = quantityUndo.get(rootEl);
+        if (undo && undo.display.contains(restore) && !undo.input.readOnly) {
+          undo.input.value = undo.history.expression;
+          clearQuantityUndo(rootEl);
+          refreshMultipliers(rootEl);
+          refreshTotals(rootEl);
         }
         return;
       }
@@ -641,6 +654,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         if (input) {
           const step = counter.getAttribute('data-count-step') === '-1' ? -1 : 1;
           input.value = String(Math.max(0, numberOrZero(input.value) + step));
+          input.dispatchEvent(new Event('input', { bubbles: true }));
           refreshTotals(rootEl);
         }
         return;
@@ -706,7 +720,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const style = document.createElement('style');
     style.id = 'rakShiftOverviewStyle';
     style.textContent = [
-      '.rakShiftOverviewHistory{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;font-weight:400;color:var(--text);opacity:.72;overflow-wrap:anywhere;}.rakShiftOverviewHistory[hidden]{display:none}.rakShiftOverviewHistory>span{flex:1;}#rakShiftOverviewRoot .rakShiftOverviewHistory button{display:inline-block;width:auto;max-width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:0;box-shadow:none;text-decoration:underline;min-height:32px;padding:4px 0;margin:0;cursor:pointer;}.rakShiftOverviewInsetLabel input::placeholder{color:var(--text);opacity:.55;font-size:13px;}',
+      '.rakShiftOverviewHistory{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;font-weight:400;color:var(--text);opacity:.72;overflow-wrap:anywhere;}.rakShiftOverviewHistory[hidden]{display:none}.rakShiftOverviewHistory>span{flex:1;}#rakShiftOverviewRoot .rakShiftOverviewHistory button{display:inline-block;width:auto;max-width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:0;box-shadow:none;text-decoration:underline;min-height:32px;padding:4px 0;margin:0;cursor:pointer;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel>span{text-align:left;font-size:13px;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel .rakShiftOverviewHistory{grid-column:1/-1;}.rakShiftOverviewIndexIdentity{display:grid;gap:4px;}.rakShiftOverviewIndexIdentity .rakShiftOverviewHistory{display:grid;gap:0;font-size:10px;}.rakShiftOverviewIndexIdentity .rakShiftOverviewHistory[hidden]{display:none;}#rakShiftOverviewRoot .rakShiftOverviewIndexIdentity .rakShiftOverviewHistory button{justify-self:start;min-height:24px;padding:2px 0;}',
       '.rakShiftOverviewKeyboard{position:fixed;z-index:2147483646;transform:translateX(-50%);display:flex;gap:8px;padding:6px;background:#30235d;color:#fff68a;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 2px 12px #0006;max-width:calc(100% - 16px);box-sizing:border-box}',
       '.rakShiftOverviewKeyboard[hidden]{display:none}.rakShiftOverviewKeyboard button{font:inherit;font-weight:700;color:inherit;background:#ffffff18;border:1px solid #ffffff44;border-radius:10px;min-width:56px;height:44px;margin:0;padding:0 14px;touch-action:manipulation}',
       '#appMenuBody[data-admin-view="shift-overview"] .rakShiftOverviewCard{display:grid;gap:12px;min-width:0;}',
@@ -722,7 +736,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:12px;}',
       '.rakShiftOverviewAldTotal{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);font-weight:700;}.rakShiftOverviewAldTotal output{min-width:44px;text-align:center;} .rakShiftOverviewBefore145{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);}.rakShiftOverviewSubsectionTitle{margin:0 0 10px;font-size:13px;} .rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
-      '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
+      '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label{grid-template-rows:32px 44px;align-content:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label>span{height:32px;display:grid;place-items:center;line-height:1.2;}.rakShiftOverviewIndexRow .rakShiftOverviewInput{height:44px;min-height:44px;align-self:start;}',
       '.rakShiftOverviewStage:nth-child(n+4) .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);}',
       '.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid:has(>label:only-child){grid-template-columns:minmax(0,1fr);}.rakShiftOverviewQuantity{display:flex;align-items:center;gap:4px;}.rakShiftOverviewQuantity .rakShiftOverviewInput{flex:1;}.rakShiftOverviewQuantity .rakShiftOverviewMultiply{flex:0 0 38px;width:38px;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;font-size:12px;line-height:1;}.rakShiftOverviewMultiply[hidden]{display:none!important;}',
       '.rakShiftOverviewStages .rakShiftOverviewInput{padding:8px 4px;text-align:center;}',
@@ -733,7 +747,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewUtilities{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));}',
       '.rakShiftOverviewInputRows{display:grid;gap:6px;}.rakShiftOverviewInputRows label{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}',
       '.rakShiftOverviewInputRows input{padding:8px;text-align:center;}',
-      '.rakShiftOverviewCounter{display:grid;grid-template-columns:minmax(40px,.65fr) minmax(44px,.85fr) minmax(54px,1fr) minmax(44px,1fr);gap:8px;align-items:center;padding:8px 0;}.rakShiftOverviewCounter+.rakShiftOverviewCounter{border-top:1px solid rgba(255,255,255,.12);}.rakShiftOverviewCounter>span{font-size:12px;font-weight:800;overflow-wrap:anywhere;}.rakShiftOverviewCounter .appMenuAction{width:100%;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;line-height:1;font-size:24px;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountValue{height:44px;min-height:44px;margin:0;text-align:center;font-weight:900;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);padding:0;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountMinus{width:calc(100% - 8px);justify-self:start;opacity:.75;}',
+      '.rakShiftOverviewCounter{display:grid;grid-template-columns:minmax(40px,.65fr) minmax(44px,.85fr) minmax(54px,1fr) minmax(44px,1fr);gap:8px;align-items:center;padding:8px 0;}.rakShiftOverviewCounter+.rakShiftOverviewCounter{border-top:1px solid rgba(255,255,255,.12);}.rakShiftOverviewCounter>span{font-size:16px;font-weight:800;overflow-wrap:anywhere;}.rakShiftOverviewCounter .appMenuAction{width:100%;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;line-height:1;font-size:24px;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountValue{height:44px;min-height:44px;margin:0;text-align:center;font-weight:900;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);padding:0;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountMinus{width:calc(100% - 8px);justify-self:start;opacity:.75;}',
 
       '.rakShiftOverviewStatus,.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{padding:10px;border-radius:12px;background:rgba(124,255,124,.06);overflow-wrap:anywhere;}',
       '.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{display:flex;justify-content:space-between;gap:10px;}',
