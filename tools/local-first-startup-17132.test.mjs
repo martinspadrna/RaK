@@ -129,7 +129,7 @@ test('local hydration cannot resume inside the first pre-paint animation callbac
   const frames=[];
   const window={};
   const task=vm.runInNewContext('(async()=>{'+app.slice(start,end)+'window.ready=true;})()',{
-    window,document:{hidden:false},requestAnimationFrame:callback=>frames.push(callback),setTimeout
+    window,document:{hidden:false},requestAnimationFrame:callback=>frames.push(callback),setTimeout,clearTimeout
   });
   assert.equal(frames.length,1);
   frames.shift()();
@@ -139,6 +139,23 @@ test('local hydration cannot resume inside the first pre-paint animation callbac
   frames.shift()();
   await task;
   assert.equal(window.ready,true);
+});
+
+test('Paint Timing keeps hydration paused until actual FCP or the bounded fallback',async()=>{
+  const app=read('app.js');
+  const start=app.indexOf('  await new Promise((resolve)',app.indexOf('RAK_LOCAL_FIRST_FIRST_PAINT'));
+  const end=app.indexOf('  window.__rakBootV2FirstPaintYielded = true;',start);
+  for(const useFallback of [false,true]){
+    const frames=[],timers=[],window={};let deliver,disconnected=0;
+    class Observer { static supportedEntryTypes=['paint'];constructor(callback){deliver=callback;}observe(){}disconnect(){disconnected++;} }
+    const task=vm.runInNewContext('(async()=>{'+app.slice(start,end)+'window.ready=true;})()',{
+      window,document:{hidden:false},performance:{getEntriesByType:()=>[]},PerformanceObserver:Observer,
+      requestAnimationFrame:fn=>frames.push(fn),setTimeout:(fn,ms)=>{assert.equal(ms,250);timers.push(fn);return 1;},clearTimeout:()=>{}
+    });
+    frames.shift()();frames.shift()();await Promise.resolve();assert.equal(window.ready,undefined);
+    if(useFallback)timers.shift()();else deliver({getEntries:()=>[{name:'first-contentful-paint'}]});
+    await task;assert.equal(window.ready,true);assert.ok(disconnected>0);
+  }
 });
 
 test('historical performance parity keeps user-visible paint hard-gated while complete local-ready stays bounded separately',()=>{
