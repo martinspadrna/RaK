@@ -2,9 +2,18 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 12. 10. 2026 — TEST 2.0.7 poslední vsázky a viditelné ST/BK (ověření probíhá)
+## 12. 10. 2026 — TEST 2.0.7 poslední vsázky a viditelné ST/BK (100 % automatické ověření a nasazení)
 
-Pouze TEST. ALD3 lastBatch editovatelné v obou směnách. Všechny ST1–5 a BK1–10 v ALD1/2 zpočátku aktivní u nového záznamu; uložená vypnutí se zachovají. Celý čtverec zelený nebo šedý. Oprava specificity vůči globálnímu glass theme, izolovaná ID rootem; skutečný Chromium fixture nyní načítá všechny app stylesheets a kontroluje computed backgroundColor/backgroundImage. Výsledný SVG zachovává součty a tabulku, explicitně ji označuje Čísla posledních vsázek s ALD1/2/3 hodnotami. Runtime/cache 2.0.7/buildrelease1/epochv207. Backend, main/produkce bez změn. TEST rollback 2.0.6 dpl_9EYMe9oiZyH7g3tQpeHwstdJrRbj, data kompatibilní. Automatické ověření a nasazení čeká.
+Pouze TEST. ALD3 lastBatch editovatelné v obou směnách. Všechny ST1–5 a BK1–10 v ALD1/2 zpočátku aktivní u nového záznamu; uložená vypnutí se zachovají. Celý čtverec zelený nebo šedý. Oprava specificity vůči globálnímu glass theme, izolovaná ID rootem; skutečný Chromium fixture nyní načítá všechny app stylesheets a kontroluje computed backgroundColor/backgroundImage. Výsledný SVG zachovává součty a tabulku, explicitně ji označuje Čísla posledních vsázek s ALD1/2/3 hodnotami. Runtime/cache 2.0.7/buildrelease1/epochv207. Backend, main/produkce bez změn. TEST rollback 2.0.6 dpl_9EYMe9oiZyH7g3tQpeHwstdJrRbj, data kompatibilní. Automatické ověření a nasazení dokončeno; fyzická iPhone přejímka čeká na vlastníka.
+
+### TEST 2.0.7 — dokončený důkaz
+
+- Funkční SHA `e58ef03b7f975cbd63439e0928d4318c6783373d`, runtime/cache2.0.7/buildrelease1/epochv207. CI [38297934753](https://github.com/martinspadrna/RaK/actions/runs/38297934753) attempt1 SUCCESS verify i release-preview.
+- Dvě exact-SHA canonical sestavy166souborů, digest `51681216aaa88f9e087aab749e1a5d45bc973e48679b24a3f3de2bd45b4d4175`, source unchanged. Původní gates PASS bez oslabení. Cílené39overview/draft VM testy PASS a celé npm check PASS.
+- Chromium320/390/768/1366px PASS se všemi app stylesheets: všech25ST/BK zpočátku aktivních, přesné vypnutí/reopen/přepnutí, skutečná neprůhledná zelená rgb22/122/53 a šedá rgb102/107/115, bez backgroundImage, čtverce44px. ALD3 číslo poslední vsázky editovatelné obě směny a zachované při přepnutí. SVG obsahuje jasný přehled všech3posledních čísel, původní součty zachované.
+- READY `dpl_5J4ydJukRe67cZT2huKoAB1mJYX2`, exact sourceSHA, immutable <https://skoda-spada-duek7nhjo-martinspadrnas-projects.vercel.app>; veřejný TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200/exactbyte9assetů index/metadata/SW/app/core/About/overview/config/manifest PASS. Config pouze TESTcgshssdjgzzuprlwnabl.
+- Main pre/post dda626a2c0838af1fffde039b8bbea2eedd6b54d a produkční alias READYdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN nezměněné. Readonly DBhead20261012021355, Edge absence17/admin16/hradnik3/retiredexport3 s původními JWTflags. Žádné backend/main/produkční zápisy. TEST rollback2.0.6 kompatibilní; uchovat drafty/masky a všechna čísla.
 
 ## 12. 10. 2026 — TEST 2.0.6 přehled: popisky a ST/BK (100 % automatické ověření a nasazení)
 
