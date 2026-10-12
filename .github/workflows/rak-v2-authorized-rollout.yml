@@ -55,3 +55,5 @@ jobs:
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
           gh workflow run rak-production-release.yml --repo "${{ github.repository }}" --ref main -f expected_sha="$GITHUB_SHA" -f expected_development_sha="$EXPECTED_DEVELOPMENT_SHA"
+
+# Start the already-authorized exact-main verification after backend acceptance passed.
