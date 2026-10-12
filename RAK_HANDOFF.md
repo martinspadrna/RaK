@@ -2,6 +2,13 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 12. 10. 2026 — dokončený produkční hotfix O aplikaci
+
+Vlastník screenshotem doložil chybné označení „11. 10. 2026 · TEST“ na main a požádal jeho odstranění. Produkční O aplikaci nyní uvádí skutečné datum12.10.2026 bez TEST; historická vysvětlení používají neutrální text. TEST větev si ponechává své11.10.2026/TEST. Při budoucím převodu na main zachovat produkční označení/datum.
+
+Dokončeno: produkční hotfix SHA `70d9cf00c51a19addfe468bd2e8c7c674fa52e79`, build `v2.0.2-release2`, viditelná verze2.0.2. Exact-main CI #920/38196525212 SUCCESS, coordinator #4/38196514641 SUCCESS, auditovaný release #6/38196882304 SUCCESS. Dvě canonical sestavy166souborů, digest `bbe8e01e8c18db455936526b04a0c9b4ff007eab26c87567d847ca1a8a60dc81`; všechny původní quality/security/browser/performance gates PASS. Produkční READY `dpl_8DMbApYiWjdDpUi1MjhwLEm9BSpV`, immutable <https://skoda-spada-mras2jdtr-martinspadrnas-projects.vercel.app>; stabilní <https://skoda-spada.vercel.app>. Nezávislý HTTP200 a byte-match About/metadata/SW PASS; About history bez TEST, datum12.10.2026. Bez DB/Edge změn. Bezprostřední frontend rollback `dpl_3TPggR9PktdRPraxYQJJAq62nhP5` (původnírelease2.0.2/build1). Fyzická aktualizace iPhone čeká na vlastníka.
+
+
 ## Aktuální produkční důkaz — 12. 10. 2026
 
 **RaK 2.0.2 je dokončeně nasazený na main i produkci.** Martin výslovně povolil rollout po úspěšných kontrolách. Tento stav nahrazuje starší zmrazenou baseline 1.9.0 a níže uvedené přípravné záznamy; další vývoj opět pouze TEST, další produkční změna vyžaduje vlastníkův souhlas.
