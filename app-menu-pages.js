@@ -23,7 +23,7 @@ function buildAppMenuAboutHistoryHtml() {
       lines: [
         'První načtení je lehčí: dashboard, přihlášení, dnešní směna a údaj „kam jdu“ zůstávají v rychlém jádru, zatímco nepoužívané části se načtou až při otevření.',
         'Rotace, Kalkulačky, Více a Administrace si zachovávají oddělené moduly a vlastní zachycení chyb, takže porucha jedné volitelné části nezastaví celý RaK.',
-        'Sjednocený vzhled tabulek, formulářů, statistik, kalkulaček a administrace.',
+        'Vzhled byl sjednocen 1:1 včetně tabulek, formulářů, statistik, kalkulaček a administrace.',
         'Účty jiných směn nevidí Rotaci a mají dole tři stejně široké položky ve správném pořadí Home – Kalkulačky – Více.',
         'PWA cache a automatické kontroly hlídají úplnou výměnu verze, rychlost prvního načtení, offline start a vizuální regresi.'
       ]

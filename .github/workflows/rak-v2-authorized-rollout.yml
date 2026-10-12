@@ -1,6 +1,6 @@
 name: RaK v2 authorized rollout coordinator
 
-# Martin authorized the production About-label correction on 2026-10-12.
+# Martin authorized the production About-label correction on 2026-10-12; preserve canonical SW import.
 # One-time trigger: only the commit introducing/changing this coordinator on main.
 on:
   push:

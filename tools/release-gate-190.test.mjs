@@ -13,7 +13,7 @@ test('2.0.2 has one release identity across runtime, PWA and package metadata',(
   assert.equal(metadata.technicalVersion,'2.0.2');
   assert.equal(metadata.moduleCacheVersion,'2.0.2');
   assert.equal(metadata.cacheVersion,'v2.0.2');
-  assert.equal(metadata.buildId,'v2.0.2-release1');
+  assert.equal(metadata.buildId,'v2.0.2-release2');
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'2.0.2');
   assert(read('index.html').includes('app.js?v=2.0.2'));
   assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=2.0.2')"));
