@@ -342,7 +342,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       },
       oam: { rows: oamRows },
       process: { rows: {} },
-      inputs: { ald1: '', ald2: '', ald3: '', rows: {} },
+      inputs: { ald1: '', ald2: '', ald3: '', partsAssignment: 2, rows: {} },
       calculations: {},
       nitrogen: '',
       machiningFaults: '',
@@ -425,6 +425,21 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     INPUT_ROWS.forEach((name) => {
       base.inputs.rows[name] = Object.assign({ ald1: '', ald2: '' }, base.inputs.rows[name] || {});
     });
+    // Carry each part's saved quantities and calculator history to its corrected ALD.
+    // The payload marker makes repeat loads/saves idempotent; original stores remain intact.
+    if (src.inputs && src.inputs.partsAssignment !== 2) {
+      INPUT_ROWS.forEach(name => {
+        const row = base.inputs.rows[name];
+        [row.ald1, row.ald2] = [row.ald2, row.ald1];
+        const first = 'inputs.rows.' + name + '.ald1';
+        const second = 'inputs.rows.' + name + '.ald2';
+        const left = base.calculations[first], right = base.calculations[second];
+        delete base.calculations[first]; delete base.calculations[second];
+        if (right) base.calculations[first] = right;
+        if (left) base.calculations[second] = left;
+      });
+    }
+    base.inputs.partsAssignment = 2;
     base.oam.rows = Object.assign({}, base.oam.rows || {});
     OAM_ROWS.forEach((row) => {
       base.oam.rows[row.key] = Object.assign({}, base.oam.rows[row.key] || {});
@@ -592,8 +607,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return '<section class="rakShiftOverviewPanel ' + (cls || '') + '"><h3>' + esc(title) + '</h3>' + html + '</section>';
   }
 
-  const ALD1_INPUT_ROWS = ['SR1','SR2','SR3','SR4','SR5','SR6','SR7','FR3','FR5','FR7','ZSB-RLR','SRRG','AAR'];
-  const ALD2_INPUT_ROWS = ['Awa','Awi','TW1','TW2','TW3'];
+  const ALD1_INPUT_ROWS = ['Awa','Awi','TW1','TW2','TW3'];
+  const ALD2_INPUT_ROWS = ['SR1','SR2','SR3','SR4','SR5','SR6','SR7','FR3','FR5','FR7','ZSB-RLR','SRRG','AAR'];
 
   function batchCounter(name, id, record) {
     const path = 'inputs.rows.' + name + '.ald' + id;

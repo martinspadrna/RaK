@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.2'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.2-release1'"));
-  assert.ok(index.includes("var e='v202',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.2-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.3'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.3-release1'"));
+  assert.ok(index.includes("var e='v203',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.3-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.2'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.3'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -416,13 +416,13 @@ test('ALD totals sum each visible list independently and exclude historic hidden
  const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
  vm.runInContext(feature.replace('  installStyle();','  root.fixture={refreshTotals};'),context);
  const out={1:{textContent:''},2:{textContent:''}};
- const fields={'inputs.rows.SR1.ald1':3,'inputs.rows.AAR.ald1':2,'inputs.rows.Awa.ald2':4,'inputs.rows.TW3.ald2':1,'inputs.rows.AAR.ald2':99};
+ const fields={'inputs.rows.SR1.ald2':3,'inputs.rows.AAR.ald2':2,'inputs.rows.Awa.ald1':4,'inputs.rows.TW3.ald1':1,'inputs.rows.AAR.ald1':99};
  const root={querySelector(selector){
   const total=selector.match(/data-shift-overview-ald-total="([12])"/);if(total)return out[total[1]];
   const path=selector.match(/data-shift-overview-field="([^"]+)"/);return path&&path[1]in fields?{value:String(fields[path[1]])}:null;
  }};
  context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'5');assert.equal(out[2].textContent,'5');
- fields['inputs.rows.SR1.ald1']=4;context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'6');assert.equal(out[2].textContent,'5');
+ fields['inputs.rows.SR1.ald2']=4;context.window.fixture.refreshTotals(root);assert.equal(out[1].textContent,'5');assert.equal(out[2].textContent,'6');
  assert.ok(feature.includes('Celkem vsázek'));assert.ok(feature.includes('<output data-shift-overview-ald-total='));
 });
 
@@ -436,7 +436,7 @@ test('ALD3 manual total persists independently and numeric inputs retain arithme
  for(const [tag,path]of inputs){if(!tag.includes('readonly')){assert.match(tag,/inputmode="(?:numeric|decimal)"/,path);assert.ok(tag.includes('data-shift-overview-calculate'),path);}}
  assert.match(body.innerHTML,/data-shift-overview-field="inputs.ald3"[^>]+value="17"/);
  const el={querySelector:s=>s.includes('date')?{value:record.date}:{value:record.shift},querySelectorAll:()=>[{getAttribute:()=> 'inputs.ald3',value:'19'}]};
- api.setRecord(el,record);const saved=api.readDom(el);assert.equal(saved.inputs.ald3,'19');assert.equal(saved.inputs.rows.AAR.ald1,2);assert.equal(api.normalizeRecord(saved).inputs.ald3,'19');
+ api.setRecord(el,record);const saved=api.readDom(el);assert.equal(saved.inputs.ald3,'19');assert.equal(saved.inputs.rows.AAR.ald2,2);assert.equal(api.normalizeRecord(saved).inputs.ald3,'19');
 });
 
 
@@ -511,4 +511,22 @@ test('production preview is one continuous table with both part numbers in each 
   assert.ok(body.includes('0AM 409 155'));assert.ok(body.includes('0AM 409 111'));
  }
  assert.ok(rows[0][2].includes('>576</text>'));assert.ok(rows[0][2].includes('>192</text>'));
+});
+
+
+test('corrected ALD assignment preserves legacy quantities/history exactly once and keeps ALD3', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,ALD1_INPUT_ROWS,ALD2_INPUT_ROWS};'),context);
+ const api=context.window.fixture;
+ assert.deepEqual(Array.from(api.ALD1_INPUT_ROWS),['Awa','Awi','TW1','TW2','TW3']);
+ assert.deepEqual(Array.from(api.ALD2_INPUT_ROWS),['SR1','SR2','SR3','SR4','SR5','SR6','SR7','FR3','FR5','FR7','ZSB-RLR','SRRG','AAR']);
+ const old={inputs:{ald3:'19',rows:{SR1:{ald1:'2',ald2:'999'},TW1:{ald1:'',ald2:'3'}}},calculations:{'inputs.rows.SR1.ald1':{expression:'1+1',result:'2'}},lastBatch:{ald1:'10',ald2:'20'}};
+ const first=api.normalizeRecord(old);
+ assert.equal(first.inputs.rows.SR1.ald2,'2');assert.equal(first.inputs.rows.SR1.ald1,'999');assert.equal(first.inputs.rows.TW1.ald1,'3');
+ assert.equal(first.calculations['inputs.rows.SR1.ald2'].expression,'1+1');assert.equal(first.calculations['inputs.rows.SR1.ald1'],undefined);
+ assert.equal(first.inputs.ald3,'19');assert.equal(first.lastBatch.ald1,'10');assert.equal(first.lastBatch.ald2,'20');
+ assert.equal(first.inputs.partsAssignment,2);assert.equal(old.inputs.rows.SR1.ald1,'2');
+ assert.equal(JSON.stringify(api.normalizeRecord(first)),JSON.stringify(first));
+ const current=api.normalizeRecord({inputs:{partsAssignment:2,rows:{TW1:{ald1:'7'},SR1:{ald2:'8'}}}});
+ assert.equal(current.inputs.rows.TW1.ald1,'7');assert.equal(current.inputs.rows.SR1.ald2,'8');
 });

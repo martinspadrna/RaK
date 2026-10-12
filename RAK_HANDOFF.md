@@ -2,6 +2,12 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 12. 10. 2026 — ALD1/ALD2 prohozené, produkce2.0.3 dokončena
+
+Vlastník výslovně požádal prohození dílů a přímé nasazení na produkci. ALD1 Awa/Awi/TW1/TW2/TW3; ALD2 SR1–SR7/FR3/FR5/FR7/ZSB-RLR/SRRG/AAR. Starší payloady normalizátor převede s hodnotami a historií výpočtů právě jednou pomocí inputs.partsAssignment2; ALD3, poslední vsázka a ostatní data beze změny. Původní uložené zdroje nevymazávat. Jednotná runtime/cache/module verze2.0.3; nové idempotence/quantity/history/sum regression PASS. Dokončeno produkce: SHA `61b04d7394746f28623b453be9cb710655c16c77`, verze2.0.3/buildv2.0.3-release1. Exact-main CI #922/38198753666 SUCCESS; coordinator #5/38198740861 SUCCESS; auditovaný release #7/38199065471 SUCCESS. Dvě canonical sestavy166souborů, digest `7314203ceaf763aef23d63ea4a09066d1a9efbd8d109f520bc3b9be1a6929f9f`. Všechny bezpečnostní, browser, offline/update, výkonové a source-integrity gates PASS. Produkční READY `dpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN`, immutable <https://skoda-spada-7zlixkwmw-martinspadrnas-projects.vercel.app>, stable <https://skoda-spada.vercel.app>. Nezávislé HTTP200, přesné bytes overview/metadata, správné nové ALD1/ALD2 a verze2.0.3 PASS. Backend žádné zápisy. Připravená shodná funkční oprava pro development s původním TEST configem a TEST označením; lokální úplné npm check PASS. Fyzická iPhone přejímka nového přiřazení čeká na vlastníka.
+
+Development nyní obsahuje shodnou opravu a verzi2.0.3, zachovává výhradně TEST config a svoje označení TEST v About. CI/TEST preview po tomto commitu teprve běží; produkční nasazení nezávisle dokončeno a ověřeno. Další produkční změny vyžadují souhlas. Bezprostřední rollbackfrontend dpl_8DMbApYiWjdDpUi1MjhwLEm9BSpV; starší frontend neumí nový partsAssignment2 payload správně editovat, proto při rollbacku nejprve řešit reverzní kompatibilitu, nesmazat data.
+
 ## 12. 10. 2026 — dokončený produkční hotfix O aplikaci
 
 Vlastník screenshotem doložil chybné označení „11. 10. 2026 · TEST“ na main a požádal jeho odstranění. Produkční O aplikaci nyní uvádí skutečné datum12.10.2026 bez TEST; historická vysvětlení používají neutrální text. TEST větev si ponechává své11.10.2026/TEST. Při budoucím převodu na main zachovat produkční označení/datum.

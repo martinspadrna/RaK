@@ -1,3 +1,7 @@
+## RaK 2.0.3 (development)
+
+- Opraveno přiřazení dílů ALD1/ALD2 se zachováním starších hodnot a výpočtů.
+
 ## RaK 2.0.2 (development)
 
 - Neplánovaná změna nabízí Neschopenku bez závorky; kód absence N zůstává zachován.
