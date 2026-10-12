@@ -1,6 +1,21 @@
 # RaK v2.0.2 — prepared TEST → main rollout
 
-Preparation only. Martin requested a test version ready for a future main transfer. No production DB, Edge Function, main ref or production alias is changed by this preparation. Re-read all live refs before any later approved rollout.
+Rollout completed on 12 October 2026 after Martin's explicit authorization. The evidence below is authoritative; remaining preparation/audit sections describe the historical pre-release checkpoint.
+
+## Aktuální produkční důkaz — 12. 10. 2026
+
+**RaK 2.0.2 je dokončeně nasazený na main i produkci.** Martin výslovně povolil rollout po úspěšných kontrolách. Tento stav nahrazuje starší zmrazenou baseline 1.9.0 a níže uvedené přípravné záznamy; další vývoj opět pouze TEST, další produkční změna vyžaduje vlastníkův souhlas.
+
+- Produkční release SHA `941b9b8f132f16b957645ed60c70a4fc4ff76fb7`; PR [#12](https://github.com/martinspadrna/RaK/pull/12) merged, PR11 superseded/closed. Funkční TEST zdroj `05029ee224f96ac021726ed8dfebfe6b2392c2b0`, development během rollout nezměněn: `7ed0b588c5f8d0d3843ca6c76b5c2cd711597bca`. Následné dokumentační commity nemění runtime verzi ani nasazené zdrojové SHA.
+- PR CI #915 attempt2 PASS; exact-main [CI #917](https://github.com/martinspadrna/RaK/actions/runs/38195261443) PASS, coordinator #2/38195153593 PASS, [auditovaný release #5](https://github.com/martinspadrna/RaK/actions/runs/38195580086) PASS. Předchozí exact-main #916 selhal pouze FCP P90 368ms proti limitu367ms; následné měření bez uvolnění limitů PASS: median324 vs316ms (limit348), P90376 vs336ms (limit411). Dvě čisté canonical sestavy166souborů, stabilní digest `ec47265e88ae4f211d320f63792f0e717d88f7cf5e960df55126d2341c6900a0`. Runtime/security/privacy, role, draft, CAS, offline/update/network/budget/parity i source-backup/CRC gates PASS.
+- READY `dpl_3TPggR9PktdRPraxYQJJAq62nhP5`; immutable <https://skoda-spada-3hpuyqo31-martinspadrnas-projects.vercel.app>; produkce <https://skoda-spada.vercel.app>. Auditovaný release ověřil exactSHA, neměnnou kandidátní HTTP odpověď a veřejnou adresu před/po změně aliasu. Samostatný HTTP200 a byte-match index/SW/metadata/config/app/overview ověřen; config výhradně produkční projekt. Jednotná runtime/cache2.0.2, build `v2.0.2-release1`. Git automatické nasazení main/development zůstává vypnuté; jednorázový coordinator se spustí pouze změnou vlastního YAML na main.
+- Produkční Supabase `bkqamcbkiwumsvelahxr`: nové remote migrace `20261012021353` overview (repo20261011105146), `20261012021354` foreman (repo20261011124442), `20261012021355` sick-leave N (repo20261011164201). Původní aplikované SQL/hash zachovány. Additive změny; starý kód LEK nadále přijímán, existující záznamy nepřepisovány.
+- Edge inventář: absence-calendar17/JWTtrue a hradnik-sync3/JWTfalse beze změny; přesný kandidátní rak-admin-users16/JWTtrue nasazen a byte-match ověřen. Známý TEST export v produkci vyřešen: rak-p15-restore-export3/JWTtrue obsahuje pouze retirement handler HTTP410 `test_only_function_retired`, bez databáze, tajných hodnot a exportu. Plnou TEST implementaci nikdy znovu nenasazovat do produkce; TEST endpoint ponechán funkční.
+- Před i po DB aplikaci rollbackové syntetické fixtures PASS: účetní izolace/role, stale-CAS, idempotence, selected-day N/LEK, payload/grants/RLS a anonymous denial. Žádná reálná přihlašovací session ani rozpis nepřepsány; owner9811 stále enabled owner, testovací profily0, overview řádky0 při postcheck. Anonymous overviewRPC401, adminEdge401, retiredexport410. Advisors odpovídají očekávaným kategoriím23/14/50/1; nejde o tvrzení nulových varování.
+- Rollback frontend: ověřená baseline `dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF`, SHA `915a75793207b4125a0489dd8e5c824696f227ab`, URL <https://skoda-spada-ourw28jh8-martinspadrnas-projects.vercel.app>. Vrátit pouze stabilní alias a ověřit veřejný HTTP/runtime. Zachovat overview data, kompatibilní N/LEK RPC i CAS; nesmazat data/neobnovit staré preCAS writers. Při problému adminEdge lze vrátit zachycený v15 zdroj z původního main s JWTtrue. Export capability neobnovovat.
+- Otevřené: fyzická přejímka Safari/iPhone a zabezpečené přihlášení na skutečném novém zařízení zůstávají nedoložené. Automatické clean-storage readiness, správné/nesprávné credentials v mocku a role denial nejsou fyzický důkaz ani reálný produkční login uživatele. Funkční rollout a automatické ověření jsou dokončené.
+
+
 
 ## Candidate and validation
 
