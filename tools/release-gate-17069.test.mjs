@@ -1,5 +1,5 @@
-import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 #!/usr/bin/env node
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
