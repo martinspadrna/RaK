@@ -2,6 +2,10 @@
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('app-menu-admin-renderer.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 function renderAdminMenuBody(body, section) {
+  if (section === 'shift-overview' && typeof rakAdminCanOpenShiftOverview === 'function' && rakAdminCanOpenShiftOverview()) {
+    if (typeof renderAdminShiftOverview === 'function') renderAdminShiftOverview(body);
+    return;
+  }
   // RAK_REPORT_ONLY_DEPUTY_17019
   if (!(typeof rakAdminCanOpenAdmin === 'function' && rakAdminCanOpenAdmin())) {
     if (body) body.innerHTML = '<div class="appMenuCard">Administrace není přístupná.<button type="button" class="appMenuAction" data-menu-back="1">Zpět</button></div>';
@@ -18,6 +22,12 @@ function renderAdminMenuBody(body, section) {
   try { if (typeof adminSetRotationViewportLock === 'function') adminSetRotationViewportLock(mode === 'rotation'); } catch (err) {}
   const page = document.getElementById('menu');
   if (page) page.dataset.adminView = mode;
+
+  if (mode === 'shift-overview') {
+    if (typeof renderAdminShiftOverview === 'function') renderAdminShiftOverview(body);
+    else body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Funkce se nepodařila načíst.</div><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>';
+    return;
+  }
 
   const months = getAdminRotationMonthKeys();
   const monthKey = getAdminSelectedMonthKey();
@@ -95,13 +105,12 @@ function renderAdminMenuBody(body, section) {
     '  <div class="appMenuCardTitle">Rozpisy</div>',
     '  <div class="appMenuText">',
     '    <div>Vyber měsíc, nejdřív doplň absence / svátek / odstávku a až potom vygeneruj návrh. Změny jdou online až po kliknutí na Uložit rozpis.</div>',
-    '    <div class="smallText">Pro nečekanou absenci klikni přímo na jméno v konkrétním dni a zvol Neplánovaná změna.</div>',
+    '    <div class="smallText">Pro nečekanou absenci vyber Neplánovaná dovolená nad rozpisem a potom klikni na jméno v konkrétním dni.</div>',
     '    <div class="smallText" id="adminOnlineSaveStatus">Před generováním zkontroluj absence a dny měsíce. Stav uložení se zobrazí po kliknutí na Uložit rozpis.</div>',
     '  </div>',
     renderAdminMonthPickerHtml(monthKey),
     '  <select id="adminMonthSelect" class="appMenuSelect appMenuHiddenSelect">' + months.map(m => '<option value="' + escapeHtml(m) + '"' + (m === monthKey ? ' selected' : '') + '>' + escapeHtml(m) + '</option>').join('') + '</select>',
     '  <div class="appMenuActionRow">',
-    '    <button type="button" class="appMenuAction" data-admin-action="load-month">Načíst měsíc</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="generate-rotation">Vygenerovat návrh</button>',
     '    <button type="button" class="appMenuAction" data-admin-action="load-online">Načíst online</button>',
     '    <button type="button" class="appMenuAction isActive" data-admin-action="save-rotation">Uložit rozpis</button>',

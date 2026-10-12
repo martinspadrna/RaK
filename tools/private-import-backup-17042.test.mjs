@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -56,7 +57,7 @@ test('migration preserves owner authorization, excludes login salts and tests tr
 });
 test('OS-number login unchanged; exact preview build and second-pass guards intact', () => {
   const config = read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl') && !config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
   assert(config.includes(`window.RAK_RELEASE_VERSION = "${version}";`));
   assert(read('index.html').includes(`var build='${build}';`));
   assert(read('sw.js').includes(`const CACHE_VERSION = 'v${version}';`));

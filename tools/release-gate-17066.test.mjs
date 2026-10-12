@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 #!/usr/bin/env node
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +25,7 @@ test('1.7.66 baseline or explicitly checked 1.7.67 successor, TEST-only Supabase
  const version=newer?'1.7.67':'1.7.66';
  for(const [p,part] of [['index.html',`var build='${build}';`],['supabase-config.js',`window.RAK_PWA_BUILD = "${build}";`],['supabase-config.js',`window.RAK_RELEASE_VERSION = "${version}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${build}";`],['sw.js',`const CACHE_VERSION = 'v${version}';`],['sw.js',`const DEVELOPMENT_BUILD_ID = '${build}';`]])assert(read(p).includes(part),p);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'));
 });
 test('real 1.7.66 MO grid remains guarded; 1.7.67 successor explicitly verifies equal MO/TO geometry',()=>{
  const source=read('admin-rotation-editor.js');

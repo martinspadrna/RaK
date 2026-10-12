@@ -13,12 +13,12 @@ test('1.7.114 stacked action-button milestone remains active in successors',()=>
   assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
   const editor=read('admin-rotation-editor.js');
   for(const marker of [
-    "actions.style.setProperty('display', 'grid', 'important')",
-    "actions.style.setProperty('grid-template-columns', '1fr', 'important')",
-    "button.style.setProperty('width', '100%', 'important')"
+    "display:flex",
+    "flex-wrap:wrap",
+    "min-height:44px"
   ]) assert(editor.includes(marker),marker);
   assert(editor.includes('Neplánovaná dovolená'));
-  assert(editor.includes('adminRotationQuickRemoveBtn">Odebrat</button>'));
+  assert(editor.includes('data-rotation-name-mode="remove"'));
 });
 
 test('1.7.114 historical gate remains wired after successor releases',()=>{

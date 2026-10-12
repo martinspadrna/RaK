@@ -1,7 +1,8 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
+import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.150 hybrid calendar milestone remains in verified successors',()=>{
@@ -26,5 +27,5 @@ test('1.7.150 gates are mandatory locally and in CI',()=>{
 
 test('1.7.150 stays TEST-only',()=>{
   const config=read('supabase-config.js');
-  assertSupabaseTarget(config,'release milestone');
+  assertSupabaseTarget(config);
 });

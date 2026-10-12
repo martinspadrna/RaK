@@ -640,6 +640,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function setSectionEditMode(section, on) {
     var body = document.getElementById('appMenuBody');
     if (!body) return;
+    if (on && typeof window.adminSetRotationNameActionMode === 'function') window.adminSetRotationNameActionMode(section, '');
+    if (typeof window.adminCloseRotationQuickRemove === 'function') window.adminCloseRotationQuickRemove();
     var table = body.querySelector('table[data-daymod-section="' + section + '"]');
     if (table) {
       table.classList.toggle('rakDayModEditMode', !!on);
@@ -650,6 +652,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }
     body.querySelectorAll('[data-daymod-mode="' + section + '"]').forEach(function (btn) {
       btn.classList.toggle('isActive', !!on);
+      btn.setAttribute('aria-pressed', String(!!on));
       btn.textContent = on ? '✓ Hotovo' : '✎ Výjimky dne';
     });
   }

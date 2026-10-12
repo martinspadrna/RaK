@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -54,7 +55,7 @@ test('exact 1.7.45 preview version and privacy/offline contracts', () => {
     assert(read(file).includes(marker), `${file}: ${marker}`);
   assert.equal(JSON.parse(read('package.json')).version, '1.7.0');
   const config = read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl') && !config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
   assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));
   assert(read('admin-rotation-generator.js').includes('note.text'));
   const progress = verifyRoadmapProgress(read('RAK_HANDOFF.md'));

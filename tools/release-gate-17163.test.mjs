@@ -1,7 +1,8 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
+import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.163 full-width blank-calendar milestone remains active in successors',()=>{
@@ -24,7 +25,7 @@ test('1.7.163 account-safe TEST milestone remains active',()=>{
   assert(core.includes('queueRakAccountCalendarHiddenSync(nextHidden)'));
   assert(bridge.includes("rpc('rak_save_account_ui_preferences_v3'"));
   assert(core.includes("obrabeni: '31eea99edff1771be15ba877f7c2f5b1371e0a742ad9d54fca526d41eafa5995@group.calendar.google.com'"));
-  assertSupabaseTarget(config,'release milestone');
+  assertSupabaseTarget(config);
 });
 
 test('1.7.163 gate remains mandatory locally and in CI',()=>{

@@ -4,9 +4,21 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
 function buildAppMenuAboutHistoryHtml() {
   const sections = [
+    {
+      range: 'RaK 2',
+      published: '11. 10. 2026 · TEST',
+      title: 'Přehled směny a jednodušší ovládání',
+      lines: [
+        'Nový Přehled směny: počítadla vsázek, výpočty, celková tabulka a online záloha k účtu.',
+        'Rozepsaný přehled se průběžně ukládá v zařízení; lze jej vymazat, online záloha se ukládá tlačítkem Uložit.',
+        'Přehlednější rozpisy a neplánované absence s Neschopenkou. Kantýna a jídelna mají okna vedle sebe a výrazné časy.',
+        'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
+      ]
+    },
     // RAK_190_ABOUT_START
     {
       range: 'RaK 1.9',
+      published: '3. 10. 2026',
       title: 'Rychlejší start bez změny funkcí a vzhledu',
       lines: [
         'První načtení je lehčí: dashboard, přihlášení, dnešní směna a údaj „kam jdu“ zůstávají v rychlém jádru, zatímco nepoužívané části se načtou až při otevření.',
@@ -21,6 +33,7 @@ function buildAppMenuAboutHistoryHtml() {
 // RAK_181_ABOUT_COMPACT: RaK 1.8 keeps the same coverage in a shorter five-point user-facing summary.
     {
       range: 'RaK 1.8',
+      published: '29. 9. 2026',
       title: 'Local-first, kalendáře a přesnější provoz',
       lines: [
         'RaK startuje skutečně local-first: Home, Rozpisy/Rotace, Kalkulačky i Více jsou dostupné hned z lokálních dat a online synchronizace je jen aktualizuje na pozadí.',
@@ -33,6 +46,7 @@ function buildAppMenuAboutHistoryHtml() {
     // RAK_180_ABOUT_END
     {
       range: 'RaK 1.7',
+      published: '15. 9. 2026',
       title: 'Stabilizace a local-first základ',
       lines: [
         'Rychlejší PWA s odolným offline startem, bezpečnějším přihlášením a synchronizací pracovních dat.',
@@ -43,6 +57,7 @@ function buildAppMenuAboutHistoryHtml() {
     },
     {
       range: 'RaK 1.6',
+      published: '11. 9. 2026',
       title: 'Rychlejší, čistší a přesnější',
       lines: [
         'Start aplikace a aktualizace PWA jsou rychlejší a stabilnější; části aplikace se načítají až ve chvíli, kdy jsou potřeba.',
@@ -53,6 +68,7 @@ function buildAppMenuAboutHistoryHtml() {
     },
     {
       range: 'RaK 1.5',
+      published: '7. 9. 2026',
       title: 'Účty, osobní směna a reporty',
       lines: [
         'Přihlášení si pamatuje uživatele a vzhled je uložený ke konkrétnímu účtu; Home ukazuje osobní směnu a pracovní informace.',
@@ -62,6 +78,7 @@ function buildAppMenuAboutHistoryHtml() {
     },
     {
       range: 'RaK 1.2',
+      published: '5/26',
       title: 'Administrace a generátor',
       lines: [
         'Výrazně se rozšířila administrace, generátor rozpisů, práce s absencemi a přesčasy, zálohy a chráněné ukládání se revizemi.',
@@ -70,6 +87,7 @@ function buildAppMenuAboutHistoryHtml() {
     },
     {
       range: 'RaK 1.1',
+      published: '5/26',
       title: 'Online funkce a PWA',
       lines: [
         'Přibyly větší PWA/offline funkce, online synchronizace, statistiky a bezpečnostní i provozní kontroly.',
@@ -78,6 +96,7 @@ function buildAppMenuAboutHistoryHtml() {
     },
     {
       range: 'RaK 1.0 a začátky',
+      published: '5/26',
       title: 'Základ aplikace',
       lines: [
         'Vznikl základ Dashboardu, směnové logiky, Rotací, rozpisů a výrobních kalkulaček; postupně přibylo ukládání dat a první PWA základ.'
@@ -89,7 +108,7 @@ function buildAppMenuAboutHistoryHtml() {
     '<div class="appMenuHistory">',
     sections.map(section => [
       '<div class="appMenuHistoryGroup">',
-      '  <div class="appMenuHistoryRange">' + escapeHtml(section.range) + '</div>',
+      '  <div class="appMenuHistoryRange">' + escapeHtml(section.range) + '</div>' + (section.published ? '<div class="smallText">Publikováno: ' + escapeHtml(section.published) + '</div>' : ''),
       '  <div class="appMenuHistoryTitle">' + escapeHtml(section.title) + '</div>',
       '  <div class="appMenuHistoryList">' + (section.lines || []).map(line => '<div class="appMenuHistoryItem">' + escapeHtml(line) + '</div>').join('') + '</div>',
       '</div>'
@@ -100,13 +119,12 @@ function buildAppMenuAboutHistoryHtml() {
 
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
-      const displayVersion = String(window.RAK_RELEASE_VERSION || versionText || '1.9.0').trim();
-      const displayParts = displayVersion.split('.');
-      const aboutDisplayVersion = displayParts.length >= 2 ? displayParts.slice(0, 2).join('.') : displayVersion;
+      const releaseMetadata = window.RAK_RELEASE_METADATA || {};
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.2').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
-        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(aboutDisplayVersion)) + '</div>',
+        '  <div class="appMenuVersion">' + escapeHtml(formatRakDisplayVersion(displayVersion)) + '</div>',
         '  ' + buildAppMenuAboutHistoryHtml(),
         '  <button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button>',
         '</div>'

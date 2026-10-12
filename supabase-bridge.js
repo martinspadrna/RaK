@@ -2622,7 +2622,7 @@
   function hasSignedAdminRoleContext() {
     const context = state.adminAuth && state.adminAuth.context;
     return !!(context && context.authenticated === true && context.account_id
-      && ['owner', 'admin', 'deputy'].includes(String(context.role || '')));
+      && ['owner', 'admin', 'deputy', 'foreman'].includes(String(context.role || '')));
   }
 
   function hasSecureAdminContext() {
@@ -5083,7 +5083,7 @@
     const reason = String(opts.reason || '').trim();
     const allowedDateLabels = Array.isArray(opts.allowedDateLabels) ? opts.allowedDateLabels.map((value) => String(value || '').trim()).filter(Boolean) : [];
     const reasonAllowed = changeKind === 'absence'
-      ? ['D','NV','§','LEK'].includes(reason)
+      ? ['D','NV','§','N'].includes(reason)
       : (changeKind === 'daymod' && reason === 'kalirnaOut');
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
         || !monthKey || !person || !reasonAllowed || !allowedDateLabels.length) {
@@ -5621,7 +5621,43 @@
     return { ok: true, data: data || null, at: new Date().toISOString() };
   }
 
+  function getShiftOverviewIdentity() {
+    const context = state.adminAuth.context;
+    const selected = typeof window.rakAdminGetActiveAccountId === 'function' ? window.rakAdminGetActiveAccountId() : '';
+    if (!context || context.authenticated !== true || !['owner', 'foreman'].includes(context.role) || !context.user_id
+        || !context.session_id || String(selected) !== String(context.account_id)) return null;
+    return { userId: String(context.user_id), accountId: String(context.account_id) };
+  }
+
+  async function ensureShiftOverviewIdentity() {
+    await loadAdminAuthContext();
+    return getShiftOverviewIdentity();
+  }
+
+  async function shiftOverviewRpc(identity, name, args) {
+    const matches = () => {
+      const current = getShiftOverviewIdentity();
+      return current && identity && current.userId === identity.userId && current.accountId === identity.accountId;
+    };
+    if (!matches()) return { ok: false, reason: 'account-auth-required' };
+    const client = getClient();
+    if (!client) return { ok: false, reason: 'missing-client' };
+    try {
+      const { data, error } = await client.rpc(name, args);
+      if (!matches()) return { ok: false, reason: 'account-changed' };
+      if (error) return { ok: false, reason: 'cloud-unavailable' };
+      return { ok: true, data };
+    } catch (_) { return { ok: false, reason: 'cloud-unavailable' }; }
+  }
+
   window.RotationSupabaseBridge = {
+    getShiftOverviewIdentity,
+    ensureShiftOverviewIdentity,
+    listShiftOverviews: (identity) => shiftOverviewRpc(identity, 'rak_list_shift_overviews'),
+    saveShiftOverview: (identity, entry) => shiftOverviewRpc(identity, 'rak_save_shift_overview', {
+      p_date: entry.payload.date, p_shift: entry.payload.shift, p_payload: entry.payload,
+      p_expected_revision: entry.revision, p_mutation_id: entry.id
+    }),
     init,
     getAdminAuthCapabilities,
     loadAdminAuthContext,

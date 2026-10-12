@@ -298,12 +298,10 @@
     const copyButton = actions.querySelector('[data-rak-share-action="copy"]');
     const shareButton = actions.querySelector('[data-shift-action="send"]');
     const whatsappButton = actions.querySelector('[data-rak-share-action="whatsapp"]');
-    const previewButton = actions.querySelector('[data-shift-action="preview"]');
     const closeButton = actions.querySelector('[data-shift-action="close"]');
     if (copyButton) copyButton.textContent = 'Zkopírovat report';
     if (shareButton) shareButton.textContent = 'Sdílet';
     if (whatsappButton) whatsappButton.textContent = 'WhatsApp';
-    if (previewButton) previewButton.textContent = 'Obnovit náhled';
     if (closeButton) closeButton.textContent = 'Zpět';
   }
 

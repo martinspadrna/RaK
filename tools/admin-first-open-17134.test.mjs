@@ -29,7 +29,9 @@ test('secure Admin root is a local shell while full tools preserve sync dependen
   assert(click.includes("window.rakIsFeatureReady('admin-shell')"));
   assert(click.includes('await appMenuWarmAdminShellFeature()'));
   assert(!click.includes('await appMenuWarmAdminFeature()'));
-  assert(menu.includes('const canOpen = () => appMenuCanOpenAdminNow();'));
+  assert(menu.includes("const overview = arguments[0] === 'shift-overview';"));
+  assert(menu.includes('typeof rakAdminCanOpenShiftOverview'));
+  assert(menu.includes(': appMenuCanOpenAdminNow();'));
   assert(menu.includes("typeof getAdminSelectedMonthKey === 'function' ? getAdminSelectedMonthKey() : ''"),
     'root Admin click must not require a heavy month-selection helper');
 });

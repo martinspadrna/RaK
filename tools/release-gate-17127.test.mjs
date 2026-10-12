@@ -21,7 +21,7 @@ test('1.7.127 keeps privilege checks while removing network work from visible sh
   const unlock=read('app-admin-unlock.js');
   assert(menu.includes('appMenuShouldShowAdminEntry()'));
   assert(menu.includes('rakAdminCanOpenAdmin'));
-  assert(unlock.includes("['owner', 'admin', 'deputy'].includes(String(app.adminRole || ''))"));
+  assert(unlock.includes("['owner', 'admin', 'deputy', 'foreman'].includes(String(app.adminRole || ''))"));
   assert(!read('index.html').includes('<script src="supabase-vendor-2.110.7.js"'));
   assert(!read('app.js').includes("void ensureFeature('menu').catch((err) => console.warn('Early menu warmup failed', err))"));
   assert(read('app-bottom-nav.js').includes('function openRakEarlyMenuShell()'));

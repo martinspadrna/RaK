@@ -1,7 +1,8 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {assertCurrentReleaseIdentity,assertSupabaseTarget} from './release-metadata-test-helper.mjs';
+import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
 test('1.7.141 point-1 refinement remains protected by successor releases',()=>{
@@ -24,5 +25,5 @@ test('1.7.141 keeps the point-1 UI regression gate mandatory',()=>{
 
 test('successor releases remain isolated to TEST Supabase',()=>{
   const config=read('supabase-config.js');
-  assertSupabaseTarget(config,'release milestone');
+  assertSupabaseTarget(config);
 });
