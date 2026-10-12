@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.6'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.6-release1'"));
-  assert.ok(index.includes("var e='v206',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.6-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.7'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.7-release1'"));
+  assert.ok(index.includes("var e='v207',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.7-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.6'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.7'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -548,7 +548,7 @@ test('morning and night section order matches the supplied counting routes', () 
   assert.equal((html.match(/data-running-unit=/g)||[]).length,25);
   assert.equal((html.match(/aria-pressed="true"/g)||[]).length,25);
   assert.equal(paths.includes('nitrogen'),shift.includes(':ranni'));
-  assert.equal(paths.includes('lastBatch.ald3'),shift.includes(':ranni'));
+  assert.equal(paths.includes('lastBatch.ald3'),true);
   assert.ok(paths.includes('lastBatch.ald1'));assert.ok(paths.includes('lastBatch.ald2'));
  }
 });

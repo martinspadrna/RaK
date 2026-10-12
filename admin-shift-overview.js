@@ -694,7 +694,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     let html = section('stock',shiftStation(record,'Sklad',[{key:'stock',label:'Sklad'}]));
     if (night) html += section('assembly',shiftStation(record,'Montáž',[{key:'assembly',label:'Montáž'}]));
     html += section('ald3',panel('ALD3',
-      (!night ? labeledField('Poslední vsázka','lastBatch.ald3',record,{sideLabel:true,inputmode:'numeric'}) : '') +
+      labeledField('Poslední vsázka','lastBatch.ald3',record,{sideLabel:true,inputmode:'numeric'}) +
       labeledField('Celkem vsázek před','inputs.ald3',record,{sideLabel:true,inputmode:'numeric'}) +
       runningUnits(record,3) +
       labeledField('Závady','ald.2.faults',record,{area:true,rows:3})));
@@ -822,12 +822,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       cell(458,822+index*48,266,48,label,header,true,24);
       cell(724,822+index*48,152,48,String(Number(total.toFixed(6))),'#fff',true,26);
     });
-    parts.push('<text x="458" y="1070" font-size="28" font-weight="700">Vsázky</text>');
+    parts.push('<text x="458" y="1070" font-size="25" font-weight="700">Čísla posledních vsázek</text>');
     const batchX=[458,626,709,792,876];
     cell(458,1092,168,44,'',header,true);
     ['ALD1','ALD2','ALD3'].forEach((label,i)=>cell(batchX[i+1],1092,batchX[i+2]-batchX[i+1],44,label,header,true,22));
+    parts.push('<g data-summary-last-batches="ald1-ald2-ald3">');
     cell(458,1136,168,56,'Poslední\nvsázka',header,true,21);
     [1,2,3].forEach((id,i)=>cell(batchX[i+1],1136,batchX[i+2]-batchX[i+1],56,summaryValue(record.lastBatch['ald'+id]),'#fff',true,22));
+    parts.push('</g>');
     cell(458,1192,168,56,'Celkem\nvsázek',header,true,21);
     [...aldTotals,record.inputs.ald3?total3:''].forEach((total,i)=>cell(batchX[i+1],1192,batchX[i+2]-batchX[i+1],56,total,'#fff',true,25));
     cell(458,1276,266,52,'Celkem vsázek',header,true,24);
@@ -1337,7 +1339,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewStages .rakShiftOverviewInput{padding:8px 4px;text-align:center;}',
       '.rakShiftOverviewStages label{font-size:11px;}',
       '.rakShiftOverviewPanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;}',
-      '.rakShiftOverviewUnits{margin:10px 0;}.rakShiftOverviewUnits>span{display:block;margin-bottom:8px;}.rakShiftOverviewUnitGrid{display:grid;grid-template-columns:repeat(5,44px);gap:8px;}.rakShiftOverviewUnitGrid button.rakShiftOverviewUnit{width:44px!important;height:44px!important;min-height:44px;padding:0!important;margin:0!important;border-radius:6px;display:grid;place-items:center;background:#666b73!important;color:#fff!important;border:1px solid #8c929b;font-size:16px;opacity:1;}.rakShiftOverviewUnitGrid button.rakShiftOverviewUnit.isActive{background:#398b43!important;border-color:#81d48a;color:#fff!important;}',
+      '.rakShiftOverviewUnits{margin:10px 0;}.rakShiftOverviewUnits>span{display:block;margin-bottom:8px;}.rakShiftOverviewUnitGrid{display:grid;grid-template-columns:repeat(5,44px);gap:8px;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit{width:44px!important;height:44px!important;min-height:44px;padding:0!important;margin:0!important;border-radius:6px;display:grid;place-items:center;background:#666b73!important;color:#fff!important;border:2px solid #a1a6ae!important;font-size:16px;font-weight:700;opacity:1!important;box-shadow:none!important;filter:none!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit.isActive{background:#167a35!important;border-color:#72f29a!important;color:#fff!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit:focus-visible{outline:3px solid #fff;outline-offset:2px;}',
       '.rakShiftOverviewLower{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;align-items:start;}',
       '.rakShiftOverviewShiftLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel{background:transparent;padding:0;border:0;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel>h3{display:none;}',
       '.rakShiftOverviewBatchColumns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;align-items:start;}',

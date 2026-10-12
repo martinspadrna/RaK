@@ -34,13 +34,13 @@ test('missing authentication module times out closed and can be retried',async()
   assert.equal(await f.context.waitForSecureSignIn(12000),f.signIn);
 });
 test('v2 identities agree and About has a compact new section above history',()=>{
-  const pkg=JSON.parse(read('package.json'));assert.equal(pkg.version,'2.0.6');
+  const pkg=JSON.parse(read('package.json'));assert.equal(pkg.version,'2.0.7');
   assert.equal(JSON.parse(read('package-lock.json')).version,pkg.version);
-  assert.match(read('core.js'),/const APP_VERSION = "2\.0\.6"/);
+  assert.match(read('core.js'),/const APP_VERSION = "2\.0\.7"/);
   const about=read('app-menu-pages.js');
   assert(about.indexOf("range: 'RaK 2'")<about.indexOf("range: 'RaK 1.9'"));
-  assert.match(read('rak-release-metadata.js'),/moduleCacheVersion: '2\.0\.6'/);
-  assert.match(read('index.html'),/var e='v206'/);
+  assert.match(read('rak-release-metadata.js'),/moduleCacheVersion: '2\.0\.7'/);
+  assert.match(read('index.html'),/var e='v207'/);
 });
 test('N is offered by UI and accepted by client; migration preserves legacy/CAS/security',()=>{
   const wizard=read('admin-rotation-generator-wizard.js');

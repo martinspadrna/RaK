@@ -1,3 +1,7 @@
+## RaK 2.0.7 (development)
+
+- ALD3 poslední vsázka v obou směnách, jasně zelené aktivní a šedé neaktivní ST/BK a označený přehled čísel posledních vsázek ALD1–3 ve výsledku.
+
 ## RaK 2.0.6 (development)
 
 - Kompaktní popisky, číslované ST/BK přepínače, rozdělení Volné/Lis na brusech a poslední vsázka ALD1/2 v obou směnách.

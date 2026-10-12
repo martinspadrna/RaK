@@ -11,7 +11,7 @@ const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','ch
 assert(chrome,'Real Chromium is required');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rak-overview-205-'));
 const feature=fs.readFileSync(path.join(root,'admin-shift-overview.js'),'utf8').replaceAll('</script','<\\/script');
-const css=['styles.css','styles-inline-legacy.css','styles-menu-polish.css'].map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('');
+const css=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1]).map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('');
 function probe(width){
  const check=(ok,label)=>{if(!ok)throw Error(label);};
  const body=document.querySelector('#appMenuBody');
@@ -31,12 +31,17 @@ function probe(width){
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25,'all units active initially');
   for(const id of [1,2,3])body.querySelector('[data-running-ald="'+id+'"][data-running-unit="2"]').click();
   check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'units toggle');
+  const activeStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="true"]'));
+  const inactiveStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="false"]'));
+  check(activeStyle.backgroundColor==='rgb(22, 122, 53)'&&inactiveStyle.backgroundColor==='rgb(102, 107, 115)','solid active/inactive backgrounds with full app theme');
+  check(activeStyle.backgroundImage==='none'&&inactiveStyle.backgroundImage==='none','theme cannot cover unit colors');
+  edit('lastBatch.ald3','300');
   edit('lastBatch.ald1','100');edit('lastBatch.ald2','200');edit('ald.2.faults','synthetic fixture');
   body.querySelector('[data-shift-overview-count="inputs.rows.TW1.ald1"][data-count-step="1"]').click();
   check(value('inputs.rows.TW1.ald1')==='1','counter');
   choose('D:ranni12');check(order()===morning,'manual morning route');
   check(!body.querySelector('[data-shift-overview-field="oam.rows.ag.op1020"]'),'hidden morning stage');
-  check(value('nitrogen')==='13'&&value('lastBatch.ald3')==='123','hidden values restored');
+  check(value('nitrogen')==='13'&&value('lastBatch.ald3')==='300','hidden values restored');
   edit('nitrogen','15.5');choose('D:nocni12');check(order()===night,'manual night route');
   check(value('oam.rows.ag.op1020')==='576'&&value('oam.rows.ag.op145')==='320','hidden flow preserved');
   check(value('oam.rows.ag.producedTO')==='64'&&value('oam.rows.af.groundTBKR07Free')==='32','route inputs preserved');
@@ -44,6 +49,7 @@ function probe(width){
   check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','both last batches preserved');
   const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
   check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
+  check(summary.includes('Čísla posledních vsázek')&&summary.includes('data-summary-last-batches="ald1-ald2-ald3"')&&['100','200','300'].every(n=>summary.includes('>'+n+'</text>')),'last batch numbers in final summary');
   const draft=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
   check(draft.record.nitrogen==='15.5'&&draft.record.oam.rows.ag.stock==='192','synchronous draft');
   api.render(body);check(order()===night&&value('oam.rows.ag.op1020')==='576','reopen draft');
