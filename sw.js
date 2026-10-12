@@ -1,5 +1,5 @@
 // RaK PWA service worker.
-importScripts('./rak-release-metadata.js?sw=2.0.2');
+importScripts('./rak-release-metadata.js?sw=2.0.2-production-about2');
 const RELEASE_METADATA = self.RAK_RELEASE_METADATA;
 if (!RELEASE_METADATA || !RELEASE_METADATA.displayVersion || !RELEASE_METADATA.buildId) {
   throw new Error('Missing RaK release metadata');

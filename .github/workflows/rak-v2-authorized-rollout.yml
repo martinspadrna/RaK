@@ -1,6 +1,6 @@
 name: RaK v2 authorized rollout coordinator
 
-# Martin authorized main/production rollout after successful checks on 2026-10-11.
+# Martin authorized the production About-label correction on 2026-10-12.
 # One-time trigger: only the commit introducing/changing this coordinator on main.
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 55
     env:
       GH_TOKEN: ${{ github.token }}
-      EXPECTED_DEVELOPMENT_SHA: 7ed0b588c5f8d0d3843ca6c76b5c2cd711597bca
+      EXPECTED_DEVELOPMENT_SHA: a77de571de11c417e1c1e123908b651127c5fe9f
     steps:
       - uses: actions/checkout@v4
         with:

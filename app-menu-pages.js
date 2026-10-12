@@ -6,7 +6,7 @@ function buildAppMenuAboutHistoryHtml() {
   const sections = [
     {
       range: 'RaK 2',
-      published: '11. 10. 2026 · TEST',
+      published: '12. 10. 2026',
       title: 'Přehled směny a jednodušší ovládání',
       lines: [
         'Nový Přehled směny: počítadla vsázek, výpočty, celková tabulka a online záloha k účtu.',
@@ -23,7 +23,7 @@ function buildAppMenuAboutHistoryHtml() {
       lines: [
         'První načtení je lehčí: dashboard, přihlášení, dnešní směna a údaj „kam jdu“ zůstávají v rychlém jádru, zatímco nepoužívané části se načtou až při otevření.',
         'Rotace, Kalkulačky, Více a Administrace si zachovávají oddělené moduly a vlastní zachycení chyb, takže porucha jedné volitelné části nezastaví celý RaK.',
-        'Vzhled TESTu byl vrácen 1:1 k ověřené hlavní verzi včetně tabulek, formulářů, statistik, kalkulaček a administrace.',
+        'Sjednocený vzhled tabulek, formulářů, statistik, kalkulaček a administrace.',
         'Účty jiných směn nevidí Rotaci a mají dole tři stejně široké položky ve správném pořadí Home – Kalkulačky – Více.',
         'PWA cache a automatické kontroly hlídají úplnou výměnu verze, rychlost prvního načtení, offline start a vizuální regresi.'
       ]
@@ -40,7 +40,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Rozpisy, absence a neplánované změny mají přesnější staffing a práci s Kalírnou; Administrace je rychlejší a na iPhonu přehlednější a kompaktnější.',
         'Dashboardový kalendář podporuje Obrábění i Kalírnu A–D, uložený výběr a legendu; bez aktivního zdroje zobrazí lokální prázdný měsíc bez Google cookie brány.',
         'Korekce Frézek a Brusů mají sjednocené mobilní ovládání. Offline/PWA, konflikty a zálohy mají přísnější diagnostiku, CAS ochranu a obnovu.',
-        'Release pipeline hlídá reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a oddělení TESTu od produkce; opravy míří do skutečných vlastníků funkcí.'
+        'Release pipeline hlídá reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a oddělení vývoje od produkce; opravy míří do skutečných vlastníků funkcí.'
       ]
     },
     // RAK_180_ABOUT_END

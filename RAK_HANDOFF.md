@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 12. 10. 2026 — oprava produkčního označení O aplikaci
+
+Vlastník doložil screenshot: produkční O aplikaci chybně uvádí „11. 10. 2026 · TEST“. Výslovně požaduje odstranění TEST na main. Produkční text má datum12.10.2026 a historická vysvětlení bez označení TEST. Copy-only hotfix zachovává2.0.2, buildId v2.0.2-release2 a změnu import URL ve SW pro bezpečnou nabídku aktualizace; existující same-version staging pokrývá app-menu-pages. Lokální v2 gates6/6 a skutečné vykreslení historyHTML PASS. Exact-main CI a auditované nasazení teprve probíhají. Backend beze změn, rollback frontend dpl_3TPggR9PktdRPraxYQJJAq62nhP5. Development a jeho TEST text neměnit během release.
+
 ## Aktuální produkční důkaz — 12. 10. 2026
 
 **RaK 2.0.2 je dokončeně nasazený na main i produkci.** Martin výslovně povolil rollout po úspěšných kontrolách. Tento stav nahrazuje starší zmrazenou baseline 1.9.0 a níže uvedené přípravné záznamy; další vývoj opět pouze TEST, další produkční změna vyžaduje vlastníkův souhlas.
