@@ -2,13 +2,20 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 12. 10. 2026 — dokončení TESTu a první vykreslení (rozpracováno)
+## 12. 10. 2026 — TEST 2.0.4 dokončen (100 % automatické ověření a nasazení)
 
-Živý development `2a88d229a71b60987ca353695a91751f3851a7bc` obsahuje ALD opravu, ale CI #923/38199264188 attempt1 i attempt2 selhalo na FCP P90 (652ms proti399ms, 628ms proti403ms). Ostatní dosud provedené funkční/security/offline/build gates prošly; release-preview skipped. Veřejný TEST proto stále2.0.2, READY `dpl_9wbdkCm2dw7XCNreNKqhDWDH5yFA`, zdroj `a77de571de11c417e1c1e123908b651127c5fe9f`. Netvrdit, že TEST již2.0.3.
+TEST nyní obsahuje shodné prohození ALD1/ALD2 jako produkce 2.0.3: ALD1 Awa/Awi/TW1/TW2/TW3; ALD2 SR1–SR7/FR3/FR5/FR7/ZSB-RLR/SRRG/AAR. Původní hodnoty/výpočty se převádějí právě jednou, ALD3/poslední vsázka a původní uložené zdroje zachovány. Prohození na veřejném TESTu dokončeno; předchozí stav „CI teprve běží“ níže je historický.
 
-Kandidát TEST2.0.4 opravuje první paint yield: jediný requestAnimationFrame obnovoval Promise před paintem; dvojitý callback ponechá první snímek bez následné těžké hydratace. VM regrese ověřuje, že po prvním callbacku hydratace ještě neběží a po druhém pokračuje. Žádné změny výkonnostních limitů, rolí, dat ani backendu. Prohození ALD1/2 zachováno. Lokální cílené42kontroly overview/draft/login PASS, first-paint12kontrol PASS. Celé canonical/CI a veřejné nasazení kandidáta čekají; hypotéza vlivu na FCP vyžaduje měření.
+CI #923/38199264188 původního2.0.3 attempt1 i attempt2 selhalo pouze na FCP P90 (652ms proti399ms, 628ms proti403ms), release-preview se správně nespustil a TEST zůstal2.0.2. TEST2.0.4 opravuje první paint yield: jediný requestAnimationFrame obnovoval Promise před paintem; dvojitý callback ponechá první snímek bez následné těžké hydratace. VM regrese ověřuje pozastavení po prvním callbacku a pokračování po druhém. Výkonnostní limity, role/data/backend beze změny. Jde o opravu pořadí; rozdílná rychlost runneru neumožňuje připsat celý rozdíl naměřených časů této jediné změně.
 
-Read-only precheck produkce: main `dda626a2c0838af1fffde039b8bbea2eedd6b54d`, READY `dpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN`/source `61b04d7394746f28623b453be9cb710655c16c77`, DBhead20261012021355, Edge absence17/JWTtrue, admin16/JWTtrue, hradnik3/JWTfalse, retiredexport3/JWTtrue beze změny. Veškerá nová práce pouze development/TEST. Fyzický iPhone test zůstává otevřený.
+- Funkční SHA `751b5b450f2531966e76940126f3de2a12e64290`, jednotná runtime/module/SW2.0.4, build `v2.0.4-release1`, update epochv204.
+- CI [#924/38230869600](https://github.com/martinspadrna/RaK/actions/runs/38230869600) attempt1 SUCCESS včetně verify a release-preview. Dvě čisté exact-SHA canonical sestavy166souborů, digest `99841909033c3702e077ca2f7fb90bd9dda6c74fe5c064ff3f43ed9e046814c9`, source unchanged. Všechny security/privacy/role/CAS/browser/offline/update/network/size/quality/HTTP/source-backup gates PASS bez oslabení.
+- FCP20counterbalanced párů: medián216ms proti208ms (limit229ms), P90284ms proti236ms (limit311ms), P95492ms proti244ms pouze diagnostika. Úplné startupReady median534ms vs308ms, wallReady785ms vs571ms diagnostika; není to důkaz stejné rychlosti celé hydratace ani fyzického Safari.
+- READY `dpl_8JLP89df58aqXZF4y2QSmtD7Mn8e`, source exactSHA výše, immutable <https://skoda-spada-d5wpckspw-martinspadrnas-projects.vercel.app>; veřejný TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200 a přesné bajty9assetů index/metadata/SW/app/core/About/overview/config/manifest PASS. TEST config výhradně `cgshssdjgzzuprlwnabl`, označení TEST zachováno. Přehledový modul má přesné stejné bajty jako živá produkce2.0.3. Samostatné lokální42overview/draft/login a12first-paint regrese PASS; dvě čisté místní sestavy PASS.
+- Produkční pre/post: main `dda626a2c0838af1fffde039b8bbea2eedd6b54d`, READY `dpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN`/source `61b04d7394746f28623b453be9cb710655c16c77`, DBhead20261012021355, Edge absence17/JWTtrue, admin16/JWTtrue, hradnik3/JWTfalse, retiredexport3/JWTtrue beze změny. Žádné DB/Edge ani main/produkční zápisy.
+- TEST rollback `dpl_9wbdkCm2dw7XCNreNKqhDWDH5yFA` (2.0.2): starý editor neumí nový partsAssignment2 payload; před rollbackem vyřešit reverzní kompatibilitu, nesmazat data.
+- Fyzická přejímka ALD a Safari/iPhone/new-device login zůstává otevřená; automatické ověření a TEST nasazení100 %. Další práce podle otevřeného stabilizačního backlogu pouze TEST; produkce2.0.3.
 
 ## 12. 10. 2026 — ALD1/ALD2 prohozené, produkce2.0.3 dokončena
 
