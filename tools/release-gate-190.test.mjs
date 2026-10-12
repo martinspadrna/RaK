@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -34,8 +35,7 @@ test('1.9 About summary covers performance, parity, isolation and cross-shift na
 
 test('1.9 remains TEST-only and preserves the explicit cross-shift order',()=>{
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
   const core=read('core.js');
   assert(core.includes("['home','kalkulacky','menu'].forEach((action,index)=>"));
   assert(core.includes("button.style.setProperty('grid-column',String(index+1),'important')"));

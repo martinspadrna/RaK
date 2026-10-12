@@ -3,14 +3,14 @@
 // no valid OS numbers, no report insert and no private response bodies in CI logs.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 const config=fs.readFileSync('supabase-config.js','utf8');
-const urlMatch=config.match(/url:\s*"(https:\/\/[^"\s]+)"/);
-const keyMatch=config.match(/publishableKey:\s*"(sb_publishable_[^"\s]+)"/);
-assert(urlMatch && keyMatch,'[17050-http] TEST publishable configuration unavailable');
-const BASE=urlMatch[1].replace(/\/$/,'');
+assertSupabaseTarget(config,'[17050-http] runtime configuration');
+// This public TEST key is deliberately independent of the release target: the live
+// negative probes must never contact production, including during production CI.
+const BASE='https://cgshssdjgzzuprlwnabl.supabase.co';
+const KEY='sb_publishable_v7jeuZC-MNUEO5nfE5xcUQ_Pu9pT-X_';
 assert.equal(new URL(BASE).hostname,'cgshssdjgzzuprlwnabl.supabase.co','[17050-http] production/unknown DB forbidden');
-assert(!config.includes('bkqamcbkiwumsvelahxr'),'[17050-http] production DB reference forbidden');
-const KEY=keyMatch[1];
 let verified=0;
 async function call(name,path,{method='GET',body,invalidJwt=false}={}){
   assert(path.startsWith('/rest/v1/'),'[17050-http] only TEST PostgREST may be queried');

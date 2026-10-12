@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -26,6 +27,5 @@ test('1.8.7 preserves secure role boundaries and TEST isolation',()=>{
   const bridge=read('supabase-bridge.js');
   assert(bridge.includes("return !!(hasSignedAdminRoleContext() && (context.role === 'owner' || context.role === 'admin'));"));
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
 });

@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -30,6 +31,5 @@ test('1.8.8 keeps the repair newer than the production migration lock and TEST-o
   assert.equal(lock.lastProductionVersion,'20260924105811');
   assert('20260930112049'>lock.lastProductionVersion);
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
 });

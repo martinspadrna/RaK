@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -26,7 +27,7 @@ test('final 1.7.61 labels, technical version and isolated TEST Supabase stay ali
     ['supabase-config.js',`window.RAK_RELEASE_VERSION = "${VERSION}";`],
     ['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]])assert(read(path).includes(fragment),'marker '+path);
   assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
-  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl'));
+  assertSupabaseTarget(read('supabase-config.js'));
   assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
   assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });

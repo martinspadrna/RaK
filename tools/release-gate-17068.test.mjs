@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 #!/usr/bin/env node
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -100,7 +101,7 @@ test('1.7.68 and verified successors keep TEST-only release and historical gates
   const pkg=JSON.parse(read('package.json'));
   assert.equal(pkg.version,RELEASE_METADATA.technicalVersion);
   assert.equal(pkg.version,RELEASE_METADATA.displayVersion);
-  const config=read('supabase-config.js');assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+  const config=read('supabase-config.js');assertSupabaseTarget(config);
   const chain=read('tools/development-version-17048.mjs');assert(chain.includes("await import('./development-version-17067.mjs');"));assert(chain.includes("await import('./development-version-17068.mjs');"));
   if(pkg.scripts['vercel-build']==='node tools/canonical-build.mjs build'){
     const compiler=read('tools/development-version-17068.mjs');

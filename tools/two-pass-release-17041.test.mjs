@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -32,7 +33,7 @@ test('older and newer guards all survive build replay', () => {
 });
 test('test-only database and minimal rotation projection remain', () => {
   const config = read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl') && !config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
   assert(read('supabase-bridge.js').includes(".select('id,key,payload,meta,revision,updated_at').eq('key', 'main').maybeSingle()"));
 });
 test('pipeline itself requires second pass', () => {
