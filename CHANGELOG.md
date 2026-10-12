@@ -1,3 +1,7 @@
+## RaK 2.0.5 (development)
+
+- Přehled směny má oddělené pořadí a pole pro ranní/noční podle provozních předloh; ruční přepnutí zachovává rozepsané i skryté údaje. Výsledný souhrn zachován.
+
 ## RaK 2.0.4 (development)
 
 - Hydratace místního UI začíná až po prvním vykresleném snímku. Prohození ALD1/ALD2 zůstává zachované.

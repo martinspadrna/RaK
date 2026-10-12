@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.4'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.4-release1'"));
-  assert.ok(index.includes("var e='v204',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.4-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.5'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.5-release1'"));
+  assert.ok(index.includes("var e='v205',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.5-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.4'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.5'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -213,7 +213,7 @@ test('every section uses responsive grids without sideways scrolling', () => {
   assert.ok(feature.includes('@media(max-width:650px)'));
 });
 
-test('paper overview renders only three active indices and all eleven production flow operations', () => {
+test('morning overview renders three active indices without duplicate or archived fields', () => {
   const context = vm.createContext({
     window: { rakAdminCanManageAdmins: () => true },
     document: { getElementById: () => ({}), head: { appendChild() {} } },
@@ -230,7 +230,7 @@ test('paper overview renders only three active indices and all eleven production
   assert.ok(!body.innerHTML.includes('AD / AG'));
   assert.ok(!body.innerHTML.includes('aar.matrix.turning.adAg'));
   assert.ok(!body.innerHTML.includes('oam.rows.ad.'));
-  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 33);
+  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 15);
   assert.equal((body.innerHTML.match(/data-shift-overview-field="inputs.rows./g) || []).length, 18);
   assert.ok(!body.innerHTML.includes('<details'));
   assert.ok(!body.innerHTML.includes('data-shift-overview-field="process.rows.'));
@@ -316,12 +316,12 @@ test('station panels keep all three indices together before the next workplace',
   const context = vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})},localStorage:{getItem:()=> '{}'}});
   vm.runInContext(feature,context);
   const body={dataset:{},innerHTML:'',querySelector:()=>null};
-  context.window.RakAdminShiftOverview.render(body,{date:'2026-10-10',shift:'A:ranni12'});
+  context.window.RakAdminShiftOverview.render(body,{date:'2026-10-10',shift:'A:nocni12'});
   const main=body.innerHTML;
   const paths=[...main.matchAll(/data-shift-overview-field="(oam.rows.[^"]+)"/g)].map(m=>m[1]);
-  assert.deepEqual(paths.slice(0,6),['oam.rows.ag.op1020','oam.rows.ag.op1121','oam.rows.af.op1020','oam.rows.af.op1121','oam.rows.ah.op1020','oam.rows.ah.op1121']);
+  assert.deepEqual(paths.slice(0,6),['oam.rows.ag.stock','oam.rows.af.stock','oam.rows.ah.stock','oam.rows.ag.assembly','oam.rows.af.assembly','oam.rows.ah.assembly']);
   assert.equal(paths[6],'oam.rows.ag.op30');
-  assert.ok(main.includes('value="A:ranni12" selected'));
+  assert.ok(main.includes('value="A:nocni12" selected'));
   assert.ok(!main.includes('<label>Směna D'));
   assert.ok(!feature.includes('.rakShiftOverviewHeader{grid-template-columns:minmax(0,1fr);}'));
 });
@@ -529,4 +529,50 @@ test('corrected ALD assignment preserves legacy quantities/history exactly once 
  assert.equal(JSON.stringify(api.normalizeRecord(first)),JSON.stringify(first));
  const current=api.normalizeRecord({inputs:{partsAssignment:2,rows:{TW1:{ald1:'7'},SR1:{ald2:'8'}}}});
  assert.equal(current.inputs.rows.TW1.ald1,'7');assert.equal(current.inputs.rows.SR1.ald2,'8');
+});
+
+test('morning and night section order matches the supplied counting routes', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,shiftLayout};'),context);
+ const api=context.window.fixture;
+ for(const [shift,expected] of [
+  ['B:ranni12',['stock','ald3','nitrogen','machining','ald2','ald1']],
+  ['C:nocni8',['stock','assembly','ald3','before-kiln','after-kiln','ground','after-145','before-145','soft','machining','ald2','ald1']]
+ ]){
+  const html=api.shiftLayout(api.normalizeRecord({shift}));
+  assert.deepEqual([...html.matchAll(/data-shift-overview-section="([^"]+)"/g)].map(m=>m[1]),expected);
+  const paths=[...html.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m=>m[1]);
+  assert.equal(new Set(paths).size,paths.length);
+  for(const key of ['producedTO','producedMO','groundTBKR01','groundTBKR07'])
+   for(const index of ['ag','af','ah'])assert.ok(paths.includes('oam.rows.'+index+'.'+key));
+  for(const id of [0,1,2])assert.ok(paths.includes('ald.'+id+'.running'));
+  assert.equal(paths.includes('nitrogen'),shift.includes(':ranni'));
+  assert.equal(paths.includes('lastBatch.ald3'),shift.includes(':ranni'));
+  assert.ok(!paths.includes('lastBatch.ald1'));assert.ok(!paths.includes('lastBatch.ald2'));
+ }
+});
+
+test('manual shift changes preserve hidden quantities, drafts, history and the original summary', () => {
+ const context=vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,shiftLayout,updateShiftLayout,summarySvg,nestedGet,get:el=>renderedRecords.get(el),set:(el,record)=>renderedRecords.set(el,record)};'),context);
+ const api=context.window.fixture;
+ const initial=api.normalizeRecord({date:'2026-10-12',shift:'D:nocni12',nitrogen:'12.4',lastBatch:{ald3:'700'},
+   oam:{rows:{ag:{op1020:'576',stock:'192',producedTO:'64',groundTBKR01:'32'}}},
+   calculations:{'oam.rows.ag.op1020':{expression:'320+256',result:'576'}},
+   inputs:{partsAssignment:2,rows:{TW1:{ald1:'2'},SR1:{ald2:'3'}}}});
+ const layout={innerHTML:api.shiftLayout(initial)},header={value:'D:nocni12'},fields=new Map();
+ const el={dataset:{},querySelector:s=>s.includes('data-shift-overview-layout')?layout:s.includes('data-shift-overview-date')?{value:initial.date}:s.includes('data-shift-overview-shift')?header:null,
+  querySelectorAll:s=>s==='[data-shift-overview-field]'?[...fields].map(([path,value])=>({value,getAttribute:key=>key==='data-shift-overview-field'?path:null})):[]};
+ function hydrate(){fields.clear();const record=api.get(el);for(const [,path]of layout.innerHTML.matchAll(/data-shift-overview-field="([^"]+)"/g))fields.set(path,String(api.nestedGet(record,path)??''));}
+ api.set(el,initial);hydrate();
+ fields.set('oam.rows.ag.stock','256');fields.set('oam.rows.ag.producedTO','96');
+ header.value='D:ranni12';api.updateShiftLayout(el);hydrate();
+ assert.ok(layout.innerHTML.includes('data-shift-overview-section="nitrogen"'));
+ assert.equal(api.get(el).oam.rows.ag.op1020,'576');assert.equal(api.get(el).calculations['oam.rows.ag.op1020'].expression,'320+256');
+ fields.set('nitrogen','15.5');header.value='D:nocni12';api.updateShiftLayout(el);
+ const saved=api.get(el);assert.equal(saved.nitrogen,'15.5');assert.equal(saved.lastBatch.ald3,'700');
+ assert.equal(saved.oam.rows.ag.stock,'256');assert.equal(saved.oam.rows.ag.producedTO,'96');
+ assert.equal(saved.oam.rows.ag.groundTBKR01,'32');assert.equal(saved.inputs.rows.SR1.ald2,'3');
+ const clean=JSON.parse(JSON.stringify(saved));delete clean.oam.rows.ag.producedTO;delete clean.oam.rows.ag.groundTBKR01;
+ assert.equal(api.summarySvg(saved),api.summarySvg(clean),'counting-route fields must not alter the original report or totals');
 });

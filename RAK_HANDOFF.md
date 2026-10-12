@@ -2,6 +2,16 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 12. 10. 2026 — TEST 2.0.5 ranní/noční přehled (implementace 85 %, nasazení čeká)
+
+Autorizováno pouze TEST. Předlohy vlastníka Ranní.xlsx/Noční.xlsx z12.10.2026 jsou pořadí sčítání a viditelných polí. Ranní: Sklad → ALD3 (poslední, celkem před, ST, závady) → Dusík → Obrábění (Do skladu TO/MO; Brusy TBKR01/TBKR07; závady) → ALD2 (BK,závady,vsázky) → ALD1. Noční: Sklad → Montáž → ALD3 (celkem před,ST,závady; bez poslední) → Sklad před kalením → Sklad po kalení → Po broušení → Po145 → Před145 → Měkké obrábění → Obrábění → ALD2 → ALD1. Celkové poznámky a původní SVG souhrn zůstávají na konci.
+
+ST/BK jsou stávající ald[0–2].running. Nové počty do skladu TO/MO a brusy mají samostatné oam.rows[index].producedTO/producedMO/groundTBKR01/groundTBKR07, nekolidují se stavem skladu ani starými AAR záznamy; ukládá je existující JSON/RPC/outbox beze změny backendu. Nezahrnovat je do původního souhrnu. Pole skrytá na jiné směně se při readDom/save zachovávají z plného záznamu. Ruční změna směny snapshotuje pole, přerenderuje pouze formulář, ponechá datum/poznámky/souhrn, synchronně uloží draft a přepne CAS revision/mutation scope podle cílové směny. Automatická volba activecycle A–D, 8/12h a nočního startdate beze změny. Nevybraná směna ponechá kompletní editor do ruční volby. Staré drafty/data nemažeme.
+
+Cílené38VMoverview/draft kontroly PASS, včetně pořadí, nulových duplicit, obou přepnutí se skrytými hodnotami/historií a beze změny summarySvg. Původní summarySvg funkce byte-identical. Nový skutečný Chromium fixture čtyř šířek ověřuje formulář/přepnutí/výpočty/multipliers/počítadla/draft/reopen/role/overflow; přidán k původním CI gates. Celé canonical/CI a veřejný TEST release čekají. Jednotná runtime/cache2.0.5, buildv2.0.5-release1, epochv205. Fyzická iPhone přejímka po nasazení vlastníkem.
+
+Precheck main dda626a2c0838af1fffde039b8bbea2eedd6b54d, produkceREADY dpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN/source61b04d7394746f28623b453be9cb710655c16c77, DBhead20261012021355, Edge absence17/admin16/hradnik3/retiredexport3 s původními JWT flags. Produkce/main/backend beze zápisů. TEST rollback dpl_8JLP89df58aqXZF4y2QSmtD7Mn8e (2.0.4), nová JSON pole původní normalizátor uchová, předlohy nemění partsAssignment2.
+
 ## 12. 10. 2026 — TEST 2.0.4 dokončen (100 % automatické ověření a nasazení)
 
 TEST nyní obsahuje shodné prohození ALD1/ALD2 jako produkce 2.0.3: ALD1 Awa/Awi/TW1/TW2/TW3; ALD2 SR1–SR7/FR3/FR5/FR7/ZSB-RLR/SRRG/AAR. Původní hodnoty/výpočty se převádějí právě jednou, ALD3/poslední vsázka a původní uložené zdroje zachovány. Prohození na veřejném TESTu dokončeno; předchozí stav „CI teprve běží“ níže je historický.

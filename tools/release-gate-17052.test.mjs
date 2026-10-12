@@ -14,7 +14,7 @@ test('release-based cache getter remains active; runtime values are checked by V
  const app=read('app-pwa-connectivity.js');
  assert(app.includes('window.RAK_TEST_DISPLAY_VERSION || window.RAK_RELEASE_VERSION || window.APP_VERSION'));
  assert(app.includes('const getExpectedServiceWorkerCacheVersion = () => {'));
- assert(read('core.js').includes('const APP_VERSION = "2.0.4";'));
+ assert(read('core.js').includes('const APP_VERSION = "2.0.5";'));
  const workflow=read('.github/workflows/rak-development-validation.yml');
  assert(workflow.includes('node --test tools/pwa-offline-17052.test.mjs'));
 });
