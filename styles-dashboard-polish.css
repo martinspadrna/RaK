@@ -33,8 +33,8 @@ body:not(.lightweightMode):not(.lowEndDevice):not(.ladaMode) #home .tile.dashboa
     linear-gradient(145deg, rgba(255,255,255,.064), rgba(255,255,255,.016) 60%, rgba(255,255,255,.008)) !important;
   background-color: color-mix(in srgb, rgba(5,9,16,.24) 64%, var(--theme-surface, rgba(255,255,255,.12)) 36%) !important;
   border-color: color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 14%, rgba(255,255,255,.22)) !important;
-  -webkit-backdrop-filter: blur(34px) saturate(1.32) contrast(1.02) !important;
-  backdrop-filter: blur(34px) saturate(1.32) contrast(1.02) !important;
+  -webkit-backdrop-filter: blur(38px) saturate(1.5) contrast(1.02) !important;
+  backdrop-filter: blur(38px) saturate(1.5) contrast(1.02) !important;
   box-shadow:
     0 14px 34px rgba(0,0,0,.16),
     inset 0 1px 0 rgba(255,255,255,.15),
@@ -109,21 +109,20 @@ body:not(.lightweightMode):not(.lowEndDevice):not(.ladaMode) #home .tile.dashboa
   }
 }
 
-/* 1.2 (1.146) – Kantýna/Jídelna modal: bez zeleného vzhledu, bere theme/pozadí a je víc matně glass. */
+/* Kantýna/Jídelna: transparent glass and distinct current/next opening times. */
 .foodScheduleOverlay{
   background:
-    var(--rakAppBackgroundOverlay, transparent),
-    color-mix(in srgb, var(--rakBgBase, #050816) 42%, transparent) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(1.18) !important;
-  backdrop-filter: blur(20px) saturate(1.18) !important;
+    rgba(5,9,16,.22) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.35) !important;
+  backdrop-filter: blur(28px) saturate(1.35) !important;
 }
 body:not(.lightweightMode):not(.lowEndDevice):not(.ladaMode) .foodScheduleModal{
   background:
     linear-gradient(145deg, rgba(255,255,255,.068), rgba(255,255,255,.016) 60%, rgba(255,255,255,.008)) !important;
-  background-color: color-mix(in srgb, rgba(5,9,16,.22) 66%, var(--theme-surface, rgba(255,255,255,.12)) 34%) !important;
+  background-color: color-mix(in srgb, rgba(5,9,16,.14) 66%, var(--theme-surface, rgba(255,255,255,.12)) 34%) !important;
   border-color: color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 14%, rgba(255,255,255,.22)) !important;
-  -webkit-backdrop-filter: blur(34px) saturate(1.32) contrast(1.02) !important;
-  backdrop-filter: blur(34px) saturate(1.32) contrast(1.02) !important;
+  -webkit-backdrop-filter: blur(38px) saturate(1.5) contrast(1.02) !important;
+  backdrop-filter: blur(38px) saturate(1.5) contrast(1.02) !important;
   box-shadow:0 20px 54px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.16) !important;
 }
 body:not(.lightweightMode):not(.lowEndDevice):not(.ladaMode) .foodScheduleModal::before{
@@ -158,7 +157,7 @@ body:not(.lightweightMode) .foodScheduleRow{
 .foodScheduleNowBox--next{
   background:
     linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.018)) !important;
-  background-color: color-mix(in srgb, rgba(5,9,16,.22) 66%, var(--theme-surface, rgba(255,255,255,.12)) 34%) !important;
+  background-color: color-mix(in srgb, rgba(5,9,16,.14) 66%, var(--theme-surface, rgba(255,255,255,.12)) 34%) !important;
   border-color: color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 12%, rgba(255,255,255,.18)) !important;
   box-shadow:0 14px 32px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.12) !important;
 }
@@ -186,25 +185,19 @@ body:not(.lightweightMode) .foodScheduleRow{
 .foodScheduleRow--hasHighlight{
   border-color: color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 14%, rgba(255,255,255,.18)) !important;
 }
-.foodScheduleWindowLine--currentOpen,
-body:not(.lightweightMode) .foodScheduleWindowLine--currentOpen,
-body:not(.lightweightMode):not(.lowEndDevice) .foodScheduleWindowLine--currentOpen{
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.020)),
-    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 11%, transparent), transparent 46%) !important;
-  border-color: color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 18%, rgba(255,255,255,.24)) !important;
-  color: var(--text, #fff) !important;
-  box-shadow:0 0 0 1px rgba(255,255,255,.04) inset, 0 8px 20px rgba(0,0,0,.10) !important;
+#foodScheduleModal .foodScheduleWindowLine--currentOpen{
+  background:linear-gradient(135deg,#b5f58b,#66d89a) !important;
+  border-color:#d4ffb8 !important;
+  color:#102719 !important;
+  font-weight:950 !important;
+  box-shadow:0 0 0 1px rgba(181,245,139,.4),0 8px 24px rgba(91,233,123,.25) !important;
 }
-.foodScheduleWindowLine--nextOpen,
-body:not(.lightweightMode) .foodScheduleWindowLine--nextOpen,
-body:not(.lightweightMode):not(.lowEndDevice) .foodScheduleWindowLine--nextOpen{
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.070), rgba(255,255,255,.016)),
-    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 7%, transparent), transparent 48%) !important;
-  border-color: color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 12%, rgba(255,255,255,.20)) !important;
-  color: rgba(248,250,255,.94) !important;
-  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset, 0 8px 18px rgba(0,0,0,.08) !important;
+#foodScheduleModal .foodScheduleWindowLine--nextOpen{
+  background:linear-gradient(135deg,#ffe190,#ffb955) !important;
+  border-color:#fff0b8 !important;
+  color:#382209 !important;
+  font-weight:950 !important;
+  box-shadow:0 0 0 1px rgba(255,210,108,.4),0 8px 24px rgba(255,184,65,.25) !important;
 }
 .foodScheduleWindowBadge{
   background: rgba(255,255,255,.10) !important;
@@ -234,23 +227,21 @@ body.ladaMode .foodScheduleNowBox{
   backdrop-filter:none !important;
 }
 
-/* 1.2 (1.146) – tvrdý finální override Kantýna/Jídelna modalu: nahoře bez zeleného bloku, hodně průhledný glass. */
+/* Final glass surface; do not paint the application's opaque background over it. */
 html body .foodScheduleOverlay.isVisible{
-  background:
-    var(--rakAppBackgroundOverlay, transparent),
-    color-mix(in srgb, var(--rakBgBase, #050816) 30%, transparent) !important;
-  -webkit-backdrop-filter:blur(22px) saturate(1.12) !important;
-  backdrop-filter:blur(22px) saturate(1.12) !important;
+  background:rgba(5,9,16,.22) !important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.35) !important;
+  backdrop-filter:blur(28px) saturate(1.35) !important;
 }
 html body .foodScheduleOverlay.isVisible .foodScheduleModal,
 html body:not(.lightweightMode):not(.lowEndDevice):not(.ladaMode) .foodScheduleOverlay.isVisible .foodScheduleModal{
   background:
     linear-gradient(145deg, rgba(255,255,255,.062), rgba(255,255,255,.012) 58%, rgba(255,255,255,.006)) !important;
-  background-color:color-mix(in srgb, rgba(5,9,16,.16) 68%, var(--theme-surface, rgba(255,255,255,.12)) 32%) !important;
+  background-color:rgba(5,9,16,.14) !important;
   border-color:color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 9%, rgba(255,255,255,.20)) !important;
   box-shadow:0 20px 54px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.14) !important;
-  -webkit-backdrop-filter:blur(38px) saturate(1.18) contrast(1.01) !important;
-  backdrop-filter:blur(38px) saturate(1.18) contrast(1.01) !important;
+  -webkit-backdrop-filter:blur(38px) saturate(1.5) contrast(1.01) !important;
+  backdrop-filter:blur(38px) saturate(1.5) contrast(1.01) !important;
 }
 html body .foodScheduleOverlay.isVisible .foodScheduleModal::before,
 html body:not(.lightweightMode) .foodScheduleOverlay.isVisible .foodScheduleModal::before{
@@ -301,18 +292,18 @@ html body:not(.lightweightMode) .foodScheduleOverlay.isVisible .foodScheduleRow{
   border-color:color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 7%, rgba(255,255,255,.16)) !important;
   box-shadow:0 10px 24px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.09) !important;
 }
-html body .foodScheduleOverlay.isVisible .foodScheduleWindowLine--currentOpen,
-html body:not(.lightweightMode) .foodScheduleOverlay.isVisible .foodScheduleWindowLine--currentOpen,
-html body:not(.lightweightMode):not(.lowEndDevice) .foodScheduleOverlay.isVisible .foodScheduleWindowLine--currentOpen,
-html body .foodScheduleOverlay.isVisible .foodScheduleWindowLine--nextOpen,
-html body:not(.lightweightMode) .foodScheduleOverlay.isVisible .foodScheduleWindowLine--nextOpen,
-html body:not(.lightweightMode):not(.lowEndDevice) .foodScheduleOverlay.isVisible .foodScheduleWindowLine--nextOpen{
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.064), rgba(255,255,255,.012)) !important;
-  background-color:color-mix(in srgb, rgba(5,9,16,.10) 72%, var(--theme-surface, rgba(255,255,255,.10)) 28%) !important;
-  border-color:color-mix(in srgb, var(--rakThemeAccent, var(--theme-accent, #7cff7c)) 8%, rgba(255,255,255,.18)) !important;
-  color:rgba(248,250,255,.94) !important;
-  box-shadow:0 8px 18px rgba(0,0,0,.09), inset 0 1px 0 rgba(255,255,255,.08) !important;
+#foodScheduleModal .foodScheduleNowBox--open .foodScheduleNowMain{
+  color:#b5f58b !important;
+  font-weight:950 !important;
+}
+#foodScheduleModal .foodScheduleNowBox--next .foodScheduleNowMain{
+  color:#ffe190 !important;
+  font-weight:950 !important;
+}
+#foodScheduleModal .foodScheduleWindowLine--currentOpen .foodScheduleWindowBadge,
+#foodScheduleModal .foodScheduleWindowLine--nextOpen .foodScheduleWindowBadge{
+  color:inherit !important;
+  background:rgba(255,255,255,.3) !important;
 }
 
 
@@ -1898,3 +1889,9 @@ html body:is(.ladaMode,.lowEndDevice,.lightweightMode) #home.page.active .dashbo
   background:var(--panel2) !important;
   border-color:var(--rakThemeBorder) !important;
 }
+
+/* Regular opening-day panels stay in pairs, including portrait phones. */
+html body .foodScheduleRegularGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+html body .foodScheduleRegularGrid .foodScheduleRow{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0;padding:10px 8px}
+html body .foodScheduleRegularGrid .foodScheduleDay,html body .foodScheduleRegularGrid .foodScheduleWindows{min-width:0;width:100%;text-align:left;overflow-wrap:anywhere}
+html body .foodScheduleRegularGrid .foodScheduleWindowLine{min-width:0;white-space:normal;font-size:14px}

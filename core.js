@@ -1,7 +1,7 @@
 // RaK 1.5 – core stav, verze a sdílené helpery aplikace.
 
 const APP_KEY = "rotace_kalkulacky_state_v123";
-const APP_VERSION = "1.5";
+const APP_VERSION = "2.0.2";
 window.APP_VERSION = APP_VERSION;
 const ROTATION_BUILD = "2026-06-03-" + APP_VERSION;
 window.ROTATION_BUILD = ROTATION_BUILD;
@@ -797,7 +797,12 @@ function getRakActiveAccountShiftInfo() {
   return {team:'D',outside:false,accountId:id,calendarAssignment:'obrabeni-D'};
 }
 function getRakActiveAccountShiftTeam() { return getRakActiveAccountShiftInfo().team; }
-function rakCanAccessRotations() { return getRakActiveAccountShiftTeam() === 'D'; }
+function rakCanAccessRotations() {
+  // Owner authority is independent of roster/team assignment and requires a verified role.
+  if (typeof window.rakAdminHasVerifiedRole === 'function' && window.rakAdminHasVerifiedRole()
+    && typeof window.rakAdminCanManageAdmins === 'function' && window.rakAdminCanManageAdmins()) return true;
+  return getRakActiveAccountShiftTeam() === 'D';
+}
 function rakApplyShiftAccess() {
   if(typeof document==='undefined') return;
   const allowed=rakCanAccessRotations();

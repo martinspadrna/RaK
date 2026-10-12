@@ -1,3 +1,75 @@
+## RaK 2.0.2 (development)
+
+- Neplánovaná změna nabízí Neschopenku bez závorky; kód absence N zůstává zachován.
+- O aplikaci doplněno datum všech generací: doložené release dny, u nejstarších verzí měsíc a rok.
+
+## RaK 2.0.1 (development)
+
+- Kantýna a jídelna: denní okna ve dvojicích i na telefonu; tři tlačítka rozpisu odsazená od okraje.
+- Kalírna zůstává ve Výjimkách dne, v neplánované dovolené se již nenabízí.
+- Přehled směny průběžně ukládá rozepsaná data offline, obnoví je po zavření a nabízí Vymazat přehled bez smazání online zálohy. Uložit nadále zálohuje online.
+- O aplikaci bez zmínky o roli Mistr; stručný souhrn a doložená data publikování (1.9 a 2 TEST).
+
+## RaK 2.0.0 (development)
+
+- Přehled směny s počítadly, výpočty, celkovou tabulkou a online zálohou k účtu; role Mistr.
+- Jednodušší ovládání rozpisů a neplánované absence včetně Neschopenky (N).
+- Průhlednější kantýna/jídelna, výrazné aktuální a nejbližší časy.
+- Zabezpečené přihlášení čeká na oba potřebné moduly i na novém zařízení. Aktualizace chrání rozepsaná data.
+- Verze 2.0.0 sjednocena v runtime, PWA, cache a balíčku. Převod na main se pouze připravuje.
+
+## TEST 1.9.28 – jednodušší ovládání rozpisu a reportu
+
+- Odstraněna tlačítka Načíst měsíc a Obnovit náhled reportu. Načíst online a automatický živý náhled zachovány.
+- Na malém displeji má Odebrat jen křížek s přístupným názvem; tři akce rozpisu vedle sebe podle dostupné šířky, minimálně 44px.
+- Změněné report moduly se při aktualizaci ověřeně obnoví v cache bez mazání rozepsaných dat. Pouze TEST.
+
+## TEST 1.9.27 – tlačítka rozpisu vedle sebe
+
+- Výjimky dne, Neplánovaná dovolená a Odebrat se řadí vedle sebe podle dostupné šířky; při nedostatku místa se zalomí. Zachovaná dotyková výška 44px, popisky i funkce.
+- Pouze development/TEST, bez změny dat nebo produkce.
+
+## TEST 1.9.26 – obnova rozpisů po aktualizaci a čistý náhled
+
+- Opraveno zobrazení starého rozpisu navzdory novému TEST číslu verze: před dokončením aktualizace se ověřeně obnoví editor, výjimky a renderer ze sítě; cíleně se nahradí pouze jejich cache kopie. Rozepsaná data ani nesouvisející cache se nemažou.
+- Z fullscreen náhledu Přehledu směny odstraněna tlačítka −, + a Celek. V liště zůstává název a × pro zavření.
+- Počty vsázek ALD1/2 jsou nefocusovatelný výstup, nikoli readonly textový vstup: klepnutí neotevírá pole ani nespouští přechod klávesnice/spodního panelu. Změna pouze +/−, vzhled a uložení zachovány.
+- Přiblížení prsty, posouvání a dvojklik zachovány. Data, celá výrobní tabulka i online záloha beze změny.
+- Pouze development/TEST, bez DB/Edge/produkčních změn.
+
+## TEST 1.9.25 – samostatné akce nad rozpisem
+
+- Výjimky dne, Neplánovaná dovolená a Odebrat jsou tlačítka nad Tvrdotou/Měkotou. Aktivní je vždy jen jeden režim v příslušné tabulce.
+- Kliknutí při výjimkách otevře jen výjimku; běžné kliknutí umožňuje ruční úpravu bez vyskakovací nabídky. Dovolená nadále používá původní dialog.
+- Odebrat vyprázdní pouze vybrané jméno a zachová místní návrh do Uložit rozpis. Nad Absencemi je samostatné Odebrat. Mobilní tlačítka se zalamují a mají 44px dotykovou výšku.
+- Pouze development/TEST, produkce a DB beze změny.
+
+## RaK 1.9.5 (development)
+
+- Přímý vstup `Více → Správce → Přehled směny` nově před otevřením bezpečně načte administrační modul; první klepnutí tedy otevře přehled místo návratu do stejné nabídky.
+
+## RaK 1.9.4 (development)
+
+- `Přehled směny` je nově dostupný přímo v `Více → Správce`, vedle Administrace a reportů.
+- Duplicitní vstup z úvodní stránky Administrace byl odstraněn a tlačítko Zpět vrací hlavního správce přímo do nabídky Více.
+
+## RaK 1.9.3 (development)
+
+- Nabídka PWA aktualizace nyní zobrazuje celé viditelné TEST číslo verze (např. `1.9.3`) už před potvrzením aktualizace.
+- Service worker používá pro uživatelské hlášky `visibleTestVersion`; technická verze `1.9.0` a produkční větev zůstávají beze změny.
+
+## RaK 1.9.2 (development)
+
+- Přehled směny na telefonu nově zřetelně ukazuje, že široké tabulky lze posouvat do stran.
+- Ve Výrobě AAR při vodorovném posunu zůstává viditelný název řádku, takže je zadávání hodnot přehlednější.
+- Viditelné TEST číslo bylo posunuto na RaK 1.9.2 a PWA dostala nový build marker, aby se aktualizace nabídla i uživatelům s předchozí cache.
+
+## RaK 1.9.1 (development)
+
+- TEST číslování je znovu viditelné v O aplikaci: tento build se zobrazuje jako RaK 1.9.1, zatímco technická produkční řada zůstává 1.9.0.
+- Přehled směny pro hlavního správce je součástí TESTu a PWA update mechanismus dostal nový build marker, aby se nová verze skutečně nabídla.
+- Další vydaná TEST změna musí posunout viditelné číslo na 1.9.2, 1.9.3 atd.; main/produkce se tímto development releasem nemění.
+
 ## RaK 1.9.0 (development)
 
 - První načtení je lehčí: povinné jádro dál obsahuje přihlášení, dashboard, dnešní směnu a údaj „kam jdu“, zatímco nepoužívané části se načítají až při otevření.
@@ -2682,3 +2754,5 @@
 - Rotace: panel jmen se při otevření stránky nejdřív stabilizuje skrytě a až potom se ukáže ve finální poloze, aby nebylo vidět poskočení.
 - Aktualizované release manifesty, service worker, smoke test Piškvorek a kontrola načtených modulů pro nový soubor.
 - Supabase DB, policies ani online flow beze změny.
+
+- TEST 1.9.26: Mistr má vlastní Přehled směny a online zálohu; dashboard podle Pracovníků, owner přístup nezávislý na zařazení.

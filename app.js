@@ -158,6 +158,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
+    "admin-shift-overview.js",
     "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",
     "admin-rotation-overtime.js",

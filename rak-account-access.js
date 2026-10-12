@@ -117,7 +117,7 @@
     } catch (_) {}
     return new Promise((resolve) => {
       const check = () => {
-        if (typeof window.rakAdminSecureSignIn === 'function') { resolve(window.rakAdminSecureSignIn); return; }
+        if (typeof window.rakAdminSecureSignIn === 'function' && window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.signInAdminAccount === 'function' && window.supabase) { resolve(window.rakAdminSecureSignIn); return; }
         if (Date.now() - started >= timeoutMs) { resolve(null); return; }
         setTimeout(check, 80);
       };

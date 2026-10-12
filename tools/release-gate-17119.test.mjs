@@ -14,14 +14,14 @@ test('1.7.119 remains a historical milestone while successors preserve its unpla
   assert(read('CHANGELOG.md').includes('## RaK 1.7.119 (development)'));
 });
 
-test('1.7.119 keeps five reasons, Kalírna availability and compact popup in successors',()=>{
+test('1.7.119 keeps four absence choices, legacy Kalírna compatibility and compact popup in successors',()=>{
   const wizard=read('admin-rotation-generator-wizard.js');
   const rotation=read('admin-rotation.js');
   const start=wizard.indexOf('const ADMIN_UNPLANNED_REASON_OPTIONS');
   const end=wizard.indexOf('\nfunction adminRotationUnplannedReasonOption',start);
   const block=wizard.slice(start,end);
   const values=[...block.matchAll(/value: '([^']+)'/g)].map(m=>m[1]);
-  assert.deepEqual(values,['D','NV','§','LEK','kalirnaOut']);
+  assert.deepEqual(values,['D','NV','§','N']);
   assert(rotation.includes('const absent = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);'));
   assert(wizard.includes('height:auto!important'));
   assert(wizard.includes('max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'));

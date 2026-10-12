@@ -1,0 +1,57 @@
+name: RaK v2 authorized rollout coordinator
+
+# Martin authorized main/production rollout after successful checks on 2026-10-11.
+# One-time trigger: only the commit introducing/changing this coordinator on main.
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/rak-v2-authorized-rollout.yml]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: rak-v2-authorized-rollout
+  cancel-in-progress: false
+
+jobs:
+  coordinate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_DEVELOPMENT_SHA: 7ed0b588c5f8d0d3843ca6c76b5c2cd711597bca
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require exact approved v2 main and unchanged TEST
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          node -e 'if(require("./package.json").version!=="2.0.2")process.exit(1)'
+      - name: Dispatch full exact-main validation and await green result
+        run: |
+          gh workflow run rak-development-validation.yml --repo "${{ github.repository }}" --ref main
+          for attempt in $(seq 1 100); do
+            runs="$(gh api "repos/${{ github.repository }}/actions/workflows/rak-development-validation.yml/runs?branch=main&event=workflow_dispatch&per_page=20")"
+            id="$(printf '%s' "$runs" | jq -r --arg sha "$GITHUB_SHA" '[.workflow_runs[] | select(.head_sha==$sha)] | sort_by(.id) | last | .id // empty')"
+            if test -n "$id"; then
+              status="$(gh api repos/${{ github.repository }}/actions/runs/$id --jq .status)"
+              if test "$status" = completed; then
+                test "$(gh api repos/${{ github.repository }}/actions/runs/$id --jq .conclusion)" = success
+                echo "EXACT_MAIN_VALIDATION=$id" >> "$GITHUB_ENV"
+                break
+              fi
+            fi
+            sleep 15
+          done
+          test -n "$EXACT_MAIN_VALIDATION" || test -n "$(sed -n 's/^EXACT_MAIN_VALIDATION=//p' "$GITHUB_ENV")"
+      - name: Dispatch existing audited production release
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          gh workflow run rak-production-release.yml --repo "${{ github.repository }}" --ref main -f expected_sha="$GITHUB_SHA" -f expected_development_sha="$EXPECTED_DEVELOPMENT_SHA"

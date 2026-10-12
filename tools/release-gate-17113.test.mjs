@@ -13,8 +13,8 @@ test('1.7.113 stacked menu milestone remains active in successors',()=>{
   assert.equal(JSON.parse(read('package.json')).version,metadata.displayVersion);
   const editor=read('admin-rotation-editor.js');
   assert(editor.includes('Neplánovaná dovolená'));
-  assert(editor.includes('adminRotationQuickRemoveBtn">Odebrat</button>'));
-  assert(editor.includes("box.style.setProperty('display', 'grid', 'important')"));
+  assert(editor.includes('data-rotation-name-mode="remove"'));
+  assert(editor.includes("flex-wrap:wrap"));
 });
 
 test('1.7.113 historical gate remains wired after successor releases',()=>{

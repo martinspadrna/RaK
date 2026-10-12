@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('visible 1.7.56, PWA and TEST database align; OS-only login and technical 1
   ['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`]
  ])assert(read(file).includes(anchor),'release mismatch: '+file+' '+anchor);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'));
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });
 test('auth diagnostic uses GoTrue signed token, exact TEST URL and strictly read-only RPCs',()=>{

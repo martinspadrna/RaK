@@ -47,6 +47,6 @@ test('secure role changes rerender visible root and restore is deduplicated',()=
   assert(menu.includes("window.addEventListener('rak-admin-access-changed', appMenuRerenderVisibleRoot)"));
   const restore=bodyBetween(unlock,'async function rakAdminRestoreSecureSessionForActiveAccount(reason)','async function rakAdminSecureSignIn(accountId, password)');
   assert(restore.includes('rakAdminSecureRestorePromise && rakAdminSecureRestoreAccountId === activeId'));
-  assert(restore.includes('rakAdminCanOpenShiftReport()'));
+  assert(restore.includes('rakAdminHasVerifiedRole()'));
   assert(restore.includes('rakAdminSecureRestorePromise = pending'));
 });

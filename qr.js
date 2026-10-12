@@ -782,7 +782,7 @@ function buildFoodScheduleHtml(location) {
     '<div class="sectionTitle">Běžná otevírací doba</div>',
     highlightSummary,
     '</div>',
-    rows,
+    '<div class="foodScheduleRegularGrid">' + rows + '</div>',
     buildFoodSpecialSundaySection(location, highlight)
   ].join('');
 }

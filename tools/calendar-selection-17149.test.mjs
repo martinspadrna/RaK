@@ -63,8 +63,8 @@ test('owner admin and deputy can change only their own password from Settings',(
   const edge=read('supabase/functions/rak-admin-users/index.ts');
   assert(pages.includes('data-menu-action="change-account-password"'));
   assert(menu.includes("menuAction === 'change-account-password'"));
-  assert(unlock.includes('if (!rakAdminCanOpenShiftReport()'));
-  assert(edge.includes('["owner", "admin", "deputy"].includes'));
+  assert(unlock.includes('if (!rakAdminHasVerifiedRole()'));
+  assert(edge.includes('["owner", "admin", "deputy", "foreman"].includes'));
   assert(edge.includes('if (action === "change-own-password")'));
   const own=edge.indexOf('if (action === "change-own-password")');
   const deputyBlock=edge.indexOf('if (actor.role === "deputy")');

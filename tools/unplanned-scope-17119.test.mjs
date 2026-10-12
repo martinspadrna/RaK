@@ -13,8 +13,8 @@ test('1.7.119 keeps exactly the five owner-approved unplanned reasons', () => {
   const block = wizard.slice(start, end);
   const values = [...block.matchAll(/value: '([^']+)'/g)].map((m) => m[1]);
   const labels = [...block.matchAll(/label: '([^']+)'/g)].map((m) => m[1]);
-  assert.deepEqual(values, ['D','NV','§','LEK','kalirnaOut']);
-  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Lékař','Odešel na kalírnu']);
+  assert.deepEqual(values, ['D','NV','§','N']);
+  assert.deepEqual(labels, ['Dovolená','Náhradní volno','Paragraf','Neschopenka']);
 });
 
 test('unplanned absence and Kalírna allow intermediate full-month errors only before selected-day splice', () => {

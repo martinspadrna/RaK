@@ -117,8 +117,6 @@ function getDashboardNextWorkShift(now) {
 
   collect(base);
 
-  // During long shutdowns/holidays the nearest allowed shift can be outside the basic +/-1 week window.
-  // Probe farther ahead so the dashboard shows a useful "next shift" instead of a dash.
   if (!candidates.length) {
     for (let hours = 6; hours <= 45 * 24; hours += 6) {
       collect(new Date(base.getTime() + hours * 60 * 60 * 1000));
@@ -318,7 +316,6 @@ function formatDashboardNextShiftMeta(shift) {
 
 
 
-// v.1.5 (963) – Dashboard oznámení je globální online-first; localStorage slouží jen jako rychlá cache/fallback.
 const RAK_DASHBOARD_ANNOUNCEMENT_KEY = (typeof APP_KEY !== 'undefined' ? APP_KEY : 'rak') + ':dashboardAnnouncementV1';
 
 function parseRakAnnouncementDate(value) {
@@ -349,8 +346,6 @@ function normalizeRakDashboardAnnouncement(raw) {
 
 function readRakLocalDashboardAnnouncement() {
   try {
-    // v.1.5 (963): čteme přímo z localStorage, aby se po restartu / návratu z bfcache
-    // nepoužil starý JSON cache stav a oznámení se na Dashboardu spolehlivě obnovilo.
     const raw = localStorage.getItem(RAK_DASHBOARD_ANNOUNCEMENT_KEY);
     if (!raw) return null;
     const stored = JSON.parse(raw);
@@ -415,8 +410,6 @@ function getRakSupabaseDashboardAnnouncement() {
 
 function getRakDashboardAnnouncementCandidates() {
   const items = [];
-  // v.1.5 (963): globální oznámení má přednost. Lokální kopie je jen cache/fallback,
-  // aby se poslední online oznámení ukázalo i při pomalejším startu nebo offline režimu.
   const online = getRakSupabaseDashboardAnnouncement();
   if (online) items.push(online);
   const local = readRakLocalDashboardAnnouncement();
@@ -590,9 +583,6 @@ function getDashboardActiveProfile() {
     const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
     if (profile && profile.fullName) return profile;
   } catch (err) {}
-  // Při prvním paintu nemusí být profilový modul ještě připravený.
-  // Použijeme proto synchronní snapshot načtený v <head>, případně stejný
-  // lokální profil přímo. Síť zůstává jen pro pozdější revalidaci.
   try {
     const early = window.__RAK_EARLY_USER_PROFILE__;
     if (early && String(early.accountNumber || '').trim() && String(early.fullName || '').trim()) return early;
@@ -654,8 +644,6 @@ function getDashboardFriendlyName(fullName) {
   if (!parts.length) return '';
   const knownPart = parts.find((part) => Object.prototype.hasOwnProperty.call(DASHBOARD_FRIENDLY_NAME_OVERRIDES, part.toLocaleLowerCase('cs-CZ')));
   if (knownPart) return DASHBOARD_FRIENDLY_NAME_OVERRIDES[knownPart.toLocaleLowerCase('cs-CZ')];
-  // Účty mají zpravidla tvar „Příjmení Jméno“. Dokud správce nepotvrdí
-  // přezdívku, raději nepřevádíme jméno do nejistého českého vokativu.
   return parts.length > 1 ? parts[parts.length - 1] : parts[0];
 }
 
@@ -667,8 +655,6 @@ function getDashboardScheduleName(fullName) {
     const exact = availableNames.find((name) => name === wanted);
     if (exact) return exact;
     const words = wanted.split(/\s+/).map((part) => part.toLocaleLowerCase('cs-CZ'));
-    // Uživatelský účet obsahuje celé jméno, rozpis zatím jen příjmení.
-    // Při shodě celého slova tedy bezpečně použijeme příjmení z rozpisu.
     return availableNames.find((name) => words.includes(String(name).toLocaleLowerCase('cs-CZ'))) || wanted;
   } catch (err) {
     return wanted;
@@ -1308,7 +1294,6 @@ window.__rotaceBootHomeRefreshLate = bootHomeRefreshLate;
 })();
 
 
-// v.1.5 (963) – read-only kontrola centrování horního směnového panelu na Dashboardu včetně řádku kdo chybí.
 function getRakDashboardHeroCenteringHealth() {
   return {
     ok: true,
@@ -1323,7 +1308,6 @@ function getRakDashboardHeroCenteringHealth() {
 window.getRakDashboardHeroCenteringHealth = getRakDashboardHeroCenteringHealth;
 
 
-// v.1.1 (725): ruční sync přes online stav na dashboardu.
 const RAK_DASHBOARD_MANUAL_SYNC_STATE = {
   running: false,
   lastAt: 0,

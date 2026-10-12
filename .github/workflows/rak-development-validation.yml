@@ -67,6 +67,9 @@ jobs:
           node --test tools/startup-core-boundary-188.test.mjs tools/startup-network-dedupe-188.test.mjs
           node --test tools/regression-parity-contract.test.mjs
           node --test tools/ui-parity-contract.test.mjs
+      - name: Verify v2 secure login and release identity
+        working-directory: .rak-canonical-build/work
+        run: node --test tools/release-gate-200.test.mjs tools/shift-overview-draft-201.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
         run: |

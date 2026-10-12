@@ -70,6 +70,6 @@ test('deputy remains blocked from admin management and write credential',()=>{
   const deputyBlock=edge.indexOf('if (actor.role === "deputy")');
   const management=edge.indexOf('if (action === "list-admin-directory")');
   assert(own>=0&&deputyBlock>own&&management>deputyBlock);
-  assert(edge.includes('["owner", "admin", "deputy"].includes(String(actor.role || ""))'));
+  assert(edge.includes('["owner", "admin", "deputy", "foreman"].includes(String(actor.role || ""))'));
   assert(edge.includes('if (actor.role !== "owner") return jsonResponse'));
 });

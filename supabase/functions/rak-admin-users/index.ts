@@ -45,7 +45,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   const { data: actor, error: actorError } = await ctx.supabase.rpc("rak_admin_context");
   // RaK 1.7.149: owner/admin/deputy may change only their own password.
   // All management actions remain blocked for deputy below.
-  if (actorError || !actor || !["owner", "admin", "deputy"].includes(String(actor.role || ""))) {
+  if (actorError || !actor || !["owner", "admin", "deputy", "foreman"].includes(String(actor.role || ""))) {
     return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
   }
 
@@ -65,6 +65,8 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
     return updateError ? jsonResponse(req, 500, { ok: false, error: "password_update_failed" }) : jsonResponse(req, 200, { ok: true });
   }
 
+  if (actor.role === "foreman") return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
+
   if (actor.role === "deputy") {
     return jsonResponse(req, 403, { ok: false, error: "admin_permission_required" });
   }
@@ -72,7 +74,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (action === "list-admin-directory") {
     const { data: profiles, error } = await ctx.supabaseAdmin.from("rak_admin_profiles")
       .select("account_id,display_name,role,enabled")
-      .in("role", ["owner", "admin", "deputy"])
+      .in("role", ["owner", "admin", "deputy", "foreman"])
       .order("account_id", { ascending: true });
     return error ? jsonResponse(req, 500, { ok: false, error: "admin_directory_load_failed" }) : jsonResponse(req, 200, { ok: true, profiles: profiles || [] });
   }
@@ -96,7 +98,7 @@ const authenticatedFetch = withSupabase({ auth: "user" }, async (req, ctx) => {
   const password = String(body.password || "");
   const enabled = body.enabled !== false;
   const role = String(body.role || "admin").trim();
-  if (role !== "admin" && role !== "deputy") return jsonResponse(req, 400, { ok: false, error: "invalid_role" });
+  if (role !== "admin" && role !== "deputy" && role !== "foreman") return jsonResponse(req, 400, { ok: false, error: "invalid_role" });
   if (!accountId || !displayName) return jsonResponse(req, 400, { ok: false, error: "invalid_admin_profile" });
   if (password && (password.length < 6 || password.length > 128)) return jsonResponse(req, 400, { ok: false, error: "invalid_password_length" });
 

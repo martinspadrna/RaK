@@ -15,7 +15,7 @@ test('1.7.112 unplanned-change popup milestone remains active in successors', ()
   const wizard = read('admin-rotation-generator-wizard.js');
   assert(editor.includes('function adminBindRotationNameActionMenuRoute()'));
   assert(editor.includes('Neplánovaná dovolená'));
-  assert(editor.includes('adminRotationQuickRemoveBtn">Odebrat</button>'));
+  assert(editor.includes('data-rotation-name-mode="remove"'));
   assert(editor.includes('adminOpenUnplannedChangeDialog(target)'));
   assert(wizard.includes('adminUnplannedChangePage'));
 });
