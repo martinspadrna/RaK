@@ -1,3 +1,7 @@
+## RaK 2.0.3 (development)
+
+- Opraveno přiřazení dílů: ALD1 Awa/Awi/TW1–TW3; ALD2 SR1–SR7/FR3/FR5/FR7/ZSB-RLR/SRRG/AAR. Staré hodnoty a historie výpočtů se přenášejí s dílem právě jednou.
+
 ## RaK 2.0.2 (development)
 
 - Neplánovaná změna nabízí Neschopenku bez závorky; kód absence N zůstává zachován.
