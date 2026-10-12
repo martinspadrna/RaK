@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
@@ -119,6 +120,25 @@ test('dynamic hydration yields one local frame after static cache restore before
   assert(!/fetch\s*\(|ensureFeature\(|activateRemoteSync/.test(block),'first-paint yield must stay network/feature neutral');
   assert(html.indexOf('id="rak-home-warm-snapshot"')<html.indexOf('src="app.js?v='),'warm Home snapshot must run before app hydration');
   assert(html.indexOf('<div id="menu" class="page appMenuPage">')<html.indexOf('src="app.js?v='),'static More shell must exist before app hydration');
+});
+
+test('local hydration cannot resume inside the first pre-paint animation callback',async()=>{
+  const app=read('app.js');
+  const start=app.indexOf('  await new Promise((resolve)',app.indexOf('RAK_LOCAL_FIRST_FIRST_PAINT'));
+  const end=app.indexOf('  window.__rakBootV2FirstPaintYielded = true;',start);
+  const frames=[];
+  const window={};
+  const task=vm.runInNewContext('(async()=>{'+app.slice(start,end)+'window.ready=true;})()',{
+    window,document:{hidden:false},requestAnimationFrame:callback=>frames.push(callback),setTimeout
+  });
+  assert.equal(frames.length,1);
+  frames.shift()();
+  await Promise.resolve();
+  assert.equal(window.ready,undefined,'hydration must stay paused until the first frame can paint');
+  assert.equal(frames.length,1);
+  frames.shift()();
+  await task;
+  assert.equal(window.ready,true);
 });
 
 test('historical performance parity keeps user-visible paint hard-gated while complete local-ready stays bounded separately',()=>{

@@ -1,3 +1,7 @@
+## RaK 2.0.4 (development)
+
+- Hydratace místního UI začíná až po prvním vykresleném snímku. Prohození ALD1/ALD2 zůstává zachované.
+
 ## RaK 2.0.3 (development)
 
 - Opraveno přiřazení dílů ALD1/ALD2 se zachováním starších hodnot a výpočtů.

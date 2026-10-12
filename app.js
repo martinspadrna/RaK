@@ -754,7 +754,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   } catch (err) {}
 
   // RAK_LOCAL_FIRST_FIRST_PAINT: index.html has already restored the cached Home
-  // snapshot and installed final static navigation/Menu geometry. Yield one visual
+  // snapshot and installed final static navigation/Menu geometry. Cross a visual
   // frame before starting dynamic hydration so module parsing cannot steal the
   // first usable paint. This is local-only scheduling; it does not wait on network.
   await new Promise((resolve) => {
@@ -762,7 +762,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       setTimeout(resolve, 0);
       return;
     }
-    requestAnimationFrame(() => resolve());
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
   });
   window.__rakBootV2FirstPaintYielded = true;
 
