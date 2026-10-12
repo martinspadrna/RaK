@@ -2,6 +2,20 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## Aktuální produkční důkaz — 12. 10. 2026
+
+**RaK 2.0.2 je dokončeně nasazený na main i produkci.** Martin výslovně povolil rollout po úspěšných kontrolách. Tento stav nahrazuje starší zmrazenou baseline 1.9.0 a níže uvedené přípravné záznamy; další vývoj opět pouze TEST, další produkční změna vyžaduje vlastníkův souhlas.
+
+- Produkční release SHA `941b9b8f132f16b957645ed60c70a4fc4ff76fb7`; PR [#12](https://github.com/martinspadrna/RaK/pull/12) merged, PR11 superseded/closed. Funkční TEST zdroj `05029ee224f96ac021726ed8dfebfe6b2392c2b0`, development během rollout nezměněn: `7ed0b588c5f8d0d3843ca6c76b5c2cd711597bca`. Následné dokumentační commity nemění runtime verzi ani nasazené zdrojové SHA.
+- PR CI #915 attempt2 PASS; exact-main [CI #917](https://github.com/martinspadrna/RaK/actions/runs/38195261443) PASS, coordinator #2/38195153593 PASS, [auditovaný release #5](https://github.com/martinspadrna/RaK/actions/runs/38195580086) PASS. Předchozí exact-main #916 selhal pouze FCP P90 368ms proti limitu367ms; následné měření bez uvolnění limitů PASS: median324 vs316ms (limit348), P90376 vs336ms (limit411). Dvě čisté canonical sestavy166souborů, stabilní digest `ec47265e88ae4f211d320f63792f0e717d88f7cf5e960df55126d2341c6900a0`. Runtime/security/privacy, role, draft, CAS, offline/update/network/budget/parity i source-backup/CRC gates PASS.
+- READY `dpl_3TPggR9PktdRPraxYQJJAq62nhP5`; immutable <https://skoda-spada-3hpuyqo31-martinspadrnas-projects.vercel.app>; produkce <https://skoda-spada.vercel.app>. Auditovaný release ověřil exactSHA, neměnnou kandidátní HTTP odpověď a veřejnou adresu před/po změně aliasu. Samostatný HTTP200 a byte-match index/SW/metadata/config/app/overview ověřen; config výhradně produkční projekt. Jednotná runtime/cache2.0.2, build `v2.0.2-release1`. Git automatické nasazení main/development zůstává vypnuté; jednorázový coordinator se spustí pouze změnou vlastního YAML na main.
+- Produkční Supabase `bkqamcbkiwumsvelahxr`: nové remote migrace `20261012021353` overview (repo20261011105146), `20261012021354` foreman (repo20261011124442), `20261012021355` sick-leave N (repo20261011164201). Původní aplikované SQL/hash zachovány. Additive změny; starý kód LEK nadále přijímán, existující záznamy nepřepisovány.
+- Edge inventář: absence-calendar17/JWTtrue a hradnik-sync3/JWTfalse beze změny; přesný kandidátní rak-admin-users16/JWTtrue nasazen a byte-match ověřen. Známý TEST export v produkci vyřešen: rak-p15-restore-export3/JWTtrue obsahuje pouze retirement handler HTTP410 `test_only_function_retired`, bez databáze, tajných hodnot a exportu. Plnou TEST implementaci nikdy znovu nenasazovat do produkce; TEST endpoint ponechán funkční.
+- Před i po DB aplikaci rollbackové syntetické fixtures PASS: účetní izolace/role, stale-CAS, idempotence, selected-day N/LEK, payload/grants/RLS a anonymous denial. Žádná reálná přihlašovací session ani rozpis nepřepsány; owner9811 stále enabled owner, testovací profily0, overview řádky0 při postcheck. Anonymous overviewRPC401, adminEdge401, retiredexport410. Advisors odpovídají očekávaným kategoriím23/14/50/1; nejde o tvrzení nulových varování.
+- Rollback frontend: ověřená baseline `dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF`, SHA `915a75793207b4125a0489dd8e5c824696f227ab`, URL <https://skoda-spada-ourw28jh8-martinspadrnas-projects.vercel.app>. Vrátit pouze stabilní alias a ověřit veřejný HTTP/runtime. Zachovat overview data, kompatibilní N/LEK RPC i CAS; nesmazat data/neobnovit staré preCAS writers. Při problému adminEdge lze vrátit zachycený v15 zdroj z původního main s JWTtrue. Export capability neobnovovat.
+- Otevřené: fyzická přejímka Safari/iPhone a zabezpečené přihlášení na skutečném novém zařízení zůstávají nedoložené. Automatické clean-storage readiness, správné/nesprávné credentials v mocku a role denial nejsou fyzický důkaz ani reálný produkční login uživatele. Funkční rollout a automatické ověření jsou dokončené.
+
+
 Stálý odkaz: <https://github.com/martinspadrna/RaK/blob/development/RAK_HANDOFF.md>
 
 Historie před konsolidací je v Git historii souboru, zejména v commitu `a31452ff0644899e4c46a7cce0d544b99da78755`. Tento dokument není deník: patří sem jen aktuální stav, trvalé invarianty, rollback a skutečně otevřená práce.
@@ -35,11 +49,11 @@ Historie před konsolidací je v Git historii souboru, zejména v commitu `a3145
 - Když vlastník po právě vyžádaném fyzickém testu napíše jen „ok“, znamená to PASS právě tohoto testu.
 - Funkční release zvýší sjednocenou runtime verzi právě jednou. Dokumentační nebo CI-only změna verzi nezvyšuje.
 
-## Aktuální stav k 11. 10. 2026
+## Stav TESTu při přípravě 11. 10. 2026
 
 TEST v2.0.2 je nasazený: kantýna/jídelna mají denní panely ve dvojicích, toolbar rozpisu má odstup od okraje a Kalírna je jen ve Výjimkách dne. Přehled směny průběžně ukládá oddělený místní draft, obnovuje jej po zavření a nabízí Vymazat přehled bez smazání online zálohy; Uložit výslovně zálohuje online. O aplikaci má stručný souhrn bez zmínky o Mistrovi a data všech generací (doložené release dny, nejstarší verze 5/26). Neschopenka se zobrazuje bez (N), uložený kód N zachován. Role, glass/časy, Neschopenka a zabezpečené přihlášení zachovány. Aktuální TEST kandidát připraven, fyzická iPhone přejímka čeká; produkce zmrazená.
 
-### RaK 1.9.0 je v produkci
+### Historická produkční baseline RaK 1.9.0
 
 Rollout 1.9.0 je dokončený. Produkční release byl proveden auditovaným workflow po exact-main validaci; nejde už o kandidáta ani čekající plán.
 
@@ -448,6 +462,6 @@ Audit complete; **performance PASS against current main, production transfer not
 - Production candidate must preserve main manual release workflow and contract, main PR/full exact-SHA validation and target-aware security tests, Vercel main:false, original applied migration20260512071249/hash. Development currently carries TEST-only config/workflow/replay settings. Candidate and green production-target validation are missing; physical Safari/new-device/operational acceptance remains owner-only. Known production restore-export discrepancy remains outside v2 target and must be reconciled before approval. No production writes authorized or performed.
 
 
-## 2026-10-12 — authorized v2.0.2 production rollout in progress
+## Historický checkpoint — 2026-10-12 rollout preparation
 
 Martin explicitly authorized main and production after successful checks on 11 October. Exact development source 7ed0b588c5f8d0d3843ca6c76b5c2cd711597bca, functional candidate05029ee2. Production-bound release restores original main config, immutable applied SQL/hash, manual audited release and target-aware tests. Full candidate CI and database postchecks required before merge. One-time main coordinator dispatches full exact-main validation and existing audited production release; no automatic Vercel Git publish. Physical Safari acceptance remains unverified; automatic clean-storage readiness and wrong-credential/role denial evidence are available. Known TEST export function in production reviewed: GitHub OIDC-gated service-role export is inappropriate in production; disable its handler before rollout, preserve other unrelated functions. Baseline frontend rollback dpl_FgKhWdcrPPfPBva3gynH9A2SuhsF. No production writes at this checkpoint.
