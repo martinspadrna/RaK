@@ -1,3 +1,7 @@
+## RaK 2.0.6 (development)
+
+- Kompaktní popisky, číslované ST/BK přepínače, rozdělení Volné/Lis na brusech a poslední vsázka ALD1/2 v obou směnách.
+
 ## RaK 2.0.5 (development)
 
 - Přehled směny má oddělené pořadí a pole pro ranní/noční podle provozních předloh; ruční přepnutí zachovává rozepsané i skryté údaje. Výsledný souhrn zachován.

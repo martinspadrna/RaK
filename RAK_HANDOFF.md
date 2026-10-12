@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 12. 10. 2026 — TEST 2.0.6 přehled: popisky a ST/BK (implementace 85 %, nasazení čeká)
+
+Pouze TEST. Jednosloupcové indexy bez opakovaných popisků Sklad/Montáž/145/212; nadpis Po broušení (op212). Vícesloupcové odlišující popisky ponechány. ST1–5 v ALD3 a BK1–10 v ALD1/2: skutečné čtverce44px s číslem, výchozí vše aktivní, klepnutí vypne (šedé) nebo zapne (zelené), aria-pressed a přístupné názvy. Masky přesných vypnutých identit v ald[i].inactiveUnits; legacy running zůstává archivně zachované, neodhadovat identity z počtu. Synchronous draft a původní account JSON/CAS/outbox ukládání. Brusy TBKR01 i TBKR07 mají Volné/Lis oddělené pro všechny3indexy: nové groundTBKR01Free/Press a groundTBKR07Free/Press. Staré nerozdělené groundTBKR01/07 zachované ve zdrojovém JSON; bez hádání jejich typu/přesunu. ALD1/2 lastBatch opět editovatelné v ranní i noční. Původní SVG/součty, role, auto směna a zbytek pořadí zachovány. Backend ani main/produkce se nemění. Jednotná runtime/cache2.0.6/buildrelease1/epochv206. VM a aktualizovaný Chromium fixture ověřují default25aktivních čísel, přesné vypnutí/reopen/změnu směny,44px čtverce, oddělené Volné/Lis, lastBatch obou směn a ostatní původní gates. Canonical/CI/nasazení čekají. TEST rollback2.0.5 dpl_2cQ6LDHwHL1brUedAZw1KMWZmXSW, nové masky i rozdělená pole starší normalizátor zachová, nemažeme data.
+
 ## 12. 10. 2026 — TEST 2.0.5 ranní/noční přehled (100 % automatické ověření a nasazení)
 
 Autorizováno pouze TEST. Předlohy vlastníka Ranní.xlsx/Noční.xlsx z12.10.2026 jsou pořadí sčítání a viditelných polí. Ranní: Sklad → ALD3 (poslední, celkem před, ST, závady) → Dusík → Obrábění (Do skladu TO/MO; Brusy TBKR01/TBKR07; závady) → ALD2 (BK,závady,vsázky) → ALD1. Noční: Sklad → Montáž → ALD3 (celkem před,ST,závady; bez poslední) → Sklad před kalením → Sklad po kalení → Po broušení → Po145 → Před145 → Měkké obrábění → Obrábění → ALD2 → ALD1. Celkové poznámky a původní SVG souhrn zůstávají na konci.

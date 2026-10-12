@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.5'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.5-release1'"));
-  assert.ok(index.includes("var e='v205',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.5-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.6'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.6-release1'"));
+  assert.ok(index.includes("var e='v206',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.6-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.5'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.6'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -230,7 +230,7 @@ test('morning overview renders three active indices without duplicate or archive
   assert.ok(!body.innerHTML.includes('AD / AG'));
   assert.ok(!body.innerHTML.includes('aar.matrix.turning.adAg'));
   assert.ok(!body.innerHTML.includes('oam.rows.ad.'));
-  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 15);
+  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 21);
   assert.equal((body.innerHTML.match(/data-shift-overview-field="inputs.rows./g) || []).length, 18);
   assert.ok(!body.innerHTML.includes('<details'));
   assert.ok(!body.innerHTML.includes('data-shift-overview-field="process.rows.'));
@@ -376,7 +376,7 @@ test('Excel flow groups before-145 under hardened stock and preserves archived w
  const api=context.window.fixture;
  const old=api.normalizeRecord({oam:{rows:{ag:{hard:'384',beforeWasher:'256',op145:'96',after145:'288'}}}},'2026-10-10','D:nocni12');
  const html=api.oamTable(old);
- assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('>212<'));
+ assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('Po broušení (op 212)'));assert.ok(!html.includes('<span>212</span>'));
  assert.ok(!html.includes('v nouz. skl.'));assert.ok(!html.includes('před pračkou'));assert.ok(!html.includes('data-shift-overview-field="oam.rows.ag.beforeWasher"'));
  const panels=html.split('<h3>');
  const hardened=panels.find(p=>p.startsWith('Sklad po kalení'));
@@ -543,12 +543,13 @@ test('morning and night section order matches the supplied counting routes', () 
   assert.deepEqual([...html.matchAll(/data-shift-overview-section="([^"]+)"/g)].map(m=>m[1]),expected);
   const paths=[...html.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m=>m[1]);
   assert.equal(new Set(paths).size,paths.length);
-  for(const key of ['producedTO','producedMO','groundTBKR01','groundTBKR07'])
+  for(const key of ['producedTO','producedMO','groundTBKR01Free','groundTBKR01Press','groundTBKR07Free','groundTBKR07Press'])
    for(const index of ['ag','af','ah'])assert.ok(paths.includes('oam.rows.'+index+'.'+key));
-  for(const id of [0,1,2])assert.ok(paths.includes('ald.'+id+'.running'));
+  assert.equal((html.match(/data-running-unit=/g)||[]).length,25);
+  assert.equal((html.match(/aria-pressed="true"/g)||[]).length,25);
   assert.equal(paths.includes('nitrogen'),shift.includes(':ranni'));
   assert.equal(paths.includes('lastBatch.ald3'),shift.includes(':ranni'));
-  assert.ok(!paths.includes('lastBatch.ald1'));assert.ok(!paths.includes('lastBatch.ald2'));
+  assert.ok(paths.includes('lastBatch.ald1'));assert.ok(paths.includes('lastBatch.ald2'));
  }
 });
 
@@ -576,3 +577,19 @@ test('manual shift changes preserve hidden quantities, drafts, history and the o
  const clean=JSON.parse(JSON.stringify(saved));delete clean.oam.rows.ag.producedTO;delete clean.oam.rows.ag.groundTBKR01;
  assert.equal(api.summarySvg(saved),api.summarySvg(clean),'counting-route fields must not alter the original report or totals');
 });
+
+ test('numbered running units default active and preserve exact disabled identities on reload',()=>{
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,runningUnits,inactiveUnits,shiftLayout};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({shift:'D:nocni12',ald:[{running:'old',inactiveUnits:[2,10]},{inactiveUnits:[1,5]},{inactiveUnits:[3]}]});
+ assert.deepEqual(Array.from(api.inactiveUnits(record,1)),[2,10]);
+ assert.equal(record.ald[0].running,'old');
+ assert.equal((api.runningUnits(record,3).match(/aria-pressed="false"/g)||[]).length,1);
+ assert.equal((api.runningUnits(api.normalizeRecord({}),1).match(/aria-pressed="true"/g)||[]).length,10);
+ const html=api.shiftLayout(record);
+ assert.ok(html.includes('Po broušení (op 212)'));assert.ok(!html.includes('<span>212</span>'));
+ assert.ok(!html.includes('<span>145</span>'));assert.ok(!html.includes('<span>Sklad</span>'));
+ for(const machine of ['groundTBKR01','groundTBKR07'])for(const type of ['Free','Press'])
+ assert.ok(html.includes('data-shift-overview-field="oam.rows.ag.'+machine+type+'"'));
+ });
