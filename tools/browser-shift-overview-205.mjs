@@ -28,6 +28,9 @@ function probe(width){
   edit('oam.rows.ag.op1020','320+256');check(value('oam.rows.ag.op1020')==='576','arithmetic');
   edit('oam.rows.ag.op145','5');body.querySelector('[data-shift-overview-multiply="oam.rows.ag.op145"]').click();check(value('oam.rows.ag.op145')==='320','multiplier');
   const producedFields=[...body.querySelectorAll('[data-shift-overview-field^="oam.rows.ag.produced"]')].map(el=>el.dataset.shiftOverviewField);
+  const mo=body.querySelector('[data-shift-overview-field="oam.rows.ag.producedMOFree"]').closest('.rakShiftOverviewFieldGroup'),to=mo.nextElementSibling;
+  check(Math.abs(mo.getBoundingClientRect().height-to.getBoundingClientRect().height)<1&&getComputedStyle(to,'::before').width==='3px','full-height visible MO/TO divider');
+  check(Math.abs(mo.querySelector('input').getBoundingClientRect().top-to.querySelector('input').getBoundingClientRect().top)<1,'divider preserves aligned inputs');
   check(producedFields.join(',')==='oam.rows.ag.producedMOFree,oam.rows.ag.producedMOPress,oam.rows.ag.producedTO','MO left, TO right');
   edit('oam.rows.ag.producedMOFree','32');edit('oam.rows.ag.producedMOPress','64');
   edit('oam.rows.ag.stock','192');edit('oam.rows.ag.producedTO','64');edit('oam.rows.af.groundTBKR07Free','32');

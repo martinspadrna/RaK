@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.13 oddělení MO/TO (ověření probíhá)
+
+Pouze TEST. Screenshot vlastníka18:56 požaduje viditelné rozdělení závěru MO/TO. Scoped pseudo-element na druhé fieldGroup:3px světlá svislá čára v10px mezeře, TO align-self stretch přes celou výšku MO a align-content start pro zachování pozic polí. Nezmenšuje šířku vstupů, MO vlevo/TO vpravo. Jen CSS; datové keys/souhrny/počty/role beze změny. Aktualizovaný Chromium fixture kontroluje plnou výšku oddělovače i zarovnání vstupů. Runtime/cache2.0.13/buildrelease1/epochv213. Backend/main/produkce bez změn. TESTrollback2.0.12 dpl_3dmRMnw7E9J7ryRB7tSvRZFWfMBq kompatibilní. Automatické ověření/nasazení čeká.
+
 ## 13. 10. 2026 — TEST 2.0.12 prázdné počítadlo a aktuální směna (100 % automatické ověření a nasazení)
 
 Pouze TEST. Fyzický screenshot16:38 po clear/restart: staráA:noční12.10. Kořen: batchCounter zobrazuje0 pro hodnotu prázdno, readDom dříve materializoval0, draftHasContent je považoval za vstupy a přebil aktuální kontext. readDom ponechá prázdné nedotčené počítadlo prázdné; draftHasContent ignoruje0 pouze u batch inputs.rows.*.ald1/2, umožní nápravu starých draftů. Ostatní explicitní0, poznámky, hidden fields, vypnuté jednotky/pending save zůstávají skutečný obsah. Clear lokálního editoru nyní vybere currentShiftContext ihned, cloud/saved záznamy nemění. Regrese musí projít skutečným clear/persist/reopen DOM cyklem a legacy all-zero draftem, nestačí syntetický prázdný objekt. Runtime/cache2.0.12/buildrelease1/epochv212. Backend/main/produkce bez změn. TESTrollback2.0.11 dpl_2U135GmGkuFB7r72XX6NNkxf8Hvb kompatibilní. Automatické ověření/nasazení dokončeno; fyzická přejímka vlastníkem čeká.

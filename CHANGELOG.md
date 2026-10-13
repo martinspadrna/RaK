@@ -1,3 +1,7 @@
+## RaK 2.0.13 (development)
+
+- Výrazná svislá čára odděluje MO a TO v závěru po celé výšce každého indexu.
+
 ## RaK 2.0.12 (development)
 
 - Výchozí nuly počítadel již nezadržují prázdný přehled na staré směně. Vymazání nastaví aktuální datum a směnu, skutečně vyplněné návrhy zachované.
