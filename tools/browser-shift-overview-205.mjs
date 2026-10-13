@@ -54,7 +54,7 @@ function probe(width){
   const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
   check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
   check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Obrábění · závěr'),'conclusion summary');
-  check([...summary.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag,af','only entered grinding indices');
+  check([...summary.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='af','only entered grinding indices');
   check([...summary.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag','only entered conclusion index');
   check(summary.includes('data-summary-grinder="TBKR01"')&&summary.includes('data-summary-grinder="TBKR07"')&&summary.includes('Nabroušeno · brusy'),'grinding summary');
   check(summary.includes('Čísla posledních vsázek')&&summary.includes('data-summary-last-batches="ald1-ald2-ald3"')&&['100','200','300'].every(n=>summary.includes('>'+n+'</text>')),'last batch numbers in final summary');
@@ -75,6 +75,8 @@ function probe(width){
   const square=body.querySelector('[data-running-unit]');check(Math.abs(square.getBoundingClientRect().width-44)<1&&Math.abs(square.getBoundingClientRect().height-44)<1,'numbered squares');
   check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','morning last batches');
   edit('oam.rows.ag.groundTBKR01Free','32');edit('oam.rows.ag.groundTBKR01Press','64');check(value('oam.rows.ag.groundTBKR01Free')==='32'&&value('oam.rows.ag.groundTBKR01Press')==='64','independent free and press');
+  const completed=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
+  check([...completed.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag,af','adding another grinding index updates compact report');
   const fields=[...body.querySelectorAll('[data-shift-overview-field]')];
   check(new Set(fields.map(el=>el.dataset.shiftOverviewField)).size===fields.length,'duplicate fields');
   const box=body.getBoundingClientRect();
