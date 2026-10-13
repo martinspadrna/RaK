@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.7'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.7-release1'"));
-  assert.ok(index.includes("var e='v207',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.7-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.8'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.8-release1'"));
+  assert.ok(index.includes("var e='v208',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.8-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.7'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.8'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -307,6 +307,9 @@ test('automatic shift context follows the active A–D cycle, duration and start
       assert.equal(result.date,'2026-10-10');
     }
   }
+  window.getActiveShiftNow = () => ({team:'D',start:new Date(2026,9,12,18),end:new Date(2026,9,13,6)});
+  const overnight=api.currentShiftContext(new Date(2026,9,13,4,5));
+  assert.equal(overnight.date,'2026-10-12');assert.equal(overnight.shift,'D:nocni12');
   window.getActiveShiftNow = () => null;
   assert.equal(api.currentShiftContext(new Date(2026,9,11,16)).shift,'');
   assert.equal(api.normalizeRecord({shift:'nocni12'}).shift,'D:nocni12');
@@ -555,14 +558,14 @@ test('morning and night section order matches the supplied counting routes', () 
 
 test('manual shift changes preserve hidden quantities, drafts, history and the original summary', () => {
  const context=vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})}});
- vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,shiftLayout,updateShiftLayout,summarySvg,nestedGet,get:el=>renderedRecords.get(el),set:(el,record)=>renderedRecords.set(el,record)};'),context);
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,shiftLayout,updateShiftLayout,summarySvg,nestedGet,get:el=>renderedRecords.get(el),set:(el,record)=>renderedRecords.set(el,record),setRevision:(el,v)=>renderedRevisions.set(el,v),revision:el=>renderedRevisions.get(el)};'),context);
  const api=context.window.fixture;
  const initial=api.normalizeRecord({date:'2026-10-12',shift:'D:nocni12',nitrogen:'12.4',lastBatch:{ald3:'700'},
    oam:{rows:{ag:{op1020:'576',stock:'192',producedTO:'64',groundTBKR01:'32'}}},
    calculations:{'oam.rows.ag.op1020':{expression:'320+256',result:'576'}},
    inputs:{partsAssignment:2,rows:{TW1:{ald1:'2'},SR1:{ald2:'3'}}}});
- const layout={innerHTML:api.shiftLayout(initial)},header={value:'D:nocni12'},fields=new Map();
- const el={dataset:{},querySelector:s=>s.includes('data-shift-overview-layout')?layout:s.includes('data-shift-overview-date')?{value:initial.date}:s.includes('data-shift-overview-shift')?header:null,
+ const layout={innerHTML:api.shiftLayout(initial)},header={value:'D:nocni12'},date={value:initial.date},fields=new Map();
+ const el={dataset:{},querySelector:s=>s.includes('data-shift-overview-layout')?layout:s.includes('data-shift-overview-date')?date:s.includes('data-shift-overview-shift')?header:null,
   querySelectorAll:s=>s==='[data-shift-overview-field]'?[...fields].map(([path,value])=>({value,getAttribute:key=>key==='data-shift-overview-field'?path:null})):[]};
  function hydrate(){fields.clear();const record=api.get(el);for(const [,path]of layout.innerHTML.matchAll(/data-shift-overview-field="([^"]+)"/g))fields.set(path,String(api.nestedGet(record,path)??''));}
  api.set(el,initial);hydrate();
@@ -576,6 +579,9 @@ test('manual shift changes preserve hidden quantities, drafts, history and the o
  assert.equal(saved.oam.rows.ag.groundTBKR01,'32');assert.equal(saved.inputs.rows.SR1.ald2,'3');
  const clean=JSON.parse(JSON.stringify(saved));delete clean.oam.rows.ag.producedTO;delete clean.oam.rows.ag.groundTBKR01;
  assert.equal(api.summarySvg(saved),api.summarySvg(clean),'counting-route fields must not alter the original report or totals');
+ api.setRevision(el,9);el.dataset.cloudMutation='old-date-save';date.value='2026-10-13';api.updateShiftLayout(el);
+ assert.equal(api.get(el).date,'2026-10-13');assert.equal(api.revision(el),null);assert.equal(el.dataset.cloudMutation,'');
+ assert.equal(api.get(el).oam.rows.ag.op1020,'576');assert.equal(api.get(el).lastBatch.ald3,'700');
 });
 
  test('numbered running units default active and preserve exact disabled identities on reload',()=>{

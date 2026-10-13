@@ -21,6 +21,23 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const draft = key && jsonRead(key, null);
     return draft?.record && /^\d{4}-\d{2}-\d{2}$/.test(draft.record.date || '') ? draft : null;
   }
+  function draftHasContent(record) {
+    const base = defaultRecord(record?.date, record?.shift);
+    function differs(value, expected) {
+      if (value && typeof value === 'object') {
+        return Object.entries(value).some(([key, child]) => differs(child, expected?.[key]));
+      }
+      return value != null && String(value).trim() !== '' && value !== expected;
+    }
+    return Object.entries(record || {}).some(([key, value]) =>
+      !['date', 'shift', 'updatedAt'].includes(key) && differs(value, base[key]));
+  }
+  function draftForOpening(draft, defaults) {
+    // Empty drafts select the current shift; entered data and pending saves stay intact.
+    if (!draft || draft.mutationId || draftHasContent(draft.record)
+      || recordKey(draft.record.date, draft.record.shift) === recordKey(defaults.date, defaults.shift)) return draft;
+    return { record: defaultRecord(defaults.date, defaults.shift), revision: null, mutationId: '' };
+  }
   function persistDraft(rootEl) {
     const key = draftKey();
     if (!key || rootEl?.isConnected === false || !ownerAllowed() || draftOwners.get(rootEl) !== key) return;
@@ -709,7 +726,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }
     html += section('machining',panel('Obrábění',
       '<h4 class="rakShiftOverviewSubsectionTitle">Do skladu</h4>' + shiftStation(record,'Do skladu',[
-        {key:'producedTO',label:'TO'},{key:'producedMO',label:'MO'}]) +
+        {key:'producedMO',label:'MO'},{key:'producedTO',label:'TO'}]) +
       '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR01</h4>' + shiftStation(record,'TBKR01',[
         {key:'groundTBKR01Free',label:'Volné'},{key:'groundTBKR01Press',label:'Lis'}]) +
       '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR07</h4>' + shiftStation(record,'TBKR07',[
@@ -726,7 +743,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     // readDom retains hidden stages and calculation history from that record.
     const record = readDom(rootEl);
     const previous = renderedRecords.get(rootEl);
-    if (previous && previous.shift !== record.shift) {
+    if (previous && recordKey(previous.date,previous.shift) !== recordKey(record.date,record.shift)) {
       const identity = currentIdentity();
       renderedRevisions.set(rootEl, identity ? (cloudRead(identity).revisions[recordKey(record.date,record.shift)] ?? null) : null);
       if (rootEl.dataset) rootEl.dataset.cloudMutation = '';
@@ -912,7 +929,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<div class="appMenuCardTitle">Přehled směny</div>',
       '<div class="appMenuText smallText">Přehled podle provozní tabulky · záloha k přihlášenému účtu.</div>',
       '<div class="rakShiftOverviewHeader">',
-      '<label>Datum<div class="rakShiftOverviewDateShell"><span data-shift-overview-date-display aria-hidden="true">' + esc(displayDate(record.date)) + '</span><input class="appMenuInlineInput" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></div></label>',
+      '<label>Datum<input class="appMenuInlineInput rakShiftOverviewDate" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></label>',
       '<label>Směna<select class="appMenuSelect" data-shift-overview-shift>' + shiftOptions(record.shift) + '</select></label>',
       '</div>',
       '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button><button type="button" class="appMenuAction" data-shift-overview-action="clear">Vymazat přehled</button></div>',
@@ -1064,8 +1081,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Přehled směny je dostupný hlavnímu správci a mistrům.</div><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>';
       return false;
     }
-    const draft = !forcedRecord ? readDraft() : null;
     const defaults = currentShiftContext();
+    const draft = !forcedRecord ? draftForOpening(readDraft(), defaults) : null;
     if (draft) forcedRecord = draft.record;
     const date = forcedRecord && forcedRecord.date ? String(forcedRecord.date) : defaults.date;
     const shift = forcedRecord ? normalizeShift(forcedRecord.shift) : defaults.shift;
@@ -1115,11 +1132,16 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     refreshTotals(rootEl);
     refreshMultipliers(rootEl);
     refreshSummary(rootEl);
+    const dateInput = rootEl.querySelector('[data-shift-overview-date]');
+    dateInput?.addEventListener('click', () => {
+      if (!ownerAllowed()) return;
+      try { dateInput.showPicker?.(); } catch (_) { dateInput.focus(); }
+    });
 
     function finishQuantity(event) {
       if (!ownerAllowed()) return;
       if (event.type === 'change') rootEl.dataset.edited = '1';
-      if (event.type === 'change' && event.target?.matches?.('[data-shift-overview-shift]')) {
+      if (event.type === 'change' && event.target?.matches?.('[data-shift-overview-shift], [data-shift-overview-date]')) {
         updateShiftLayout(rootEl);
         return;
       }
@@ -1325,7 +1347,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewCard label{display:grid;gap:6px;font-size:12px;font-weight:800;overflow-wrap:anywhere;}',
       '.rakShiftOverviewHeader{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:12px;align-items:start;}.rakShiftOverviewHeader>label{grid-template-rows:auto 44px;}.rakShiftOverviewTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
       '.rakShiftOverviewInput,.rakShiftOverviewArea,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{width:100%;max-width:100%;min-width:0;margin:0;}.rakShiftOverviewInput,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{min-height:44px;font-size:16px;}',
-      '.rakShiftOverviewDateShell{position:relative;height:44px;width:100%;overflow:hidden;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(255,255,255,.045);}.rakShiftOverviewDateShell>span{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;white-space:nowrap;pointer-events:none;}.rakShiftOverviewHeader .rakShiftOverviewDateShell input{position:absolute;inset:0;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:0;opacity:0;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
+      '#rakShiftOverviewRoot .rakShiftOverviewDate{display:block!important;position:relative!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;font-size:16px!important;color:var(--text,#fff)!important;color-scheme:dark;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-calendar-picker-indicator{cursor:pointer;opacity:1;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
       '.rakShiftOverviewArea{resize:vertical;min-height:76px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;}',
       '.rakShiftOverviewPanel{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.025);}',
       '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',

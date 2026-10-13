@@ -8,7 +8,7 @@ function fixture(storage=new Map()) {
  const window={rakAdminCanManageAdmins:()=>!!state.identity,rakAdminGetActiveAccountId:()=>state.identity?.accountId,
  RotationSupabaseBridge:{getShiftOverviewIdentity:()=>state.identity},addEventListener(){}};
  const context=vm.createContext({window,document:{getElementById:()=>({})},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
- vm.runInContext(source.replace('  const AAR_COLUMNS = [','  root.draftTest={readDraft,persistDraft,draftKey,draftOwners,renderedRecords,renderedRevisions,defaultRecord,cloudRead,showCloudState,setView:view=>cloudView=view};\n  const AAR_COLUMNS = ['),context);
+ vm.runInContext(source.replace('  const AAR_COLUMNS = [','  root.draftTest={readDraft,draftHasContent,draftForOpening,persistDraft,draftKey,draftOwners,renderedRecords,renderedRevisions,defaultRecord,cloudRead,showCloudState,setView:view=>cloudView=view};\n  const AAR_COLUMNS = ['),context);
  const api=window.draftTest;
  function editor(value,revision=3){const field={value,getAttribute:()=> 'nitrogen'};const message={textContent:''};const el={message,isConnected:true,querySelector:s=>s.includes('status]')?message:s.includes('date]')?{value:'2026-10-11'}:s.includes('shift]')?{value:'B:nocni12'}:null,querySelectorAll:()=>[field]};
  api.draftOwners.set(el,api.draftKey());api.renderedRecords.set(el,api.defaultRecord('2026-10-11','B:nocni12'));api.renderedRevisions.set(el,revision);return el;}
@@ -43,4 +43,23 @@ test('background online refresh never labels unsubmitted draft changes as backed
  const f=fixture(),el=f.editor('77');f.api.persistDraft(el);f.api.setView({root:el});
  f.api.showCloudState(f.state.identity,'Zálohováno online');assert.match(el.message.textContent,/Rozepsaný přehled uložen v zařízení/);
  assert.doesNotMatch(el.message.textContent,/Zálohováno online/);
+});
+
+
+test('empty previous morning draft selects the current overnight context without loading saved data',()=>{
+ const f=fixture(),record=f.api.defaultRecord('2026-10-12','D:ranni12');
+ record.updatedAt='2026-10-12T10:00:00Z';record.ald.forEach(row=>row.inactiveUnits=[]);
+ const draft={record,revision:3,mutationId:''};
+ const opened=f.api.draftForOpening(draft,{date:'2026-10-12',shift:'D:nocni12'});
+ assert.equal(opened.record.date,'2026-10-12');assert.equal(opened.record.shift,'D:nocni12');assert.equal(opened.revision,null);
+ assert.equal(draft.record.shift,'D:ranni12');assert.equal(f.api.draftHasContent(opened.record),false);
+});
+test('zero, hidden production, notes, disabled units and pending saves survive opening a later shift',()=>{
+ const f=fixture(),defaults={date:'2026-10-13',shift:'D:ranni12'};
+ for(const set of [r=>r.nitrogen='0',r=>r.oam.rows.ag.stock='32',r=>r.oam.rows.ag.groundTBKR01Free='0',r=>r.notes='note',r=>r.ald[0].inactiveUnits=[2],r=>r.calculations={'nitrogen':{expression:'1-1',result:'0',factor:1}}]){
+  const record=f.api.defaultRecord('2026-10-12','D:nocni12');set(record);const draft={record,revision:3,mutationId:''};
+  assert.equal(f.api.draftHasContent(record),true);assert.equal(f.api.draftForOpening(draft,defaults),draft);
+ }
+ const pending={record:f.api.defaultRecord('2026-10-12','D:nocni12'),revision:3,mutationId:'pending'};
+ assert.equal(f.api.draftForOpening(pending,defaults),pending);
 });

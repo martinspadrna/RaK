@@ -27,6 +27,8 @@ function probe(width){
   check(order()===night,'night route');
   edit('oam.rows.ag.op1020','320+256');check(value('oam.rows.ag.op1020')==='576','arithmetic');
   edit('oam.rows.ag.op145','5');body.querySelector('[data-shift-overview-multiply="oam.rows.ag.op145"]').click();check(value('oam.rows.ag.op145')==='320','multiplier');
+  const producedFields=[...body.querySelectorAll('[data-shift-overview-field^="oam.rows.ag.produced"]')].map(el=>el.dataset.shiftOverviewField);
+  check(producedFields.join(',')==='oam.rows.ag.producedMO,oam.rows.ag.producedTO','MO left, TO right');
   edit('oam.rows.ag.stock','192');edit('oam.rows.ag.producedTO','64');edit('oam.rows.af.groundTBKR07Free','32');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25,'all units active initially');
   for(const id of [1,2,3])body.querySelector('[data-running-ald="'+id+'"][data-running-unit="2"]').click();
@@ -53,6 +55,13 @@ function probe(width){
   const draft=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
   check(draft.record.nitrogen==='15.5'&&draft.record.oam.rows.ag.stock==='192','synchronous draft');
   api.render(body);check(order()===night&&value('oam.rows.ag.op1020')==='576','reopen draft');
+  const dateInput=body.querySelector('[data-shift-overview-date]');
+  check(getComputedStyle(dateInput).opacity==='1'&&getComputedStyle(dateInput).pointerEvents==='auto'&&!dateInput.disabled&&!dateInput.readOnly,'visible editable native date');
+  const dateBox=dateInput.getBoundingClientRect();check(dateBox.height>=43&&document.elementFromPoint(dateBox.left+dateBox.width/2,dateBox.top+dateBox.height/2)===dateInput,'date tap target');
+  let pickerCalls=0;dateInput.showPicker=()=>pickerCalls++;dateInput.click();check(pickerCalls===1,'whole date opens picker');
+  dateInput.value='2026-10-13';dateInput.dispatchEvent(new Event('input',{bubbles:true}));dateInput.dispatchEvent(new Event('change',{bubbles:true}));
+  check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.date==='2026-10-13','manual date persisted');
+  api.render(body);check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&value('lastBatch.ald3')==='300','manual date and data survive reopen');
   choose('D:ranni12');check(value('nitrogen')==='15.5','reopen morning values');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'disabled identities survive reopen');
   const square=body.querySelector('[data-running-unit]');check(Math.abs(square.getBoundingClientRect().width-44)<1&&Math.abs(square.getBoundingClientRect().height-44)<1,'numbered squares');
@@ -64,6 +73,10 @@ function probe(width){
   const overflow=fields.filter(el=>el.getBoundingClientRect().right>box.right+2);
   check(overflow.length===0,'field overflow');
   check([...body.querySelectorAll('[data-count-step]')].every(el=>el.getBoundingClientRect().height>=43),'touch targets');
+  localStorage.setItem('rak_shift_overview_draft_v1:local',JSON.stringify({record:{date:'2026-10-12',shift:'D:ranni12'},revision:null,mutationId:''}));
+  window.getActiveShiftNow=()=>({team:'D',start:new Date(2026,9,12,18),end:new Date(2026,9,13,6)});
+  api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='D:nocni12'&&body.querySelector('[data-shift-overview-date]').value==='2026-10-12','empty morning draft opens current night');
+  check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25&&value('lastBatch.ald3')==='','new empty context stays empty and active');
   window.rakAdminCanManageAdmins=()=>false;api.render(body);check(!body.querySelector('[data-shift-overview-field]'),'role gate');
   return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','draft reopen','summary','roles','overflow']};
  }catch(error){return {result:'FAIL',containerWidth:width,error:error.message};}

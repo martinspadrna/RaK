@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.8 aktuální prázdný přehled a datum (ověření probíhá)
+
+Pouze TEST. Vlastník ve04:05dne13.10. viděl prázdný draft12.10.ranní; readDraft bez rozlišení obsahu přebil aktuální noční kontext. Při otevření prázdného draftu z jiného kontextu vybrat aktuální směnu/startdate a zachovat prázdno (nenačíst místo něj staré uložené hodnoty). Vyplněné údaje včetně nuly, skrytých polí, vypnutých jednotek a calculation history i pending mutation zachovat. Datum nahrazeno viditelným nativním date inputem s44px plochou a klikem showPicker/focus fallback; původní neviditelný opacity0 overlay odstraněn. Změna data stejně jako směny zachová vstupy a přepne cílovou CAS revision/mutation scope. Ruční výběr se za otevření nepřepisuje automaticky. Do skladu MO vlevo, TO vpravo pouze pořadím sloupců, hodnoty/key zachované. Runtime/cache2.0.8/buildrelease1/epochv208. Backend/main/produkce bez změn. TEST rollback2.0.7 dpl_5J4ydJukRe67cZT2huKoAB1mJYX2 kompatibilní. Automatické ověření a nasazení čeká.
+
 ## 12. 10. 2026 — TEST 2.0.7 poslední vsázky a viditelné ST/BK (100 % automatické ověření a nasazení)
 
 Pouze TEST. ALD3 lastBatch editovatelné v obou směnách. Všechny ST1–5 a BK1–10 v ALD1/2 zpočátku aktivní u nového záznamu; uložená vypnutí se zachovají. Celý čtverec zelený nebo šedý. Oprava specificity vůči globálnímu glass theme, izolovaná ID rootem; skutečný Chromium fixture nyní načítá všechny app stylesheets a kontroluje computed backgroundColor/backgroundImage. Výsledný SVG zachovává součty a tabulku, explicitně ji označuje Čísla posledních vsázek s ALD1/2/3 hodnotami. Runtime/cache 2.0.7/buildrelease1/epochv207. Backend, main/produkce bez změn. TEST rollback 2.0.6 dpl_9EYMe9oiZyH7g3tQpeHwstdJrRbj, data kompatibilní. Automatické ověření a nasazení dokončeno; fyzická iPhone přejímka čeká na vlastníka.

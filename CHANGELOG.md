@@ -1,3 +1,7 @@
+## RaK 2.0.8 (development)
+
+- Prázdný místní přehled se otevře pro aktuální směnu; datum lze ručně změnit viditelným nativním ovladačem. Vyplněné návrhy a rozpracované ukládání zachované. Do skladu: MO vlevo, TO vpravo.
+
 ## RaK 2.0.7 (development)
 
 - ALD3 poslední vsázka v obou směnách, jasně zelené aktivní a šedé neaktivní ST/BK a označený přehled čísel posledních vsázek ALD1–3 ve výsledku.

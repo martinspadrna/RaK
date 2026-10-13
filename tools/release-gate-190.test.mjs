@@ -5,19 +5,19 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('2.0.7 has one release identity across runtime, PWA and package metadata',()=>{
-  const metadata=assertCurrentReleaseIdentity(read,'2.0.7');
-  assert.equal(metadata.displayVersion,'2.0.7');
-  assert.equal(metadata.visibleTestVersion,'2.0.7');
-  assert.equal(metadata.technicalVersion,'2.0.7');
-  assert.equal(metadata.moduleCacheVersion,'2.0.7');
-  assert.equal(metadata.cacheVersion,'v2.0.7');
-  assert.equal(metadata.buildId,'v2.0.7-release1');
-  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'2.0.7');
-  assert(read('index.html').includes('app.js?v=2.0.7'));
-  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=2.0.7')"));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v2.0.7'"));
-  assert(read('CHANGELOG.md').includes('## RaK 2.0.7 (development)'));
+test('2.0.8 has one release identity across runtime, PWA and package metadata',()=>{
+  const metadata=assertCurrentReleaseIdentity(read,'2.0.8');
+  assert.equal(metadata.displayVersion,'2.0.8');
+  assert.equal(metadata.visibleTestVersion,'2.0.8');
+  assert.equal(metadata.technicalVersion,'2.0.8');
+  assert.equal(metadata.moduleCacheVersion,'2.0.8');
+  assert.equal(metadata.cacheVersion,'v2.0.8');
+  assert.equal(metadata.buildId,'v2.0.8-release1');
+  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'2.0.8');
+  assert(read('index.html').includes('app.js?v=2.0.8'));
+  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=2.0.8')"));
+  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v2.0.8'"));
+  assert(read('CHANGELOG.md').includes('## RaK 2.0.8 (development)'));
 });
 
 test('1.9 About summary covers performance, parity, isolation and cross-shift navigation',()=>{
