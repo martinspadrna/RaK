@@ -41,10 +41,10 @@ const html=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta nam
 </head><body><div id="public" class="rakProbeWrap">${makeSummary(publicStart)}</div>
 <div id="appMenuBody" data-admin-view="rotation"><div id="adminRotationEditor">
 <div id="preview" class="rakProbeWrap">${makeSummary(adminStart)}</div>
-<div class="rakProbeWrap"><table class="appMenuTable appMenuAdminTable appMenuAdminRotationTable" data-daymod-section="soft">
+<div class="rakProbeWrap"><table class="appMenuTable appMenuAdminTable appMenuAdminRotationTable" data-daymod-section="soft" style="--rak-grid-width:170px;--rak-machine-count:2;">
 <colgroup><col style="width:46px"><col style="width:50px"><col style="width:50px"></colgroup>
 <thead><tr><th>Datum</th><th>MSKC01</th><th>MSKC03</th></tr></thead>
-<tbody><tr><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-rot-field="date" value="19.10. N"></div></td><td><input class="appMenuInlineInput" data-rot-field="cell-0" value="Pecha"></td><td><input class="appMenuInlineInput" data-rot-field="cell-1" value="Novotný"></td></tr></tbody></table></div>
+<tbody><tr><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-rot-field="date" value="19.10.N8"></div></td><td><input class="appMenuInlineInput" data-rot-field="cell-0" value="Pecha"></td><td><input class="appMenuInlineInput" data-rot-field="cell-1" value="Novotný"></td></tr></tbody></table></div>
 <div class="rakProbeWrap"><table class="appMenuTable appMenuAdminTable appMenuAdminAbsenceTable">
 <colgroup><col style="width:55px"><col style="width:106px"><col style="width:84px"></colgroup>
 <thead><tr><th>Datum</th><th>Jméno</th><th>Kód</th></tr></thead>
@@ -101,7 +101,7 @@ try{
   const releaseParts=String(RELEASE_METADATA.displayVersion).split('.').map(Number);
   const narrow=releaseParts.length===3&&releaseParts.every(Number.isInteger)
     && (releaseParts[0]>1 || (releaseParts[0]===1 && (releaseParts[1]>7 || (releaseParts[1]===7 && releaseParts[2]>=65))));
-  if(narrow)assert(data.rotDate.width>=81&&data.rotDate.width<=83&&data.rotCell>=83,
+  if(narrow)assert(data.rotDate.width>=71&&data.rotDate.width<=73&&data.rotCell>=73,
     '[17065+-browser] MO/TO date width regression '+JSON.stringify(data.rotDate));
   else assert(data.rotDate.width>=85&&data.rotCell>=87,'[17061-browser] editable hard/soft date too narrow');
   assert(data.absDate.width>=83&&data.absDateCell>=85,'[17061-browser] editable absence date too narrow');
