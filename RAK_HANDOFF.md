@@ -2,9 +2,18 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 13. 10. 2026 — TEST 2.0.11 svislé datum Safari (ověření probíhá)
+## 13. 10. 2026 — TEST 2.0.11 svislé datum Safari (100 % automatické ověření a nasazení)
 
-Pouze TEST. Screenshot vlastníka05:08 na iPhonu ukazuje datum vodorovně uprostřed, svisle nahoře. Výška ovladače44px necentrovala vnitřní Safari date-and-time-value. Cílená line-height40px a WebKit value flex center/min-height40px; calendar indicator top50% s transform. Native date zůstává viditelný a editovatelný, role/picker/draft a data beze změny. Runtime/cache2.0.11/buildrelease1/epochv211. Backend/main/produkce bez změn. TEST rollback2.0.10 dpl_H2UPi77A3f514TivdtM5Fm3uaXTa kompatibilní. Automatické ověření a nasazení čeká; fyzická iPhone přejímka po opravě vlastníkem.
+Pouze TEST. Screenshot vlastníka05:08 na iPhonu ukazuje datum vodorovně uprostřed, svisle nahoře. Výška ovladače44px necentrovala vnitřní Safari date-and-time-value. Cílená line-height40px a WebKit value flex center/min-height40px; calendar indicator top50% s transform. Native date zůstává viditelný a editovatelný, role/picker/draft a data beze změny. Runtime/cache2.0.11/buildrelease1/epochv211. Backend/main/produkce bez změn. TEST rollback2.0.10 dpl_H2UPi77A3f514TivdtM5Fm3uaXTa kompatibilní. Automatické ověření a nasazení dokončeno; fyzická iPhone přejímka po opravě vlastníkem čeká.
+
+### TEST 2.0.11 — dokončený důkaz
+
+- Funkční sourceSHA `0aab552b3cf6dfaf38ad7cde0292380a610e18ba`, runtime/cache2.0.11/buildrelease1/epochv211. CI [38340763565](https://github.com/martinspadrna/RaK/actions/runs/38340763565) attempt2 SUCCESS verify/release-preview.
+- Attempt1 blokován pouze FCP P90 860ms nad411ms/baseline336ms; žádné nasazení. Startovací app/init/home/navigation/themeJS/styles byte-identical s2.0.10; overview lazy modul změnil jediný CSS řádek. Opakovaný exact-SHA běh prošel bez změny limitů/kódu. Netvrdit odstranění veškerého kolísání ani shodu celé hydratace.
+- Dvě canonical exact-SHA sestavy166souborů, digest `41da76b80a589b6d6792ce983584d8b420fac9c5ae7f0a6522069a8f5cbf2786`, source unchanged. Původní gates a celé npm check PASS. Chromium320/390/768/1366px PASS: computed date text-align center/line-height40px, visible44px native input, picker hook, ručnídatum/přenos/reopen a celé původní funkce/souhrny/role/overflow. WebKit vnitřní date-and-time-value má40px a flex center; fyzický Safari/iPhone musí potvrdit vlastník.
+- READY `dpl_2U135GmGkuFB7r72XX6NNkxf8Hvb`, exactSHA, immutable <https://skoda-spada-qfb4srjev-martinspadrnas-projects.vercel.app>; veřejný TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200/exactbyte9assetů index/metadata/SW/app/core/About/overview/config/manifest PASS; metadata2.0.11 a config pouzeTESTcgshssdjgzzuprlwnabl.
+- Main pre/postdda626a2c0838af1fffde039b8bbea2eedd6b54d, produkčníaliasREADYdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN nezměněné. Žádné main/produkční/DB/Edge zápisy. TESTrollback2.0.10 dpl_H2UPi77A3f514TivdtM5Fm3uaXTa kompatibilní, draft/data zachovat. Automatické ověření/nasazení100 %, vlastníkův fyzický test svislého data čeká.
 
 ## 13. 10. 2026 — TEST 2.0.10 kompaktní výsledky a datum (100 % automatické ověření a nasazení)
 
