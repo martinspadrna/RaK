@@ -2,9 +2,20 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 13. 10. 2026 — TEST 2.0.9 MO Volné/Pod lisem (ověření probíhá)
+## 13. 10. 2026 — TEST 2.0.9 MO Volné/Pod lisem (100 % automatické ověření a nasazení)
 
-Pouze TEST. Další požadavek vlastníka za běhu CI2.0.8: Obrábění/Do skladu MO vlevo s Volné/Pod lisem nezávisle pro3indexy, TO vpravo. Nové oam.rows[index].producedMOFree/producedMOPress; staré nerozdělené producedMO v JSON zachovat, neodhadovat rozdělení. Původní inventurní součty zachovat: vyrobené do skladu nejsou inventura stejných dílů v toku. Na další žádost vlastníka doplněna vpravo dole SVG tabulka TBKR01/07 × index × Volné/Pod lisem, součty za každý brus; nemíchat do inventurních součtů. Poznámky posunuty pod tabulku bez překryvu, dynamická výška SVG. Původní summary Volné10+20/30/120 mají samostatná pole op1020/op30/op120, Lis11+21/31/121 samostatné op1121/op31/op121. Brusy01/07 již mají Free/Press. Všechna párová zadání a hodnoty zachovat. MO je levá skupina dvou polí, TO pravá skupina. Obsahuje i opravu prázdného draftu a viditelného ručního data z2.0.8. Runtime/cache2.0.9/buildrelease1/epochv209. Backend/main/produkce bez změn. Automatické ověření a nasazení čeká.
+Pouze TEST. Další požadavek vlastníka za běhu CI2.0.8: Obrábění/Do skladu MO vlevo s Volné/Pod lisem nezávisle pro3indexy, TO vpravo. Nové oam.rows[index].producedMOFree/producedMOPress; staré nerozdělené producedMO v JSON zachovat, neodhadovat rozdělení. Původní inventurní součty zachovat: vyrobené do skladu nejsou inventura stejných dílů v toku. Na další žádost vlastníka doplněna vpravo dole SVG tabulka TBKR01/07 × index × Volné/Pod lisem, součty za každý brus; nemíchat do inventurních součtů. Poznámky posunuty pod tabulku bez překryvu, dynamická výška SVG. Původní summary Volné10+20/30/120 mají samostatná pole op1020/op30/op120, Lis11+21/31/121 samostatné op1121/op31/op121. Brusy01/07 již mají Free/Press. Všechna párová zadání a hodnoty zachovat. MO je levá skupina dvou polí, TO pravá skupina. Obsahuje i opravu prázdného draftu a viditelného ručního data z2.0.8. Runtime/cache2.0.9/buildrelease1/epochv209. Backend/main/produkce bez změn. Automatické ověření a nasazení dokončeno; fyzická přejímka vlastníkem čeká.
+
+### TEST 2.0.9 — dokončený důkaz
+
+- Funkční SHA `067bbcae6b5079c5e7dafb71f352b0d9c10ae32b`, runtime/cache2.0.9/buildrelease1/epochv209. CI [38336317521](https://github.com/martinspadrna/RaK/actions/runs/38336317521) attempt1 SUCCESS verify i release-preview. Zahrnuje předchozí2.0.8 opravy prázdného draftu/ručního data/MO-vlevo.
+- Dvě čisté exact-SHA canonical sestavy166souborů, digest `f360d312d86f5add0fab50e5504f970a4711c82d8fc71096a8956dadb57bd52e`, source unchanged. Všechny původní gates PASS bez oslabení. Cílené42VMoverview/draft testy PASS, celé npm check PASS.
+- Chromium320/390/768/1366px PASS: MOFree/Press nezávisle, MO vlevo/TO vpravo, přenos přes změnu směny/data a reopen, datum viditelné/interaktivní44px, date picker click hook, ruční13.10. persist/reopen s údaji. Prázdný starý ranní draft přejde na current noční12.10.; explicitníVM04:05dne13.10. očekáváD:nocni12/startdate12.10. Vyplněná nula/skrytá pole/vypnuté jednotky/pending save obnovena beze změn.
+- SVG tabulka Nabroušeno · brusy vpravo dole: TBKR01/07 × AG/AE,AF/AD,AH × Volné/Pod lisem + součty každého brusu. VM kontrola výpočtů a separace původní inventury PASS. Vykresleno Sharp doPNG se syntetickými údaji, vizuálně zkontrolovány pozice, čitelnost a žádný překryv poznámek. Nejde o fyzickou Safari přejímku.
+- READY `dpl_8WXPSgnNpQLFvaxyy4CuBnhXcryo`, exact sourceSHA, immutable <https://skoda-spada-1fxl0b4le-martinspadrnas-projects.vercel.app>; veřejný TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200/exactbyte9assetů index/metadata/SW/app/core/About/overview/config/manifest PASS, metadata2.0.9 a výhradně TESTcgshssdjgzzuprlwnabl.
+- Main pre/post dda626a2c0838af1fffde039b8bbea2eedd6b54d, produkční READYaliasdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN nezměněné. ReadonlyDBhead20261012021355, Edge absence17/admin16/hradnik3/retiredexport3 původní JWTflags. Žádné backend/main/produkční zápisy.
+- TEST rollback2.0.8 dpl_gDX53cjvNsN8FxZfMSPgup5c9B5R kompatibilní, nové splitMO a grinders JSON zachovat. Staré producedMO nerozdělovat odhadem. Funkční automatické ověření/nasazení100 %, fyzická iPhone přejímka čeká na vlastníka.
 
 ## 13. 10. 2026 — TEST 2.0.8 aktuální prázdný přehled a datum (CI/nasazení dokončeno, dále rozšířeno2.0.9)
 
