@@ -53,12 +53,16 @@ function probe(width){
   check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','both last batches preserved');
   const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
   check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
+  check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Obrábění · závěr'),'conclusion summary');
+  check([...summary.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag,af','only entered grinding indices');
+  check([...summary.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag','only entered conclusion index');
   check(summary.includes('data-summary-grinder="TBKR01"')&&summary.includes('data-summary-grinder="TBKR07"')&&summary.includes('Nabroušeno · brusy'),'grinding summary');
   check(summary.includes('Čísla posledních vsázek')&&summary.includes('data-summary-last-batches="ald1-ald2-ald3"')&&['100','200','300'].every(n=>summary.includes('>'+n+'</text>')),'last batch numbers in final summary');
   const draft=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
   check(draft.record.nitrogen==='15.5'&&draft.record.oam.rows.ag.stock==='192','synchronous draft');
   api.render(body);check(order()===night&&value('oam.rows.ag.op1020')==='576','reopen draft');
   const dateInput=body.querySelector('[data-shift-overview-date]');
+  check(getComputedStyle(dateInput).textAlign==='center','centered native date');
   check(getComputedStyle(dateInput).opacity==='1'&&getComputedStyle(dateInput).pointerEvents==='auto'&&!dateInput.disabled&&!dateInput.readOnly,'visible editable native date');
   const dateBox=dateInput.getBoundingClientRect();check(dateBox.height>=43&&document.elementFromPoint(dateBox.left+dateBox.width/2,dateBox.top+dateBox.height/2)===dateInput,'date tap target');
   let pickerCalls=0;dateInput.showPicker=()=>pickerCalls++;dateInput.click();check(pickerCalls===1,'whole date opens picker');

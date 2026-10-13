@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.9'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.9-release1'"));
-  assert.ok(index.includes("var e='v209',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.9-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.10'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.10-release1'"));
+  assert.ok(index.includes("var e='v210',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.10-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.9'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.10'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -578,7 +578,8 @@ test('manual shift changes preserve hidden quantities, drafts, history and the o
  assert.equal(saved.oam.rows.ag.stock,'256');assert.equal(saved.oam.rows.ag.producedTO,'96');
  assert.equal(saved.oam.rows.ag.groundTBKR01,'32');assert.equal(saved.inputs.rows.SR1.ald2,'3');
  const clean=JSON.parse(JSON.stringify(saved));delete clean.oam.rows.ag.producedTO;delete clean.oam.rows.ag.groundTBKR01;
- assert.equal(api.summarySvg(saved),api.summarySvg(clean),'counting-route fields must not alter the original report or totals');
+ const inventory=svg=>svg.match(/<g data-summary-production="whole"[\s\S]*?<\/g><g transform=/)[0];
+ assert.equal(inventory(api.summarySvg(saved)),inventory(api.summarySvg(clean)),'conclusion fields must not alter inventory totals');
  api.setRevision(el,9);el.dataset.cloudMutation='old-date-save';date.value='2026-10-13';api.updateShiftLayout(el);
  assert.equal(api.get(el).date,'2026-10-13');assert.equal(api.revision(el),null);assert.equal(el.dataset.cloudMutation,'');
  assert.equal(api.get(el).oam.rows.ag.op1020,'576');assert.equal(api.get(el).lastBatch.ald3,'700');
@@ -610,7 +611,23 @@ test('grinding summary reports exact machine/index/type quantities and keeps inv
  const production=value=>value.match(/<g data-summary-production="whole"[\s\S]*?<\/g><g transform=/)[0];
  assert.equal(production(svg),production(api.summarySvg(clean)));
  for(const machine of ['TBKR01','TBKR07'])assert.ok(svg.includes('data-summary-grinder="'+machine+'"'));
- const first=svg.split('data-summary-grinder="TBKR01"')[1].split('</g>')[0];
+ const first=svg.split('data-summary-grinder="TBKR01"')[1].split('data-summary-grinder="TBKR07"')[0];
  for(const value of ['32','64','16','48'])assert.ok(first.includes('>'+value+'</text>'),value);
  assert.ok(svg.includes('Nabroušeno · brusy'));assert.ok(!svg.includes('>888</text>'));assert.ok(!svg.includes('>999</text>'));
+});
+
+
+test('compact grinding and conclusion reports omit idle machines and zero or empty indices without mutating data',()=>{
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg,shiftLayout};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{ag:{groundTBKR01Free:'32',producedMOFree:'8+8',producedTO:'64'},af:{groundTBKR01Free:'0',groundTBKR07Press:'10-10',producedMOPress:'0'},ah:{}}}});
+ const before=JSON.stringify(record),svg=api.summarySvg(record);
+ assert.ok(svg.includes('data-summary-grinder="TBKR01"'));assert.ok(!svg.includes('data-summary-grinder="TBKR07"'));
+ assert.deepEqual([...svg.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]),['ag']);
+ assert.deepEqual([...svg.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]),['ag']);
+ assert.ok(svg.indexOf('data-summary-machining="conclusion"')>svg.indexOf('data-summary-grinding="by-machine"'));
+ const conclusion=svg.split('data-summary-machining="conclusion"')[1];assert.ok(conclusion.includes('>16</text>'));assert.ok(conclusion.includes('>64</text>'));
+ assert.equal(JSON.stringify(record),before);assert.ok(api.shiftLayout(record).includes('>Závěr</h4>'));
+ const empty=api.summarySvg(api.normalizeRecord({}));assert.ok(!empty.includes('data-summary-grinding='));assert.ok(!empty.includes('data-summary-machining='));
 });

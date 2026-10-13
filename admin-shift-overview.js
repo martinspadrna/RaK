@@ -727,7 +727,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       html += section('soft',shiftStation(record,'Měkké obrábění',OAM_LEFT_COLUMNS.slice(0,2)));
     }
     html += section('machining',panel('Obrábění',
-      '<h4 class="rakShiftOverviewSubsectionTitle">Do skladu</h4>' + shiftStation(record,'Do skladu',[
+      '<h4 class="rakShiftOverviewSubsectionTitle">Závěr</h4>' + shiftStation(record,'Závěr',[
         {label:'MO',fields:[{key:'producedMOFree',label:'Volné'},{key:'producedMOPress',label:'Pod lisem'}]},
         {label:'TO',fields:[{key:'producedTO',label:''}]}]) +
       '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR01</h4>' + shiftStation(record,'TBKR01',[
@@ -856,31 +856,52 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     cell(724,1276,152,52,aldTotals[0]+aldTotals[1]+total3,'#fff',true,26);
     cell(458,1356,266,52,'Dusík',header,true,24);
     cell(724,1356,152,52,summaryValue(record.nitrogen),'#fff',true,26);
-    parts.push('<g data-summary-grinding="by-machine">');
-    parts.push('<text x="458" y="1454" font-size="25" font-weight="700">Nabroušeno · brusy</text>');
-    const grindX=[458,550,664,770,876];
-    ['Brus','Index','Volné','Pod lisem'].forEach((label,i)=>cell(grindX[i],1474,grindX[i+1]-grindX[i],40,label,header,true,18));
-    let grindY=1514;
-    ['TBKR01','TBKR07'].forEach(machine=>{
-      const stem='ground'+machine;
-      parts.push('<g data-summary-grinder="'+machine+'">');
-      cell(grindX[0],grindY,grindX[1]-grindX[0],108,machine,header,true,18);
-      OAM_ROWS.forEach((row,index)=>{
-        const rowY=grindY+index*36,values=record.oam.rows[row.key];
-        cell(grindX[1],rowY,grindX[2]-grindX[1],36,AAR_COLUMNS[index].label,colors[index],true,18);
-        ['Free','Press'].forEach((type,i)=>cell(grindX[i+2],rowY,grindX[i+3]-grindX[i+2],36,summaryValue(values[stem+type]),colors[index],true,21));
+    const activeRows = keys => OAM_ROWS.map((row,index)=>({row,index})).filter(({row})=>keys.some(key=>summaryNumber(record.oam.rows[row.key][key])!==0));
+    const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
+    let reportY=1454;
+    if(machines.length){
+      parts.push('<g data-summary-grinding="by-machine">');
+      parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Nabroušeno · brusy</text>');
+      const grindX=[458,550,664,770,876];reportY+=20;
+      ['Brus','Index','Volné','Pod lisem'].forEach((label,i)=>cell(grindX[i],reportY,grindX[i+1]-grindX[i],40,label,header,true,18));reportY+=40;
+      machines.forEach(({machine,rows})=>{
+        const stem='ground'+machine;
+        parts.push('<g data-summary-grinder="'+machine+'">');
+        cell(grindX[0],reportY,grindX[1]-grindX[0],rows.length*36,machine,header,true,18);
+        rows.forEach(({row,index},offset)=>{
+          const rowY=reportY+offset*36,values=record.oam.rows[row.key];
+          parts.push('<g data-summary-grinding-index="'+row.key+'">');
+          cell(grindX[1],rowY,grindX[2]-grindX[1],36,AAR_COLUMNS[index].label,colors[index],true,18);
+          ['Free','Press'].forEach((type,i)=>cell(grindX[i+2],rowY,grindX[i+3]-grindX[i+2],36,summaryValue(values[stem+type]),colors[index],true,21));
+          parts.push('</g>');
+        });
+        reportY+=rows.length*36;
+        cell(grindX[0],reportY,grindX[2]-grindX[0],36,'Celkem '+machine,header,true,18);
+        ['Free','Press'].forEach((type,i)=>{
+          const values=rows.map(({row})=>record.oam.rows[row.key][stem+type]);
+          const total=values.some(value=>String(value??'').trim())?values.reduce((sum,value)=>sum+summaryNumber(value),0):'';
+          cell(grindX[i+2],reportY,grindX[i+3]-grindX[i+2],36,total,header,true,21);
+        });
+        reportY+=36;parts.push('</g>');
       });
-      grindY+=108;
-      cell(grindX[0],grindY,grindX[2]-grindX[0],36,'Celkem '+machine,header,true,18);
-      ['Free','Press'].forEach((type,i)=>{
-        const values=OAM_ROWS.map(row=>record.oam.rows[row.key][stem+type]);
-        const total=values.some(value=>String(value??'').trim())?values.reduce((sum,value)=>sum+summaryNumber(value),0):'';
-        cell(grindX[i+2],grindY,grindX[i+3]-grindX[i+2],36,total,header,true,21);
+      parts.push('</g>');reportY+=40;
+    }
+    const conclusionKeys=['producedMOFree','producedMOPress','producedTO'];
+    const conclusionRows=activeRows(conclusionKeys);
+    if(conclusionRows.length){
+      parts.push('<g data-summary-machining="conclusion">');
+      parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Obrábění · závěr</text>');reportY+=20;
+      const conclusionX=[458,576,676,776,876];
+      ['Index','MO\nVolné','MO\nPod lisem','TO'].forEach((label,i)=>cell(conclusionX[i],reportY,conclusionX[i+1]-conclusionX[i],48,label,header,true,18));reportY+=48;
+      conclusionRows.forEach(({row,index})=>{
+        parts.push('<g data-summary-conclusion-index="'+row.key+'">');
+        cell(conclusionX[0],reportY,conclusionX[1]-conclusionX[0],36,AAR_COLUMNS[index].label,colors[index],true,18);
+        conclusionKeys.forEach((key,i)=>cell(conclusionX[i+1],reportY,conclusionX[i+2]-conclusionX[i+1],36,summaryValue(record.oam.rows[row.key][key]),colors[index],true,21));
+        reportY+=36;parts.push('</g>');
       });
-      grindY+=36;parts.push('</g>');
-    });
-    parts.push('</g>');
-    let y=Math.max(partsBottom+78,grindY+36);
+      parts.push('</g>');reportY+=16;
+    }
+    let y=Math.max(partsBottom+78,reportY+20);
     const notes=[['Obrábění',record.machiningFaults],...record.ald.map((row,i)=>['ALD'+(i+1),row.faults]),['Poznámky',record.notes]].filter(([,value])=>String(value??'').trim());
     if(notes.length){
       heading(y+22,'Závady a poznámky');y+=40;
@@ -1374,7 +1395,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewCard label{display:grid;gap:6px;font-size:12px;font-weight:800;overflow-wrap:anywhere;}',
       '.rakShiftOverviewHeader{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:12px;align-items:start;}.rakShiftOverviewHeader>label{grid-template-rows:auto 44px;}.rakShiftOverviewTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
       '.rakShiftOverviewInput,.rakShiftOverviewArea,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{width:100%;max-width:100%;min-width:0;margin:0;}.rakShiftOverviewInput,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{min-height:44px;font-size:16px;}',
-      '#rakShiftOverviewRoot .rakShiftOverviewDate{display:block!important;position:relative!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;font-size:16px!important;color:var(--text,#fff)!important;color-scheme:dark;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-calendar-picker-indicator{cursor:pointer;opacity:1;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
+      '#rakShiftOverviewRoot .rakShiftOverviewDate{display:block!important;position:relative!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;font-size:16px!important;text-align:center!important;color:var(--text,#fff)!important;color-scheme:dark;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-calendar-picker-indicator{cursor:pointer;opacity:1;position:absolute;right:6px;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-datetime-edit{padding:0;text-align:center;flex:1;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-date-and-time-value{text-align:center;width:100%;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
       '.rakShiftOverviewArea{resize:vertical;min-height:76px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;}',
       '.rakShiftOverviewPanel{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.025);}',
       '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',

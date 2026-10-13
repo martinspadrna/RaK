@@ -1,3 +1,7 @@
+## RaK 2.0.10 (development)
+
+- Datum vystředěné. Obrábění/Do skladu přejmenované na Závěr. V souhrnu kompaktní brusy a pod nimi výsledky MO/TO ze závěru, pouze indexy s nenulovým výsledkem.
+
 ## RaK 2.0.9 (development)
 
 - Do skladu má MO vlevo se samostatnými poli Volné/Pod lisem, TO vpravo. Vpravo dole v souhrnu přehled nabroušených kusů TBKR01/07 podle indexu a Volné/Pod lisem, součty za brus. Původní inventurní součty zachované.

@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.10 kompaktní výsledky a datum (ověření probíhá)
+
+Pouze TEST. Datum zůstává viditelný native date input, text-align center plus WebKit value/edit centering a calendar indicator mimo tok vpravo. Obrábění/Do skladu nově Závěr; existující data keys MOFree/MOPress/TO zachované. Souhrn vpravo dole: brusy mají jen aktivní indexy podle nenulového vyhodnoceného počtu Free/Press, neaktivní stroje i prázdné/0 řádky vynechány. Za nimi Obrábění · závěr s MO Volné, MO Pod lisem a TO, rovněž jen nenulové indexy. Původní inventurní tabulka/součty beze změny; filtrování je pouze prezentace, data se nemažou. Dynamické pozice/výška, poznámky pod oběma tabulkami bez překryvu. Runtime/cache2.0.10/buildrelease1/epochv210. Backend/main/produkce bez změn. TEST rollback2.0.9 dpl_8WXPSgnNpQLFvaxyy4CuBnhXcryo kompatibilní. Automatické ověření a nasazení čeká.
+
 ## 13. 10. 2026 — TEST 2.0.9 MO Volné/Pod lisem (100 % automatické ověření a nasazení)
 
 Pouze TEST. Další požadavek vlastníka za běhu CI2.0.8: Obrábění/Do skladu MO vlevo s Volné/Pod lisem nezávisle pro3indexy, TO vpravo. Nové oam.rows[index].producedMOFree/producedMOPress; staré nerozdělené producedMO v JSON zachovat, neodhadovat rozdělení. Původní inventurní součty zachovat: vyrobené do skladu nejsou inventura stejných dílů v toku. Na další žádost vlastníka doplněna vpravo dole SVG tabulka TBKR01/07 × index × Volné/Pod lisem, součty za každý brus; nemíchat do inventurních součtů. Poznámky posunuty pod tabulku bez překryvu, dynamická výška SVG. Původní summary Volné10+20/30/120 mají samostatná pole op1020/op30/op120, Lis11+21/31/121 samostatné op1121/op31/op121. Brusy01/07 již mají Free/Press. Všechna párová zadání a hodnoty zachovat. MO je levá skupina dvou polí, TO pravá skupina. Obsahuje i opravu prázdného draftu a viditelného ručního data z2.0.8. Runtime/cache2.0.9/buildrelease1/epochv209. Backend/main/produkce bez změn. Automatické ověření a nasazení dokončeno; fyzická přejímka vlastníkem čeká.
