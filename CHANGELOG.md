@@ -1,3 +1,7 @@
+## RaK 2.0.12 (development)
+
+- Výchozí nuly počítadel již nezadržují prázdný přehled na staré směně. Vymazání nastaví aktuální datum a směnu, skutečně vyplněné návrhy zachované.
+
 ## RaK 2.0.11 (development)
 
 - Svislé vystředění data: výška řádku a zarovnání vnitřní hodnoty ovladače Safari.

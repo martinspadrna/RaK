@@ -23,14 +23,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
   function draftHasContent(record) {
     const base = defaultRecord(record?.date, record?.shift);
-    function differs(value, expected) {
+    function differs(value, expected, path) {
       if (value && typeof value === 'object') {
-        return Object.entries(value).some(([key, child]) => differs(child, expected?.[key]));
+        return Object.entries(value).some(([key, child]) => differs(child, expected?.[key], path + '.' + key));
       }
+      if (/^inputs\.rows\.[^.]+\.ald[12]$/.test(path) && Number(value) === 0) return false;
       return value != null && String(value).trim() !== '' && value !== expected;
     }
     return Object.entries(record || {}).some(([key, value]) =>
-      !['date', 'shift', 'updatedAt'].includes(key) && differs(value, base[key]));
+      !['date', 'shift', 'updatedAt'].includes(key) && differs(value, base[key], key));
   }
   function draftForOpening(draft, defaults) {
     // Empty drafts select the current shift; entered data and pending saves stay intact.
@@ -1002,7 +1003,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     record.shift = normalizeShift(shift);
     rootEl.querySelectorAll('[data-shift-overview-field]').forEach((el) => {
       const path = el.getAttribute('data-shift-overview-field');
-      nestedSet(record, path, String(el.value || '').trim());
+      let value = String(el.value || '').trim();
+      // Display-only counter zeros must not turn an untouched form into entered data.
+      if (/^inputs\.rows\.[^.]+\.ald[12]$/.test(path) && value === '0' && nestedGet(record,path) === '') value = '';
+      nestedSet(record, path, value);
       const history = inputQuantityHistory(el);
       if (history) record.calculations[path] = history;
     });
@@ -1297,7 +1301,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const shift = String(rootEl.querySelector('[data-shift-overview-shift]')?.value || '');
 
       if (action === 'clear') {
-        const empty = defaultRecord(date, shift);
+        const defaults = currentShiftContext();
+        const empty = defaultRecord(defaults.date, defaults.shift);
         render(body, empty);
         const next = body.querySelector('#rakShiftOverviewRoot');
         if (next) { next.dataset.edited = '1'; persistDraft(next); status(next, 'Rozepsaný přehled vymazán v zařízení. Online záloha zůstala zachována.'); }

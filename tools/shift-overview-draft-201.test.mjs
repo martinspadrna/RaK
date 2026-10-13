@@ -63,3 +63,14 @@ test('zero, hidden production, notes, disabled units and pending saves survive o
  const pending={record:f.api.defaultRecord('2026-10-12','D:nocni12'),revision:3,mutationId:'pending'};
  assert.equal(f.api.draftForOpening(pending,defaults),pending);
 });
+
+
+test('legacy display-only batch zeros do not pin an empty night draft to yesterday',()=>{
+ const f=fixture(),record=f.api.defaultRecord('2026-10-12','A:nocni12');
+ record.inputs.rows={TW1:{ald1:'0',ald2:''},SR1:{ald1:'',ald2:'0'}};
+ assert.equal(f.api.draftHasContent(record),false);
+ const draft={record,revision:3,mutationId:''},defaults={date:'2026-10-13',shift:'B:ranni12'};
+ assert.equal(f.api.draftForOpening(draft,defaults).record.shift,'B:ranni12');
+ record.inputs.rows.TW1.ald1='1';assert.equal(f.api.draftHasContent(record),true);assert.equal(f.api.draftForOpening(draft,defaults),draft);
+ record.inputs.rows.TW1.ald1='0';record.nitrogen='0';assert.equal(f.api.draftHasContent(record),true);
+});

@@ -88,6 +88,16 @@ function probe(width){
   window.getActiveShiftNow=()=>({team:'D',start:new Date(2026,9,12,18),end:new Date(2026,9,13,6)});
   api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='D:nocni12'&&body.querySelector('[data-shift-overview-date]').value==='2026-10-12','empty morning draft opens current night');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25&&value('lastBatch.ald3')==='','new empty context stays empty and active');
+  window.getActiveShiftNow=()=>({team:'B',start:new Date(2026,9,13,6),end:new Date(2026,9,13,18)});
+  body.querySelector('[data-shift-overview-action="clear"]').click();
+  check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','clear selects current morning and date immediately');
+  const cleared=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
+  check(Object.values(cleared.record.inputs.rows).every(row=>Object.values(row).every(value=>value==='')),'untouched displayed zeros remain empty draft values');
+  api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','actual cleared DOM draft reopens on current morning');
+  cleared.record.date='2026-10-12';cleared.record.shift='A:nocni12';
+  for(const row of Object.values(cleared.record.inputs.rows))for(const key of Object.keys(row))row[key]='0';
+  localStorage.setItem('rak_shift_overview_draft_v1:local',JSON.stringify(cleared));
+  api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','legacy zero counters no longer restore old night');
   window.rakAdminCanManageAdmins=()=>false;api.render(body);check(!body.querySelector('[data-shift-overview-field]'),'role gate');
   return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','draft reopen','summary','roles','overflow']};
  }catch(error){return {result:'FAIL',containerWidth:width,error:error.message};}

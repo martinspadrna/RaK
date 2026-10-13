@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.12 prázdné počítadlo a aktuální směna (ověření probíhá)
+
+Pouze TEST. Fyzický screenshot16:38 po clear/restart: staráA:noční12.10. Kořen: batchCounter zobrazuje0 pro hodnotu prázdno, readDom dříve materializoval0, draftHasContent je považoval za vstupy a přebil aktuální kontext. readDom ponechá prázdné nedotčené počítadlo prázdné; draftHasContent ignoruje0 pouze u batch inputs.rows.*.ald1/2, umožní nápravu starých draftů. Ostatní explicitní0, poznámky, hidden fields, vypnuté jednotky/pending save zůstávají skutečný obsah. Clear lokálního editoru nyní vybere currentShiftContext ihned, cloud/saved záznamy nemění. Regrese musí projít skutečným clear/persist/reopen DOM cyklem a legacy all-zero draftem, nestačí syntetický prázdný objekt. Runtime/cache2.0.12/buildrelease1/epochv212. Backend/main/produkce bez změn. TESTrollback2.0.11 dpl_2U135GmGkuFB7r72XX6NNkxf8Hvb kompatibilní. Automatické ověření/nasazení čeká.
+
 ## 13. 10. 2026 — TEST 2.0.11 svislé datum Safari (100 % automatické ověření a nasazení)
 
 Pouze TEST. Screenshot vlastníka05:08 na iPhonu ukazuje datum vodorovně uprostřed, svisle nahoře. Výška ovladače44px necentrovala vnitřní Safari date-and-time-value. Cílená line-height40px a WebKit value flex center/min-height40px; calendar indicator top50% s transform. Native date zůstává viditelný a editovatelný, role/picker/draft a data beze změny. Runtime/cache2.0.11/buildrelease1/epochv211. Backend/main/produkce bez změn. TEST rollback2.0.10 dpl_H2UPi77A3f514TivdtM5Fm3uaXTa kompatibilní. Automatické ověření a nasazení dokončeno; fyzická iPhone přejímka po opravě vlastníkem čeká.
