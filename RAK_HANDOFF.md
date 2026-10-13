@@ -2,9 +2,20 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 13. 10. 2026 — TEST 2.0.12 prázdné počítadlo a aktuální směna (ověření probíhá)
+## 13. 10. 2026 — TEST 2.0.12 prázdné počítadlo a aktuální směna (100 % automatické ověření a nasazení)
 
-Pouze TEST. Fyzický screenshot16:38 po clear/restart: staráA:noční12.10. Kořen: batchCounter zobrazuje0 pro hodnotu prázdno, readDom dříve materializoval0, draftHasContent je považoval za vstupy a přebil aktuální kontext. readDom ponechá prázdné nedotčené počítadlo prázdné; draftHasContent ignoruje0 pouze u batch inputs.rows.*.ald1/2, umožní nápravu starých draftů. Ostatní explicitní0, poznámky, hidden fields, vypnuté jednotky/pending save zůstávají skutečný obsah. Clear lokálního editoru nyní vybere currentShiftContext ihned, cloud/saved záznamy nemění. Regrese musí projít skutečným clear/persist/reopen DOM cyklem a legacy all-zero draftem, nestačí syntetický prázdný objekt. Runtime/cache2.0.12/buildrelease1/epochv212. Backend/main/produkce bez změn. TESTrollback2.0.11 dpl_2U135GmGkuFB7r72XX6NNkxf8Hvb kompatibilní. Automatické ověření/nasazení čeká.
+Pouze TEST. Fyzický screenshot16:38 po clear/restart: staráA:noční12.10. Kořen: batchCounter zobrazuje0 pro hodnotu prázdno, readDom dříve materializoval0, draftHasContent je považoval za vstupy a přebil aktuální kontext. readDom ponechá prázdné nedotčené počítadlo prázdné; draftHasContent ignoruje0 pouze u batch inputs.rows.*.ald1/2, umožní nápravu starých draftů. Ostatní explicitní0, poznámky, hidden fields, vypnuté jednotky/pending save zůstávají skutečný obsah. Clear lokálního editoru nyní vybere currentShiftContext ihned, cloud/saved záznamy nemění. Regrese musí projít skutečným clear/persist/reopen DOM cyklem a legacy all-zero draftem, nestačí syntetický prázdný objekt. Runtime/cache2.0.12/buildrelease1/epochv212. Backend/main/produkce bez změn. TESTrollback2.0.11 dpl_2U135GmGkuFB7r72XX6NNkxf8Hvb kompatibilní. Automatické ověření/nasazení dokončeno; fyzická přejímka vlastníkem čeká.
+
+### TEST 2.0.12 — dokončený důkaz
+
+- SourceSHA `1333e2f3b4cb156d7c16289adca633af7783b5bd`, runtime/cache2.0.12/buildrelease1/epochv212. CI [38415873267](https://github.com/martinspadrna/RaK/actions/runs/38415873267) attempt2 SUCCESS verify/release-preview.
+- Attempt1 blokován pouze FCP P90 900ms nad427ms/baseline352ms; žádné nasazení. Startovací app/init/home/navigation/themeJS/styles beze změny proti2.0.11. Opakovaný exact-SHA běh PASS bez změny kódu/limitů. Netvrdit odstranění veškerého kolísání CI.
+- Dvě exact-SHA canonical sestavy166souborů, digest `a7e7c0b8148fb63651bd21b87e47f1d3d26367f9a588cc8cd3c401e82cb4a8a5`, source unchanged. Cílené44VMoverview/draft a celé npm check PASS; původní gates PASS.
+- Chromium320/390/768/1366px PASS, včetně skutečného clear→persist všech viditelných0counterů→reopen: po clear aktuálníB:ranní13.10. ihned, při reopen stále aktuální. Nedotčené0počítadlo serializováno jako prázdno. LegacyA:noční12.10.draft se všemi0counters přejde na aktuální ranní. VM kontroluje pozitivníbatch a explicitní0v jiném vstupu jako skutečný obsah.
+- Clear přepíná currentShiftContext/date okamžitě dle výslovné pojistky vlastníka. Historické uložené/cloud záznamy nevymazány; pending/filled draft scope zachovaný.
+- READY `dpl_3dmRMnw7E9J7ryRB7tSvRZFWfMBq`, exactSHA, immutable <https://skoda-spada-ku14irmi2-martinspadrnas-projects.vercel.app>; veřejnýTEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200/exactbyte9assetů index/metadata/SW/app/core/About/overview/config/manifest PASS; metadata2.0.12, config pouzeTESTcgshssdjgzzuprlwnabl.
+- Main pre/postdda626a2c0838af1fffde039b8bbea2eedd6b54d, produkčníaliasREADYdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN nezměněné. Žádné main/produkční/DB/Edge zápisy. TESTrollback2.0.11 dpl_2U135GmGkuFB7r72XX6NNkxf8Hvb kompatibilní. Automatické ověření/nasazení100 %, fyzická iPhone přejímka vlastníkem čeká.
 
 ## 13. 10. 2026 — TEST 2.0.11 svislé datum Safari (100 % automatické ověření a nasazení)
 
