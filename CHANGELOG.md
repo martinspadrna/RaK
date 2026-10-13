@@ -1,3 +1,8 @@
+## RaK 2.0.15 (development)
+
+- Měkota i tvrdota v editoru mají užší datum/jména a pružnou šířku tabulky podle místa na mobilu.
+- Posouvání přes jména předává svislé gesto stránce i na Androidu.
+
 ## RaK 2.0.14 (development)
 
 - Širší zadávání kódů absence v Administrace/Rozpisy, čitelné hned po otevření včetně NV a Lázně.

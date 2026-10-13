@@ -18,11 +18,12 @@ test('real TO and MO render expressions generate identical widths for equal mach
   for(const n of [3,4,5,6]){
    const context={[variable]:Array(n).fill('X')};
    const rendered=evaluateExpression(expr,context);
-   assert(rendered.includes(`--rak-grid-width:${84+n*52}px`),section+' bad width for '+n);
+   assert(rendered.includes(`--rak-grid-width:${74+n*48}px`),section+' bad width for '+n);
+   assert(rendered.includes(`--rak-machine-count:${n}`),section+' must size the actual machine count');
   }
  }
  const css=read('styles-inline-legacy.css');
- for(const value of ['[data-daymod-section]','width:var(--rak-grid-width) !important','col:first-child {width:84px !important;}','col:not(:first-child) {width:52px !important;}','width:50px !important;min-width:50px !important;'])assert(css.includes(value),value);
+ for(const value of ['[data-daymod-section]','width:min(100%,var(--rak-grid-width)) !important','col:first-child {width:74px !important;}','var(--rak-machine-count,5)','width:calc(100% - 2px) !important;min-width:0 !important;'])assert(css.includes(value),value);
  assert(read('styles-inline-legacy.css').includes('RAK_17066_COMPACT_MO_GRID'));
 });
 function reloadFixture(result,{dirty=true,allow=true,throwNetwork=false}={}){
@@ -90,4 +91,12 @@ test('two builds, real browser gates, ZIP/CRC, TEST HTTP and 13 point tracking',
  for(const s of ['npm run vercel-build\n          npm run vercel-build','node --test tools/release-gate-17067.test.mjs','node tools/browser-equal-grid-17067.mjs','node tools/browser-soft-grid-17066.mjs','node tools/browser-offline-17052.mjs','node tools/browser-absence-layout-17061.mjs','node tools/backup-source-integrity-17051.mjs','node tools/http-anon-audit-17050.mjs'])assert(ci.includes(s),s);
  const plan=read('RAK_PLAN_17067_STATUS.md');
  for(const id of ['P0.1','P0.2','P0.3','P0.4','P1.1','P1.2','P1.3','P1.4','P1.5','P2.1','P2.2','P2.3','P2.4','2/13','11/13'])assert(plan.includes(id),id);
+});
+
+
+test('compact editable MO/TO date preserves the full 8h shift suffix without changing absence dates',()=>{
+ const r=runNamedDeclarations({modules:[{source:read('admin-rotation-editor.js'),names:['renderAdminInlineFieldHtml','adminRotationSmartManualShift','adminRotationSmartManualDate']}],globals:{escapeHtml:value=>String(value)},exports:{render:'renderAdminInlineFieldHtml',date:'adminRotationSmartManualDate'}});
+ assert(r.api.render('data-rot-field','date','19.10. N8','',false).includes('value="19.10.N8"'));
+ for(const shift of ['R','N','R8','N8'])assert.equal(r.api.date('19.10.'+shift,null,''),'19.10. '+shift);
+ assert(r.api.render('data-note-field','date','19.10. N8','',false).includes('value="19.10. N8"'));
 });
