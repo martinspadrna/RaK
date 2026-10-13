@@ -85,14 +85,18 @@ try{
  await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
  for(let i=0;i<50;i++){if(await evaluate('document.readyState')==='complete')break;await pause(100);}
  await evaluate("(()=>{for(const table of document.querySelectorAll('.appMenuAdminRotationTable')){const row=table.tBodies[0].rows[0];for(let i=0;i<40;i++)table.tBodies[0].append(row.cloneNode(true));}return true;})()");
+ await pause(250);
+ const drag=async(point,distance)=>{await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:point.x,y:point.y}]});for(let i=1;i<=12;i++){await send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:point.x,y:point.y+distance*i/12}]});await pause(20);}await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});};
  for(const section of ['hard','soft']){
   const locate="(()=>{const body=document.getElementById('appMenuBody'),wrapper=document.getElementById('"+section+"Wrap');body.scrollTop=wrapper.offsetTop-body.offsetTop;const b=body.getBoundingClientRect(),input=[...wrapper.querySelectorAll('input[data-rot-field^=cell-]')].find(e=>{const r=e.getBoundingClientRect();return r.top>b.top+180&&r.bottom<b.bottom-80;}),r=input.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,before:body.scrollTop,chain:getComputedStyle(wrapper).overscrollBehaviorY,parentOverflow:getComputedStyle(body).overflowY,parentHeight:body.clientHeight,parentContent:body.scrollHeight};})()";
   const start=await evaluate(locate);assert.equal(start.chain,'auto','vertical table scroll must chain to the menu');
-  await send('Input.synthesizeScrollGesture',{x:start.x,y:start.y,yDistance:-180,gestureSourceType:'touch',speed:400});
+  await pause(150);
+  start.hit=await evaluate('document.elementFromPoint('+start.x+','+start.y+').outerHTML');
+  await drag(start,-180);
   await pause(200);
   const down=await evaluate("document.getElementById('appMenuBody').scrollTop");assert(down>start.before+60,section+' touch over name did not scroll down '+JSON.stringify({start,down}));
   const point=await evaluate("(()=>{const body=document.getElementById('appMenuBody'),inputs=[...document.querySelectorAll('#"+section+"Wrap input[data-rot-field^=cell-]')],b=body.getBoundingClientRect(),input=inputs.find(e=>{const r=e.getBoundingClientRect();return r.top>b.top+100&&r.bottom<b.bottom-60;}),r=input.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()");
-  await send('Input.synthesizeScrollGesture',{x:point.x,y:point.y,yDistance:140,gestureSourceType:'touch',speed:400});await pause(200);
+  await pause(150);await drag(point,140);await pause(200);
   const up=await evaluate("document.getElementById('appMenuBody').scrollTop");assert(up<down-50,section+' touch over name did not scroll up');
  }
  console.log('[17067-browser] PASS Chromium Android touch emulation: dragging over MO/TO names scrolls the parent menu down and up');
