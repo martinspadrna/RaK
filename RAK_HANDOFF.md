@@ -2,9 +2,13 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 13. 10. 2026 — TEST 2.0.16 mírně širší jména (ověření probíhá)
+## 13. 10. 2026 — TEST 2.0.16 mírně širší jména (100 % automatické ověření a nasazení)
 
-Vlastník žádá jména trochu širší, méně než původně. Maximum col48/input46 → col50/input48px; původní col52/input50px se nevrací. MO i TO: datum col74/input72px zachováno, pro5strojů tablemax324px místo314px; na užším obalu pružné zúžení a Android scroll chaining zachováno. Pouze TEST, žádné main/PROD/backend zápisy. Runtime/cache2.0.16/buildrelease1/epochv216. Browser geometry guards upraveny na nové maximum; úzké obaly260–350px a nativní dotyk nahoru/dolů nadále povinné. Rollback2.0.15/dpl_AQZUv3Yo571BsLUEPgKcQ9fnSKXz. Automatické ověření/nasazení čeká.
+Vlastník žádá jména trochu širší, méně než původně. Maximum col48/input46 → col50/input48px, původní col52/input50 se nevrací. Obě MO/TO tabulky tablemax324px pro5strojů (předtím314px), při užším obalu pružně menší. Datum col74/input72px a Android svislé scroll chaining zachovány. Výpočty/data/role/uložení nezměněny. Změněny skutečné render výrazy, nikoli další CSS override. Runtime/cache2.0.16/buildrelease1/epochv216. Pouze TEST, main/PROD/backend bez zápisu.
+
+Source SHA 526f0a977ac808743ec57af07f45d7c111c21878; CI 38453608898 attempt1 SUCCESS verify + release-preview. npm check a kritické/runtime/role/CAS původní gates PASS. Dvě čisté exact-SHA canonical sestavy166souborů: stable digest bac1370640de3d19c5fe511e409ed218a22c6f039aa4e421b6e7dd395a261939; source unchanged. Chromium MO=TO, všech5strojů bez horizontálního scrollu pro obaly260/280/300/320/350px, celý datum/N8 suffix při16px PASS. Přímé Android-emulované touchStart/touchMove/touchEnd přes jména posouvají rodičovské menu nahoru i dolů v MO/TO PASS. Offline/update recovery, ZIP/CRC a výkon/parita PASS; FCPp50current320/baseline316ms, P90current336/baseline344ms. StartupCore471312/limit471314B, prahy nezměněny; další přidávání startupCSS vyžaduje zmenšení/odložení (poznámka2.0.15 dál platí). Fyzický telefon vlastníka/kolegy čeká na přejímku.
+
+TEST READY dpl_BUQ5h66SemhL1p2oFvH9yiKD3QZH; immutable https://skoda-spada-flby9l9un-martinspadrnas-projects.vercel.app; veřejný stabilní TEST https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/ . Nezávislé HTTP200 a exact-byte13klíčovýchsouborů PASS včetně editoru a3CSS. Rollback2.0.15/dpl_AQZUv3Yo571BsLUEPgKcQ9fnSKXz kompatibilní. Main stáledda626a2c0838af1fffde039b8bbea2eedd6b54d, PROD2.0.3/source61b04d7394746f28623b453be9cb710655c16c77/READYdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN.
 
 ## 13. 10. 2026 — TEST 2.0.15 úzký mobil MO/TO a Android scroll (100 % automatické ověření a nasazení)
 
