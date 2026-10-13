@@ -2,9 +2,18 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 13. 10. 2026 — TEST 2.0.13 oddělení MO/TO (ověření probíhá)
+## 13. 10. 2026 — TEST 2.0.13 oddělení MO/TO (100 % automatické ověření a nasazení)
 
-Pouze TEST. Screenshot vlastníka18:56 požaduje viditelné rozdělení závěru MO/TO. Scoped pseudo-element na druhé fieldGroup:3px světlá svislá čára v10px mezeře, TO align-self stretch přes celou výšku MO a align-content start pro zachování pozic polí. Nezmenšuje šířku vstupů, MO vlevo/TO vpravo. Jen CSS; datové keys/souhrny/počty/role beze změny. Aktualizovaný Chromium fixture kontroluje plnou výšku oddělovače i zarovnání vstupů. Runtime/cache2.0.13/buildrelease1/epochv213. Backend/main/produkce bez změn. TESTrollback2.0.12 dpl_3dmRMnw7E9J7ryRB7tSvRZFWfMBq kompatibilní. Automatické ověření/nasazení čeká.
+Pouze TEST. Screenshot vlastníka18:56 požaduje viditelné rozdělení závěru MO/TO. Scoped pseudo-element na druhé fieldGroup:3px světlá svislá čára v10px mezeře, TO align-self stretch přes celou výšku MO a align-content start pro zachování pozic polí. Nezmenšuje šířku vstupů, MO vlevo/TO vpravo. Jen CSS; datové keys/souhrny/počty/role beze změny. Aktualizovaný Chromium fixture kontroluje plnou výšku oddělovače i zarovnání vstupů. Runtime/cache2.0.13/buildrelease1/epochv213. Backend/main/produkce bez změn. TESTrollback2.0.12 dpl_3dmRMnw7E9J7ryRB7tSvRZFWfMBq kompatibilní. Automatické ověření/nasazení dokončeno; fyzická přejímka vlastníkem čeká.
+
+### TEST 2.0.13 — dokončený důkaz
+
+- SourceSHA `7be4dfee8b6d42033e6e70c1b278275501fac978`, runtime/cache2.0.13/buildrelease1/epochv213. CI [38435208341](https://github.com/martinspadrna/RaK/actions/runs/38435208341) attempt1 SUCCESS verify/release-preview.
+- Dvě čisté exact-SHA canonical sestavy166souborů, digest `977af7951f1ef962af095315eaf90332744356084d83772a5ee90acb12cd7eaf`, source unchanged; všechny původní gates a npm check PASS bez změny limitů. Místní první build kolidoval s předčasně spuštěným druhým (cwd odstraněn v izolovaném workdir); následně dva čisté sekvenční PASS, raw source nedotčený. Nespoléhat na souběžné canonical builds.
+- Chromium320/390/768/1366px PASS: TO group roztažená na výšku MO, scoped3px pseudo divider v mezeře, MO/TO vstupy stále přesně srovnané; celý původní route/draft/summary/current-clear/role/overflow fixture PASS.
+- READY `dpl_BkMN4kJih5qdXeZx3dCBqo2LzkKm`, exactSHA, immutable <https://skoda-spada-dz2seiiil-martinspadrnas-projects.vercel.app>; veřejný TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200/exactbyte9assetů index/metadata/SW/app/core/About/overview/config/manifest PASS; metadata2.0.13, config pouzeTESTcgshssdjgzzuprlwnabl.
+- Main pre/postdda626a2c0838af1fffde039b8bbea2eedd6b54d, produkčníaliasREADYdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN nezměněné. Žádné main/produkční/DB/Edge zápisy. TESTrollback2.0.12 dpl_3dmRMnw7E9J7ryRB7tSvRZFWfMBq kompatibilní. Automatické ověření/nasazení100 %, vlastníkův vizuální test na iPhonu čeká.
 
 ## 13. 10. 2026 — TEST 2.0.12 prázdné počítadlo a aktuální směna (100 % automatické ověření a nasazení)
 
