@@ -1,3 +1,7 @@
+## RaK 2.0.11 (development)
+
+- Svislé vystředění data: výška řádku a zarovnání vnitřní hodnoty ovladače Safari.
+
 ## RaK 2.0.10 (development)
 
 - Datum vystředěné. Obrábění/Do skladu přejmenované na Závěr. V souhrnu kompaktní brusy a pod nimi výsledky MO/TO ze závěru, pouze indexy s nenulovým výsledkem.

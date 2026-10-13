@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.11 svislé datum Safari (ověření probíhá)
+
+Pouze TEST. Screenshot vlastníka05:08 na iPhonu ukazuje datum vodorovně uprostřed, svisle nahoře. Výška ovladače44px necentrovala vnitřní Safari date-and-time-value. Cílená line-height40px a WebKit value flex center/min-height40px; calendar indicator top50% s transform. Native date zůstává viditelný a editovatelný, role/picker/draft a data beze změny. Runtime/cache2.0.11/buildrelease1/epochv211. Backend/main/produkce bez změn. TEST rollback2.0.10 dpl_H2UPi77A3f514TivdtM5Fm3uaXTa kompatibilní. Automatické ověření a nasazení čeká; fyzická iPhone přejímka po opravě vlastníkem.
+
 ## 13. 10. 2026 — TEST 2.0.10 kompaktní výsledky a datum (100 % automatické ověření a nasazení)
 
 Pouze TEST. Datum zůstává viditelný native date input, text-align center plus WebKit value/edit centering a calendar indicator mimo tok vpravo. Obrábění/Do skladu nově Závěr; existující data keys MOFree/MOPress/TO zachované. Souhrn vpravo dole: brusy mají jen aktivní indexy podle nenulového vyhodnoceného počtu Free/Press, neaktivní stroje i prázdné/0 řádky vynechány. Za nimi Obrábění · závěr s MO Volné, MO Pod lisem a TO, rovněž jen nenulové indexy. Původní inventurní tabulka/součty beze změny; filtrování je pouze prezentace, data se nemažou. Dynamické pozice/výška, poznámky pod oběma tabulkami bez překryvu. Runtime/cache2.0.10/buildrelease1/epochv210. Backend/main/produkce bez změn. TEST rollback2.0.9 dpl_8WXPSgnNpQLFvaxyy4CuBnhXcryo kompatibilní. První CI38337548661/SHA11f78e12 blokováno chybným očekáváním browser fixture: v okamžiku prvního souhrnu vyplněn pouzeAF, očekávánoAG+AF. Produkční filtr správně vynechalAG. Opraven pouze test: nejdříveAF, po pozdějším vyplněníAG musíAG+AF. Runtime beze změny; nasazení prvního kandidáta správně skipped. Následný fixture opraven i pro vynechání neaktivního brusu; finální automatické ověření a nasazení dokončeno.

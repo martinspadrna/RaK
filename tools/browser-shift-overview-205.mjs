@@ -62,7 +62,7 @@ function probe(width){
   check(draft.record.nitrogen==='15.5'&&draft.record.oam.rows.ag.stock==='192','synchronous draft');
   api.render(body);check(order()===night&&value('oam.rows.ag.op1020')==='576','reopen draft');
   const dateInput=body.querySelector('[data-shift-overview-date]');
-  check(getComputedStyle(dateInput).textAlign==='center','centered native date');
+  check(getComputedStyle(dateInput).textAlign==='center'&&getComputedStyle(dateInput).lineHeight==='40px','centered native date');
   check(getComputedStyle(dateInput).opacity==='1'&&getComputedStyle(dateInput).pointerEvents==='auto'&&!dateInput.disabled&&!dateInput.readOnly,'visible editable native date');
   const dateBox=dateInput.getBoundingClientRect();check(dateBox.height>=43&&document.elementFromPoint(dateBox.left+dateBox.width/2,dateBox.top+dateBox.height/2)===dateInput,'date tap target');
   let pickerCalls=0;dateInput.showPicker=()=>pickerCalls++;dateInput.click();check(pickerCalls===1,'whole date opens picker');
