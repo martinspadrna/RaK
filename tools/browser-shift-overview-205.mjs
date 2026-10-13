@@ -28,7 +28,8 @@ function probe(width){
   edit('oam.rows.ag.op1020','320+256');check(value('oam.rows.ag.op1020')==='576','arithmetic');
   edit('oam.rows.ag.op145','5');body.querySelector('[data-shift-overview-multiply="oam.rows.ag.op145"]').click();check(value('oam.rows.ag.op145')==='320','multiplier');
   const producedFields=[...body.querySelectorAll('[data-shift-overview-field^="oam.rows.ag.produced"]')].map(el=>el.dataset.shiftOverviewField);
-  check(producedFields.join(',')==='oam.rows.ag.producedMO,oam.rows.ag.producedTO','MO left, TO right');
+  check(producedFields.join(',')==='oam.rows.ag.producedMOFree,oam.rows.ag.producedMOPress,oam.rows.ag.producedTO','MO left, TO right');
+  edit('oam.rows.ag.producedMOFree','32');edit('oam.rows.ag.producedMOPress','64');
   edit('oam.rows.ag.stock','192');edit('oam.rows.ag.producedTO','64');edit('oam.rows.af.groundTBKR07Free','32');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25,'all units active initially');
   for(const id of [1,2,3])body.querySelector('[data-running-ald="'+id+'"][data-running-unit="2"]').click();
@@ -46,11 +47,13 @@ function probe(width){
   check(value('nitrogen')==='13'&&value('lastBatch.ald3')==='300','hidden values restored');
   edit('nitrogen','15.5');choose('D:nocni12');check(order()===night,'manual night route');
   check(value('oam.rows.ag.op1020')==='576'&&value('oam.rows.ag.op145')==='320','hidden flow preserved');
+  check(value('oam.rows.ag.producedMOFree')==='32'&&value('oam.rows.ag.producedMOPress')==='64','independent MO free and press survive switch');
   check(value('oam.rows.ag.producedTO')==='64'&&value('oam.rows.af.groundTBKR07Free')==='32','route inputs preserved');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'disabled units preserved');
   check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','both last batches preserved');
   const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
   check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
+  check(summary.includes('data-summary-grinder="TBKR01"')&&summary.includes('data-summary-grinder="TBKR07"')&&summary.includes('Nabroušeno · brusy'),'grinding summary');
   check(summary.includes('Čísla posledních vsázek')&&summary.includes('data-summary-last-batches="ald1-ald2-ald3"')&&['100','200','300'].every(n=>summary.includes('>'+n+'</text>')),'last batch numbers in final summary');
   const draft=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
   check(draft.record.nitrogen==='15.5'&&draft.record.oam.rows.ag.stock==='192','synchronous draft');
@@ -64,6 +67,7 @@ function probe(width){
   api.render(body);check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&value('lastBatch.ald3')==='300','manual date and data survive reopen');
   choose('D:ranni12');check(value('nitrogen')==='15.5','reopen morning values');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'disabled identities survive reopen');
+  check(value('oam.rows.ag.producedMOFree')==='32'&&value('oam.rows.ag.producedMOPress')==='64','MO free/press survive date and reopen');
   const square=body.querySelector('[data-running-unit]');check(Math.abs(square.getBoundingClientRect().width-44)<1&&Math.abs(square.getBoundingClientRect().height-44)<1,'numbered squares');
   check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','morning last batches');
   edit('oam.rows.ag.groundTBKR01Free','32');edit('oam.rows.ag.groundTBKR01Press','64');check(value('oam.rows.ag.groundTBKR01Free')==='32'&&value('oam.rows.ag.groundTBKR01Press')==='64','independent free and press');

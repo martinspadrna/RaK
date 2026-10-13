@@ -1,3 +1,7 @@
+## RaK 2.0.9 (development)
+
+- Do skladu má MO vlevo se samostatnými poli Volné/Pod lisem, TO vpravo. Vpravo dole v souhrnu přehled nabroušených kusů TBKR01/07 podle indexu a Volné/Pod lisem, součty za brus. Původní inventurní součty zachované.
+
 ## RaK 2.0.8 (development)
 
 - Prázdný místní přehled se otevře pro aktuální směnu; datum lze ručně změnit viditelným nativním ovladačem. Vyplněné návrhy a rozpracované ukládání zachované. Do skladu: MO vlevo, TO vpravo.

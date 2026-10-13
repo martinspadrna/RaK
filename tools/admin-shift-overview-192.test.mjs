@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.8'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.8-release1'"));
-  assert.ok(index.includes("var e='v208',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.8-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.9'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.9-release1'"));
+  assert.ok(index.includes("var e='v209',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.9-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.8'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.9'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -230,7 +230,7 @@ test('morning overview renders three active indices without duplicate or archive
   assert.ok(!body.innerHTML.includes('AD / AG'));
   assert.ok(!body.innerHTML.includes('aar.matrix.turning.adAg'));
   assert.ok(!body.innerHTML.includes('oam.rows.ad.'));
-  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 21);
+  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 24);
   assert.equal((body.innerHTML.match(/data-shift-overview-field="inputs.rows./g) || []).length, 18);
   assert.ok(!body.innerHTML.includes('<details'));
   assert.ok(!body.innerHTML.includes('data-shift-overview-field="process.rows.'));
@@ -546,7 +546,7 @@ test('morning and night section order matches the supplied counting routes', () 
   assert.deepEqual([...html.matchAll(/data-shift-overview-section="([^"]+)"/g)].map(m=>m[1]),expected);
   const paths=[...html.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m=>m[1]);
   assert.equal(new Set(paths).size,paths.length);
-  for(const key of ['producedTO','producedMO','groundTBKR01Free','groundTBKR01Press','groundTBKR07Free','groundTBKR07Press'])
+  for(const key of ['producedTO','producedMOFree','producedMOPress','groundTBKR01Free','groundTBKR01Press','groundTBKR07Free','groundTBKR07Press'])
    for(const index of ['ag','af','ah'])assert.ok(paths.includes('oam.rows.'+index+'.'+key));
   assert.equal((html.match(/data-running-unit=/g)||[]).length,25);
   assert.equal((html.match(/aria-pressed="true"/g)||[]).length,25);
@@ -599,3 +599,18 @@ test('manual shift changes preserve hidden quantities, drafts, history and the o
  for(const machine of ['groundTBKR01','groundTBKR07'])for(const type of ['Free','Press'])
  assert.ok(html.includes('data-shift-overview-field="oam.rows.ag.'+machine+type+'"'));
  });
+
+
+test('grinding summary reports exact machine/index/type quantities and keeps inventory totals separate',()=>{
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{ag:{stock:'100',groundTBKR01Free:'32',groundTBKR01Press:'64',groundTBKR07Press:'20',producedMO:'888',groundTBKR01:'999'},af:{groundTBKR01Free:'8+8',groundTBKR07Free:'10'}}}});
+ const svg=api.summarySvg(record),clean=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{ag:{stock:'100'}}}});
+ const production=value=>value.match(/<g data-summary-production="whole"[\s\S]*?<\/g><g transform=/)[0];
+ assert.equal(production(svg),production(api.summarySvg(clean)));
+ for(const machine of ['TBKR01','TBKR07'])assert.ok(svg.includes('data-summary-grinder="'+machine+'"'));
+ const first=svg.split('data-summary-grinder="TBKR01"')[1].split('</g>')[0];
+ for(const value of ['32','64','16','48'])assert.ok(first.includes('>'+value+'</text>'),value);
+ assert.ok(svg.includes('Nabroušeno · brusy'));assert.ok(!svg.includes('>888</text>'));assert.ok(!svg.includes('>999</text>'));
+});

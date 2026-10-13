@@ -56,7 +56,7 @@ test('empty previous morning draft selects the current overnight context without
 });
 test('zero, hidden production, notes, disabled units and pending saves survive opening a later shift',()=>{
  const f=fixture(),defaults={date:'2026-10-13',shift:'D:ranni12'};
- for(const set of [r=>r.nitrogen='0',r=>r.oam.rows.ag.stock='32',r=>r.oam.rows.ag.groundTBKR01Free='0',r=>r.notes='note',r=>r.ald[0].inactiveUnits=[2],r=>r.calculations={'nitrogen':{expression:'1-1',result:'0',factor:1}}]){
+ for(const set of [r=>r.nitrogen='0',r=>r.oam.rows.ag.stock='32',r=>r.oam.rows.ag.groundTBKR01Free='0',r=>r.oam.rows.ag.producedMOFree='0',r=>r.oam.rows.ag.producedMOPress='32',r=>r.notes='note',r=>r.ald[0].inactiveUnits=[2],r=>r.calculations={'nitrogen':{expression:'1-1',result:'0',factor:1}}]){
   const record=f.api.defaultRecord('2026-10-12','D:nocni12');set(record);const draft={record,revision:3,mutationId:''};
   assert.equal(f.api.draftHasContent(record),true);assert.equal(f.api.draftForOpening(draft,defaults),draft);
  }
