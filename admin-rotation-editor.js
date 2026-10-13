@@ -868,7 +868,7 @@ function buildAdminAbsenceColgroupHtml() {
   return '<colgroup>' +
     '<col style="width:55px;">' +
     '<col style="width:106px;">' +
-    '<col style="width:32px;">' +
+    '<col style="width:84px;">' +
     '</colgroup>';
 }
 

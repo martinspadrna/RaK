@@ -34,7 +34,7 @@ const publicStart=start('rotace.js','    // RAK_17061_PUBLIC_ABSENCE_LAYOUT:',
   '    for (let i = 0; i < maxPairs; i += 1) {','absenceHtml');
 const adminStart=start('admin-rotation-editor.js','  // RAK_17061_ADMIN_ABSENCE_LAYOUT:',
   '  for (let i = 0; i < maxPairs; i += 1) {','html');
-const styles=['styles.css','styles-inline-legacy.css']
+const styles=[...fs.readFileSync(path.join(ROOT,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1])
   .map(file=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(ROOT,file)).href+'">').join('');
 const html=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">${styles}
 <style>.rakProbeWrap{width:350px;max-width:calc(100vw - 24px);overflow-x:auto;}</style>
@@ -46,10 +46,10 @@ const html=`<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta nam
 <thead><tr><th>Datum</th><th>MSKC01</th><th>MSKC03</th></tr></thead>
 <tbody><tr><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-rot-field="date" value="19.10. N"></div></td><td><input class="appMenuInlineInput" data-rot-field="cell-0" value="Pecha"></td><td><input class="appMenuInlineInput" data-rot-field="cell-1" value="Novotný"></td></tr></tbody></table></div>
 <div class="rakProbeWrap"><table class="appMenuTable appMenuAdminTable appMenuAdminAbsenceTable">
-<colgroup><col style="width:55px"><col style="width:106px"><col style="width:32px"></colgroup>
+<colgroup><col style="width:55px"><col style="width:106px"><col style="width:84px"></colgroup>
 <thead><tr><th>Datum</th><th>Jméno</th><th>Kód</th></tr></thead>
-<tbody><tr><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-note-field="date" value="19.10. N"></div></td><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-note-field="person" value="Špadrna"></div></td><td><input class="appMenuInlineInput" data-note-field="code" value="NV"></td></tr></tbody></table></div>
-</div></div><pre id="rak-probe">WAIT</pre>
+<tbody><tr><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-note-field="date" value="19.10. N"></div></td><td><div class="appMenuInlineFieldWrap"><input class="appMenuInlineInput" data-note-field="person" value="Špadrna"></div></td><td><input class="appMenuInlineInput" data-note-field="code" list="adminAbsenceCodeOptions" value="NV"></td></tr></tbody></table></div>
+<datalist id="adminAbsenceCodeOptions"><option value="NV"><option value="Lázně"></datalist></div></div><pre id="rak-probe">WAIT</pre>
 <script>
 window.addEventListener('load',()=>setTimeout(()=>{
  const rect=e=>e.getBoundingClientRect();
@@ -66,11 +66,14 @@ window.addEventListener('load',()=>setTimeout(()=>{
  const rot=document.querySelector('.appMenuAdminRotationTable');
  const abs=document.querySelector('.appMenuAdminAbsenceTable');
  const rotCells=Array.from(rot.rows[1].cells),absCells=Array.from(abs.rows[1].cells);
+ const code=abs.querySelector('[data-note-field="code"]'),codeInitial=measure(code);
+ code.focus();code.blur();const codeAfterBlur=measure(code);code.value='Lázně';const codeLong=measure(code);
  document.querySelector('#rak-probe').textContent=JSON.stringify({
    public:summary(document.querySelector('#public')),admin:summary(document.querySelector('#preview')),
    rotDate:measure(rot.querySelector('[data-rot-field="date"]')),
    absDate:measure(abs.querySelector('[data-note-field="date"]')),
-   absName:rect(abs.querySelector('[data-note-field="person"]')).width,
+   absName:rect(abs.querySelector('[data-note-field="person"]')).width,codeInitial,codeAfterBlur,codeLong,
+   codeOwnOverlap:rect(code).right>rect(absCells[2]).right+1,
    rotCell:rect(rotCells[0]).width,absDateCell:rect(absCells[0]).width,absNameCell:rect(absCells[1]).width,
    rotOverlap:rect(rotCells[0].querySelector('input')).right>rect(rotCells[1]).left+1,
    absOverlap:rect(absCells[0].querySelector('input')).right>rect(absCells[1]).left+1,
@@ -107,6 +110,10 @@ try{
   assert(data.rotDate.content>=data.rotDate.text+1&&data.absDate.content>=data.absDate.text+1,
     '[17061-browser] full date and shift text must fit '+JSON.stringify({rot:data.rotDate,absence:data.absDate}));
   assert(!data.rotOverlap&&!data.absOverlap&&!data.codeOverlap,'[17061-browser] fields overlap neighbouring cells');
+  assert(data.codeInitial.width>=81&&data.codeInitial.font>=16&&!data.codeOwnOverlap,'[absence-code] readable code control inside its column');
+  assert(data.codeInitial.content>=data.codeInitial.text+20&&data.codeLong.content>=data.codeLong.text+20,'[absence-code] NV and Lázně fit immediately with space for datalist arrow');
+  assert.equal(data.codeInitial.width,data.codeAfterBlur.width,'[absence-code] width must be correct before focus/blur');
+  assert.equal(data.codeInitial.font,data.codeAfterBlur.font,'[absence-code] font must be correct before focus/blur');
   assert(data.docWidth<=data.viewport+4,'[17061-browser] document overflows instead of table scrolling');
   console.log('[17061-browser] PASS Chromium: public/admin absence geometry; MO/TO '+String(data.rotDate.width)+'px, absence '+String(data.absDate.width)+'px; full date+shift at 16px, no overlap');
 }catch(e){console.error('[17061-browser] FAIL '+e.stack);process.exitCode=1;}

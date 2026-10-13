@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.14 čitelné kódy absence (ověření probíhá)
+
+Pouze TEST. Administrace/Rozpisy/Absence kódy při prvním zobrazení nečitelné, po focus/blur dle vlastníka čitelné. Autoritativní legacy CSS s vyšší specificitou drželo code input28px a col32px, přebilo editorové min54px; zvětšen právě tento blok, ne další překrývající záplata. Code col84px/input82px,16px font,4px padding, prostor pro nativní datalist arrow. Table min256px místo204px; datum/jméno šířky zachované a tabulka může scrollovat ve wrapperu. Colgroup editoru sjednocen code84px. Původní picker/manual entry/normalizace/role/uložení nezměněné. Existující Chromium absence fixture nyní používá všechny app stylesheets a měří čitelnost NV/Lázně předfocus a pofocus/blur včetně rezervy na arrow a overlap. Runtime/cache2.0.14/buildrelease1/epochv214. Backend/main/produkce bez změn. TESTrollback2.0.13 dpl_BkMN4kJih5qdXeZx3dCBqo2LzkKm kompatibilní. Automatické ověření/nasazení čeká.
+
 ## 13. 10. 2026 — TEST 2.0.13 oddělení MO/TO (100 % automatické ověření a nasazení)
 
 Pouze TEST. Screenshot vlastníka18:56 požaduje viditelné rozdělení závěru MO/TO. Scoped pseudo-element na druhé fieldGroup:3px světlá svislá čára v10px mezeře, TO align-self stretch přes celou výšku MO a align-content start pro zachování pozic polí. Nezmenšuje šířku vstupů, MO vlevo/TO vpravo. Jen CSS; datové keys/souhrny/počty/role beze změny. Aktualizovaný Chromium fixture kontroluje plnou výšku oddělovače i zarovnání vstupů. Runtime/cache2.0.13/buildrelease1/epochv213. Backend/main/produkce bez změn. TESTrollback2.0.12 dpl_3dmRMnw7E9J7ryRB7tSvRZFWfMBq kompatibilní. Automatické ověření/nasazení dokončeno; fyzická přejímka vlastníkem čeká.

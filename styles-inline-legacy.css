@@ -799,7 +799,7 @@ html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenu
   padding-left:4px !important;padding-right:2px !important;text-align:left !important;
 }
 html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable {
-  min-width:204px !important;
+  min-width:256px !important;
 }
 html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(1) {
   width:86px !important;
@@ -808,7 +808,7 @@ html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenu
   width:86px !important;
 }
 html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable col:nth-child(3) {
-  width:32px !important;
+  width:84px !important;
 }
 html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="date"] {
   box-sizing:border-box !important;width:84px !important;min-width:84px !important;max-width:84px !important;
@@ -819,8 +819,8 @@ html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenu
   padding-left:2px !important;padding-right:1px !important;
 }
 html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminAbsenceTable input[data-note-field="code"] {
-  box-sizing:border-box !important;width:28px !important;min-width:28px !important;max-width:28px !important;
-  margin-left:0 !important;padding-left:1px !important;padding-right:1px !important;
+  box-sizing:border-box !important;width:82px !important;min-width:82px !important;max-width:82px !important;
+  margin-left:0 !important;padding-left:4px !important;padding-right:4px !important;font-size:16px !important;text-align:center !important;
 }
 /* END_RAK_17061_ABSENCE_CSS */
 

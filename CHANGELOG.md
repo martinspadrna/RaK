@@ -1,3 +1,7 @@
+## RaK 2.0.14 (development)
+
+- Širší zadávání kódů absence v Administrace/Rozpisy, čitelné hned po otevření včetně NV a Lázně.
+
 ## RaK 2.0.13 (development)
 
 - Výrazná svislá čára odděluje MO a TO v závěru po celé výšce každého indexu.
