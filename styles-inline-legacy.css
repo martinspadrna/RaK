@@ -867,7 +867,7 @@ html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenu
 }
 /* END_RAK_17066_COMPACT_MO_GRID */
 
-/* RAK_17067_EQUAL_MO_TO_GRID: MO/TO fit the wrapper; max 314px for five names. */
+/* RAK_17067_EQUAL_MO_TO_GRID: MO/TO fit the wrapper; max 324px for five names. */
 html body #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuAdminRotationTable[data-daymod-section] {
 box-sizing:border-box !important;width:min(100%,var(--rak-grid-width)) !important;
 min-width:0 !important;max-width:100% !important;

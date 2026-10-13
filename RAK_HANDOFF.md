@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 13. 10. 2026 — TEST 2.0.16 mírně širší jména (ověření probíhá)
+
+Vlastník žádá jména trochu širší, méně než původně. Maximum col48/input46 → col50/input48px; původní col52/input50px se nevrací. MO i TO: datum col74/input72px zachováno, pro5strojů tablemax324px místo314px; na užším obalu pružné zúžení a Android scroll chaining zachováno. Pouze TEST, žádné main/PROD/backend zápisy. Runtime/cache2.0.16/buildrelease1/epochv216. Browser geometry guards upraveny na nové maximum; úzké obaly260–350px a nativní dotyk nahoru/dolů nadále povinné. Rollback2.0.15/dpl_AQZUv3Yo571BsLUEPgKcQ9fnSKXz. Automatické ověření/nasazení čeká.
+
 ## 13. 10. 2026 — TEST 2.0.15 úzký mobil MO/TO a Android scroll (100 % automatické ověření a nasazení)
 
 Pouze TEST. Screenshot kolegy skutečně přečten: editor Tvrdota v menu měl oříznutý poslední stroj. Měkota i Tvrdota nyní mají datum col74/input72px a pružné jmenné sloupce max48/input46px, celá tabulka pro pět strojů max314px a podle obalu se zúží. Skutečný počet strojů je v CSS proměnné. Datum se zobrazuje např. 19.10.N8 bez mezery, 16px písmo a menší vnitřní odsazení; normalizátor při čtení zachová standardní datum i R/N/R8/N8. Jména/data/funkce nezměněny. Legacy vlastnický blok RAK_17067 změněn a dvě stará nth-of-type pravidla v styles-admin-polish.css vyloučí skutečné RotationTable, aby nevnucovala 324px/min a width:auto. Absence dál drží opravu 2.0.14.

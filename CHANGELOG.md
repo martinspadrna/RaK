@@ -1,3 +1,7 @@
+## RaK 2.0.16 (development)
+
+- Jmenné sloupce měkoty a tvrdoty mírně širší, stále pružné podle displeje.
+
 ## RaK 2.0.15 (development)
 
 - Měkota i tvrdota v editoru mají užší datum/jména a pružnou šířku tabulky podle místa na mobilu.

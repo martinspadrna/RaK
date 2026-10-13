@@ -1042,7 +1042,7 @@ function buildAdminRotationTableHtml(monthKey) {
     buildAdminRotationActionBarHtml('hard'),
     '    <div class="tableWrap appMenuTableWrap">',
     // RAK_17067_EQUAL_GRID_MARKUP / RAK_2015_RESPONSIVE_MO_TO_GRID: equal responsive date/name columns in both sections.
-    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="hard" style="--rak-grid-width:' + String(74 + hardMachines.length * 48) + 'px;--rak-machine-count:' + hardMachines.length + ';">',
+    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="hard" style="--rak-grid-width:' + String(74 + hardMachines.length * 50) + 'px;--rak-machine-count:' + hardMachines.length + ';">',
     '        ' + hardColgroup,
     '        <thead><tr><th>Datum</th>' + hardMachines.map(m => '<th>' + escapeHtml(m) + '</th>').join('') + '</tr></thead>',
     '        <tbody>' + renderRows('hard', hardRows, hardMachines.length) + '</tbody>',
@@ -1054,7 +1054,7 @@ function buildAdminRotationTableHtml(monthKey) {
     buildAdminRotationActionBarHtml('soft'),
     '    <div class="tableWrap appMenuTableWrap">',
     // RAK_17066_SOFT_GRID_MARKUP: date + compact machine columns, no wasted space.
-    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="soft" style="--rak-grid-width:' + String(74 + softMachines.length * 48) + 'px;--rak-machine-count:' + softMachines.length + ';">',
+    '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminRotationTable" data-daymod-section="soft" style="--rak-grid-width:' + String(74 + softMachines.length * 50) + 'px;--rak-machine-count:' + softMachines.length + ';">',
     '        ' + softColgroup,
     '        <thead><tr><th>Datum</th>' + softMachines.map(m => '<th>' + escapeHtml(m) + '</th>').join('') + '</tr></thead>',
     '        <tbody>' + renderRows('soft', softRows, softMachines.length) + '</tbody>',

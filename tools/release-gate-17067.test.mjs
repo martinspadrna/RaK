@@ -18,7 +18,7 @@ test('real TO and MO render expressions generate identical widths for equal mach
   for(const n of [3,4,5,6]){
    const context={[variable]:Array(n).fill('X')};
    const rendered=evaluateExpression(expr,context);
-   assert(rendered.includes(`--rak-grid-width:${74+n*48}px`),section+' bad width for '+n);
+   assert(rendered.includes(`--rak-grid-width:${74+n*50}px`),section+' bad width for '+n);
    assert(rendered.includes(`--rak-machine-count:${n}`),section+' must size the actual machine count');
   }
  }

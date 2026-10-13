@@ -43,7 +43,7 @@ try{
  const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
  const fail=label=>label+' '+JSON.stringify(data);
  for(const sample of data.cases){
- const expectedTable=Math.min(sample.width,314),expectedName=(expectedTable-74)/5;
+ const expectedTable=Math.min(sample.width,324),expectedName=(expectedTable-74)/5;
  for(const section of ['hard','soft']){
   const d=sample[section];assert.equal(d.section,section);
   assert(Math.abs(d.table-expectedTable)<=2,fail(section+' not responsive at '+sample.width));
