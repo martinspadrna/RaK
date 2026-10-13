@@ -2,9 +2,20 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 13. 10. 2026 — TEST 2.0.14 čitelné kódy absence (ověření probíhá)
+## 13. 10. 2026 — TEST 2.0.14 čitelné kódy absence (100 % automatické ověření a nasazení)
 
-Pouze TEST. Administrace/Rozpisy/Absence kódy při prvním zobrazení nečitelné, po focus/blur dle vlastníka čitelné. Autoritativní legacy CSS s vyšší specificitou drželo code input28px a col32px, přebilo editorové min54px; zvětšen právě tento blok, ne další překrývající záplata. Code col84px/input82px,16px font,4px padding, prostor pro nativní datalist arrow. Table min256px místo204px; datum/jméno šířky zachované a tabulka může scrollovat ve wrapperu. Colgroup editoru sjednocen code84px. Původní picker/manual entry/normalizace/role/uložení nezměněné. Existující Chromium absence fixture nyní používá všechny app stylesheets a měří čitelnost NV/Lázně předfocus a pofocus/blur včetně rezervy na arrow a overlap. Runtime/cache2.0.14/buildrelease1/epochv214. Backend/main/produkce bez změn. TESTrollback2.0.13 dpl_BkMN4kJih5qdXeZx3dCBqo2LzkKm kompatibilní. Automatické ověření/nasazení čeká.
+Pouze TEST. Administrace/Rozpisy/Absence kódy při prvním zobrazení nečitelné, po focus/blur dle vlastníka čitelné. Autoritativní legacy CSS s vyšší specificitou drželo code input28px a col32px, přebilo editorové min54px; zvětšen právě tento blok, ne další překrývající záplata. Code col84px/input82px,16px font,4px padding, prostor pro nativní datalist arrow. Table min256px místo204px; datum/jméno šířky zachované a tabulka může scrollovat ve wrapperu. Colgroup editoru sjednocen code84px. Původní picker/manual entry/normalizace/role/uložení nezměněné. Existující Chromium absence fixture nyní používá všechny app stylesheets a měří čitelnost NV/Lázně předfocus a pofocus/blur včetně rezervy na arrow a overlap. Runtime/cache2.0.14/buildrelease1/epochv214. Backend/main/produkce bez změn. TESTrollback2.0.13 dpl_BkMN4kJih5qdXeZx3dCBqo2LzkKm kompatibilní. Automatické ověření/nasazení dokončeno; fyzická přejímka vlastníkem čeká.
+
+### TEST 2.0.14 — dokončený důkaz
+
+- SourceSHA `b27a54a6f66eb6e625ae2ebf5e84b50d8eb1f444`, runtime/cache2.0.14/buildrelease1/epochv214. CI [38441058158](https://github.com/martinspadrna/RaK/actions/runs/38441058158) attempt2 SUCCESS verify/release-preview.
+- Attempt1 blokován pouze FCP P90 896ms nad447ms/baseline372ms; žádné nasazení. Opakovaný exact-SHA běh PASS bez změny kódu/limitů. Kolísání first paint gate zůstává diagnosticky zaznamenané; netvrdit plošně stabilní všechny CI pokusy.
+- Dvě čisté exact-SHA canonical sestavy166souborů, digest `b6fef523774205d489c423f79c440384c02430f5c97209347f4916e68b06a192`, source unchanged; celé npm check a původní gates PASS.
+- Chromium absence fixture se všemi app CSS a native datalist PASS: code input82px,16px font, NV a Lázně se vejdou od prvního zobrazení s20px rezervou pro arrow. Geometry/font předfocus a pofocus/blur stejné, bez překryvu sousedních buněk či document overflow; původní datum/jméno/public/admin summary guards PASS. Původní screenshot bez lokálního souboru, požadavek a následné focus/blur upřesnění textem vlastníka; nedodávat tvrzení fyzického iPhone testu.
+- Změněno vlastnické legacy pravidlo28px/col32 na82px/col84, žádná nová překrývající CSS záplata. Colgroup editoru code84. Picker/manuální zadání/normalizace/role/store beze změny.
+- READY `dpl_6wcfGrPh8GWa58F735qCvnHnZNk2`, exactSHA, immutable <https://skoda-spada-ktqbi4dmn-martinspadrnas-projects.vercel.app>; veřejný TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>.
+- Nezávislé HTTP200/exactbyte11assetů index/metadata/SW/app/core/About/overview/config/manifest + styles-inline-legacy/admin-rotation-editor PASS; metadata2.0.14, config pouzeTESTcgshssdjgzzuprlwnabl.
+- Main pre/postdda626a2c0838af1fffde039b8bbea2eedd6b54d, produkčníaliasREADYdpl_Ze5qSSBVDguR5WUWfru7LdGjtzEN nezměněné. Žádné main/produkční/DB/Edge zápisy. TESTrollback2.0.13 dpl_BkMN4kJih5qdXeZx3dCBqo2LzkKm kompatibilní. Automatické ověření/nasazení100 %, fyzická přejímka čitelnosti hned po otevření vlastníkem čeká.
 
 ## 13. 10. 2026 — TEST 2.0.13 oddělení MO/TO (100 % automatické ověření a nasazení)
 
