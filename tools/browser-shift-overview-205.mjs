@@ -29,9 +29,10 @@ function probe(width){
   edit('oam.rows.ag.op145','5');body.querySelector('[data-shift-overview-multiply="oam.rows.ag.op145"]').click();check(value('oam.rows.ag.op145')==='320','multiplier');
   const producedFields=[...body.querySelectorAll('[data-shift-overview-field^="oam.rows.ag.produced"]')].map(el=>el.dataset.shiftOverviewField);
   const mo=body.querySelector('[data-shift-overview-field="oam.rows.ag.producedMOFree"]').closest('.rakShiftOverviewFieldGroup'),to=mo.nextElementSibling;
-  check(Math.abs(mo.getBoundingClientRect().height-to.getBoundingClientRect().height)<1&&getComputedStyle(to,'::before').width==='3px','full-height visible MO/TO divider');
-  check(Math.abs(mo.querySelector('input').getBoundingClientRect().top-to.querySelector('input').getBoundingClientRect().top)<1,'divider preserves aligned inputs');
-  check(producedFields.join(',')==='oam.rows.ag.producedMOFree,oam.rows.ag.producedMOPress,oam.rows.ag.producedTO','MO left, TO right');
+  const moInputs=[...mo.querySelectorAll('input')];
+  check(to.getBoundingClientRect().top>=mo.getBoundingClientRect().bottom&&getComputedStyle(to,'::before').height==='2px','MO and TO are vertically separated');
+  check(moInputs.length===2&&Math.abs(moInputs[0].getBoundingClientRect().top-moInputs[1].getBoundingClientRect().top)<1,'MO free and press remain aligned');
+  check(producedFields.join(',')==='oam.rows.ag.producedMOFree,oam.rows.ag.producedMOPress,oam.rows.ag.producedTO','MO fields first, TO below');
   edit('oam.rows.ag.producedMOFree','32');edit('oam.rows.ag.producedMOPress','64');
   edit('oam.rows.ag.stock','192');edit('oam.rows.ag.producedTO','64');edit('oam.rows.af.groundTBKR07Free','32');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25,'all units active initially');

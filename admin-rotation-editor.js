@@ -1206,6 +1206,7 @@ async function adminRotationConfirmManualRuleOverride(state) {
   const blocking = state && Array.isArray(state.blockingIssues) ? state.blockingIssues : [];
   if (!blocking.length) return true;
 
+  try { adminCloseRotationQuickRemove(); adminCloseAbsenceCodePicker(); } catch (_) {}
   const previous = document.getElementById('adminRotationRuleOverrideModal');
   if (previous) previous.remove();
 
@@ -1223,11 +1224,11 @@ async function adminRotationConfirmManualRuleOverride(state) {
     const title = document.createElement('div');
     title.id = 'adminRotationRuleOverrideTitle';
     title.className = 'adminRotationRuleOverrideTitle';
-    title.textContent = 'Chyba v rozpisu';
+    title.textContent = 'Upozornění na pravidla rozpisu';
 
     const intro = document.createElement('div');
     intro.className = 'adminRotationRuleOverrideIntro';
-    intro.textContent = 'V rozpisu jsou chyby. Můžeš se vrátit a opravit je, nebo rozpis vědomě uložit i přesto.';
+    intro.textContent = 'Ruční úprava porušuje pravidla. Můžeš ji opravit, nebo potvrdit Přesto uložit. Tím neměníš pravidla generátoru.';
 
     const list = document.createElement('div');
     list.className = 'adminRotationRuleOverrideList';
@@ -1295,9 +1296,13 @@ async function saveAdminRotationFromDom(monthKey, options) {
   const opts = options || {};
   const previousRotationSnapshot = app.rotation ? JSON.parse(JSON.stringify(app.rotation)) : null;
   const normalized = opts.normalizedMonth || readAdminRotationFromDom(monthKey);
-  const ruleCheck = opts.ruleCheck || adminRotationValidateMonthRules(normalized, monthKey, { source: opts.manualOverride ? 'manual-save' : 'save' });
+  const ruleCheck = opts.ruleCheck || adminRotationValidateMonthRules(normalized, monthKey, { source: 'manual-save' });
   if (!ruleCheck.ok && opts.allowRuleViolations !== true) {
-    throw new Error('Rozpis nejde uložit: ' + adminRotationFormatRuleIssues(ruleCheck.issues.filter((issue) => issue.severity === 'error')));
+    const blockingIssues = ruleCheck.issues.filter(issue => issue.severity === 'error');
+    if (!await adminRotationConfirmManualRuleOverride({ blockingIssues }))
+      return { normalized, ruleCheck, saveResult: { ok: false, reason: 'user-cancelled' } };
+    opts.manualOverride = true;
+    opts.manualOverrideIssues = blockingIssues;
   }
   const candidateRotation = app.rotation ? JSON.parse(JSON.stringify(app.rotation)) : { months: {} };
   if (!candidateRotation.months) candidateRotation.months = {};

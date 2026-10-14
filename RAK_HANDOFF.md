@@ -2,6 +2,14 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 14. 10. 2026 — TEST 2.0.17 úprava měsíce od data, ruční výjimky a MO/TO pod sebou (ověření/nasazení probíhá)
+
+Pouze TEST. Generátor nabízí „Úprava tohoto měsíce“ s výchozím dneškem a ručně volitelným datem v aktuálním měsíci. Zachovává dřívější řádky a poznámky bajtově, ale započítává je do měsíčních součtů, cyklů a všech dorovnávacích/repair průchodů. Budoucí dny používají stejný výběr směn, absence i import z přiřazeného Google kalendáře; výsledek je jen místní pending draft a online se zapíše až původním tlačítkem Uložit rozpis. Když zmrazená minulost nebo budoucí nemoc objektivně znemožní absolutní měsíční rovnost TNKS/solo frézky, všechny dostupné dorovnávací průchody se provedou a zbytek se zobrazí jako upozornění; nové kvalifikační, personální a zakázané návaznosti zůstávají blokující. Přímý parametr monthKey odstranil skrytou závislost dorovnání solo frézky na starším runtime wrapperu.
+
+Ruční uložení nyní i ve výchozím save entrypointu vyhodnotí TNKS01 i dvě solo frézky po sobě, ukáže upozornění a umožní „Přesto uložit“. Zrušení nic nezapisuje; potvrzení neobchází admin oprávnění, lokální bezpečnostní návrh, CAS ani síťový výsledek. Modal zavírá překryvné pickery, je nad nimi a akce zůstávají dosažitelné na úzkém telefonu. Přehled směny má v Obrábění/Závěr MO (Volné, Pod lisem) a pod ním oddělené TO; datové klíče a výsledný souhrn jsou beze změny.
+
+Lokálně PASS celé npm check, 40 cílených overview+generator kontrol a skutečný runtime VM scénář nemoci 12.–25. včetně zachování 1.–11., importu DTEND exclusive, bez online zápisu, ručního zrušení/potvrzení a fail-closed auth/network. Skutečný Chromium test generátoru/modalu a aktualizovaný mobile overview gate jsou přidány do povinného CI; dokončení důkazu a TEST deployment čeká. Verze 2.0.17/epoch v217. Main/prod zůstávají 2.0.16/READY dpl_9ao7ZSa67YqBKViatD649G5vqyhw bez zápisu; DB/Edge beze změny.
+
 ## 14. 10. 2026 — RaK 2.0.16 převeden na main a produkci (100 % automatické ověření a nasazení)
 
 Vlastník výslovně schválil „Ok dej test na main a produkci“ a upřesnil O aplikaci bez TEST i bez dnešního data, stačí popis verze2. Převod dokončen. Main funkční SHA 5fbf51b00bf407fe1744d0a3b17405fe63a3d090 má celý ověřený runtime/CSS TESTu2.0.16 (devfunctional526f0a977ac808743ec57af07f45d7c111c21878, schválený devHEAD1378a659266ccdd55f8fd9c9e9ef4d316bc9e9f1). Runtime rozdíl protiTESTu pouze app-menu-pages.js (neutrální O aplikaci) a supabase-config.js (produkční projektbkqamcbkiwumsvelahxr). V sekci RaK2 publishedprázdné, žádné TEST ani nové datum, původní krátký popis zachován. Runtime/cache/build2.0.16/release1/epochv216 stejně jakoTEST. Produkční environment guardy/auditované workflow obnoveny z původního main; produkční migrační SQL/lock zachovány. Žádná změna DB, Edge, dat ani funkcí.

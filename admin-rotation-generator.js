@@ -584,6 +584,34 @@ function adminPickRotationGeneratorName(model, sectionKey, machineIdx, rowIdx, u
   return best;
 }
 
+// A suffix rebuild counts the whole month but may only change selected future rows.
+const adminRotationGeneratorMutableDates = new WeakMap();
+function adminRotationGeneratorCanEditRow(month, rowIdx) {
+  const dates = adminRotationGeneratorMutableDates.get(month);
+  if (!dates) return true;
+  const row = (month.hard && month.hard.rows || [])[rowIdx] || (month.soft && month.soft.rows || [])[rowIdx];
+  return !!row && dates.has(String(row.date || '').trim());
+}
+
+function adminRotationGeneratorRememberRow(month, rowIdx, model, counters) {
+  const rules = getAdminRotationGeneratorRules();
+  ['hard', 'soft'].forEach(section => {
+    const row = (month[section] && month[section].rows || [])[rowIdx];
+    const headers = section === 'hard' ? HARD_MACHINE_HEADERS : SOFT_MACHINE_HEADERS;
+    (row && row.cells || []).forEach((value, idx) => {
+      const name = adminRotationCanonicalName(value, model.knownNames), machine = headers[idx];
+      if (!name || !machine) return;
+      adminRotationGeneratorMarkAssignment(counters, section, machine, name, section === 'soft' ? adminRotationGeneratorSoftKind(machine) : '');
+      if (section === 'hard') {
+        const cycle = rules.hardCycle || [], cursor = cycle.indexOf(machine);
+        if (cursor >= 0) counters.hardCycleCursor[name] = (cursor + 1) % cycle.length;
+        if (adminRotationGeneratorIsSoftCoreName(name, model.knownNames))
+          counters.softCoreHardCount[name] = Number(counters.softCoreHardCount[name] || 0) + 1;
+      }
+    });
+  });
+}
+
 function adminRotationGeneratorMachineIndex(headers, machineName) {
   const wanted = String(machineName || '').trim().toUpperCase();
   return (Array.isArray(headers) ? headers : []).findIndex((item) => String(item || '').trim().toUpperCase() === wanted);
@@ -1486,6 +1514,7 @@ function adminRotationGeneratorFindConsecutiveTnksIssues(month, monthKey, knownN
 }
 
 function adminRotationGeneratorFindSwapCellsOnDay(month, rowIdx, person, knownNames) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return [];
   const wanted = adminRotationCanonicalName(person, knownNames);
   const out = [];
   const scan = (sectionKey, headers) => {
@@ -1514,7 +1543,8 @@ function adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey) {
   for (let pass = 0; pass < maxPasses; pass += 1) {
     const issues = adminRotationGeneratorFindConsecutiveTnksIssues(month, monthKey, knownNames);
     if (!issues.length) return { repairs, remaining: 0 };
-    const issue = issues[0];
+    const issue = issues.find(item => adminRotationGeneratorCanEditRow(month, item.current.rowIdx));
+    if (!issue) break;
     const current = issue.current;
     if (!current || !current.cells) break;
     if (softCore.has(current.name)) break;
@@ -1534,7 +1564,7 @@ function adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey) {
   return { repairs, remaining: adminRotationGeneratorFindConsecutiveTnksIssues(month, monthKey, knownNames).length };
 }
 
-function adminRotationGeneratorFindSoftCoreSequenceIssues(month, monthKey, knownNames) {
+function adminRotationGeneratorFindSoftCoreSequenceIssues(month, monthKey, knownNames, continuation) {
   const names = Array.isArray(knownNames) ? knownNames : adminGetKnownNames();
   const generatorRules = getAdminRotationGeneratorRules();
   const core = adminRotationGeneratorGetSoftCoreNames(names);
@@ -1618,10 +1648,13 @@ function adminRotationGeneratorFindSoftCoreSequenceIssues(month, monthKey, known
       }
     });
   });
+  if (continuation) Object.assign(continuation, { machineCursor, personCursor,
+    filledInMachine: filled, assignedInMachineBlock: Array.from(assigned) });
   return issues;
 }
 
 function adminRotationGeneratorFindPersonCellOnDay(month, rowIdx, person, preferredSection) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const wanted = String(person || '').trim();
   if (!wanted) return null;
   const scan = (sectionKey, machines) => {
@@ -1661,6 +1694,7 @@ function adminRotationGeneratorCountSoloMill(month, names) {
 }
 
 function adminRotationGeneratorFindSoloMillSwapCell(month, rowIdx, lowName) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const wanted = String(lowName || '').trim();
   if (!wanted) return null;
   const mfkf06Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
@@ -1705,7 +1739,7 @@ function adminRotationGeneratorCanonicalSoloCell(cell, knownNames) {
   return adminRotationCanonicalName(cell, knownNames);
 }
 
-function adminRotationGeneratorBalanceSoloMill(month, model) {
+function adminRotationGeneratorBalanceSoloMill(month, model, monthKey) {
   const knownNames = model && Array.isArray(model.knownNames) ? model.knownNames : adminGetKnownNames();
   const generatorRules = getAdminRotationGeneratorRules();
   if (generatorRules.soloMillBalanceEnabled === false) return { swaps: 0, counts: Object.create(null), disabled: true };
@@ -1728,6 +1762,7 @@ function adminRotationGeneratorBalanceSoloMill(month, model) {
       if (!lowName || lowName === highName) continue;
       if (Number(counts[highName] || 0) - Number(counts[lowName] || 0) <= allowedSpread) break;
       for (let rowIdx = 0; rowIdx < softRows.length; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
         const softRow = softRows[rowIdx];
         const cells = Array.isArray(softRow && softRow.cells) ? softRow.cells : [];
         const mfkf06 = adminRotationCanonicalName(cells[mfkf06Idx], knownNames);
@@ -1769,6 +1804,7 @@ function adminRotationGeneratorSoloMillNameAtRow17008(month, rowIdx, knownNames)
 }
 
 function adminRotationGeneratorTryRepairSoloMillRow17008(month, rowIdx, repeatedName, knownNames, monthKey, soloCounts, candidateMaxCount) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const repeated = adminRotationCanonicalName(repeatedName, knownNames);
   const softRow = month && month.soft && Array.isArray(month.soft.rows) ? month.soft.rows[rowIdx] : null;
   const softCells = Array.isArray(softRow && softRow.cells) ? softRow.cells : [];
@@ -1895,6 +1931,7 @@ function adminRotationGeneratorRepairSoloMillSpread17009(month, model, monthKey)
     let repaired = false;
     for (const highName of highNames) {
       for (let rowIdx = 0; rowIdx < softRows.length; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
         if (!adminRotationGeneratorIsWorkingRow(month, rowIdx)) continue;
         if (adminRotationGeneratorSoloMillNameAtRow17008(month, rowIdx, knownNames) !== highName) continue;
         const allCounts = adminRotationGeneratorCountSoloMill(month, knownNames);
@@ -2009,6 +2046,7 @@ function adminRotationGeneratorCleanupScore17011(counts, names) {
 }
 
 function adminRotationGeneratorSundayFairCells17011(month, rowIdx, monthKey, knownNames, fairNames) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return [];
   const fair = new Set(Array.isArray(fairNames) ? fairNames : []);
   const softCore = new Set(adminRotationGeneratorGetSoftCoreNames(knownNames));
   const hardRow = month && month.hard && Array.isArray(month.hard.rows) ? month.hard.rows[rowIdx] : null;
@@ -2071,6 +2109,7 @@ function adminRotationGeneratorBalanceSundayTbkrCleanup17011(month, model, month
     const beforeScore = adminRotationGeneratorCleanupScore17011(counts, fairNames);
     let best = null;
     for (let rowIdx = 0; rowIdx < rows; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
       const cells = adminRotationGeneratorSundayFairCells17011(month, rowIdx, monthKey, knownNames, fairNames);
       const tbkCells = cells.filter((cell) => cell.group === 'TBK');
       const mskCells = cells.filter((cell) => cell.group === 'MSK');
@@ -2143,6 +2182,7 @@ function adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey
     const before = adminRotationGeneratorPressFairnessScore17012(counts, eligible, yearCounts);
     let best = null;
     hardRows.forEach((row, rowIdx) => {
+      if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return;
       if (!row || !adminRotationGeneratorRowShouldSplitPress(month, rowIdx, monthKey)) return;
       const cells = Array.isArray(row.cells) ? row.cells : [];
       pressIndexes.forEach((pressIdx) => {
@@ -2210,6 +2250,7 @@ function adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey) {
     if (before.spread <= 1) break;
     let best = null;
     rows.forEach((row, rowIdx) => {
+      if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return;
       if (!row || !adminRotationGeneratorIsWorkingRow(month, rowIdx)) return;
       if (adminRotationGeneratorIsSundayMorning17011(row.date, monthKey)) return;
       const cells = Array.isArray(row.cells) ? row.cells : [];
@@ -2270,6 +2311,7 @@ function adminRotationGeneratorCountSoftKinds(month, names) {
 }
 
 function adminRotationGeneratorFindSoftKindCellOnDay(month, rowIdx, person, wantedKind) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const knownNames = adminGetKnownNames();
   const wanted = adminRotationCanonicalName(person, knownNames);
   const kind = String(wantedKind || '').trim();
@@ -2297,6 +2339,7 @@ function adminRotationGeneratorCountSoftKindOnRow(row, wantedKind) {
 }
 
 function adminRotationGeneratorFindSoftKindReliefCellOnDay(month, rowIdx, targetName, sourceMachine, wantedKind, targetNames, knownNames, requireFullLatheDay) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const row = month && month.soft && Array.isArray(month.soft.rows) ? month.soft.rows[rowIdx] : null;
   const cells = Array.isArray(row && row.cells) ? row.cells : [];
   const target = adminRotationCanonicalName(targetName, knownNames);
@@ -2371,6 +2414,7 @@ function adminRotationGeneratorBalanceSoftKind(month, model) {
   const relieveKindHeavyWithAnyOpposite = (name, sourceKind, requireFullLatheDay) => {
     const wantedKind = otherKind(sourceKind);
     for (let rowIdx = 0; rowIdx < softRows.length; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
       const sourceCell = adminRotationGeneratorFindSoftKindCellOnDay(month, rowIdx, name, sourceKind);
       if (!sourceCell || !sourceCell.cells) continue;
       const reliefCell = adminRotationGeneratorFindSoftKindReliefCellOnDay(month, rowIdx, name, sourceCell.machine, wantedKind, workingNames, knownNames, requireFullLatheDay);
@@ -2384,6 +2428,7 @@ function adminRotationGeneratorBalanceSoftKind(month, model) {
     const wantedKind = otherKind(sourceKind);
     if (!oppositeName || oppositeName === name) return false;
     for (let rowIdx = 0; rowIdx < softRows.length; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
       const sourceCell = adminRotationGeneratorFindSoftKindCellOnDay(month, rowIdx, name, sourceKind);
       const reliefCell = adminRotationGeneratorFindSoftKindCellOnDay(month, rowIdx, oppositeName, wantedKind);
       if (!sourceCell || !reliefCell || !sourceCell.cells || !reliefCell.cells) continue;
@@ -2460,6 +2505,7 @@ function adminRotationGeneratorBalanceSoftTotals(month, model, monthKey) {
       if (!targetLowName || targetLowName === highName) continue;
       if (currentCount(highName) - currentCount(targetLowName) <= allowedSpread) break;
       for (let rowIdx = 0; rowIdx < softRows.length; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
         const highCell = adminRotationGeneratorFindPersonCellOnDay(month, rowIdx, highName, 'soft');
         const lowCell = adminRotationGeneratorFindPersonCellOnDay(month, rowIdx, targetLowName, 'hard');
         if (!highCell || !lowCell || !highCell.cells || !lowCell.cells) continue;
@@ -2588,6 +2634,7 @@ function adminRotationGeneratorBalanceHardMachine(month, machineName, model, mon
         break;
       }
       for (let rowIdx = 0; rowIdx < hardRows.length; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
         const hardRow = hardRows[rowIdx];
         const highCell = findPressOrMachineCell(hardRow, rowIdx, highName);
         if (!highCell || !highCell.cells) continue;
@@ -2693,6 +2740,7 @@ function adminRotationGeneratorMoToPairScore(totals, firstName, secondName) {
 }
 
 function adminRotationGeneratorFindPairCellOnDay(month, rowIdx, person, sectionKey) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const knownNames = adminGetKnownNames();
   const wanted = adminRotationCanonicalName(person, knownNames);
   const section = sectionKey === 'soft' ? month && month.soft : month && month.hard;
@@ -2724,6 +2772,7 @@ function adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model) {
     let best = null;
     let bestScore = currentScore;
     for (let rowIdx = 0; rowIdx < maxRows; rowIdx += 1) {
+        if (!adminRotationGeneratorCanEditRow(month, rowIdx)) continue;
       const options = [
         [adminRotationGeneratorFindPairCellOnDay(month, rowIdx, kminek, 'hard'), adminRotationGeneratorFindPairCellOnDay(month, rowIdx, novotny, 'soft')],
         [adminRotationGeneratorFindPairCellOnDay(month, rowIdx, novotny, 'hard'), adminRotationGeneratorFindPairCellOnDay(month, rowIdx, kminek, 'soft')]
@@ -2760,6 +2809,7 @@ function adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model) {
 }
 
 function adminRotationGeneratorFindBridgeSoftSwapForEmptyHard(month, rowIdx, hardMachineName, unusedNames, knownNames, monthKey, hardTotals, hardPreferred, softPreferred) {
+  if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return null;
   const hardMachine = String(hardMachineName || '').trim();
   const softRow = month && month.soft && Array.isArray(month.soft.rows) ? month.soft.rows[rowIdx] : null;
   const softCells = Array.isArray(softRow && softRow.cells) ? softRow.cells : [];
@@ -2820,6 +2870,7 @@ function adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey) {
 
   let repairs = 0;
   hardRows.forEach((hardRow, rowIdx) => {
+      if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return;
     const softRow = softRows[rowIdx] || null;
     const dateLabel = (hardRow && hardRow.date) || (softRow && softRow.date) || '';
     if (!dateLabel || adminRotationGeneratorIsDayBlocked(adminRotationGeneratorDateNotes(month, dateLabel))) return;

@@ -1,3 +1,9 @@
+## RaK 2.0.17 (development)
+
+- Generátor nabízí úpravu aktuálního měsíce od dneška nebo zvoleného data; minulost zůstává a počítá se do vyrovnání.
+- Ruční výjimky z pravidel lze po upozornění výslovně uložit.
+- Přehled směny zobrazuje v závěru MO a TO pod sebou; uložená pole a výsledný souhrn se nemění.
+
 ## RaK 2.0.16 (development)
 
 - Jmenné sloupce měkoty a tvrdoty mírně širší, stále pružné podle displeje.

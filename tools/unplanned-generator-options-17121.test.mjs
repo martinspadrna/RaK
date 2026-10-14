@@ -22,7 +22,7 @@ test('absence scope and Kalírna fallback scope both reach the generator',()=>{
 });
 
 test('scoped generation still skips month-wide repair passes after the wrapper',()=>{
-  assert(rotation.includes("const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);"));
+  assert(rotation.includes("const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model, monthKey);"));
   assert(rotation.includes('const finalSoloMillStreakRepair = scopedGeneration ? scopedNoop()'));
   assert(rotation.includes('const finalTpkw02Balance = scopedGeneration ? scopedNoop()'));
 });

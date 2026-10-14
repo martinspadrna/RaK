@@ -665,7 +665,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     )).join('') + '</div>';
   }
 
-  function shiftStation(record, title, columns) {
+  function shiftStation(record, title, columns, cls) {
     return panel(title, '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) =>
       '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' +
       esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) +
@@ -674,7 +674,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           { indexRow:true, inputmode:'numeric', multiplier:quantityMultiplier(item.key), label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (item.label ? ' · ' + item.label : '') });
         if (col.fields) return '<div class="rakShiftOverviewFieldGroup" role="group" aria-label="' + esc(AAR_COLUMNS[index].label + ' · ' + col.label) + '"><h5>' + esc(col.label) + '</h5>' + col.fields.map(item=>control(item,item.label || ' ')).join('') + '</div>';
         return control(col, columns.length === 1 ? '' : col.label + (col.sub ? ' · ' + col.sub : ''));
-      }).join('') + '</div></div>').join('') + '</div>');
+      }).join('') + '</div></div>').join('') + '</div>', cls);
   }
 
   function inactiveUnits(record, id) {
@@ -730,7 +730,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     html += section('machining',panel('Obrábění',
       '<h4 class="rakShiftOverviewSubsectionTitle">Závěr</h4>' + shiftStation(record,'Závěr',[
         {label:'MO',fields:[{key:'producedMOFree',label:'Volné'},{key:'producedMOPress',label:'Pod lisem'}]},
-        {label:'TO',fields:[{key:'producedTO',label:''}]}]) +
+        {label:'TO',fields:[{key:'producedTO',label:''}]}],'rakShiftOverviewStation--stackedMoTo') +
       '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR01</h4>' + shiftStation(record,'TBKR01',[
         {key:'groundTBKR01Free',label:'Volné'},{key:'groundTBKR01Press',label:'Lis'}]) +
       '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR07</h4>' + shiftStation(record,'TBKR07',[
@@ -1410,6 +1410,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
       '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label{grid-template-rows:32px 44px;align-content:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label>span{height:32px;display:grid;place-items:center;line-height:1.2;}.rakShiftOverviewIndexRow .rakShiftOverviewInput{height:44px;min-height:44px;align-self:start;}',
       '.rakShiftOverviewFieldGroup{display:grid;gap:10px;min-width:0;}#rakShiftOverviewRoot .rakShiftOverviewFieldGroup+.rakShiftOverviewFieldGroup{position:relative;align-self:stretch;align-content:start;}#rakShiftOverviewRoot .rakShiftOverviewFieldGroup+.rakShiftOverviewFieldGroup::before{content:"";position:absolute;top:0;bottom:0;left:-7px;width:3px;background:rgba(255,255,255,.8);border-radius:2px;pointer-events:none;}.rakShiftOverviewFieldGroup>h5{height:32px;margin:0;display:grid;place-items:center;font-size:13px;}.rakShiftOverviewFieldGroup>label{min-width:0;grid-template-rows:32px 44px;}.rakShiftOverviewFieldGroup>label>span{height:32px;display:grid;place-items:center;}.rakShiftOverviewFieldGroup>label:not(:has(>span)){padding-top:32px;grid-template-rows:44px;}',
+      '#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);gap:14px;}#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGroup{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGroup>h5{grid-column:1/-1;}#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGroup+.rakShiftOverviewFieldGroup{padding-top:14px;}#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGroup+.rakShiftOverviewFieldGroup::before{top:0;right:0;bottom:auto;left:0;width:auto;height:2px;}#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGroup:has(>label:only-of-type)>label{grid-column:1/-1;}#rakShiftOverviewRoot .rakShiftOverviewStation--stackedMoTo .rakShiftOverviewFieldGroup>label:not(:has(>span)){padding-top:0;grid-template-rows:44px;}',
       '.rakShiftOverviewStage:nth-child(n+4) .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);}',
       '.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid:has(>label:only-child){grid-template-columns:minmax(0,1fr);}.rakShiftOverviewQuantity{display:flex;align-items:center;gap:4px;}.rakShiftOverviewQuantity .rakShiftOverviewInput{flex:1;}.rakShiftOverviewQuantity .rakShiftOverviewMultiply{flex:0 0 38px;width:38px;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;font-size:12px;line-height:1;}.rakShiftOverviewMultiply[hidden]{display:none!important;}',
       '.rakShiftOverviewStages .rakShiftOverviewInput{padding:8px 4px;text-align:center;}',
