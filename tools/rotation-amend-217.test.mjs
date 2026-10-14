@@ -29,6 +29,10 @@ test('date bounds include the chosen day, retain R/N shifts, reject invalid date
  assert.throws(()=>f.evaluate("adminRotationGeneratorAmendDays({monthKey:'10/26',startDate:'2026-10-12'},['1.11. R'])"),/nepatří/);
  assert.equal(f.evaluate("adminRotationGeneratorResolveWizardDays({mode:'amend',monthKey:'10/26',startDate:'2026-10-31',days:[]}).length"),0);
 });
+test('current-month mode falls back to the stored month when no live editor snapshot exists',()=>{
+ const f=setup();f.evaluate("adminRotationGeneratorSetWizardState({editorMonthKey:'10/26',editorMonth:null});adminRotationGeneratorStartAmend(adminRotationGeneratorGetWizardState())");
+ const state=f.evaluate('adminRotationGeneratorGetWizardState()');assert.equal(state.monthKey,'10/26');assert.equal(state.mode,'amend');assert(state.sourceMonth.hard.rows.length>0);
+});
 test('all actual balancing and repair passes see frozen rows in counts but cannot mutate them',()=>{
  const f=setup();f.evaluate("adminRotationGeneratorMutableDates.set(source,new Set(['26.10. R']))");
  const before=JSON.stringify(f.context.source);f.evaluate("const model=adminBuildRotationGenerationModel('10/26'); for(const fn of [adminRotationGeneratorBalanceSoloMill,adminRotationGeneratorBalanceSoftTotals,adminRotationGeneratorBalanceSoftKind,adminRotationGeneratorBalanceKminekNovotnyMoTo,adminRotationGeneratorRepairEmptyHardCells,adminRotationGeneratorRepairConsecutiveTnks,adminRotationGeneratorRepairConsecutiveSoloMill17008,adminRotationGeneratorRepairSoloMillSpread17009,adminRotationGeneratorBalanceSundayTbkrCleanup17011,adminRotationGeneratorBalancePressHalfSteps17012,adminRotationGeneratorBalanceTpkw02Final17013])fn(source,model,'10/26');for(const machine of ['TNKS01','TPKW02'])adminRotationGeneratorBalanceHardMachine(source,machine,model,'10/26');");

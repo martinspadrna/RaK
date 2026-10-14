@@ -218,7 +218,7 @@ function adminRotationGeneratorStartAmend(state) {
     return parsed && parsed.year === now.getFullYear() && parsed.month === now.getMonth() + 1;
   });
   if (!monthKey) throw new Error('Aktuální měsíc není v seznamu rozpisů.');
-  const source = state.editorMonthKey === monthKey ? state.editorMonth :
+  const source = state.editorMonthKey === monthKey && state.editorMonth ? state.editorMonth :
     adminRotationGeneratorGetPendingDraft(monthKey) || app.rotation.months[monthKey];
   if (!source) throw new Error('Aktuální měsíc nemá připravený rozpis.');
   const sourceMonth = JSON.parse(JSON.stringify(source));
