@@ -754,7 +754,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   } catch (err) {}
 
   // RAK_LOCAL_FIRST_FIRST_PAINT: index.html has already restored the cached Home
-  // snapshot and installed final static navigation/Menu geometry. Yield one visual
+  // snapshot and installed final static navigation/Menu geometry. Cross a visual
   // frame before starting dynamic hydration so module parsing cannot steal the
   // first usable paint. This is local-only scheduling; it does not wait on network.
   await new Promise((resolve) => {
@@ -762,7 +762,22 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       setTimeout(resolve, 0);
       return;
     }
-    requestAnimationFrame(() => resolve());
+    // Animation callbacks precede painting. Where Paint Timing is available,
+    // wait for the actual shell paint before module parsing can compete with it.
+    let observer, timer;
+    const painted = () => typeof performance !== 'undefined' && typeof performance.getEntriesByType === 'function' &&
+      performance.getEntriesByType('paint').some(entry => entry.name === 'first-contentful-paint');
+    const finish = () => { observer?.disconnect(); clearTimeout(timer); resolve(); };
+    if (!painted() && typeof PerformanceObserver !== 'undefined' && PerformanceObserver.supportedEntryTypes?.includes('paint')) {
+      try {
+        observer = new PerformanceObserver(entries => {
+          if (entries.getEntries().some(entry => entry.name === 'first-contentful-paint')) finish();
+        });
+        observer.observe({ type: 'paint', buffered: true });
+        timer = setTimeout(finish, 250);
+      } catch (_) { observer?.disconnect(); observer = null; }
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (!observer || painted()) finish(); }));
   });
   window.__rakBootV2FirstPaintYielded = true;
 

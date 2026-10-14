@@ -21,6 +21,24 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const draft = key && jsonRead(key, null);
     return draft?.record && /^\d{4}-\d{2}-\d{2}$/.test(draft.record.date || '') ? draft : null;
   }
+  function draftHasContent(record) {
+    const base = defaultRecord(record?.date, record?.shift);
+    function differs(value, expected, path) {
+      if (value && typeof value === 'object') {
+        return Object.entries(value).some(([key, child]) => differs(child, expected?.[key], path + '.' + key));
+      }
+      if (/^inputs\.rows\.[^.]+\.ald[12]$/.test(path) && Number(value) === 0) return false;
+      return value != null && String(value).trim() !== '' && value !== expected;
+    }
+    return Object.entries(record || {}).some(([key, value]) =>
+      !['date', 'shift', 'updatedAt'].includes(key) && differs(value, base[key], key));
+  }
+  function draftForOpening(draft, defaults) {
+    // Empty drafts select the current shift; entered data and pending saves stay intact.
+    if (!draft || draft.mutationId || draftHasContent(draft.record)
+      || recordKey(draft.record.date, draft.record.shift) === recordKey(defaults.date, defaults.shift)) return draft;
+    return { record: defaultRecord(defaults.date, defaults.shift), revision: null, mutationId: '' };
+  }
   function persistDraft(rootEl) {
     const key = draftKey();
     if (!key || rootEl?.isConnected === false || !ownerAllowed() || draftOwners.get(rootEl) !== key) return;
@@ -634,17 +652,113 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
       ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
       ['Po 145', [OAM_LEFT_COLUMNS[7]]],
-      ['Po broušení', [{key:'hard',label:'212'}]],
+      ['Po broušení (op 212)', [{key:'hard',label:'212'}]],
       ['Sklad', [{key:'stock',label:'Sklad'}]],
       ['Montáž', [{key:'assembly',label:'Montáž'}]]
     ];
 
     function stationRows(cols, title) {
-      return '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) + '</div><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{indexRow:true,inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>';
+      return '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) + '</div><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(cols.length === 1 ? '' : col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{indexRow:true,inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>';
     }
     return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) => panel(title,
       stationRows(cols,title) + (title === 'Sklad po kalení' ? '<section class="rakShiftOverviewBefore145" aria-label="Před 145"><h4 class="rakShiftOverviewSubsectionTitle">Před 145</h4>' + stationRows([OAM_LEFT_COLUMNS[6]],title) + '</section>' : '')
     )).join('') + '</div>';
+  }
+
+  function shiftStation(record, title, columns) {
+    return panel(title, '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) =>
+      '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' +
+      esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) +
+      '</div><div class="rakShiftOverviewFieldGrid">' + columns.map(col => {
+        const control = (item, label) => labeledField(label, 'oam.rows.' + row.key + '.' + item.key, record,
+          { indexRow:true, inputmode:'numeric', multiplier:quantityMultiplier(item.key), label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (item.label ? ' · ' + item.label : '') });
+        if (col.fields) return '<div class="rakShiftOverviewFieldGroup" role="group" aria-label="' + esc(AAR_COLUMNS[index].label + ' · ' + col.label) + '"><h5>' + esc(col.label) + '</h5>' + col.fields.map(item=>control(item,item.label || ' ')).join('') + '</div>';
+        return control(col, columns.length === 1 ? '' : col.label + (col.sub ? ' · ' + col.sub : ''));
+      }).join('') + '</div></div>').join('') + '</div>');
+  }
+
+  function inactiveUnits(record, id) {
+    const count = id === 3 ? 5 : 10;
+    const values = record.ald[id-1]?.inactiveUnits;
+    return Array.isArray(values) ? [...new Set(values.filter(value => Number.isInteger(value) && value >= 1 && value <= count))] : [];
+  }
+
+  function runningUnits(record, id) {
+    const label = id === 3 ? 'ST' : 'BK';
+    const off = inactiveUnits(record,id);
+    return '<div class="rakShiftOverviewUnits"><span>' + label + ' v provozu</span><div class="rakShiftOverviewUnitGrid" data-running-units="' + id + '" role="group" aria-label="ALD' + id + ' · ' + label + ' v provozu">' +
+      Array.from({length:id === 3 ? 5 : 10},(_,index)=>{
+        const number=index+1, active=!off.includes(number);
+        return '<button type="button" class="rakShiftOverviewUnit' + (active ? ' isActive' : '') + '" data-running-unit="' + number + '" data-running-ald="' + id + '" aria-pressed="' + active + '" aria-label="ALD' + id + ' · ' + label + ' ' + number + '">' + number + '</button>';
+      }).join('') + '</div></div>';
+  }
+
+  function shiftAld(record, id) {
+    const rows = id === 1 ? ALD1_INPUT_ROWS : ALD2_INPUT_ROWS;
+    return panel('ALD' + id,
+      labeledField('Poslední vsázka','lastBatch.ald'+id,record,{sideLabel:true,inputmode:'numeric'}) +
+      runningUnits(record,id) +
+      labeledField('Závady', 'ald.' + (id-1) + '.faults', record, {area:true,rows:3}) +
+      '<h4 class="rakShiftOverviewSubsectionTitle">Vsázky</h4><div class="rakShiftOverviewInputRows">' +
+      rows.map(name=>batchCounter(name,id,record)).join('') + '</div><div class="rakShiftOverviewAldTotal"><span>Celkem vsázek</span><output data-shift-overview-ald-total="' + id + '" aria-live="polite">0</output></div>');
+  }
+
+  function shiftLayout(record) {
+    const shift = normalizeShift(record.shift);
+    // An unselected shift keeps the complete editor until the user chooses.
+    if (!shift) return oamTable(record) + '<div class="rakShiftOverviewLower">' + inputsTable(record) +
+      panel('Závady', labeledField('Obrábění','machiningFaults',record,{area:true,rows:3}) +
+      [0,1,2].map(index=>labeledField('ALD'+(index+1),'ald.'+index+'.faults',record,{area:true,rows:3})).join('')) + '</div>';
+    const night = shift.includes(':nocni');
+    const section = (key, html) => '<div data-shift-overview-section="' + key + '">' + html + '</div>';
+    let html = section('stock',shiftStation(record,'Sklad',[{key:'stock',label:'Sklad'}]));
+    if (night) html += section('assembly',shiftStation(record,'Montáž',[{key:'assembly',label:'Montáž'}]));
+    html += section('ald3',panel('ALD3',
+      labeledField('Poslední vsázka','lastBatch.ald3',record,{sideLabel:true,inputmode:'numeric'}) +
+      labeledField('Celkem vsázek před','inputs.ald3',record,{sideLabel:true,inputmode:'numeric'}) +
+      runningUnits(record,3) +
+      labeledField('Závady','ald.2.faults',record,{area:true,rows:3})));
+    if (!night) html += section('nitrogen',panel('Dusík',labeledField('','nitrogen',record,{inputmode:'decimal',label:'Dusík'})));
+    if (night) {
+      html += section('before-kiln',shiftStation(record,'Sklad před kalením',OAM_LEFT_COLUMNS.slice(2,4)));
+      html += section('after-kiln',shiftStation(record,'Sklad po kalení',OAM_LEFT_COLUMNS.slice(4,6)));
+      html += section('ground',shiftStation(record,'Po broušení (op 212)',[{key:'hard',label:'212'}]));
+      html += section('after-145',shiftStation(record,'Po 145',[OAM_LEFT_COLUMNS[7]]));
+      html += section('before-145',shiftStation(record,'Před 145',[OAM_LEFT_COLUMNS[6]]));
+      html += section('soft',shiftStation(record,'Měkké obrábění',OAM_LEFT_COLUMNS.slice(0,2)));
+    }
+    html += section('machining',panel('Obrábění',
+      '<h4 class="rakShiftOverviewSubsectionTitle">Závěr</h4>' + shiftStation(record,'Závěr',[
+        {label:'MO',fields:[{key:'producedMOFree',label:'Volné'},{key:'producedMOPress',label:'Pod lisem'}]},
+        {label:'TO',fields:[{key:'producedTO',label:''}]}]) +
+      '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR01</h4>' + shiftStation(record,'TBKR01',[
+        {key:'groundTBKR01Free',label:'Volné'},{key:'groundTBKR01Press',label:'Lis'}]) +
+      '<h4 class="rakShiftOverviewSubsectionTitle">Brusy · TBKR07</h4>' + shiftStation(record,'TBKR07',[
+        {key:'groundTBKR07Free',label:'Volné'},{key:'groundTBKR07Press',label:'Lis'}]) +
+      labeledField('Závady','machiningFaults',record,{area:true,rows:3})));
+    html += section('ald2',shiftAld(record,2)) + section('ald1',shiftAld(record,1));
+    return html;
+  }
+
+  function updateShiftLayout(rootEl) {
+    const layout = rootEl.querySelector('[data-shift-overview-layout]');
+    if (!layout || !ownerAllowed()) return;
+    // Snapshot visible edits into the full record before replacing fields.
+    // readDom retains hidden stages and calculation history from that record.
+    const record = readDom(rootEl);
+    const previous = renderedRecords.get(rootEl);
+    if (previous && recordKey(previous.date,previous.shift) !== recordKey(record.date,record.shift)) {
+      const identity = currentIdentity();
+      renderedRevisions.set(rootEl, identity ? (cloudRead(identity).revisions[recordKey(record.date,record.shift)] ?? null) : null);
+      if (rootEl.dataset) rootEl.dataset.cloudMutation = '';
+    }
+    renderedRecords.set(rootEl, clone(record));
+    clearQuantityUndo(rootEl);
+    layout.innerHTML = shiftLayout(record);
+    refreshMultipliers(rootEl);
+    refreshTotals(rootEl);
+    refreshSummary(rootEl);
+    persistDraft(rootEl);
   }
 
   function summaryNumber(value) {
@@ -729,19 +843,66 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       cell(458,822+index*48,266,48,label,header,true,24);
       cell(724,822+index*48,152,48,String(Number(total.toFixed(6))),'#fff',true,26);
     });
-    parts.push('<text x="458" y="1070" font-size="28" font-weight="700">Vsázky</text>');
+    parts.push('<text x="458" y="1070" font-size="25" font-weight="700">Čísla posledních vsázek</text>');
     const batchX=[458,626,709,792,876];
     cell(458,1092,168,44,'',header,true);
     ['ALD1','ALD2','ALD3'].forEach((label,i)=>cell(batchX[i+1],1092,batchX[i+2]-batchX[i+1],44,label,header,true,22));
+    parts.push('<g data-summary-last-batches="ald1-ald2-ald3">');
     cell(458,1136,168,56,'Poslední\nvsázka',header,true,21);
     [1,2,3].forEach((id,i)=>cell(batchX[i+1],1136,batchX[i+2]-batchX[i+1],56,summaryValue(record.lastBatch['ald'+id]),'#fff',true,22));
+    parts.push('</g>');
     cell(458,1192,168,56,'Celkem\nvsázek',header,true,21);
     [...aldTotals,record.inputs.ald3?total3:''].forEach((total,i)=>cell(batchX[i+1],1192,batchX[i+2]-batchX[i+1],56,total,'#fff',true,25));
     cell(458,1276,266,52,'Celkem vsázek',header,true,24);
     cell(724,1276,152,52,aldTotals[0]+aldTotals[1]+total3,'#fff',true,26);
     cell(458,1356,266,52,'Dusík',header,true,24);
     cell(724,1356,152,52,summaryValue(record.nitrogen),'#fff',true,26);
-    let y=partsBottom+78;
+    const activeRows = keys => OAM_ROWS.map((row,index)=>({row,index})).filter(({row})=>keys.some(key=>summaryNumber(record.oam.rows[row.key][key])!==0));
+    const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
+    let reportY=1454;
+    if(machines.length){
+      parts.push('<g data-summary-grinding="by-machine">');
+      parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Nabroušeno · brusy</text>');
+      const grindX=[458,550,664,770,876];reportY+=20;
+      ['Brus','Index','Volné','Pod lisem'].forEach((label,i)=>cell(grindX[i],reportY,grindX[i+1]-grindX[i],40,label,header,true,18));reportY+=40;
+      machines.forEach(({machine,rows})=>{
+        const stem='ground'+machine;
+        parts.push('<g data-summary-grinder="'+machine+'">');
+        cell(grindX[0],reportY,grindX[1]-grindX[0],rows.length*36,machine,header,true,18);
+        rows.forEach(({row,index},offset)=>{
+          const rowY=reportY+offset*36,values=record.oam.rows[row.key];
+          parts.push('<g data-summary-grinding-index="'+row.key+'">');
+          cell(grindX[1],rowY,grindX[2]-grindX[1],36,AAR_COLUMNS[index].label,colors[index],true,18);
+          ['Free','Press'].forEach((type,i)=>cell(grindX[i+2],rowY,grindX[i+3]-grindX[i+2],36,summaryValue(values[stem+type]),colors[index],true,21));
+          parts.push('</g>');
+        });
+        reportY+=rows.length*36;
+        cell(grindX[0],reportY,grindX[2]-grindX[0],36,'Celkem '+machine,header,true,18);
+        ['Free','Press'].forEach((type,i)=>{
+          const values=rows.map(({row})=>record.oam.rows[row.key][stem+type]);
+          const total=values.some(value=>String(value??'').trim())?values.reduce((sum,value)=>sum+summaryNumber(value),0):'';
+          cell(grindX[i+2],reportY,grindX[i+3]-grindX[i+2],36,total,header,true,21);
+        });
+        reportY+=36;parts.push('</g>');
+      });
+      parts.push('</g>');reportY+=40;
+    }
+    const conclusionKeys=['producedMOFree','producedMOPress','producedTO'];
+    const conclusionRows=activeRows(conclusionKeys);
+    if(conclusionRows.length){
+      parts.push('<g data-summary-machining="conclusion">');
+      parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Obrábění · závěr</text>');reportY+=20;
+      const conclusionX=[458,576,676,776,876];
+      ['Index','MO\nVolné','MO\nPod lisem','TO'].forEach((label,i)=>cell(conclusionX[i],reportY,conclusionX[i+1]-conclusionX[i],48,label,header,true,18));reportY+=48;
+      conclusionRows.forEach(({row,index})=>{
+        parts.push('<g data-summary-conclusion-index="'+row.key+'">');
+        cell(conclusionX[0],reportY,conclusionX[1]-conclusionX[0],36,AAR_COLUMNS[index].label,colors[index],true,18);
+        conclusionKeys.forEach((key,i)=>cell(conclusionX[i+1],reportY,conclusionX[i+2]-conclusionX[i+1],36,summaryValue(record.oam.rows[row.key][key]),colors[index],true,21));
+        reportY+=36;parts.push('</g>');
+      });
+      parts.push('</g>');reportY+=16;
+    }
+    let y=Math.max(partsBottom+78,reportY+20);
     const notes=[['Obrábění',record.machiningFaults],...record.ald.map((row,i)=>['ALD'+(i+1),row.faults]),['Poznámky',record.notes]].filter(([,value])=>String(value??'').trim());
     if(notes.length){
       heading(y+22,'Závady a poznámky');y+=40;
@@ -817,16 +978,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<div class="appMenuCardTitle">Přehled směny</div>',
       '<div class="appMenuText smallText">Přehled podle provozní tabulky · záloha k přihlášenému účtu.</div>',
       '<div class="rakShiftOverviewHeader">',
-      '<label>Datum<div class="rakShiftOverviewDateShell"><span data-shift-overview-date-display aria-hidden="true">' + esc(displayDate(record.date)) + '</span><input class="appMenuInlineInput" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></div></label>',
+      '<label>Datum<input class="appMenuInlineInput rakShiftOverviewDate" aria-label="Datum směny" data-shift-overview-date type="date" value="' + esc(record.date) + '"></label>',
       '<label>Směna<select class="appMenuSelect" data-shift-overview-shift>' + shiftOptions(record.shift) + '</select></label>',
       '</div>',
       '<div class="appMenuActionRow rakShiftOverviewTopActions"><button type="button" class="appMenuAction" data-shift-overview-action="load">Načíst</button><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit</button><button type="button" class="appMenuAction" data-shift-overview-action="clear">Vymazat přehled</button></div>',
       '<div class="smallText rakShiftOverviewStatus" data-shift-overview-status role="status" aria-live="polite">' + (record.updatedAt ? 'Načteno · naposledy uloženo ' + esc(new Date(record.updatedAt).toLocaleString('cs-CZ')) : 'Pro tento den zatím není uložený přehled.') + '</div>',
       '<div class="appMenuSubTitle">Tok dílů</div>',
-      oamTable(record),
-      '<div class="rakShiftOverviewLower">',
-      inputsTable(record),
-      panel('Závady', labeledField('Obrábění','machiningFaults',record,{area:true,rows:3}) + [0,1,2].map(index => labeledField('ALD' + (index + 1),'ald.' + index + '.faults',record,{area:true,rows:3,label:'ALD' + (index + 1) + ' · Závady'})).join('')),
+      '<div class="rakShiftOverviewShiftLayout" data-shift-overview-layout>',
+      shiftLayout(record),
       '</div>',
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
@@ -844,7 +1003,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     record.shift = normalizeShift(shift);
     rootEl.querySelectorAll('[data-shift-overview-field]').forEach((el) => {
       const path = el.getAttribute('data-shift-overview-field');
-      nestedSet(record, path, String(el.value || '').trim());
+      let value = String(el.value || '').trim();
+      // Display-only counter zeros must not turn an untouched form into entered data.
+      if (/^inputs\.rows\.[^.]+\.ald[12]$/.test(path) && value === '0' && nestedGet(record,path) === '') value = '';
+      nestedSet(record, path, value);
       const history = inputQuantityHistory(el);
       if (history) record.calculations[path] = history;
     });
@@ -971,8 +1133,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       body.innerHTML = '<div class="appMenuCard appMenuAdminCard"><div class="appMenuCardTitle">Přehled směny</div><div class="appMenuText">Přehled směny je dostupný hlavnímu správci a mistrům.</div><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>';
       return false;
     }
-    const draft = !forcedRecord ? readDraft() : null;
     const defaults = currentShiftContext();
+    const draft = !forcedRecord ? draftForOpening(readDraft(), defaults) : null;
     if (draft) forcedRecord = draft.record;
     const date = forcedRecord && forcedRecord.date ? String(forcedRecord.date) : defaults.date;
     const shift = forcedRecord ? normalizeShift(forcedRecord.shift) : defaults.shift;
@@ -1022,10 +1184,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     refreshTotals(rootEl);
     refreshMultipliers(rootEl);
     refreshSummary(rootEl);
+    const dateInput = rootEl.querySelector('[data-shift-overview-date]');
+    dateInput?.addEventListener('click', () => {
+      if (!ownerAllowed()) return;
+      try { dateInput.showPicker?.(); } catch (_) { dateInput.focus(); }
+    });
 
     function finishQuantity(event) {
       if (!ownerAllowed()) return;
       if (event.type === 'change') rootEl.dataset.edited = '1';
+      if (event.type === 'change' && event.target?.matches?.('[data-shift-overview-shift], [data-shift-overview-date]')) {
+        updateShiftLayout(rootEl);
+        return;
+      }
       calculateQuantity(event.target);
       syncDateDisplay(rootEl);
       refreshMultipliers(rootEl);
@@ -1051,6 +1222,22 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
 
     rootEl.addEventListener('click', async (event) => {
+      const unit = event.target.closest?.('[data-running-unit]');
+      if (unit && rootEl.contains(unit)) {
+        event.preventDefault();
+        if (!ownerAllowed()) return;
+        const id=Number(unit.getAttribute('data-running-ald')), number=Number(unit.getAttribute('data-running-unit'));
+        if (![1,2,3].includes(id) || !Number.isInteger(number) || number<1 || number>(id===3?5:10)) return;
+        const record=readDom(rootEl), off=inactiveUnits(record,id);
+        record.ald[id-1].inactiveUnits=off.includes(number)?off.filter(value=>value!==number):[...off,number];
+        renderedRecords.set(rootEl,clone(record));
+        rootEl.dataset.edited='1';
+        const active=!record.ald[id-1].inactiveUnits.includes(number);
+        unit.classList.toggle('isActive',active);unit.setAttribute('aria-pressed',String(active));
+        clearQuantityUndo(rootEl);persistDraft(rootEl);
+        return;
+      }
+
       if (event.target.closest?.('[data-shift-overview-summary-open]')) { event.preventDefault(); openSummaryViewer(rootEl); return; }
       const restore = event.target?.closest?.('[data-quantity-restore]');
       if (restore && rootEl.contains(restore)) {
@@ -1114,7 +1301,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const shift = String(rootEl.querySelector('[data-shift-overview-shift]')?.value || '');
 
       if (action === 'clear') {
-        const empty = defaultRecord(date, shift);
+        const defaults = currentShiftContext();
+        const empty = defaultRecord(defaults.date, defaults.shift);
         render(body, empty);
         const next = body.querySelector('#rakShiftOverviewRoot');
         if (next) { next.dataset.edited = '1'; persistDraft(next); status(next, 'Rozepsaný přehled vymazán v zařízení. Online záloha zůstala zachována.'); }
@@ -1212,7 +1400,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewCard label{display:grid;gap:6px;font-size:12px;font-weight:800;overflow-wrap:anywhere;}',
       '.rakShiftOverviewHeader{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:12px;align-items:start;}.rakShiftOverviewHeader>label{grid-template-rows:auto 44px;}.rakShiftOverviewTwo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
       '.rakShiftOverviewInput,.rakShiftOverviewArea,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{width:100%;max-width:100%;min-width:0;margin:0;}.rakShiftOverviewInput,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{min-height:44px;font-size:16px;}',
-      '.rakShiftOverviewDateShell{position:relative;height:44px;width:100%;overflow:hidden;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(255,255,255,.045);}.rakShiftOverviewDateShell>span{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;white-space:nowrap;pointer-events:none;}.rakShiftOverviewHeader .rakShiftOverviewDateShell input{position:absolute;inset:0;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:0;opacity:0;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
+      '#rakShiftOverviewRoot .rakShiftOverviewDate{display:block!important;position:relative!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;font-size:16px!important;line-height:40px!important;text-align:center!important;color:var(--text,#fff)!important;color-scheme:dark;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-calendar-picker-indicator{cursor:pointer;opacity:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-datetime-edit{padding:0;text-align:center;line-height:40px;flex:1;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-date-and-time-value{display:flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;line-height:40px!important;padding:0!important;margin:0!important;text-align:center!important;width:100%;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
       '.rakShiftOverviewArea{resize:vertical;min-height:76px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;}',
       '.rakShiftOverviewPanel{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.025);}',
       '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',
@@ -1221,12 +1409,15 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewAldTotal{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);font-weight:700;}.rakShiftOverviewAldTotal output{min-width:44px;text-align:center;} .rakShiftOverviewBefore145{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);}.rakShiftOverviewSubsectionTitle{margin:0 0 10px;font-size:13px;} .rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
       '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label{grid-template-rows:32px 44px;align-content:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label>span{height:32px;display:grid;place-items:center;line-height:1.2;}.rakShiftOverviewIndexRow .rakShiftOverviewInput{height:44px;min-height:44px;align-self:start;}',
+      '.rakShiftOverviewFieldGroup{display:grid;gap:10px;min-width:0;}#rakShiftOverviewRoot .rakShiftOverviewFieldGroup+.rakShiftOverviewFieldGroup{position:relative;align-self:stretch;align-content:start;}#rakShiftOverviewRoot .rakShiftOverviewFieldGroup+.rakShiftOverviewFieldGroup::before{content:"";position:absolute;top:0;bottom:0;left:-7px;width:3px;background:rgba(255,255,255,.8);border-radius:2px;pointer-events:none;}.rakShiftOverviewFieldGroup>h5{height:32px;margin:0;display:grid;place-items:center;font-size:13px;}.rakShiftOverviewFieldGroup>label{min-width:0;grid-template-rows:32px 44px;}.rakShiftOverviewFieldGroup>label>span{height:32px;display:grid;place-items:center;}.rakShiftOverviewFieldGroup>label:not(:has(>span)){padding-top:32px;grid-template-rows:44px;}',
       '.rakShiftOverviewStage:nth-child(n+4) .rakShiftOverviewFieldGrid{grid-template-columns:minmax(0,1fr);}',
       '.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid:has(>label:only-child){grid-template-columns:minmax(0,1fr);}.rakShiftOverviewQuantity{display:flex;align-items:center;gap:4px;}.rakShiftOverviewQuantity .rakShiftOverviewInput{flex:1;}.rakShiftOverviewQuantity .rakShiftOverviewMultiply{flex:0 0 38px;width:38px;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;font-size:12px;line-height:1;}.rakShiftOverviewMultiply[hidden]{display:none!important;}',
       '.rakShiftOverviewStages .rakShiftOverviewInput{padding:8px 4px;text-align:center;}',
       '.rakShiftOverviewStages label{font-size:11px;}',
       '.rakShiftOverviewPanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;}',
+      '.rakShiftOverviewUnits{margin:10px 0;}.rakShiftOverviewUnits>span{display:block;margin-bottom:8px;}.rakShiftOverviewUnitGrid{display:grid;grid-template-columns:repeat(5,44px);gap:8px;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit{width:44px!important;height:44px!important;min-height:44px;padding:0!important;margin:0!important;border-radius:6px;display:grid;place-items:center;background:#666b73!important;color:#fff!important;border:2px solid #a1a6ae!important;font-size:16px;font-weight:700;opacity:1!important;box-shadow:none!important;filter:none!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit.isActive{background:#167a35!important;border-color:#72f29a!important;color:#fff!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit:focus-visible{outline:3px solid #fff;outline-offset:2px;}',
       '.rakShiftOverviewLower{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;align-items:start;}',
+      '.rakShiftOverviewShiftLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel{background:transparent;padding:0;border:0;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel>h3{display:none;}',
       '.rakShiftOverviewBatchColumns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;align-items:start;}',
       '.rakShiftOverviewUtilities{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));}',
       '.rakShiftOverviewInputRows{display:grid;gap:6px;}.rakShiftOverviewInputRows label{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}',

@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.3'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.3-release1'"));
-  assert.ok(index.includes("var e='v203',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.3-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.16'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.16-release1'"));
+  assert.ok(index.includes("var e='v216',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.16-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.3'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.16'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -213,7 +213,7 @@ test('every section uses responsive grids without sideways scrolling', () => {
   assert.ok(feature.includes('@media(max-width:650px)'));
 });
 
-test('paper overview renders only three active indices and all eleven production flow operations', () => {
+test('morning overview renders three active indices without duplicate or archived fields', () => {
   const context = vm.createContext({
     window: { rakAdminCanManageAdmins: () => true },
     document: { getElementById: () => ({}), head: { appendChild() {} } },
@@ -230,7 +230,7 @@ test('paper overview renders only three active indices and all eleven production
   assert.ok(!body.innerHTML.includes('AD / AG'));
   assert.ok(!body.innerHTML.includes('aar.matrix.turning.adAg'));
   assert.ok(!body.innerHTML.includes('oam.rows.ad.'));
-  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 33);
+  assert.equal((body.innerHTML.match(/data-shift-overview-field="oam.rows./g) || []).length, 24);
   assert.equal((body.innerHTML.match(/data-shift-overview-field="inputs.rows./g) || []).length, 18);
   assert.ok(!body.innerHTML.includes('<details'));
   assert.ok(!body.innerHTML.includes('data-shift-overview-field="process.rows.'));
@@ -307,6 +307,9 @@ test('automatic shift context follows the active A–D cycle, duration and start
       assert.equal(result.date,'2026-10-10');
     }
   }
+  window.getActiveShiftNow = () => ({team:'D',start:new Date(2026,9,12,18),end:new Date(2026,9,13,6)});
+  const overnight=api.currentShiftContext(new Date(2026,9,13,4,5));
+  assert.equal(overnight.date,'2026-10-12');assert.equal(overnight.shift,'D:nocni12');
   window.getActiveShiftNow = () => null;
   assert.equal(api.currentShiftContext(new Date(2026,9,11,16)).shift,'');
   assert.equal(api.normalizeRecord({shift:'nocni12'}).shift,'D:nocni12');
@@ -316,12 +319,12 @@ test('station panels keep all three indices together before the next workplace',
   const context = vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})},localStorage:{getItem:()=> '{}'}});
   vm.runInContext(feature,context);
   const body={dataset:{},innerHTML:'',querySelector:()=>null};
-  context.window.RakAdminShiftOverview.render(body,{date:'2026-10-10',shift:'A:ranni12'});
+  context.window.RakAdminShiftOverview.render(body,{date:'2026-10-10',shift:'A:nocni12'});
   const main=body.innerHTML;
   const paths=[...main.matchAll(/data-shift-overview-field="(oam.rows.[^"]+)"/g)].map(m=>m[1]);
-  assert.deepEqual(paths.slice(0,6),['oam.rows.ag.op1020','oam.rows.ag.op1121','oam.rows.af.op1020','oam.rows.af.op1121','oam.rows.ah.op1020','oam.rows.ah.op1121']);
+  assert.deepEqual(paths.slice(0,6),['oam.rows.ag.stock','oam.rows.af.stock','oam.rows.ah.stock','oam.rows.ag.assembly','oam.rows.af.assembly','oam.rows.ah.assembly']);
   assert.equal(paths[6],'oam.rows.ag.op30');
-  assert.ok(main.includes('value="A:ranni12" selected'));
+  assert.ok(main.includes('value="A:nocni12" selected'));
   assert.ok(!main.includes('<label>Směna D'));
   assert.ok(!feature.includes('.rakShiftOverviewHeader{grid-template-columns:minmax(0,1fr);}'));
 });
@@ -376,7 +379,7 @@ test('Excel flow groups before-145 under hardened stock and preserves archived w
  const api=context.window.fixture;
  const old=api.normalizeRecord({oam:{rows:{ag:{hard:'384',beforeWasher:'256',op145:'96',after145:'288'}}}},'2026-10-10','D:nocni12');
  const html=api.oamTable(old);
- assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('>212<'));
+ assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('Po broušení (op 212)'));assert.ok(!html.includes('<span>212</span>'));
  assert.ok(!html.includes('v nouz. skl.'));assert.ok(!html.includes('před pračkou'));assert.ok(!html.includes('data-shift-overview-field="oam.rows.ag.beforeWasher"'));
  const panels=html.split('<h3>');
  const hardened=panels.find(p=>p.startsWith('Sklad po kalení'));
@@ -529,4 +532,102 @@ test('corrected ALD assignment preserves legacy quantities/history exactly once 
  assert.equal(JSON.stringify(api.normalizeRecord(first)),JSON.stringify(first));
  const current=api.normalizeRecord({inputs:{partsAssignment:2,rows:{TW1:{ald1:'7'},SR1:{ald2:'8'}}}});
  assert.equal(current.inputs.rows.TW1.ald1,'7');assert.equal(current.inputs.rows.SR1.ald2,'8');
+});
+
+test('morning and night section order matches the supplied counting routes', () => {
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,shiftLayout};'),context);
+ const api=context.window.fixture;
+ for(const [shift,expected] of [
+  ['B:ranni12',['stock','ald3','nitrogen','machining','ald2','ald1']],
+  ['C:nocni8',['stock','assembly','ald3','before-kiln','after-kiln','ground','after-145','before-145','soft','machining','ald2','ald1']]
+ ]){
+  const html=api.shiftLayout(api.normalizeRecord({shift}));
+  assert.deepEqual([...html.matchAll(/data-shift-overview-section="([^"]+)"/g)].map(m=>m[1]),expected);
+  const paths=[...html.matchAll(/data-shift-overview-field="([^"]+)"/g)].map(m=>m[1]);
+  assert.equal(new Set(paths).size,paths.length);
+  for(const key of ['producedTO','producedMOFree','producedMOPress','groundTBKR01Free','groundTBKR01Press','groundTBKR07Free','groundTBKR07Press'])
+   for(const index of ['ag','af','ah'])assert.ok(paths.includes('oam.rows.'+index+'.'+key));
+  assert.equal((html.match(/data-running-unit=/g)||[]).length,25);
+  assert.equal((html.match(/aria-pressed="true"/g)||[]).length,25);
+  assert.equal(paths.includes('nitrogen'),shift.includes(':ranni'));
+  assert.equal(paths.includes('lastBatch.ald3'),true);
+  assert.ok(paths.includes('lastBatch.ald1'));assert.ok(paths.includes('lastBatch.ald2'));
+ }
+});
+
+test('manual shift changes preserve hidden quantities, drafts, history and the original summary', () => {
+ const context=vm.createContext({window:{rakAdminCanManageAdmins:()=>true},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,shiftLayout,updateShiftLayout,summarySvg,nestedGet,get:el=>renderedRecords.get(el),set:(el,record)=>renderedRecords.set(el,record),setRevision:(el,v)=>renderedRevisions.set(el,v),revision:el=>renderedRevisions.get(el)};'),context);
+ const api=context.window.fixture;
+ const initial=api.normalizeRecord({date:'2026-10-12',shift:'D:nocni12',nitrogen:'12.4',lastBatch:{ald3:'700'},
+   oam:{rows:{ag:{op1020:'576',stock:'192',producedTO:'64',groundTBKR01:'32'}}},
+   calculations:{'oam.rows.ag.op1020':{expression:'320+256',result:'576'}},
+   inputs:{partsAssignment:2,rows:{TW1:{ald1:'2'},SR1:{ald2:'3'}}}});
+ const layout={innerHTML:api.shiftLayout(initial)},header={value:'D:nocni12'},date={value:initial.date},fields=new Map();
+ const el={dataset:{},querySelector:s=>s.includes('data-shift-overview-layout')?layout:s.includes('data-shift-overview-date')?date:s.includes('data-shift-overview-shift')?header:null,
+  querySelectorAll:s=>s==='[data-shift-overview-field]'?[...fields].map(([path,value])=>({value,getAttribute:key=>key==='data-shift-overview-field'?path:null})):[]};
+ function hydrate(){fields.clear();const record=api.get(el);for(const [,path]of layout.innerHTML.matchAll(/data-shift-overview-field="([^"]+)"/g))fields.set(path,String(api.nestedGet(record,path)??''));}
+ api.set(el,initial);hydrate();
+ fields.set('oam.rows.ag.stock','256');fields.set('oam.rows.ag.producedTO','96');
+ header.value='D:ranni12';api.updateShiftLayout(el);hydrate();
+ assert.ok(layout.innerHTML.includes('data-shift-overview-section="nitrogen"'));
+ assert.equal(api.get(el).oam.rows.ag.op1020,'576');assert.equal(api.get(el).calculations['oam.rows.ag.op1020'].expression,'320+256');
+ fields.set('nitrogen','15.5');header.value='D:nocni12';api.updateShiftLayout(el);
+ const saved=api.get(el);assert.equal(saved.nitrogen,'15.5');assert.equal(saved.lastBatch.ald3,'700');
+ assert.equal(saved.oam.rows.ag.stock,'256');assert.equal(saved.oam.rows.ag.producedTO,'96');
+ assert.equal(saved.oam.rows.ag.groundTBKR01,'32');assert.equal(saved.inputs.rows.SR1.ald2,'3');
+ const clean=JSON.parse(JSON.stringify(saved));delete clean.oam.rows.ag.producedTO;delete clean.oam.rows.ag.groundTBKR01;
+ const inventory=svg=>svg.match(/<g data-summary-production="whole"[\s\S]*?<\/g><g transform=/)[0];
+ assert.equal(inventory(api.summarySvg(saved)),inventory(api.summarySvg(clean)),'conclusion fields must not alter inventory totals');
+ api.setRevision(el,9);el.dataset.cloudMutation='old-date-save';date.value='2026-10-13';api.updateShiftLayout(el);
+ assert.equal(api.get(el).date,'2026-10-13');assert.equal(api.revision(el),null);assert.equal(el.dataset.cloudMutation,'');
+ assert.equal(api.get(el).oam.rows.ag.op1020,'576');assert.equal(api.get(el).lastBatch.ald3,'700');
+});
+
+ test('numbered running units default active and preserve exact disabled identities on reload',()=>{
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,runningUnits,inactiveUnits,shiftLayout};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({shift:'D:nocni12',ald:[{running:'old',inactiveUnits:[2,10]},{inactiveUnits:[1,5]},{inactiveUnits:[3]}]});
+ assert.deepEqual(Array.from(api.inactiveUnits(record,1)),[2,10]);
+ assert.equal(record.ald[0].running,'old');
+ assert.equal((api.runningUnits(record,3).match(/aria-pressed="false"/g)||[]).length,1);
+ assert.equal((api.runningUnits(api.normalizeRecord({}),1).match(/aria-pressed="true"/g)||[]).length,10);
+ const html=api.shiftLayout(record);
+ assert.ok(html.includes('Po broušení (op 212)'));assert.ok(!html.includes('<span>212</span>'));
+ assert.ok(!html.includes('<span>145</span>'));assert.ok(!html.includes('<span>Sklad</span>'));
+ for(const machine of ['groundTBKR01','groundTBKR07'])for(const type of ['Free','Press'])
+ assert.ok(html.includes('data-shift-overview-field="oam.rows.ag.'+machine+type+'"'));
+ });
+
+
+test('grinding summary reports exact machine/index/type quantities and keeps inventory totals separate',()=>{
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{ag:{stock:'100',groundTBKR01Free:'32',groundTBKR01Press:'64',groundTBKR07Press:'20',producedMO:'888',groundTBKR01:'999'},af:{groundTBKR01Free:'8+8',groundTBKR07Free:'10'}}}});
+ const svg=api.summarySvg(record),clean=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{ag:{stock:'100'}}}});
+ const production=value=>value.match(/<g data-summary-production="whole"[\s\S]*?<\/g><g transform=/)[0];
+ assert.equal(production(svg),production(api.summarySvg(clean)));
+ for(const machine of ['TBKR01','TBKR07'])assert.ok(svg.includes('data-summary-grinder="'+machine+'"'));
+ const first=svg.split('data-summary-grinder="TBKR01"')[1].split('data-summary-grinder="TBKR07"')[0];
+ for(const value of ['32','64','16','48'])assert.ok(first.includes('>'+value+'</text>'),value);
+ assert.ok(svg.includes('Nabroušeno · brusy'));assert.ok(!svg.includes('>888</text>'));assert.ok(!svg.includes('>999</text>'));
+});
+
+
+test('compact grinding and conclusion reports omit idle machines and zero or empty indices without mutating data',()=>{
+ const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
+ vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg,shiftLayout};'),context);
+ const api=context.window.fixture;
+ const record=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{ag:{groundTBKR01Free:'32',producedMOFree:'8+8',producedTO:'64'},af:{groundTBKR01Free:'0',groundTBKR07Press:'10-10',producedMOPress:'0'},ah:{}}}});
+ const before=JSON.stringify(record),svg=api.summarySvg(record);
+ assert.ok(svg.includes('data-summary-grinder="TBKR01"'));assert.ok(!svg.includes('data-summary-grinder="TBKR07"'));
+ assert.deepEqual([...svg.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]),['ag']);
+ assert.deepEqual([...svg.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]),['ag']);
+ assert.ok(svg.indexOf('data-summary-machining="conclusion"')>svg.indexOf('data-summary-grinding="by-machine"'));
+ const conclusion=svg.split('data-summary-machining="conclusion"')[1];assert.ok(conclusion.includes('>16</text>'));assert.ok(conclusion.includes('>64</text>'));
+ assert.equal(JSON.stringify(record),before);assert.ok(api.shiftLayout(record).includes('>Závěr</h4>'));
+ const empty=api.summarySvg(api.normalizeRecord({}));assert.ok(!empty.includes('data-summary-grinding='));assert.ok(!empty.includes('data-summary-machining='));
 });

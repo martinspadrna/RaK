@@ -37,9 +37,19 @@ test('RaK 1.8 history stays compact while retaining the delivered work areas',()
 test('O aplikaci shows the full visible TEST version so every published TEST update is obvious',()=>{
   const src=read('app-menu-pages.js');
   const metadata=read('rak-release-metadata.js');
-  assert(metadata.includes("visibleTestVersion: '2.0.3'"));
+  assert(metadata.includes("visibleTestVersion: '2.0.16'"));
   assert(src.includes('releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION'));
-  assert(src.includes("versionText || '2.0.3'"));
+  assert(src.includes("versionText || '2.0.16'"));
   assert(src.includes("formatRakDisplayVersion(displayVersion)"));
   assert(!src.includes("displayParts.slice(0, 2).join('.')"));
+});
+
+
+test('production About version 2 has no TEST label or publication date',()=>{
+ const src=read('app-menu-pages.js');
+ const section=src.slice(src.indexOf("range: 'RaK 2'"),src.indexOf('// RAK_190_ABOUT_START'));
+ assert(section.includes("published: ''"));
+ assert(!section.includes('TEST'));
+ assert(!src.includes('TEST'));
+ assert(section.includes("title: 'Přehled směny a jednodušší ovládání'"));
 });

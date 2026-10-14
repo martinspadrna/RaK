@@ -1,6 +1,59 @@
+## RaK 2.0.16 (development)
+
+- Jmenné sloupce měkoty a tvrdoty mírně širší, stále pružné podle displeje.
+
+## RaK 2.0.15 (development)
+
+- Měkota i tvrdota v editoru mají užší datum/jména a pružnou šířku tabulky podle místa na mobilu.
+- Posouvání přes jména předává svislé gesto stránce i na Androidu.
+
+## RaK 2.0.14 (development)
+
+- Širší zadávání kódů absence v Administrace/Rozpisy, čitelné hned po otevření včetně NV a Lázně.
+
+## RaK 2.0.13 (development)
+
+- Výrazná svislá čára odděluje MO a TO v závěru po celé výšce každého indexu.
+
+## RaK 2.0.12 (development)
+
+- Výchozí nuly počítadel již nezadržují prázdný přehled na staré směně. Vymazání nastaví aktuální datum a směnu, skutečně vyplněné návrhy zachované.
+
+## RaK 2.0.11 (development)
+
+- Svislé vystředění data: výška řádku a zarovnání vnitřní hodnoty ovladače Safari.
+
+## RaK 2.0.10 (development)
+
+- Datum vystředěné. Obrábění/Do skladu přejmenované na Závěr. V souhrnu kompaktní brusy a pod nimi výsledky MO/TO ze závěru, pouze indexy s nenulovým výsledkem.
+
+## RaK 2.0.9 (development)
+
+- Do skladu má MO vlevo se samostatnými poli Volné/Pod lisem, TO vpravo. Vpravo dole v souhrnu přehled nabroušených kusů TBKR01/07 podle indexu a Volné/Pod lisem, součty za brus. Původní inventurní součty zachované.
+
+## RaK 2.0.8 (development)
+
+- Prázdný místní přehled se otevře pro aktuální směnu; datum lze ručně změnit viditelným nativním ovladačem. Vyplněné návrhy a rozpracované ukládání zachované. Do skladu: MO vlevo, TO vpravo.
+
+## RaK 2.0.7 (development)
+
+- ALD3 poslední vsázka v obou směnách, jasně zelené aktivní a šedé neaktivní ST/BK a označený přehled čísel posledních vsázek ALD1–3 ve výsledku.
+
+## RaK 2.0.6 (development)
+
+- Kompaktní popisky, číslované ST/BK přepínače, rozdělení Volné/Lis na brusech a poslední vsázka ALD1/2 v obou směnách.
+
+## RaK 2.0.5 (development)
+
+- Přehled směny má oddělené pořadí a pole pro ranní/noční podle provozních předloh; ruční přepnutí zachovává rozepsané i skryté údaje. Výsledný souhrn zachován.
+
+## RaK 2.0.4 (development)
+
+- Hydratace místního UI začíná až po prvním vykresleném snímku. Prohození ALD1/ALD2 zůstává zachované.
+
 ## RaK 2.0.3 (development)
 
-- Opraveno přiřazení dílů: ALD1 Awa/Awi/TW1–TW3; ALD2 SR1–SR7/FR3/FR5/FR7/ZSB-RLR/SRRG/AAR. Staré hodnoty a historie výpočtů se přenášejí s dílem právě jednou.
+- Opraveno přiřazení dílů ALD1/ALD2 se zachováním starších hodnot a výpočtů.
 
 ## RaK 2.0.2 (development)
 

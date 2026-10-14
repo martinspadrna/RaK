@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+// Real Chromium, synthetic local records only. No account or network credentials.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {spawnSync} from 'node:child_process';
+const root=process.cwd();
+const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>'/usr/bin/'+n).find(n=>fs.existsSync(n));
+assert(chrome,'Real Chromium is required');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rak-overview-205-'));
+const feature=fs.readFileSync(path.join(root,'admin-shift-overview.js'),'utf8').replaceAll('</script','<\\/script');
+const css=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1]).map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('');
+function probe(width){
+ const check=(ok,label)=>{if(!ok)throw Error(label);};
+ const body=document.querySelector('#appMenuBody');
+ const api=window.RakAdminShiftOverview;
+ const edit=(path,value)=>{const el=body.querySelector('[data-shift-overview-field="'+path+'"]');check(el,'missing '+path);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return el;};
+ const choose=shift=>{const el=body.querySelector('[data-shift-overview-shift]');el.value=shift;el.dispatchEvent(new Event('change',{bubbles:true}));};
+ const value=path=>body.querySelector('[data-shift-overview-field="'+path+'"]')?.value;
+ const order=()=>[...body.querySelectorAll('[data-shift-overview-section]')].map(el=>el.dataset.shiftOverviewSection).join(',');
+ const night='stock,assembly,ald3,before-kiln,after-kiln,ground,after-145,before-145,soft,machining,ald2,ald1';
+ const morning='stock,ald3,nitrogen,machining,ald2,ald1';
+ try{
+  api.render(body,{date:'2026-10-12',shift:'D:nocni12',nitrogen:'13',lastBatch:{ald3:'123'}});
+  check(order()===night,'night route');
+  edit('oam.rows.ag.op1020','320+256');check(value('oam.rows.ag.op1020')==='576','arithmetic');
+  edit('oam.rows.ag.op145','5');body.querySelector('[data-shift-overview-multiply="oam.rows.ag.op145"]').click();check(value('oam.rows.ag.op145')==='320','multiplier');
+  const producedFields=[...body.querySelectorAll('[data-shift-overview-field^="oam.rows.ag.produced"]')].map(el=>el.dataset.shiftOverviewField);
+  const mo=body.querySelector('[data-shift-overview-field="oam.rows.ag.producedMOFree"]').closest('.rakShiftOverviewFieldGroup'),to=mo.nextElementSibling;
+  check(Math.abs(mo.getBoundingClientRect().height-to.getBoundingClientRect().height)<1&&getComputedStyle(to,'::before').width==='3px','full-height visible MO/TO divider');
+  check(Math.abs(mo.querySelector('input').getBoundingClientRect().top-to.querySelector('input').getBoundingClientRect().top)<1,'divider preserves aligned inputs');
+  check(producedFields.join(',')==='oam.rows.ag.producedMOFree,oam.rows.ag.producedMOPress,oam.rows.ag.producedTO','MO left, TO right');
+  edit('oam.rows.ag.producedMOFree','32');edit('oam.rows.ag.producedMOPress','64');
+  edit('oam.rows.ag.stock','192');edit('oam.rows.ag.producedTO','64');edit('oam.rows.af.groundTBKR07Free','32');
+  check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25,'all units active initially');
+  for(const id of [1,2,3])body.querySelector('[data-running-ald="'+id+'"][data-running-unit="2"]').click();
+  check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'units toggle');
+  const activeStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="true"]'));
+  const inactiveStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="false"]'));
+  check(activeStyle.backgroundColor==='rgb(22, 122, 53)'&&inactiveStyle.backgroundColor==='rgb(102, 107, 115)','solid active/inactive backgrounds with full app theme');
+  check(activeStyle.backgroundImage==='none'&&inactiveStyle.backgroundImage==='none','theme cannot cover unit colors');
+  edit('lastBatch.ald3','300');
+  edit('lastBatch.ald1','100');edit('lastBatch.ald2','200');edit('ald.2.faults','synthetic fixture');
+  body.querySelector('[data-shift-overview-count="inputs.rows.TW1.ald1"][data-count-step="1"]').click();
+  check(value('inputs.rows.TW1.ald1')==='1','counter');
+  choose('D:ranni12');check(order()===morning,'manual morning route');
+  check(!body.querySelector('[data-shift-overview-field="oam.rows.ag.op1020"]'),'hidden morning stage');
+  check(value('nitrogen')==='13'&&value('lastBatch.ald3')==='300','hidden values restored');
+  edit('nitrogen','15.5');choose('D:nocni12');check(order()===night,'manual night route');
+  check(value('oam.rows.ag.op1020')==='576'&&value('oam.rows.ag.op145')==='320','hidden flow preserved');
+  check(value('oam.rows.ag.producedMOFree')==='32'&&value('oam.rows.ag.producedMOPress')==='64','independent MO free and press survive switch');
+  check(value('oam.rows.ag.producedTO')==='64'&&value('oam.rows.af.groundTBKR07Free')==='32','route inputs preserved');
+  check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'disabled units preserved');
+  check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','both last batches preserved');
+  const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
+  check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
+  check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Obrábění · závěr'),'conclusion summary');
+  check([...summary.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='af','only entered grinding indices');
+  check([...summary.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag','only entered conclusion index');
+  check(!summary.includes('data-summary-grinder="TBKR01"')&&summary.includes('data-summary-grinder="TBKR07"')&&summary.includes('Nabroušeno · brusy'),'grinding summary');
+  check(summary.includes('Čísla posledních vsázek')&&summary.includes('data-summary-last-batches="ald1-ald2-ald3"')&&['100','200','300'].every(n=>summary.includes('>'+n+'</text>')),'last batch numbers in final summary');
+  const draft=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
+  check(draft.record.nitrogen==='15.5'&&draft.record.oam.rows.ag.stock==='192','synchronous draft');
+  api.render(body);check(order()===night&&value('oam.rows.ag.op1020')==='576','reopen draft');
+  const dateInput=body.querySelector('[data-shift-overview-date]');
+  check(getComputedStyle(dateInput).textAlign==='center'&&getComputedStyle(dateInput).lineHeight==='40px','centered native date');
+  check(getComputedStyle(dateInput).opacity==='1'&&getComputedStyle(dateInput).pointerEvents==='auto'&&!dateInput.disabled&&!dateInput.readOnly,'visible editable native date');
+  const dateBox=dateInput.getBoundingClientRect();check(dateBox.height>=43&&document.elementFromPoint(dateBox.left+dateBox.width/2,dateBox.top+dateBox.height/2)===dateInput,'date tap target');
+  let pickerCalls=0;dateInput.showPicker=()=>pickerCalls++;dateInput.click();check(pickerCalls===1,'whole date opens picker');
+  dateInput.value='2026-10-13';dateInput.dispatchEvent(new Event('input',{bubbles:true}));dateInput.dispatchEvent(new Event('change',{bubbles:true}));
+  check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.date==='2026-10-13','manual date persisted');
+  api.render(body);check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&value('lastBatch.ald3')==='300','manual date and data survive reopen');
+  choose('D:ranni12');check(value('nitrogen')==='15.5','reopen morning values');
+  check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'disabled identities survive reopen');
+  check(value('oam.rows.ag.producedMOFree')==='32'&&value('oam.rows.ag.producedMOPress')==='64','MO free/press survive date and reopen');
+  const square=body.querySelector('[data-running-unit]');check(Math.abs(square.getBoundingClientRect().width-44)<1&&Math.abs(square.getBoundingClientRect().height-44)<1,'numbered squares');
+  check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','morning last batches');
+  edit('oam.rows.ag.groundTBKR01Free','32');edit('oam.rows.ag.groundTBKR01Press','64');check(value('oam.rows.ag.groundTBKR01Free')==='32'&&value('oam.rows.ag.groundTBKR01Press')==='64','independent free and press');
+  const completed=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
+  check([...completed.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag,af','adding another grinding index updates compact report');
+  check(completed.includes('data-summary-grinder="TBKR01"')&&completed.includes('data-summary-grinder="TBKR07"'),'both grinders after entering their results');
+  const fields=[...body.querySelectorAll('[data-shift-overview-field]')];
+  check(new Set(fields.map(el=>el.dataset.shiftOverviewField)).size===fields.length,'duplicate fields');
+  const box=body.getBoundingClientRect();
+  const overflow=fields.filter(el=>el.getBoundingClientRect().right>box.right+2);
+  check(overflow.length===0,'field overflow');
+  check([...body.querySelectorAll('[data-count-step]')].every(el=>el.getBoundingClientRect().height>=43),'touch targets');
+  localStorage.setItem('rak_shift_overview_draft_v1:local',JSON.stringify({record:{date:'2026-10-12',shift:'D:ranni12'},revision:null,mutationId:''}));
+  window.getActiveShiftNow=()=>({team:'D',start:new Date(2026,9,12,18),end:new Date(2026,9,13,6)});
+  api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='D:nocni12'&&body.querySelector('[data-shift-overview-date]').value==='2026-10-12','empty morning draft opens current night');
+  check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25&&value('lastBatch.ald3')==='','new empty context stays empty and active');
+  window.getActiveShiftNow=()=>({team:'B',start:new Date(2026,9,13,6),end:new Date(2026,9,13,18)});
+  body.querySelector('[data-shift-overview-action="clear"]').click();
+  check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','clear selects current morning and date immediately');
+  const cleared=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
+  check(Object.values(cleared.record.inputs.rows).every(row=>Object.values(row).every(value=>value==='')),'untouched displayed zeros remain empty draft values');
+  api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','actual cleared DOM draft reopens on current morning');
+  cleared.record.date='2026-10-12';cleared.record.shift='A:nocni12';
+  for(const row of Object.values(cleared.record.inputs.rows))for(const key of Object.keys(row))row[key]='0';
+  localStorage.setItem('rak_shift_overview_draft_v1:local',JSON.stringify(cleared));
+  api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','legacy zero counters no longer restore old night');
+  window.rakAdminCanManageAdmins=()=>false;api.render(body);check(!body.querySelector('[data-shift-overview-field]'),'role gate');
+  return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','draft reopen','summary','roles','overflow']};
+ }catch(error){return {result:'FAIL',containerWidth:width,error:error.message};}
+}
+try{
+ for(const width of [320,390,768,1366]){
+  const html='<!doctype html><html><head><meta charset="utf-8">'+css+'<style>html,body{margin:0;padding:0;}#appMenuBody{width:'+width+'px;max-width:100vw;box-sizing:border-box;padding:12px;}</style></head><body><div id="appMenuBody"></div><pre id="probe">WAIT</pre><script>window.rakAdminCanManageAdmins=()=>true;</script><script>'+feature+'</script><script>addEventListener("load",()=>{document.querySelector("#probe").textContent=JSON.stringify(('+probe.toString()+')('+width+'));});</script></body></html>';
+  const file=path.join(dir,'index.html');fs.writeFileSync(file,html);
+  const r=spawnSync(chrome,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--allow-file-access-from-files','--disable-background-networking','--virtual-time-budget=3500','--window-size='+Math.max(500,width)+',900','--dump-dom',pathToFileURL(file).href],{encoding:'utf8',timeout:45000,maxBuffer:5e6});
+  assert.equal(r.status,0,'Chromium failed');
+  const match=r.stdout.match(/<pre id="probe">([^<]+)<\/pre>/);assert(match&&match[1]!=='WAIT','Missing real browser result');
+  const result=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
+  assert.equal(result.result,'PASS',JSON.stringify(result));console.log('[overview-205-browser]',JSON.stringify(result));
+ }
+}finally{fs.rmSync(dir,{recursive:true,force:true});}

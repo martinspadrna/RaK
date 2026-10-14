@@ -153,7 +153,9 @@ body{
 #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .appMenuTableWrap{
   max-width:100% !important;
   overflow:auto !important;
-  overscroll-behavior:contain !important;
+  /* RAK_2015_SCROLL_CHAIN: let vertical drags over the name grid reach the menu. */
+  overscroll-behavior-x:contain !important;
+  overscroll-behavior-y:auto !important;
   -webkit-overflow-scrolling:touch !important;
   border-radius:16px !important;
 }
