@@ -48,7 +48,7 @@ function probe(sampleExpression,ics){
    check(start&&start.value==='2026-10-14','today default');
    start.value='2026-10-12';
    clickAction('generator-amend-next');
-   const dayInputs=[...document.querySelectorAll('[data-generator-day-date]')];
+   const dayInputs=[...document.querySelectorAll('[data-generator-day-input]')];
    check(dayInputs.length===15&&dayInputs[0].value==='12.10. R'&&dayInputs.at(-1).value==='26.10. R','suffix day range');
    clickAction('generator-days-next');
    adminRotationGeneratorActiveShiftCalendarSources=()=>({team:'D',sources:['fixture-calendar']});
@@ -75,7 +75,8 @@ function probe(sampleExpression,ics){
    await wait();
    let modal=document.querySelector('#adminRotationRuleOverrideModal');
    check(modal&&getComputedStyle(modal).zIndex==='2147483647','visible rule warning');
-   const cancel=modal.querySelector('[data-admin-rule-override="cancel"]');
+   const cancel=modal.querySelector('.adminRotationRuleOverrideClose');
+   check(cancel,'cancel action');
    cancel.scrollIntoView({block:'nearest'});
    const cancelBox=cancel.getBoundingClientRect();
    check(cancelBox.top>=0&&cancelBox.bottom<=innerHeight&&cancelBox.height>=44,'cancel reachable on narrow mobile');
@@ -86,7 +87,8 @@ function probe(sampleExpression,ics){
    const savePromise=saveAdminRotationFromDom('10/26',{normalizedMonth:manual});
    await wait();
    modal=document.querySelector('#adminRotationRuleOverrideModal');
-   const save=modal.querySelector('[data-admin-rule-override="save"]');
+   const save=modal.querySelector('.adminRotationRuleOverrideSave');
+   check(save,'override action');
    check(save.textContent.trim()==='Přesto uložit','explicit override label');
    save.scrollIntoView({block:'nearest'});
    const saveBox=save.getBoundingClientRect();
