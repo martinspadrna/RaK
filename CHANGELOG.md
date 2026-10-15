@@ -1,3 +1,11 @@
+## RaK 2.0.18 (development)
+
+- Závěr v Přehledu směny je výrazně kompaktnější: MO a TO jsou vlevo, indexy AG/AE, AF/AD a AH s poli vpravo.
+- Uložené hodnoty i výsledný souhrn zůstávají beze změny.
+- Generátor bezpečně dorovnává samostatné frézky i přes dvoukrokovou výměnu a při doplňování TO zachovává správné stroje pro 0–3 absence.
+- Úprava tohoto měsíce nyní drží návaznost trojice i tehdy, když při třech absencích zůstává TPKW02 prázdná.
+- Nová regresní matice ověřuje sedm navazujících měsíců a každý možný počáteční den částečné úpravy.
+
 ## RaK 2.0.17 (development)
 
 - Generátor nabízí úpravu aktuálního měsíce od dneška nebo zvoleného data; minulost zůstává a počítá se do vyrovnání.
