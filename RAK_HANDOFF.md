@@ -2,6 +2,17 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+
+## 15. 10. 2026 — TEST 2.0.18 kompaktní Závěr a maticové ověření generátoru (100 % automatické ověření a nasazení)
+
+Pouze TEST. Obrábění / Závěr má nyní dva kompaktní procesní řádky: vlevo MO a TO, vpravo u každého všechny indexy AG/AE, AF/AD a AH. MO zachovává pro každý index samostatné hodnoty Volné a Pod lisem, TO hodnotu Počet. Uložené klíče, normalizace i výsledný přehled zůstávají beze změny. Skutečný mobilní Chromium test kontroluje, že jsou popisky MO/TO vlevo od všech indexů, oba řádky jsou oddělené a všech šest indexových voleb je dostupných.
+
+Audit generátoru přidal maticový test nad skutečnou TEST kvalifikací zaměstnanců: sedm navazujících D-směnových měsíců 6/2026–12/2026 s rotujícími 0/1/2/3 absencemi a každý možný počáteční den režimu „Úprava tohoto měsíce“ pro 10/2026. Kontrolují se kvalifikace, duplicity, vyloučení absencí, přesné personální obsazení, hranice měsíců, neděle/přesčasy, zmrazený prefix a validní dopočítaný suffix. Test odhalil a opravil tři skutečné hraniční případy: atomický dvoukrokový swap při dorovnání solo frézky, tříkrokové doplnění prázdného tvrdého stroje bez obsazení zakázané měkké pozice a správný posun měkké trojice při třech absencích. Pravidla ani limity nebyly kvůli testům oslabeny.
+
+Funkční source SHA `79da8f2beff81792fe50281d359ab117afa1d284`; CI [38665526156](https://github.com/martinspadrna/RaK/actions/runs/38665526156) attempt2 SUCCESS pro verify i release-preview. Attempt1 zastavil release na nepravidelných FCP špičkách; opakování stejného exact SHA bez změny kódu či limitů prošlo (FCP medián 288 vs 276 ms, P90 312 vs 304 ms, limit 379 ms). Celé `npm run check`, cílených 21 amendment/staffing a 50 overview/release kontrol, nová generator matrix, skutečný Chromium mobile/offline/update test i dvě čisté canonical sestavy PASS. Canonical digest `481d462759e4a6d3c1139458844e55a0d33def0ddec987d34637f624abe8c76e`, 166 souborů, source unchanged.
+
+TEST READY `dpl_5L39gjiqb8cdmpU5SR2Jmoy6S2CP`, immutable <https://skoda-spada-cwsyiadgr-martinspadrnas-projects.vercel.app>, veřejný stabilní TEST <https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/>. CI ověřilo exact SHA, release metadata 2.0.18, TEST izolaci a veřejný alias. Rollback je 2.0.17 / `dpl_7kbPRiRjydYs2cZkUeDqe8MPUvZu`. Main zůstává `3c930b1ccb0feeca550530e4bc4204e23c461173`, produkce 2.0.16 / READY `dpl_9ao7ZSa67YqBKViatD649G5vqyhw` / functional SHA `5fbf51b00bf407fe1744d0a3b17405fe63a3d090`; DB/Edge bez zápisu. Automatická jistota je vysoká, fyzická přejímka rozložení a provozních kombinací vlastníkem/kolegou čeká.
+
 ## 14. 10. 2026 — TEST 2.0.17 úprava měsíce od data, ruční výjimky a MO/TO pod sebou (100 % automatické ověření a nasazení)
 
 Pouze TEST. Generátor nabízí „Úprava tohoto měsíce“ s výchozím dneškem a ručně volitelným datem v aktuálním měsíci. Zachovává dřívější řádky a poznámky bajtově, ale započítává je do měsíčních součtů, cyklů a všech dorovnávacích/repair průchodů. Budoucí dny používají stejný výběr směn, absence i import z přiřazeného Google kalendáře; výsledek je jen místní pending draft a online se zapíše až původním tlačítkem Uložit rozpis. Když zmrazená minulost nebo budoucí nemoc objektivně znemožní absolutní měsíční rovnost TNKS/solo frézky, všechny dostupné dorovnávací průchody se provedou a zbytek se zobrazí jako upozornění; nové kvalifikační, personální a zakázané návaznosti zůstávají blokující. Přímý parametr monthKey odstranil skrytou závislost dorovnání solo frézky na starším runtime wrapperu.
