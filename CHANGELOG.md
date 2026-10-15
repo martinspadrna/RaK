@@ -1,3 +1,8 @@
+## RaK 2.0.19 (development)
+
+- Rozpis 24. a 25. října se už neschovává po kliknutí na jméno kvůli starému každoročně opakovanému označení CZD.
+- Skutečně nastavený mimořádný volný den nebo odstávka se nadále respektuje.
+
 ## RaK 2.0.18 (development)
 
 - Závěr v Přehledu směny je výrazně kompaktnější: MO a TO jsou vlevo, indexy AG/AE, AF/AD a AH s poli vpravo.

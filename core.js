@@ -1,7 +1,7 @@
 // RaK 1.5 – core stav, verze a sdílené helpery aplikace.
 
 const APP_KEY = "rotace_kalkulacky_state_v123";
-const APP_VERSION = "2.0.18";
+const APP_VERSION = "2.0.19";
 window.APP_VERSION = APP_VERSION;
 const ROTATION_BUILD = "2026-06-03-" + APP_VERSION;
 window.ROTATION_BUILD = ROTATION_BUILD;
@@ -1562,7 +1562,6 @@ function getSpecialWorkInfo(now) {
     "12-26": "2. svátek vánoční"
   };
   if (HOLIDAY_LABELS[key]) return { type: "holiday", label: HOLIDAY_LABELS[key] };
-  if (key === "10-24" || key === "10-25") return { type: "czd", label: "CZD – celozávodní dovolená" };
   const vacationPeriod = typeof getVacationPeriodForDate === 'function' ? getVacationPeriodForDate(now) : null;
   if (vacationPeriod) return { type: "czd", label: String(vacationPeriod.workLabel || vacationPeriod.label || "CZD") };
   return null;
