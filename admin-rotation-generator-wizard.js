@@ -156,6 +156,89 @@ function adminRotationGeneratorAlignAbsencesToDays(days, absencesByDay) {
   });
 }
 
+function adminRotationGeneratorAmendBounds(monthKey) {
+  const parsed = parseMonthKey(monthKey);
+  if (!parsed) throw new Error('Neplatný měsíc pro úpravu.');
+  const prefix = String(parsed.year) + '-' + String(parsed.month).padStart(2, '0') + '-';
+  return { min: prefix + '01', max: prefix + String(new Date(parsed.year, parsed.month, 0).getDate()).padStart(2, '0') };
+}
+
+function adminRotationGeneratorAmendDays(state, days) {
+  const bounds = adminRotationGeneratorAmendBounds(state.monthKey);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(state.startDate || '') || state.startDate < bounds.min || state.startDate > bounds.max)
+    throw new Error('Vyber platné datum začátku v upravovaném měsíci.');
+  return (days || []).filter(date => {
+    const iso = adminRotationGeneratorDateLabelToIso(date, state.monthKey);
+    if (!iso || iso > bounds.max || iso < bounds.min) throw new Error('Pracovní den nepatří do upravovaného měsíce: ' + date);
+    return iso >= state.startDate;
+  });
+}
+
+function adminRotationGeneratorPrepareAmendMonth(state, prepared) {
+  const source = state.sourceMonth;
+  if (!source) throw new Error('Chybí původní rozpis měsíce.');
+  const before = row => {
+    const iso = adminRotationGeneratorDateLabelToIso(row && row.date, state.monthKey);
+    if (!iso) throw new Error('Původní řádek nemá platné datum. Nejdřív jej oprav v editoru.');
+    return iso < state.startDate;
+  };
+  ['hard', 'soft'].forEach(section => {
+    prepared[section].rows = (source[section] && source[section].rows || []).filter(before)
+      .map(row => JSON.parse(JSON.stringify(row))).concat(prepared[section].rows);
+  });
+  const selected = new Set(state.days);
+  const retainedNotes = (source.notes || []).filter(note => {
+    const iso = adminRotationGeneratorDateLabelToIso(note.date, state.monthKey);
+    if (!iso) return true;
+    if (iso < state.startDate) return true;
+    const normalized = typeof normalizeNoteEntry === 'function' ? normalizeNoteEntry(note) : null;
+    return selected.has(note.date) && normalized && !normalized.isAbsence;
+  });
+  prepared.notes = JSON.parse(JSON.stringify(retainedNotes)).concat(prepared.notes);
+  return prepared;
+}
+
+function adminRotationGeneratorAssertAmendPrefix(source, result, state) {
+  const before = row => {
+    const iso = adminRotationGeneratorDateLabelToIso(row && row.date, state.monthKey);
+    return !iso || iso < state.startDate;
+  };
+  for (const section of ['hard', 'soft']) {
+    if (JSON.stringify((source[section].rows || []).filter(before)) !== JSON.stringify((result[section].rows || []).filter(before)))
+      throw new Error('Úprava změnila dřívější dny. Návrh nebyl použit.');
+  }
+  if (JSON.stringify((source.notes || []).filter(before)) !== JSON.stringify((result.notes || []).filter(before)))
+    throw new Error('Úprava změnila dřívější poznámky. Návrh nebyl použit.');
+}
+
+function adminRotationGeneratorStartAmend(state) {
+  const now = new Date();
+  const monthKey = getAdminRotationMonthKeys().find(key => {
+    const parsed = parseMonthKey(key);
+    return parsed && parsed.year === now.getFullYear() && parsed.month === now.getMonth() + 1;
+  });
+  if (!monthKey) throw new Error('Aktuální měsíc není v seznamu rozpisů.');
+  const source = state.editorMonthKey === monthKey && state.editorMonth ? state.editorMonth :
+    adminRotationGeneratorGetPendingDraft(monthKey) || app.rotation.months[monthKey];
+  if (!source) throw new Error('Aktuální měsíc nemá připravený rozpis.');
+  const sourceMonth = JSON.parse(JSON.stringify(source));
+  const days = adminRotationCollectMonthWorkDatesFromMonth(sourceMonth);
+  adminRotationGeneratorSetWizardState({ mode: 'amend', monthKey, sourceMonth,
+    startDate: adminRotationGeneratorAmendBounds(monthKey).min.slice(0, 8) + String(now.getDate()).padStart(2, '0'),
+    days, absencesByDay: adminRotationCollectMonthAbsencesFromMonth(sourceMonth, days), result: null });
+  adminRotationGeneratorRenderWizard('month');
+}
+
+function adminRotationGeneratorRenderAmendStep(state) {
+  const bounds = adminRotationGeneratorAmendBounds(state.monthKey);
+  return '<div class="adminRotationGeneratorPanel"><div class="appMenuSubTitle">Úprava tohoto měsíce</div>' +
+    '<div class="smallText">' + escapeHtml(adminRotationMonthFullLabel(state.monthKey)) + '. Dřívější dny zůstanou beze změny a dál se započítají do vyrovnání strojů.</div>' +
+    '<label class="appMenuFieldLabel" for="adminGeneratorStartDate">Generovat od (včetně)</label>' +
+    '<input id="adminGeneratorStartDate" class="appMenuInput" type="date" min="' + bounds.min + '" max="' + bounds.max + '" value="' + escapeHtml(state.startDate) + '">' +
+    '<div class="appMenuActionRow"><button type="button" class="appMenuAction" data-admin-action="generator-full-month">Celý měsíc</button>' +
+    '<button type="button" class="appMenuAction isActive" data-admin-action="generator-amend-next">Pokračovat na dny</button></div></div>';
+}
+
 function adminRotationGeneratorBuildPrefillState(monthKey) {
   const days = adminRotationGetMonthWorkDates(monthKey);
   const month = app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null;
@@ -168,6 +251,7 @@ function adminRotationGeneratorBuildPrefillState(monthKey) {
 function adminRotationGeneratorResolveWizardDays(state) {
   const liveState = state || adminRotationGeneratorGetWizardState();
   const fromState = Array.isArray(liveState.days) ? liveState.days.map((d) => String(d || '').trim()).filter(Boolean) : [];
+  if (liveState.mode === 'amend') return adminRotationGeneratorAmendDays(liveState, fromState);
   if (fromState.length) return fromState;
   const monthKey = String(liveState.monthKey || '').trim();
   const fallbackDays = adminRotationGetMonthWorkDates(monthKey);
@@ -444,7 +528,7 @@ function adminRotationGeneratorRenderWizard(step) {
     '    <span class="' + (step === 'absences' ? 'isActive' : '') + '">3. Absence</span>',
     '    <span class="' + (step === 'result' ? 'isActive' : '') + '">4. Návrh</span>',
     '  </div>',
-    step === 'month' ? adminRotationGeneratorRenderMonthStep(yearOptions, monthOptions, selected) : '',
+    step === 'month' ? (state.mode === 'amend' ? adminRotationGeneratorRenderAmendStep(state) : adminRotationGeneratorRenderMonthStep(yearOptions, monthOptions, selected)) : '',
     step === 'days' ? adminRotationGeneratorRenderDaysStep(state) : '',
     step === 'absences' ? adminRotationGeneratorRenderAbsencesStep(state) : '',
     step === 'result' ? adminRotationGeneratorRenderResultStep(state) : '',
@@ -470,6 +554,7 @@ function adminRotationGeneratorRenderMonthStep(yearOptions, monthOptions, select
     '  <div class="smallText">' + (selected ? 'Dostupný měsíc: ' + escapeHtml(adminRotationMonthFullLabel(selected)) + '.' : 'Nejdřív musí existovat měsíc v seznamu rozpisů.') + '</div>',
     '  <div class="appMenuActionRow">',
     '    <button type="button" class="appMenuAction" data-admin-action="back-admin">Zpět</button>',
+    '    <button type="button" class="appMenuAction" data-admin-action="generator-amend-current">Úprava tohoto měsíce</button>',
     '    <button type="button" class="appMenuAction isActive" data-admin-action="generator-month-next"' + disabled + '>Pokračovat na dny</button>',
     '  </div>',
     '</div>'
@@ -494,7 +579,7 @@ function adminRotationGeneratorHandleYearSelectChange(target) {
 }
 
 function adminRotationGeneratorRenderDaysStep(state) {
-  const days = Array.isArray(state.days) && state.days.length ? state.days : adminRotationGetMonthWorkDates(state.monthKey);
+  const days = state.mode === 'amend' ? adminRotationGeneratorResolveWizardDays(state) : (Array.isArray(state.days) && state.days.length ? state.days : adminRotationGetMonthWorkDates(state.monthKey));
   state.days = days.slice();
   const rows = days.map((date, idx) => [
     '<div class="adminRotationGeneratorDayRow" data-generator-day-row="' + String(idx) + '">',
@@ -752,7 +837,7 @@ function adminRotationGeneratorEnsurePreparedMonthFromWizard() {
   const state = adminRotationGeneratorGetWizardState();
   const monthKey = state.monthKey;
   if (!monthKey) throw new Error('Chybí měsíc.');
-  const fallback = app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null;
+  const fallback = state.mode === 'amend' ? state.sourceMonth : (app.rotation && app.rotation.months ? app.rotation.months[monthKey] : null);
   if (!fallback) throw new Error('Pro vybraný měsíc nejsou připravená data.');
   const days = adminRotationGeneratorResolveWizardDays(state);
   if (!days.length) throw new Error('Nejsou vybrané žádné pracovní dny. Vrať se na krok Dny a přidej aspoň jeden den.');
@@ -778,6 +863,7 @@ function adminRotationGeneratorEnsurePreparedMonthFromWizard() {
     });
   });
   month.notes = notes;
+  if (state.mode === 'amend') return adminRotationGeneratorPrepareAmendMonth(state, month);
   return normalizeMonthForImport(month, fallback);
 }
 
@@ -1560,6 +1646,9 @@ function adminOpenRotationGeneratorWizard(monthKey) {
   const prefill = adminRotationGeneratorBuildPrefillState(suggested);
   adminRotationGeneratorSetWizardState({
     step: 'month',
+    mode: 'full', sourceMonth: null, result: null,
+    editorMonthKey: monthKey,
+    editorMonth: adminRotationGeneratorCanReadEditorDraftFromDom() ? readAdminRotationFromDom(monthKey) : adminRotationGeneratorGetPendingDraft(monthKey),
     monthKey: suggested,
     days: prefill.days,
     absencesByDay: prefill.absencesByDay
@@ -1570,6 +1659,28 @@ function adminOpenRotationGeneratorWizard(monthKey) {
 function adminHandleRotationGeneratorWizardAction(action, target) {
   const state = adminRotationGeneratorGetWizardState();
   const body = document.getElementById('appMenuBody');
+  if (action === 'generator-amend-current') {
+    try { adminRotationGeneratorStartAmend(state); }
+    catch (err) { const status = document.getElementById('adminOnlineSaveStatus'); if (status) status.textContent = err.message; }
+    return true;
+  }
+  if (action === 'generator-full-month') {
+    state.mode = 'full'; state.sourceMonth = null;
+    adminRotationGeneratorRenderWizard('month');
+    return true;
+  }
+  if (action === 'generator-amend-next') {
+    try {
+      state.startDate = String(body.querySelector('#adminGeneratorStartDate')?.value || '');
+      const days = adminRotationGeneratorAmendDays(state, adminRotationCollectMonthWorkDatesFromMonth(state.sourceMonth));
+      if (!days.length) throw new Error('Od zvoleného dne nejsou pracovní směny. Vyber jiné datum.');
+      const previous = new Map((state.absencesByDay || []).map(day => [day.date, day]));
+      state.absencesByDay = adminRotationCollectMonthAbsencesFromMonth(state.sourceMonth, days).map(day => previous.get(day.date) || day);
+      state.days = days;
+      adminRotationGeneratorRenderWizard('days');
+    } catch (err) { const status = document.getElementById('adminOnlineSaveStatus'); if (status) status.textContent = err.message; }
+    return true;
+  }
   if (action === 'generator-back-month') {
     adminRotationGeneratorRenderWizard('month');
     return true;
@@ -1629,7 +1740,11 @@ function adminHandleRotationGeneratorWizardAction(action, target) {
     return true;
   }
   if (action === 'generator-days-next') {
-    const days = adminRotationGeneratorCollectDaysFromDom();
+    let days = adminRotationGeneratorCollectDaysFromDom();
+    if (state.mode === 'amend') {
+      try { days = adminRotationGeneratorAmendDays(state, days); if (!days.length) throw new Error('Vyber aspoň jednu pracovní směnu.'); }
+      catch (err) { document.getElementById('adminOnlineSaveStatus').textContent = err.message; return true; }
+    }
     const preservedAbsences = adminRotationGeneratorAlignAbsencesToDays(days, state.absencesByDay);
     adminRotationGeneratorSetWizardState({
       step: 'absences',
@@ -1664,10 +1779,17 @@ function adminHandleRotationGeneratorWizardAction(action, target) {
     try {
       if (!state.days.length) throw new Error('Nejsou vybrané žádné pracovní dny. Vrať se na krok Dny a přidej aspoň jeden den.');
       const hasFilledCells = typeof adminRotationMonthHasFilledCells === 'function' ? adminRotationMonthHasFilledCells(state.monthKey) : false;
-      if (hasFilledCells && !confirm('Tenhle měsíc už má v rozpisu jména. Přepsat ho novým návrhem podle průvodce?')) return true;
-      adminRotationGeneratorClearPendingDraft(state.monthKey);
+      const amend = state.mode === 'amend';
+      const question = amend ? 'Přegenerovat rozpis od ' + state.startDate + '? Dřívější dny zůstanou stejné. Online se nic neuloží bez Uložit rozpis.'
+        : 'Tenhle měsíc už má v rozpisu jména. Přepsat ho novým návrhem podle průvodce?';
+      if (hasFilledCells && !confirm(question)) return true;
       const preparedMonth = adminRotationGeneratorEnsurePreparedMonthFromWizard();
-      const result = adminGenerateRotationMonthDraft(state.monthKey, preparedMonth);
+      const result = adminGenerateRotationMonthDraft(state.monthKey, preparedMonth, amend
+        ? { ignoreDom: true, persistPending: false, mutableDateLabels: state.days, baselineMonth: state.sourceMonth } : undefined);
+      if (amend) {
+        adminRotationGeneratorAssertAmendPrefix(state.sourceMonth, result.normalized, state);
+        adminRotationGeneratorSetPendingDraft(state.monthKey, result.normalized);
+      }
       state.result = result;
       const warnings = Array.isArray(result && result.ruleWarnings) ? result.ruleWarnings : [];
       const warningText = warnings.length ? (' · upozornění: ' + String(warnings.length) + (warnings[0] && warnings[0].message ? ' (' + warnings[0].message + ')' : '')) : '';
@@ -1675,7 +1797,7 @@ function adminHandleRotationGeneratorWizardAction(action, target) {
         ? ('Návrh vygenerovaný lokálně ✓ · dnů: ' + String(result.days || 0) + ' · políček: ' + String(result.filledCells || 0) + ' · absence: ' + String(result.blockedByAbsence || 0) + warningText + '.')
         : 'Návrh se nepodařilo vygenerovat. Vrať se na krok Dny a zkontroluj, že jsou vybrané pracovní dny.';
     } catch (err) {
-      adminRotationGeneratorClearPendingDraft(state.monthKey);
+      if (state.mode !== 'amend') adminRotationGeneratorClearPendingDraft(state.monthKey);
       state.result = null;
       state.resultText = 'Návrh se nepodařilo vygenerovat: ' + (err && err.message ? err.message : String(err || 'neznámá chyba'));
     }

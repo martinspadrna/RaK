@@ -180,12 +180,12 @@ test('feature remains deferred and does not join startup core', () => {
 });
 
 test('same-version TEST build offers an update and evicts the old overview module', () => {
-  assert.ok(metadata.includes("visibleTestVersion: '2.0.16'"));
-  assert.ok(metadata.includes("buildId: 'v2.0.16-release1'"));
-  assert.ok(index.includes("var e='v216',k='rak_ue'"));
-  assert.ok(!index.includes("v2.0.16-release1"));
+  assert.ok(metadata.includes("visibleTestVersion: '2.0.19'"));
+  assert.ok(metadata.includes("buildId: 'v2.0.19-release1'"));
+  assert.ok(index.includes("var e='v219',k='rak_ue'"));
+  assert.ok(!index.includes("v2.0.19-release1"));
   assert.ok(sw.includes('const DEVELOPMENT_TEST_DISPLAY_VERSION = RELEASE_METADATA.visibleTestVersion || RELEASE_METADATA.displayVersion;'));
-  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.16'"));
+  assert.ok(sw.includes("'./admin-shift-overview.js?v=2.0.19'"));
   assert.ok(sw.includes("'./rak-release-metadata.js'"));
 });
 
@@ -629,5 +629,9 @@ test('compact grinding and conclusion reports omit idle machines and zero or emp
  assert.ok(svg.indexOf('data-summary-machining="conclusion"')>svg.indexOf('data-summary-grinding="by-machine"'));
  const conclusion=svg.split('data-summary-machining="conclusion"')[1];assert.ok(conclusion.includes('>16</text>'));assert.ok(conclusion.includes('>64</text>'));
  assert.equal(JSON.stringify(record),before);assert.ok(api.shiftLayout(record).includes('>Závěr</h4>'));
+ const layout=api.shiftLayout(record);
+ assert.ok(layout.includes('rakShiftOverviewStation--compactConclusion'),'conclusion must use the compact editor');
+ assert.ok(layout.indexOf('aria-label="Závěr · MO"')<layout.indexOf('aria-label="Závěr · TO"'),'MO and TO conclusion blocks must stack vertically');
+ assert.deepEqual([...layout.matchAll(/rakShiftOverviewConclusionIndex (?:isGreen|isBlue|isOrange)[^>]*><strong>(.*?)<\/strong>/g)].map(match=>match[1]),['AG / AE','AF / AD','AH','AG / AE','AF / AD','AH']);
  const empty=api.summarySvg(api.normalizeRecord({}));assert.ok(!empty.includes('data-summary-grinding='));assert.ok(!empty.includes('data-summary-machining='));
 });

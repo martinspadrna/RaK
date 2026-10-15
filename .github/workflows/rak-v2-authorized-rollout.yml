@@ -1,6 +1,6 @@
 name: RaK v2 authorized rollout coordinator
 
-# Martin authorized transfer of tested RaK 2.0.16 to main and production on 2026-10-14.
+# Martin authorized transfer of tested RaK 2.0.19 to main and production on 2026-10-15.
 # One-time trigger: only the commit introducing/changing this coordinator on main.
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 55
     env:
       GH_TOKEN: ${{ github.token }}
-      EXPECTED_DEVELOPMENT_SHA: 1378a659266ccdd55f8fd9c9e9ef4d316bc9e9f1
+      EXPECTED_DEVELOPMENT_SHA: 24570e3eb2f6a739368160d6fbee121ae17d91b1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,7 +32,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
-          node -e 'if(require("./package.json").version!=="2.0.16")process.exit(1)'
+          node -e 'if(require("./package.json").version!=="2.0.19")process.exit(1)'
       - name: Dispatch full exact-main validation and await green result
         run: |
           gh workflow run rak-development-validation.yml --repo "${{ github.repository }}" --ref main

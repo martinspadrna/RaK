@@ -310,7 +310,7 @@ body.ladaMode #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adm
 .adminRotationRuleOverrideModal{
   position:fixed !important;
   inset:0 !important;
-  z-index:100000 !important;
+  z-index:2147483647 !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
@@ -361,6 +361,7 @@ body.ladaMode #appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adm
   margin-top:6px !important;
 }
 .adminRotationRuleOverrideActions{
+  position:sticky !important;bottom:0 !important;background:rgba(15,22,38,.98) !important;padding-top:8px !important;
   display:grid !important;
   grid-template-columns:1fr 1fr !important;
   gap:10px !important;

@@ -1,3 +1,22 @@
+## RaK 2.0.19 (development)
+
+- Rozpis 24. a 25. října se už neschovává po kliknutí na jméno kvůli starému každoročně opakovanému označení CZD.
+- Skutečně nastavený mimořádný volný den nebo odstávka se nadále respektuje.
+
+## RaK 2.0.18 (development)
+
+- Závěr v Přehledu směny je výrazně kompaktnější: MO a TO jsou vlevo, indexy AG/AE, AF/AD a AH s poli vpravo.
+- Uložené hodnoty i výsledný souhrn zůstávají beze změny.
+- Generátor bezpečně dorovnává samostatné frézky i přes dvoukrokovou výměnu a při doplňování TO zachovává správné stroje pro 0–3 absence.
+- Úprava tohoto měsíce nyní drží návaznost trojice i tehdy, když při třech absencích zůstává TPKW02 prázdná.
+- Nová regresní matice ověřuje sedm navazujících měsíců a každý možný počáteční den částečné úpravy.
+
+## RaK 2.0.17 (development)
+
+- Generátor nabízí úpravu aktuálního měsíce od dneška nebo zvoleného data; minulost zůstává a počítá se do vyrovnání.
+- Ruční výjimky z pravidel lze po upozornění výslovně uložit.
+- Přehled směny zobrazuje v závěru MO a TO pod sebou; uložená pole a výsledný souhrn se nemění.
+
 ## RaK 2.0.16 (development)
 
 - Jmenné sloupce měkoty a tvrdoty mírně širší, stále pružné podle displeje.

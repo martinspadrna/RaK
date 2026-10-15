@@ -1022,12 +1022,25 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   const model = adminBuildRotationGenerationModel(monthKey);
   if (!model.dayTemplates.length) throw new Error('Nemám z čeho vycházet. Nejdřív musí existovat aspoň jeden vyplněný předchozí rozpis.');
   const month = JSON.parse(JSON.stringify(fallback));
+  if (Array.isArray(generationOptions.mutableDateLabels)) {
+    if (!generationOptions.mutableDateLabels.length) throw new Error('Nejsou vybrané žádné dny k úpravě.');
+    adminRotationGeneratorMutableDates.set(month, new Set(generationOptions.mutableDateLabels));
+  }
   month.hard = month.hard || { title: 'Rotace tvrdota', machines: HARD_MACHINE_HEADERS.slice(), rows: [] };
   month.soft = month.soft || { title: 'Rotace měkota', machines: SOFT_MACHINE_HEADERS.slice(), rows: [] };
   month.notes = Array.isArray(month.notes) ? month.notes : [];
   const hardRows = Array.isArray(month.hard.rows) ? month.hard.rows : [];
   const softRows = Array.isArray(month.soft.rows) ? month.soft.rows : [];
   const maxRows = Math.max(hardRows.length, softRows.length);
+  if (generationOptions.mutableDateLabels) {
+    const prefix = Object.assign({}, month);
+    ['hard', 'soft'].forEach(section => {
+      prefix[section] = Object.assign({}, month[section], { rows: month[section].rows.filter((row, idx) => !adminRotationGeneratorCanEditRow(month, idx)) });
+    });
+    const continuation = {};
+    adminRotationGeneratorFindSoftCoreSequenceIssues(prefix, monthKey, model.knownNames, continuation);
+    if (continuation.machineCursor !== undefined) model.softCoreCycleState = continuation;
+  }
   const counters = adminRotationGeneratorCreateCounters(model);
   let filledCells = 0;
   let days = 0;
@@ -1046,6 +1059,10 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
     const softRow = softRows[rowIdx];
     if (!hardRow && !softRow) continue;
     const dateLabel = (hardRow && hardRow.date) || (softRow && softRow.date) || '';
+    if (!adminRotationGeneratorCanEditRow(month, rowIdx)) {
+      adminRotationGeneratorRememberRow(month, rowIdx, model, counters);
+      continue;
+    }
     const dayNotes = adminRotationGeneratorDateNotes(month, dateLabel);
     const absenceNames = adminRotationUnavailableNamesForDate(month, dateLabel, knownNames);
     blockedByAbsence += absenceNames.size;
@@ -1081,10 +1098,10 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   // Měsíční dorovnávací/repair průchody mohou legitimně prohazovat jiné dny a
   // v minulosti tím vracely absenci/Kalírnu zpět do právě přepočítaného dne.
   const tnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
-  const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const soloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model, monthKey);
   const softTotalBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftTotals(month, model, monthKey);
   const softKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
-  const soloMillRebalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const soloMillRebalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model, monthKey);
   const kminekNovotnyMoToBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model);
   const emptyHardRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey);
   const tnksPostRepairBalance = !scopedGeneration && emptyHardRepair && Number(emptyHardRepair.repairs || 0)
@@ -1094,7 +1111,7 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   const finalSoftKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
   const finalTnksBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey);
   const tpkw02Balance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceHardMachine(month, 'TPKW02', model, monthKey);
-  const finalSoloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model);
+  const finalSoloMillBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model, monthKey);
   // RAK_GENERATOR_FINAL_SOLO_MILL_CALL_17008
   const finalSoloMillStreakRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairConsecutiveSoloMill17008(month, model, monthKey);
   // RAK_GENERATOR_SOLO_MILL_SPREAD_CALL_17009
@@ -1109,7 +1126,18 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   if (finalTpkw02Balance.spread > 1 && !finalTpkw02Balance.disabled) {
     ruleCheck.issues.push({ severity: 'warn', code: 'tpkw02-month-spread', message: 'TPKW02 nelze s aktuální kvalifikací bezpečně vyrovnat na rozdíl 1 směny.' });
   }
-  const criticalIssues = ruleCheck.issues.filter((issue) => issue && issue.severity === 'error');
+  const inheritedErrors = generationOptions.baselineMonth
+    ? new Set(adminRotationValidateMonthRules(generationOptions.baselineMonth, monthKey, { source: 'generator' }).issues
+      .filter(issue => issue.severity === 'error' && !adminRotationUnplannedIssueTouchesSelectedDate(issue, generationOptions.mutableDateLabels || []))
+      .map(adminRotationUnplannedIssueKey)) : new Set();
+  if (generationOptions.baselineMonth) ruleCheck.issues.forEach(issue => {
+    if (issue.severity === 'error' && ['monthly-tnks-balance', 'solo-mill-balance'].includes(issue.type)) {
+      issue.severity = 'warn';
+      issue.detail = 'Dřívější dny zůstaly beze změny. Počty byly dorovnány v rámci dostupných zbývajících směn.';
+    }
+  });
+  const criticalIssues = ruleCheck.issues.filter((issue) => issue && issue.severity === 'error' && (!inheritedErrors.size || !inheritedErrors.has(adminRotationUnplannedIssueKey(issue))));
+  ruleCheck.issues.forEach(issue => { if (inheritedErrors.size && issue.severity === 'error' && inheritedErrors.has(adminRotationUnplannedIssueKey(issue))) issue.severity = 'warn'; });
   const allowScopedRuleErrors = generationOptions.allowScopedRuleErrors === true;
   if (criticalIssues.length && !allowScopedRuleErrors) {
     throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · '));

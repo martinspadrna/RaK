@@ -69,7 +69,7 @@ jobs:
           node --test tools/ui-parity-contract.test.mjs
       - name: Verify v2 secure login and release identity
         working-directory: .rak-canonical-build/work
-        run: node --test tools/release-gate-200.test.mjs tools/shift-overview-draft-201.test.mjs
+        run: node --test tools/release-gate-200.test.mjs tools/shift-overview-draft-201.test.mjs tools/generator-rules-matrix-218.test.mjs
       - name: Verify non-destructive rollback contract and measured PWA budgets
         working-directory: .rak-canonical-build/work
         run: |
@@ -92,6 +92,8 @@ jobs:
           node tools/browser-iphone-regressions-17100.mjs
           node tools/browser-ui-parity-17104.mjs
           node tools/browser-privacy-diagnostics-17105.mjs
+          node --test tools/rotation-amend-217.test.mjs
+          node tools/browser-rotation-amend-217.mjs
           node tools/browser-shift-overview-205.mjs
       - name: Benchmark PWA three times with fail-closed time and size budgets
         working-directory: .rak-canonical-build/work
