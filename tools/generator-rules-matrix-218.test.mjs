@@ -131,10 +131,10 @@ test('one inactive worker plus two absences uses the seven-person 4 TO + 3 MO la
 });
 
 test('staffing uses active people per day, including reactivation and changing absences',()=>{
+ const f=setup();
  const crew=names.filter(name=>!['Synek','Třasák','Střížek','Špadrna'].includes(name));
  const core=['Synek','Třasák','Střížek'];
  for(const activeCount of [7,8,9,10]){
-  const f=setup();
   const active=new Set(core.concat(crew.slice(0,activeCount-7),crew.slice(0,4),activeCount>=8?['Špadrna']:[]));
   // The transition 7 -> 8 explicitly reactivates Špadrna; additional names can rejoin as well.
   if(activeCount===9)active.add(crew[4]);
