@@ -8,7 +8,7 @@ import {GENERATED_ICON_NAMES} from './build-transparent-pwa-icons.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=(relative)=>fs.readFileSync(path.join(root,relative),'utf8');
-test('Windows, Android and iOS use the same transparent symbol without old opaque icon entries',async()=>{
+test('Windows and Android keep transparent icons while iOS receives a compatible legacy-logo fallback',async()=>{
  const manifest=JSON.parse(read('manifest.webmanifest'));
  const icons=manifest.icons;
  for(const size of [192,512]){
@@ -18,7 +18,16 @@ test('Windows, Android and iOS use the same transparent symbol without old opaqu
  }
  const index=read('index.html'),worker=read('sw.js');
  assert(index.includes('icon-any-32.png'),'transparent favicon');
- assert(index.includes('apple-touch-icon') && index.includes('icon-any-180.png'),'iOS icon uses the same transparent logo');
+ assert(index.includes('apple-touch-icon') && index.includes('apple-touch-icon.png?v=2.0.27-ios1'),'iOS points to compatible cache-busted icon');
+ const iosManifestIcon=icons.find(x=>x.sizes==='180x180'&&x.purpose==='any');
+ assert(iosManifestIcon?.src==='apple-touch-icon.png?v=2.0.27-ios1','Edge manifest has an explicit iOS fallback');
+ const iosPath=path.join(root,'apple-touch-icon.png');
+ if(fs.existsSync(iosPath)){
+   const ios=await sharp(iosPath).metadata();
+   assert.equal(ios.width,180,'Apple icon width');
+   assert.equal(ios.height,180,'Apple icon height');
+   assert.equal(ios.hasAlpha,false,'Apple icon must be opaque for iOS');
+ }
  assert(worker.includes('icon-any-180.png'),'iOS icon precached for offline use');
  assert(worker.includes('icon-any-512.png'),'new PWA icon precached');
  const source=await sharp(path.join(root,'assets/app-icons/icon-any-source-128.png')).metadata();
