@@ -22,6 +22,10 @@ assert.match(access, /rakEnsureFeature\('sync'\)/,
   'admin password gate must trigger the existing sync feature so RotationSupabaseBridge is available');
 assert.match(access, /rakAdminSecureSignIn/,
   'admin password gate must still wait for the secure sign-in function');
+assert.match(access, /rakEnsureSupabaseSdk\(\{ force: true \}\)/,
+  'admin password gate must explicitly warm the signed-auth SDK even if account lookup used REST fallback');
+assert.match(access, /lastSecureLoginBootstrapError/,
+  'the experiment must distinguish an unavailable SDK from a missing signed-auth feature without bypassing the role gate');
 assert.match(access, /waitForSecureSignIn\(12000\)/,
   'the bounded fail-closed login wait must remain');
 
