@@ -92,6 +92,33 @@ test('4 consecutive TBKR01 assignments can be safely shortened to at most 2', ()
   assert.ok(after.maxStreak <= 2);
 });
 
+test('two consecutive shifts on TBKR01 are eliminated by safe TBKR07 exchange', () => {
+ const month = { hard: { rows: [1, 2].map((number) =>
+  ({ date: number + '.11.2026', cells: ['', 'Pech', '', '', 'Kmínek'] })) } };
+ const before = f.adminRotationGeneratorGrinderStreaks(month, known);
+ assert.equal(before.excess, 0, 'two shifts were previously ignored');
+ assert.equal(before.adjacentPairs, 2);
+ const result = f.adminRotationGeneratorRepairGrinderStreaks(month, { knownNames: known }, '11/26');
+ assert.ok(result.swaps > 0);
+ assert.equal(result.pairsRemaining, 0);
+ assert.equal(f.adminRotationGeneratorGrinderStreaks(month, known).maxStreak, 1);
+ assert.deepEqual(month.hard.rows.map(row => row.cells.filter(Boolean).sort()), [
+  ['Kmínek', 'Pech'], ['Kmínek', 'Pech']
+ ]);
+});
+
+test('unavoidable grinder double assignment stays visible without an unsafe swap', () => {
+ const month = { hard: { rows: [1, 2].map((number) =>
+  ({ date: number + '.11.2026', cells: ['', 'Pech', '', '', 'Kmínek'] })) } };
+ grinderQualified = false;
+ try {
+  const result = f.adminRotationGeneratorRepairGrinderStreaks(month, { knownNames: known }, '11/26');
+  assert.equal(result.swaps, 0);
+  assert.equal(result.pairsRemaining, 2);
+  assert.equal(month.hard.rows[1].cells[4], 'Kmínek');
+ } finally { grinderQualified = true; }
+});
+
 test('unrepairable grinder streak is reported, never silently overridden', () => {
   const day = { hard: { rows: [1, 2, 3].map((number) =>
     ({ date: number + '.11.2026', cells: ['', 'Pech', '', '', 'Kmínek'] })) } };
