@@ -135,7 +135,7 @@ function prepareBackup(){
 function publish(){
   fs.rmSync(OUTPUT,{recursive:true,force:true});fs.mkdirSync(OUTPUT,{recursive:true});
   const candidates=trackedFiles().filter(isStatic);
-  for (const name of ['icon-any-16.png','icon-any-32.png','icon-any-192.png','icon-any-512.png']) candidates.push('assets/app-icons/'+name);
+  for (const name of ['icon-any-16.png','icon-any-32.png','icon-any-180.png','icon-any-192.png','icon-any-512.png']) candidates.push('assets/app-icons/'+name);
   if(!candidates.includes(SUPABASE_VENDOR_RELATIVE))candidates.push(SUPABASE_VENDOR_RELATIVE);
   if(!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
   for(const relative of candidates.sort())if(fs.existsSync(path.join(WORK,relative)))copy(relative,WORK,OUTPUT);

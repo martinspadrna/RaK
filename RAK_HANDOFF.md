@@ -2,6 +2,11 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — TEST 2.0.27: totožná průhledná PWA ikona Windows + mobil
+
+Požadavek uživatele: stejná ikona RaK bez černého pozadí na Windows, Androidu i iPhonu, rovnou nasadit na TEST, bez změny jiných funkcí. Navazujeme na transparentní zdroj z 2.0.26 assets/app-icons/icon-any-source-128.png. tools/build-transparent-pwa-icons.mjs vytváří i icon-any-180.png pro iOS, canonical build jej publikuje; manifest obsahuje jen purpose:any průhledné ikony 192/512 (nepoužívá staré neprůhledné maskable jako na 2.0.26), Apple touch icon míří na transparentní 180, favicony zůstávají alpha PNG a SW cache je zvýšená. Přidán test manifest + apple touch + pixel alpha. Poznámka: Android a iOS mohou průhledné ikony na launcheru podbarvit OS; zástupce může být nutné znovu vytvořit. CI a Vercel TEST ověřit, main a produkci ponechat.
+
+
 ## 19. 10. 2026 — TEST 2.0.26: průhledné Windows PWA ikony
 
 Nová samostatná transparentní (RGBA) ikona RaK pro zástupce ve Windows; zdroj assets/app-icons/icon-any-source-128.png je verzovaný a tools/build-transparent-pwa-icons.mjs vytváří 16/32/192/512 PNG v čistém canonical WORK, bez úpravy source a s opakovatelným buildem. V manifest.webmanifest oddělit `purpose:any` (průhledné) a `purpose:maskable` (původní plná ikona mobilu). Windows PWA po aktualizaci někdy podrží starou ikonu a vyžaduje znovu připnutí/instalaci, případně ruční .ico. Dodat testy alpha a manifestu. Main/produkce beze změn.

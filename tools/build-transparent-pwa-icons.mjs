@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Derive transparent Windows/desktop PWA icons from a small, tracked RGBA source.
-// Preserve the original opaque icons for mobile maskable surfaces.
+// Create the SAME alpha-transparent logo for Windows, Android and iOS.
+// Do not reintroduce the old opaque square as an Android maskable icon.
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
-export const GENERATED_ICON_NAMES = Object.freeze(["icon-any-16.png","icon-any-32.png","icon-any-192.png","icon-any-512.png"]);
+export const GENERATED_ICON_NAMES = Object.freeze(["icon-any-16.png","icon-any-32.png","icon-any-180.png","icon-any-192.png","icon-any-512.png"]);
 export async function generateTransparentAppIcons(targetRoot) {
   const root = path.resolve(targetRoot);
   const folder = path.join(root, 'assets', 'app-icons');
@@ -14,7 +14,7 @@ export async function generateTransparentAppIcons(targetRoot) {
   const meta = await sharp(source).metadata();
   if (meta.width !== 128 || meta.height !== 128 || !meta.hasAlpha)
     throw Error('Transparent icon source must be 128x128 with alpha');
-  for (const size of [16,32,192,512]) {
+  for (const size of [16,32,180,192,512]) {
     const destination = path.join(folder, 'icon-any-' + size + '.png');
     await sharp(source)
       .resize(size, size, { kernel: sharp.kernel.lanczos3 })
@@ -24,7 +24,7 @@ export async function generateTransparentAppIcons(targetRoot) {
     if (output.width !== size || output.height !== size || !output.hasAlpha)
       throw Error('Transparent icon output invalid: ' + destination);
   }
-  console.log('[pwa-transparent-icons] PASS: 16/32/192/512 PNG alpha assets');
+  console.log('[pwa-transparent-icons] PASS: 16/32/180/192/512 PNG alpha assets');
 }
 if (process.argv[1] && import.meta.url === new URL('file://' + path.resolve(process.argv[1])).href) {
   await generateTransparentAppIcons(process.argv[2] || process.cwd());

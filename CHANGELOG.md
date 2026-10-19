@@ -1,3 +1,10 @@
+## RaK 2.0.27 (development)
+
+- Windows, Android a iPhone nyní používají **stejné transparentní logo RaK bez černého čtvercového pozadí**. Mobilní ikony v manifestu jsou jen purpose:any; původní neprůhledné maskable ikony nejsou pro instalaci nabízené.
+- iOS apple-touch-icon je nový transparentní icon-any-180.png ze stejného zdrojového PNG. Canonical build deterministicky vyrábí všechny potřebné velikosti 16/32/180/192/512 a SW cache aktualizuje odkazy.
+- Změna grafiky PWA bez zásahů do generátoru rozpisů a ostatních modulů. Operační systémy mohou samy vložit pozadí/adaptivní masku i transparentnímu obrázku; již nainstalované zástupce někdy nutno vytvořit znovu.
+- TEST only; main a produkce beze změn.
+
 ## RaK 2.0.26 (development)
 
 - Zástupci PWA ve Windows nyní dostávají samostatné PNG ikony s průhledným pozadím bez černého čtverce. Zdroj je ve verzovaném PNG a izolované sestavení z něj deterministicky připravuje 16/32/192/512 px s alfa kanálem.
