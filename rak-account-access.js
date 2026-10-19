@@ -117,7 +117,7 @@
     try {
       if (typeof window.rakEnsureSupabaseSdk === 'function') {
         void window.rakEnsureSupabaseSdk({ force: true }).catch(() => {
-          lastSecureLoginBootstrapError = 'sdk';
+          lastSecureLoginBootstrapError = 'sdk:' + String(window.__rakSupabaseSdkLoadStage || 'unknown');
         });
       } else {
         lastSecureLoginBootstrapError = 'sdk-loader';
