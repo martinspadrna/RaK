@@ -1161,7 +1161,16 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   ruleCheck.issues.forEach(issue => { if (inheritedErrors.size && issue.severity === 'error' && inheritedErrors.has(adminRotationUnplannedIssueKey(issue))) issue.severity = 'warn'; });
   const allowScopedRuleErrors = generationOptions.allowScopedRuleErrors === true;
   if (criticalIssues.length && !allowScopedRuleErrors) {
-    throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · '));
+    const failedDates = criticalIssues.slice(0, 3).map((issue) => String(issue.message || '').split(':')[0].trim());
+    const details = failedDates.map((date) => {
+      const rowIdx = hardRows.findIndex((row) => String(row && row.date || '').trim() === date);
+      if (rowIdx < 0) return '';
+      const hr = hardRows[rowIdx] || {};
+      const sr = softRows[rowIdx] || {};
+      return date + ' TO=' + JSON.stringify(hr.cells || []) + ' MO=' + JSON.stringify(sr.cells || [])
+        + ' absent=' + JSON.stringify(Array.from(adminRotationUnavailableNamesForDate(month, date, knownNames)));
+    }).filter(Boolean).join(' | ');
+    throw new Error('Návrh porušuje pravidla: ' + criticalIssues.slice(0, 3).map((issue) => issue.message).join(' · ') + (details ? ' [diagnostika: ' + details + ']' : ''));
   }
   // Po opravach a prohozech vrat skutecny pocet obsazenych bunek, ne puvodni odhad.
   const finalFilledCells = hardRows.concat(softRows).reduce((count, row) => count +
