@@ -2501,14 +2501,15 @@ function adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey) {
 }
 
 
-// Za běžných okolností připusť nejvýš dvě navazující směny na stejném brusu.
-// Posuzují se skutečné po sobě jdoucí pracovní směny, ne kalendářní dny.
+// Dvojice na stejném brusu oprav jen bezpečnou výměnou.
 function adminRotationGeneratorGrinderStreaks(month, knownNames) {
  const names = Array.isArray(knownNames) ? knownNames : adminGetKnownNames();
  const rows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
  let previous = new Map();
  const violations = [];
  let maxStreak = 0;
+ let adjacentPairs = 0;
+ const pairs = [];
  rows.forEach((row, rowIdx) => {
   if (!adminRotationGeneratorIsWorkingRow(month, rowIdx)) return;
   const cells = Array.isArray(row && row.cells) ? row.cells : [];
@@ -2521,11 +2522,12 @@ function adminRotationGeneratorGrinderStreaks(month, knownNames) {
    const count = earlier && earlier.machine === machineName ? earlier.count + 1 : 1;
    current.set(name, { machine: machineName, count });
    maxStreak = Math.max(maxStreak, count);
+   if (count >= 2) { adjacentPairs += 1; pairs.push({ rowIdx, idx, name, machine: machineName, count }); }
    if (count >= 3) violations.push({ rowIdx, idx, name, machine: machineName, count });
   });
   previous = current;
  });
- return { violations, excess: violations.length, maxStreak };
+ return { violations, excess: violations.length, maxStreak, adjacentPairs, pairs };
 }
 
 function adminRotationGeneratorRepairGrinderStreaks(month, model, monthKey) {
@@ -2533,9 +2535,9 @@ function adminRotationGeneratorRepairGrinderStreaks(month, model, monthKey) {
  const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
  let current = adminRotationGeneratorGrinderStreaks(month, names);
  let swaps = 0;
- for (let pass = 0; pass < hardRows.length * 2 && current.excess > 0; pass += 1) {
+ for (let pass = 0; pass < hardRows.length * 2 && current.adjacentPairs > 0; pass += 1) {
   let best = null;
-  current.violations.forEach(({ rowIdx, idx, name, machine }) => {
+  current.pairs.forEach(({ rowIdx, idx, name, machine }) => {
    if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return;
    const cells = hardRows[rowIdx] && hardRows[rowIdx].cells;
    if (!Array.isArray(cells) || adminRotationCanonicalName(cells[idx], names) !== name) return;
@@ -2552,9 +2554,9 @@ function adminRotationGeneratorRepairGrinderStreaks(month, model, monthKey) {
     const proposed = adminRotationGeneratorGrinderStreaks(month, names);
     cells[idx] = name;
     cells[otherIdx] = other;
-    if (proposed.excess >= current.excess) return;
-    if (!best || proposed.excess < best.excess || (proposed.excess === best.excess && proposed.maxStreak < best.maxStreak)) {
-     best = { cells, idx, otherIdx, name, other, excess: proposed.excess, maxStreak: proposed.maxStreak };
+    if (proposed.excess > current.excess || (proposed.excess === current.excess && proposed.adjacentPairs >= current.adjacentPairs)) return;
+    if (!best || proposed.excess < best.excess || (proposed.excess === best.excess && proposed.adjacentPairs < best.adjacentPairs)) {
+     best = { cells, idx, otherIdx, name, other, excess: proposed.excess, adjacentPairs: proposed.adjacentPairs };
     }
    });
   });
@@ -2564,7 +2566,7 @@ function adminRotationGeneratorRepairGrinderStreaks(month, model, monthKey) {
   swaps += 1;
   current = adminRotationGeneratorGrinderStreaks(month, names);
  }
- return { swaps, unresolved: current.violations, maxStreak: current.maxStreak };
+ return { swaps, unresolved: current.violations, maxStreak: current.maxStreak, pairsRemaining: current.adjacentPairs };
 }
 
 function adminRotationGeneratorCountSoftKinds(month, names) {
