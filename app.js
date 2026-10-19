@@ -11,6 +11,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   window.RAK_RELEASE_VERSION = releaseMetadata.displayVersion;
   const RAK_BOOT_V2_ENABLED = true;
   const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js';
+  // Isolated 1.8 generator experiment: if Vercel's protected asset cannot load,
+  // use the identical pinned public UMD bundle. SHA-384 remains mandatory.
+  const RAK_SUPABASE_SDK_CDN_FALLBACK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.js';
   const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
   let supabaseSdkLoadPromise = null;
 
@@ -40,32 +43,53 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (supabaseSdkLoadPromise) return supabaseSdkLoadPromise;
 
     supabaseSdkLoadPromise = new Promise((resolve, reject) => {
-      let script = findRakSupabaseSdkScript();
-      if (script) {
-        try { script.remove(); } catch (_) {}
+      let previous = findRakSupabaseSdkScript();
+      if (previous) {
+        try { previous.remove(); } catch (_) {}
       }
-      script = document.createElement('script');
-      script.src = RAK_SUPABASE_SDK_URL;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.integrity = RAK_SUPABASE_SDK_INTEGRITY;
-      script.dataset.rakSupabaseSdkRetry = '1';
-      noteRakSupabaseSdk('loading');
-      script.onload = () => {
-        if (!hasRakSupabaseSdk()) {
-          const error = new Error('Supabase SDK se stáhlo, ale klient není dostupný.');
-          noteRakSupabaseSdk('failed');
-          reject(error);
-          return;
-        }
-        noteRakSupabaseSdk('loaded');
-        resolve(window.supabase);
-      };
-      script.onerror = () => {
+      let finished = false;
+      const fail = (stage) => {
+        if (finished) return;
+        finished = true;
+        window.__rakSupabaseSdkLoadStage = stage;
         noteRakSupabaseSdk('failed');
-        reject(new Error('Supabase SDK se nepodařilo načíst.'));
+        reject(new Error('Supabase SDK se nepodařilo načíst (' + stage + ').'));
       };
-      document.head.appendChild(script);
+      const attempt = (fallback) => {
+        if (finished) return;
+        const script = document.createElement('script');
+        script.src = fallback ? RAK_SUPABASE_SDK_CDN_FALLBACK_URL : RAK_SUPABASE_SDK_URL;
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.integrity = RAK_SUPABASE_SDK_INTEGRITY;
+        script.dataset.rakSupabaseSdkRetry = fallback ? 'cdn' : 'local';
+        let settled = false;
+        const timeout = setTimeout(() => complete(false, 'timeout'), 5200);
+        const complete = (loaded, cause) => {
+          if (settled || finished) return;
+          settled = true;
+          clearTimeout(timeout);
+          if (loaded && hasRakSupabaseSdk()) {
+            finished = true;
+            window.__rakSupabaseSdkLoadStage = fallback ? 'cdn-loaded' : 'local-loaded';
+            noteRakSupabaseSdk('loaded');
+            resolve(window.supabase);
+            return;
+          }
+          try { script.remove(); } catch (_) {}
+          if (!fallback) {
+            window.__rakSupabaseSdkLoadStage = 'local-' + cause;
+            attempt(true);
+          } else {
+            fail('cdn-' + cause);
+          }
+        };
+        script.onload = () => complete(true, 'missing-client');
+        script.onerror = () => complete(false, 'blocked');
+        noteRakSupabaseSdk('loading');
+        document.head.appendChild(script);
+      };
+      attempt(false);
     }).finally(() => { supabaseSdkLoadPromise = null; });
     return supabaseSdkLoadPromise;
   }
