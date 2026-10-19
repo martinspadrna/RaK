@@ -1,3 +1,11 @@
+## RaK 2.0.23 (development)
+
+- Denní cyklus tvrdoty se nyní plánuje jako celek před výměnou s trojicí z měkoty a před měsíčním dorovnáváním.
+- Trojice na MO správně pokračuje v cyklu i při 7 dostupných lidech, kdy není obsazována TPKW02; zohlední se návaznost prvního dne a MFKF10.
+- Rozdělení 4 TO / 3 MO a ostatní obsazení se počítají ze skutečně aktivních a přítomných pracovníků každé směny, ne ze statického počtu absencí. Ověřeny návraty do aktivního seznamu (7–10 lidí).
+- Zachována všechna dosavadní pravidla kvalifikací, střídání, absencí, soustruhů a měsíčních dorovnání; nové regresní testy a pevné limity výkonu zůstávají zapnuté.
+- Číslo TEST a PWA cache zvýšeno na 2.0.23; produkce zůstává beze změn.
+
 ## RaK 2.0.22 (development)
 
 - Rotace tvrdoty přechází na skutečný další stroj TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 a při přesunu na měkotu se kurzor neposouvá.
