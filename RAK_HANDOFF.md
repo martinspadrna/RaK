@@ -2,6 +2,11 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — rozhodnutí vlastníka: experiment generátoru ZAMÍTNUT
+
+Vlastník výslovně odmítl izolovanou experimentální větev `fix/hard-cycle-first-20261019`: výsledky nebyly v pořádku. **NEPŘENÁŠET její úpravy ani merge do `development`/běžného TESTu**. Stejně tak nepoužívat starší `fix/grinder-adjacent-tbkr-20261019` ani historický experiment 1.8 jako řešení. Pokračovat přímo na stávajícím běžném TESTu ze zachované verze 2.0.22; vycházet z primárního denního cyklu TO TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 → TNKS01 a až následně doplnit vstupy MO, absence, kvalifikace a dorovnání bez rozbití cyklu. Záložní ref současného development před dalšími úpravami: `backup/development-2.0.22-before-cycle-20261019` (commit `261d543300b5e6e608b79078ae9d3e4e7f944150`). Vytvořenou, nepoužitou integrační větev `fix/standard-test-hard-cycle-20261019` rovněž nevyužívat. Main/produkce/DB/Edge beze změn.
+
+
 ## 19. 10. 2026 — OPRAVA ZADÁNÍ: rotace TO nejprve, korekce až potom (izolovaný kandidát)
 
 Uživatel výslovně opravil interpretaci opakování TBKR01: Nejde o cílené prohazování TBKR01/TBKR07, ale o primární **denní rotaci všech lidí z tvrdoty v pořadí TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 → TNKS01**. Nejdřív se osadí základ podle tohoto cyklu, pak vstupuje trojice z měkoty v pořadí TNKS01 → TPKW01 → TPKW02 a vytlačený TO pracovník jde na MO. Teprve nakonec následují kvalifikace, absence a bezpečné dorovnání při zachování výchozí návaznosti. Po přesunu na MO se člověku nepřeskočí TO cursor. Uživateli se nelíbí časté dvojice na TBKR01, které ukazují na porušení této posloupnosti, nikoliv na nedostatek prostého prohazování dvou brusů.
