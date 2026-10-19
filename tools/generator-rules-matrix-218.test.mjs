@@ -278,3 +278,50 @@ test('optional additional MO for Kmínek/Novotný respects November absences and
  const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
  assert.deepEqual(errors,[],JSON.stringify(errors));
 });
+
+test('whole current month amendment uses exactly the full-month generation logic',()=>{
+ const f=setup(),source=prepareMonth(f.context.app.rotation.months['11/26'],()=>0);
+ f.context.source=source;f.context.prepared=source;
+ const baseline=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ f.evaluate("adminRotationGeneratorSetWizardState({mode:'amend',monthKey:'11/26',startDate:'2026-11-18',sourceMonth:source,days:adminRotationCollectMonthWorkDatesFromMonth(source),absencesByDay:adminRotationCollectMonthAbsencesFromMonth(source,adminRotationCollectMonthWorkDatesFromMonth(source))})");
+ assert.equal(f.evaluate("adminHandleRotationGeneratorWizardAction('generator-full-month',null)"),true);
+ const st=f.evaluate("adminRotationGeneratorGetWizardState()");
+ assert.equal(st.mode,'amend');assert.equal(st.startDate,'2026-11-01');
+ f.context.prepared=f.evaluate("adminRotationGeneratorEnsurePreparedMonthFromWizard()");
+ const result=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false,mutableDateLabels:adminRotationGeneratorGetWizardState().days,baselineMonth:source}).normalized"));
+ assert.deepEqual(result.hard.rows,baseline.hard.rows,'hard plan differs from standard generator');
+ assert.deepEqual(result.soft.rows,baseline.soft.rows,'soft plan differs from standard generator');
+});
+
+test('amending from mid-month freezes history and carries real machine/MO counters forward',()=>{
+ const f=setup();f.context.prepared=prepareMonth(f.context.app.rotation.months['11/26'],()=>0);
+ const saved=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ const startIdx=8;
+ f.context.saved=saved;
+ f.evaluate("adminRotationGeneratorSetWizardState({mode:'amend',monthKey:'11/26',startDate:adminRotationGeneratorDateLabelToIso(saved.hard.rows[8].date,'11/26'),sourceMonth:saved,days:saved.hard.rows.slice(8).map(r=>r.date),absencesByDay:adminRotationCollectMonthAbsencesFromMonth(saved,saved.hard.rows.slice(8).map(r=>r.date))})");
+ f.context.prepared=f.evaluate('adminRotationGeneratorEnsurePreparedMonthFromWizard()');
+ f.context.prefix=clone(f.context.prepared);
+ const replay=f.evaluate("(()=>{const model=adminBuildRotationGenerationModel('11/26'),c=adminRotationGeneratorCreateCounters(model);for(let i=0;i<8;i++)adminRotationGeneratorRememberRow(prefix,i,model,c);return {hard:c.hard,soft:c.soft,cycle:c.hardCycleCursor};})()");
+ const cycle=f.evaluate('getAdminRotationGeneratorRules().hardCycle');
+ const headers=['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'];
+ for(const name of names){
+  const mo=saved.soft.rows.slice(0,startIdx).flatMap(row=>row.cells).filter(n=>n===name).length;
+  const to=saved.hard.rows.slice(0,startIdx).flatMap(row=>row.cells).filter(n=>n===name).length;
+  assert.equal(replay.soft[name],mo,name+' remembered MO');
+  assert.equal(replay.hard[name],to,name+' remembered TO');
+  let lastMachine='';
+  for(let i=0;i<startIdx;i++)saved.hard.rows[i].cells.forEach((n,j)=>{if(n===name)lastMachine=headers[j];});
+  if(lastMachine)assert.equal(cycle[replay.cycle[name]],cycle[(cycle.indexOf(lastMachine)+1)%cycle.length],name+' next TO machine');
+ }
+ const generated=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false,mutableDateLabels:adminRotationGeneratorGetWizardState().days,baselineMonth:saved}).normalized"));
+ for(const section of ['hard','soft'])assert.deepEqual(generated[section].rows.slice(0,startIdx),saved[section].rows.slice(0,startIdx),section+' old dates preserved');
+ assert.equal(generated.hard.rows.length,saved.hard.rows.length);
+ for(let i=startIdx;i<generated.hard.rows.length;i++){
+  const people=generated.hard.rows[i].cells.concat(generated.soft.rows[i].cells).filter(Boolean);
+  assert.equal(people.length,10,'full attendance '+generated.hard.rows[i].date);
+  assert.equal(new Set(people).size,10,'no duplicates '+generated.hard.rows[i].date);
+ }
+ f.context.generated=generated;
+ const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+ assert.deepEqual(errors,[],JSON.stringify(errors));
+});

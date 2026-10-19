@@ -232,7 +232,7 @@ function adminRotationGeneratorStartAmend(state) {
 function adminRotationGeneratorRenderAmendStep(state) {
   const bounds = adminRotationGeneratorAmendBounds(state.monthKey);
   return '<div class="adminRotationGeneratorPanel"><div class="appMenuSubTitle">Úprava tohoto měsíce</div>' +
-    '<div class="smallText">' + escapeHtml(adminRotationMonthFullLabel(state.monthKey)) + '. Dřívější dny zůstanou beze změny a dál se započítají do vyrovnání strojů.</div>' +
+    '<div class="smallText">' + escapeHtml(adminRotationMonthFullLabel(state.monthKey)) + '. Dřívější směny zůstanou beze změny a započítají se do rotace strojů, MO/TO i samostatných frézek.</div>' +
     '<label class="appMenuFieldLabel" for="adminGeneratorStartDate">Generovat od (včetně)</label>' +
     '<input id="adminGeneratorStartDate" class="appMenuInput" type="date" min="' + bounds.min + '" max="' + bounds.max + '" value="' + escapeHtml(state.startDate) + '">' +
     '<div class="appMenuActionRow"><button type="button" class="appMenuAction" data-admin-action="generator-full-month">Celý měsíc</button>' +
@@ -1665,8 +1665,13 @@ function adminHandleRotationGeneratorWizardAction(action, target) {
     return true;
   }
   if (action === 'generator-full-month') {
-    state.mode = 'full'; state.sourceMonth = null;
-    adminRotationGeneratorRenderWizard('month');
+    // The whole current month still uses this same amendment wizard and generator.
+    if (state.mode === 'amend') {
+      state.startDate = adminRotationGeneratorAmendBounds(state.monthKey).min;
+      state.days = adminRotationCollectMonthWorkDatesFromMonth(state.sourceMonth);
+      state.absencesByDay = adminRotationGeneratorAlignAbsencesToDays(state.days, state.absencesByDay);
+      adminRotationGeneratorRenderWizard('days');
+    } else adminRotationGeneratorRenderWizard('month');
     return true;
   }
   if (action === 'generator-amend-next') {

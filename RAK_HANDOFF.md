@@ -2,6 +2,11 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — TEST 2.0.25: shodný generátor při úpravě aktuálního měsíce
+
+Administrace → Rozpisy → Generátor rozpisu → Úprava tohoto měsíce: původní 2.0.24 plánovací jádro ponechat bez změny, ať se plánuje celý měsíc nebo až od vybraného dne. Volba Celý měsíc v tomto průvodci přejde rovnou na dny a absence. Při částečném plánování se staré směny nemění, ale počítají do TO cyklu, bloku MO trojice, počtů MO/TO, TNKS a MFKF10. Prefix pro stav MO trojice nyní bere pouze chronologicky starší řádky před prvním editovatelným řádkem, nikoliv všechny needitovatelné včetně pozdějších. Dodány testy celého měsíce a částečného přegenerování s kontrolou přesného zachování historie. CI + Vercel TEST kontrolovat před označením hotovo; main a produkci neměnit.
+
+
 ## 19. 10. 2026 — TEST 2.0.24: jemná preference MO pro Novotného a Kmínka
 
 Vlastník schválil podobu 2.0.23 a listopadový návrh, žádá pouze umožnit Novotnému a Kmínkovi o trochu více MO. Z přiloženého rozpisu 11/2026: Novotný 2 MO, Kmínek 3 MO; samostatná MFKF10 byla rozložena přibližně 1–2× mezi dostupné pracovníky. Proto je přidána jen slabá preference při základním denním výběru TO (40 bodů, pokud má pracovník zatím více TO než MO); výhoda přesného navazujícího TO stroje je 480 bodů. Nedělat z toho tvrdý limit, nepřehazovat brusy dodatečně a zachovat měsíční dorovnání samostatné MFKF10 i všechna dřívější povinná pravidla. Dodán regresní test reálných listopadových absencí s neaktivním Špadrnou, ochranou přidělení a přibližnou rovnoměrností sólové frézky. Main/produkci neaktualizovat; TEST vydat pouze po úspěšném CI a ověření Vercel aliasu.

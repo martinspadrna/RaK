@@ -1046,9 +1046,13 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
  const softRows = Array.isArray(month.soft.rows) ? month.soft.rows : [];
  const maxRows = Math.max(hardRows.length, softRows.length);
  if (generationOptions.mutableDateLabels) {
+  // Only chronological earlier shifts form the continuation anchor.
+  // Later frozen rows are replayed in place, never before the first editable day.
+  const firstEditable = hardRows.findIndex((row, idx) => adminRotationGeneratorCanEditRow(month, idx));
+  const prefixEnd = firstEditable < 0 ? maxRows : firstEditable;
   const prefix = Object.assign({}, month);
   ['hard', 'soft'].forEach(section => {
-   prefix[section] = Object.assign({}, month[section], { rows: month[section].rows.filter((row, idx) => !adminRotationGeneratorCanEditRow(month, idx)) });
+   prefix[section] = Object.assign({}, month[section], { rows: month[section].rows.slice(0, prefixEnd) });
   });
   const continuation = {};
   adminRotationGeneratorFindSoftCoreSequenceIssues(prefix, monthKey, model.knownNames, continuation);

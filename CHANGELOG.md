@@ -1,3 +1,9 @@
+## RaK 2.0.25 (development)
+
+- Úprava tohoto měsíce používá stejný generátor jako nový měsíc: volba celého měsíce nyní přímo pokračuje k potvrzení dnů v témže průvodci.
+- Při volbě začátku uprostřed měsíce se chrání staré dny a berou jako historie pro denní rotaci TO, blok trojice MO, MO/TO a vyrovnání samostatné MFKF10. Nesmí se předčasně přehrát pozdější ponechané směny.
+- Přidány testy shody úplného generování a návaznosti částečné změny. Pouze TEST, main/produkce beze změn.
+
 ## RaK 2.0.24 (development)
 
 - Novotný a Kmínek mohou být o něco častěji na měkotě: pouze jemná preference při obsazování TO, nikoliv pevné omezení nebo prohazování brusů.
