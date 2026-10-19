@@ -107,18 +107,52 @@
     button.click();
   }
 
+  // The initial account lookup can succeed over the bounded REST fallback
+  // while the full Supabase SDK is still unloaded. Signed administrator login
+  // must force-load that SDK; it may never fall back to anonymous authorization.
+  let lastSecureLoginBootstrapError = '';
   function waitForSecureSignIn(timeoutMs) {
     const started = Date.now();
+    lastSecureLoginBootstrapError = '';
     try {
-      if (typeof window.rakEnsureFeature === 'function') {
-        void window.rakEnsureFeature('menu').catch(() => {});
-        void window.rakEnsureFeature('sync').catch(() => {});
+      if (typeof window.rakEnsureSupabaseSdk === 'function') {
+        void window.rakEnsureSupabaseSdk({ force: true }).catch(() => {
+          lastSecureLoginBootstrapError = 'sdk';
+        });
+      } else {
+        lastSecureLoginBootstrapError = 'sdk-loader';
       }
-    } catch (_) {}
+      if (typeof window.rakEnsureFeature === 'function') {
+        void window.rakEnsureFeature('menu').catch(() => {
+          lastSecureLoginBootstrapError = lastSecureLoginBootstrapError || 'menu';
+        });
+        void window.rakEnsureFeature('sync').catch(() => {
+          lastSecureLoginBootstrapError = lastSecureLoginBootstrapError || 'sync';
+        });
+      } else {
+        lastSecureLoginBootstrapError = lastSecureLoginBootstrapError || 'feature-loader';
+      }
+    } catch (_) {
+      lastSecureLoginBootstrapError = lastSecureLoginBootstrapError || 'bootstrap';
+    }
     return new Promise((resolve) => {
       const check = () => {
-        if (typeof window.rakAdminSecureSignIn === 'function' && window.RotationSupabaseBridge && typeof window.RotationSupabaseBridge.signInAdminAccount === 'function' && window.supabase) { resolve(window.rakAdminSecureSignIn); return; }
-        if (Date.now() - started >= timeoutMs) { resolve(null); return; }
+        if (typeof window.rakAdminSecureSignIn === 'function'
+          && window.RotationSupabaseBridge
+          && typeof window.RotationSupabaseBridge.signInAdminAccount === 'function'
+          && window.supabase && typeof window.supabase.createClient === 'function') {
+          resolve(window.rakAdminSecureSignIn);
+          return;
+        }
+        if (Date.now() - started >= timeoutMs) {
+          if (!lastSecureLoginBootstrapError) {
+            lastSecureLoginBootstrapError = !(window.supabase && window.supabase.createClient) ? 'sdk-unavailable'
+              : typeof window.rakAdminSecureSignIn !== 'function' ? 'secure-module'
+              : 'bridge';
+          }
+          resolve(null);
+          return;
+        }
         setTimeout(check, 80);
       };
       check();
@@ -181,7 +215,7 @@
         try {
           try { sessionStorage.setItem(ADMIN_PROMPTED_KEY, String(profile.accountNumber)); } catch (err) {}
           const signIn = await waitForSecureSignIn(12000);
-          if (!signIn) { setState('Zabezpečené přihlášení se nenačetlo. Zkus to znovu.', true); return; }
+          if (!signIn) { setState('Zabezpečené přihlášení se nenačetlo (' + lastSecureLoginBootstrapError + '). Zkus to znovu.', true); return; }
           const result = await signIn(String(profile.accountNumber), pass);
           if (!result || !result.ok) {
             setState('Špatné heslo administrace.', true);
