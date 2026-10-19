@@ -16,6 +16,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL = 'rak-auth-vendor-21107.js';
   const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
   let supabaseSdkLoadPromise = null;
+  // Carry a branch-specific Vercel share token to protected lazy assets when
+  // an embedded iOS browser does not retain the initial share cookie.
+  function rakProtectedSdkUrl(asset) {
+    try {
+      const token = new URLSearchParams(location.search).get('_vercel_share') || '';
+      return /^[a-zA-Z0-9_-]{16,256}$/.test(token) ? asset + '?_vercel_share=' + encodeURIComponent(token) : asset;
+    } catch (_) { return asset; }
+  }
 
   function hasRakSupabaseSdk() {
     return !!(window.supabase && typeof window.supabase.createClient === 'function');
@@ -58,11 +66,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const attempt = (fallback) => {
         if (finished) return;
         const script = document.createElement('script');
-        script.src = fallback ? RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL : RAK_SUPABASE_SDK_URL;
+        script.src = rakProtectedSdkUrl(fallback ? RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL : RAK_SUPABASE_SDK_URL);
         script.async = true;
         script.crossOrigin = 'anonymous';
         script.integrity = RAK_SUPABASE_SDK_INTEGRITY;
-        script.dataset.rakSupabaseSdkRetry = fallback ? 'cdn' : 'local';
+        script.dataset.rakSupabaseSdkRetry = fallback ? 'alias' : 'local';
         let settled = false;
         const timeout = setTimeout(() => complete(false, 'timeout'), 5200);
         const complete = (loaded, cause) => {
