@@ -1,4 +1,6 @@
-const IS_DEVELOPMENT = String(process.env.VERCEL_GIT_COMMIT_REF || '').trim() === 'development';
+// Historical-generator A/B preview must use the same isolated TEST Supabase as development.
+const IS_DEVELOPMENT = String(process.env.VERCEL_GIT_COMMIT_REF || '').trim() === 'development'
+  || String(process.env.VERCEL_GIT_COMMIT_REF || '').trim() === 'experiment/generator-1-8-vs-2-0-22';
 const DEVELOPMENT_SUPABASE_URL = 'https://cgshssdjgzzuprlwnabl.supabase.co';
 const DEVELOPMENT_PUBLISHABLE_KEY = 'sb_publishable_v7jeuZC-MNUEO5nfE5xcUQ_Pu9pT-X_';
 
