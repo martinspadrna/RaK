@@ -12,8 +12,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const RAK_BOOT_V2_ENABLED = true;
   const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js';
   // Isolated 1.8 generator experiment: if Vercel's protected asset cannot load,
-  // use the identical pinned public UMD bundle. SHA-384 remains mandatory.
-  const RAK_SUPABASE_SDK_CDN_FALLBACK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.js';
+  // use the identical pinned same-origin UMD bundle. SHA-384 remains mandatory.
+  const RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL = 'rak-auth-vendor-21107.js';
   const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
   let supabaseSdkLoadPromise = null;
 
@@ -58,7 +58,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       const attempt = (fallback) => {
         if (finished) return;
         const script = document.createElement('script');
-        script.src = fallback ? RAK_SUPABASE_SDK_CDN_FALLBACK_URL : RAK_SUPABASE_SDK_URL;
+        script.src = fallback ? RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL : RAK_SUPABASE_SDK_URL;
         script.async = true;
         script.crossOrigin = 'anonymous';
         script.integrity = RAK_SUPABASE_SDK_INTEGRITY;
@@ -71,7 +71,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
           clearTimeout(timeout);
           if (loaded && hasRakSupabaseSdk()) {
             finished = true;
-            window.__rakSupabaseSdkLoadStage = fallback ? 'cdn-loaded' : 'local-loaded';
+            window.__rakSupabaseSdkLoadStage = fallback ? 'alias-loaded' : 'local-loaded';
             noteRakSupabaseSdk('loaded');
             resolve(window.supabase);
             return;
@@ -81,7 +81,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
             window.__rakSupabaseSdkLoadStage = 'local-' + cause;
             attempt(true);
           } else {
-            fail('cdn-' + cause);
+            fail('alias-' + cause);
           }
         };
         script.onload = () => complete(true, 'missing-client');

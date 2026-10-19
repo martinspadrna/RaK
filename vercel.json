@@ -71,5 +71,11 @@
       "development": false
     }
   },
-  "outputDirectory": ".rak-dist"
+  "outputDirectory": ".rak-dist",
+  "rewrites": [
+    {
+      "source": "/rak-auth-vendor-21107.js",
+      "destination": "/supabase-vendor-2.110.7.js"
+    }
+  ]
 }
