@@ -2,11 +2,15 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
-## 19. 10. 2026 — DEVELOPMENT 2.0.22: tvrdotový cyklus má přednost (ověřování)
+## 19. 10. 2026 — TEST 2.0.22 NASAZEN: tvrdotový cyklus a rovnoměrnější MO/TO
 
 Uživatel upřesnil základní algoritmus: nejprve se obsadí tvrdota po jednotlivých lidech s přesným cyklem **TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01**, navazujícím na jejich poslední skutečnou pozici. Teprve poté do obsazených lisů vstupuje trojice z měkoty, na TNKS01 → TPKW01 → TPKW02 po trojicích; lidé vytlačení ze strojů přejdou na MO. Kvalifikovaní členové tvrdoty včetně Špadrny a Novotného mají dostávat přibližně srovnatelný podíl MO; Kmínek a Novotný mohou mít mírně více MO, není to povinnost. Všechna bezpečnostní, personální, absence, nedělní, TNKS/TPKW, frézková a ostatní pravidla mají přednost před jemnou optimalizací.
 
-Nový pokus srovnává skutečné pokračování kurzu po TO→MO přesunu, přidělení dalšího náhradního stroje od aktuální pozice a sedmičlennou kvalifikovanou rotaci. Přidány regresní testy. Větev `development` a TEST 2.0.22 **dosud bez potvrzeného kompletního CI a nasazení**, nesahat na main/produkci. Před vydáním ověřit sedm měsíců v matici, úpravu aktuálního měsíce, pevné výkonové limity, skutečné mobilní Chromium a bezpečnostní pravidla. Při neúspěchu nesnižovat limity, odstranit příčinu.
+Funkční commit `78ca964802c4a57573db05bed39683722f3dccd1`; GitHub Actions [39222036968](https://github.com/martinspadrna/RaK/actions/runs/39222036968) **attempt 1: SUCCESS verify + release-preview**. TEST Vercel alias `https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/` míří na správné SHA, deployment **READY** `dpl_E5LM6ng9mpqqZswLD1J66egjyGdg`, immutable `https://skoda-spada-9yyj66gvu-martinspadrnas-projects.vercel.app/`. Main zůstal `c28c524f3a3dda0bcb69cb7e4ac1b6c6e4a2210f`, produkční deployment READY `dpl_H5vYq8DDWVbtmimxL3XZ63FBE3pD`; během nasazení nebyl měněn main/produkce/DB/Edge.
+
+Dvouprůchodové obsazení TO nejprve zkouší u každého následující skutečný stroj a až poté legální náhradní, kurzor se odvozuje od konečné TO pozice a při přesunu na MO neběží dál. Do rotace patří sedm kvalifikovaných pracovníků mimo Synka, Třasáka a Střížka, kteří pokračují ve speciálním bloku TNKS01→TPKW01→TPKW02. Dorovnávání Kmínek/Novotný je nově kvalifikačně a návaznostně validované. Kompletní matice reálných měsíců 6/26–12/26, všechny starty částečné úpravy, absencí 0–3, bezpečnostní pravidla, Chromium/mobile/offline, dvojité canonical buildy a stávající výkonové limity **PASS**. Limity zůstaly nezměněné: startupCore 471312/471314 B, rootJsCssSurface 4795859/4796255 B, indexHtml 57182/57414 B. Listopadový regresní test (bez absencí, 15 směn) ukázal sedm lidí na TO i MO s 5–7 MO směnami; správný bezprostřední přechod v tvrdotním cyklu **35/54 = 64,8 %**; zbytek může souviset s dalšími povinnými pravidly a pozdějšími dorovnáními. **Neslibovat 100% mechanickou posloupnost**; uživateli transparentně uvést, že priorita následujícího stroje je zlepšena, ne vynucena bez výjimek.
+
+Další úkol: Fyzicky v TESTu vygenerovat listopad 2026 se skutečnými absencemi a deaktivacemi, ověřit návaznost tvrdoty, trojici lisů, 4 TO/3 MO u 7 lidí, ochranu Starého a případy, kde se od pořadí odchýlí; zbytek odchylek vyhodnotit pro další optimalizaci. Bez výslovného souhlasu nepřevádět na produkci.
 
 
 ## 19. 10. 2026 — RaK TEST 2.0.21 NASAZEN (CI i Vercel ověřeny)
