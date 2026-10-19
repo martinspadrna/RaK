@@ -2,6 +2,16 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — OPRAVA ZADÁNÍ: rotace TO nejprve, korekce až potom (izolovaný kandidát)
+
+Uživatel výslovně opravil interpretaci opakování TBKR01: Nejde o cílené prohazování TBKR01/TBKR07, ale o primární **denní rotaci všech lidí z tvrdoty v pořadí TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 → TNKS01**. Nejdřív se osadí základ podle tohoto cyklu, pak vstupuje trojice z měkoty v pořadí TNKS01 → TPKW01 → TPKW02 a vytlačený TO pracovník jde na MO. Teprve nakonec následují kvalifikace, absence a bezpečné dorovnání při zachování výchozí návaznosti. Po přesunu na MO se člověku nepřeskočí TO cursor. Uživateli se nelíbí časté dvojice na TBKR01, které ukazují na porušení této posloupnosti, nikoliv na nedostatek prostého prohazování dvou brusů.
+
+Pokusu historického denního generátoru v1.8 (samostatná experimentální větev) se podařilo přihlášení, ale při konkrétních absencích listopadu selhal s porušením 26. 11. (neobsazené MSKC03/MSKC04 a přiřazení nedostupných Starého/Třasáka). Tento experiment **nenasazovat na standardní TEST**; jeho přejímání bez přepočítání moderních bezpečnostních pravidel není vhodné.
+
+Na izolované větvi `fix/hard-cycle-first-20261019` vznikl nový kandidát: finální průchod **kontroluje celou TO rotaci každého člověka** po měsíčních vyrovnáních, ne jen brusy; chrání předchozí měsíc, měkotní trojici, kvalifikaci, TNKS návaznost, aktivní absence a validátor. Pokud neexistuje předchozí historie, první pracovní den je výchozí kotva. Přidány přímý test správné návaznosti TBKR01→TNKS01 a srovnávací regresní test listopadu bez absencí i s 0–3 absencemi. Poslední ověřený build větve `b92fb478fba5d8b9f553f20cafb6b8a5cc50b5b7`, Vercel `dpl_6Ue35MC84mm8fqxzjoWVcHB8PuDX` READY, full `npm run check` a canonical dvojbuild PASS. **Kandidát zatím NEBYL převeden do `development`, standardní TEST 2.0.22 zůstává na funkčním SHA `78ca964802c4a57573db05bed39683722f3dccd1` a main/produkce zůstaly nedotčeny.** Starší izolovaný pokus `fix/grinder-adjacent-tbkr-20261019` s opravou pouze dvojic na brusech nepřejímat.
+
+Další: ověřit přímo výsledek na reálných absencích a deaktivacích listopadu 2026 a vyhodnotit skutečný počet odchylek celé tvrdotní rotace a dvojic TBKR01; teprve pak bezpečně posunout do standardního TESTu. Po nasazení potvrdit správnou verzi a možnost návratu na původní 2.0.22.
+
 ## 19. 10. 2026 — TEST 2.0.22 NASAZEN: tvrdotový cyklus a rovnoměrnější MO/TO
 
 Uživatel upřesnil základní algoritmus: nejprve se obsadí tvrdota po jednotlivých lidech s přesným cyklem **TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01**, navazujícím na jejich poslední skutečnou pozici. Teprve poté do obsazených lisů vstupuje trojice z měkoty, na TNKS01 → TPKW01 → TPKW02 po trojicích; lidé vytlačení ze strojů přejdou na MO. Kvalifikovaní členové tvrdoty včetně Špadrny a Novotného mají dostávat přibližně srovnatelný podíl MO; Kmínek a Novotný mohou mít mírně více MO, není to povinnost. Všechna bezpečnostní, personální, absence, nedělní, TNKS/TPKW, frézková a ostatní pravidla mají přednost před jemnou optimalizací.
