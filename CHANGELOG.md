@@ -1,3 +1,10 @@
+## RaK 2.0.22 (development)
+
+- Rotace tvrdoty přechází na skutečný další stroj TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 a při přesunu na měkotu se kurzor neposouvá.
+- Do průběžného střídání se zahrnují všichni kvalifikovaní pracovníci mimo samostatnou trojici z měkoty; TO/MO se má rozdělovat přibližně rovnoměrně, mírně větší MO podíl Kmínka a Novotného je přípustný.
+- Trojice z měkoty po základním rozpisu tvrdoty dál střídá TNKS01, TPKW01, TPKW02 a vytlačuje pracovníky na měkotu. Přednost mají bezpečnostní pravidla a kvalifikace.
+- Doplněny kontroly rotace. Vydání jen po úspěšném kompletním CI a testu na zařízení.
+
 ## RaK 2.0.21 (development)
 
 - Generátor při sedmi skutečně dostupných lidech drží 4 TO + 3 MO i po deaktivaci pracovníka a absencích.
