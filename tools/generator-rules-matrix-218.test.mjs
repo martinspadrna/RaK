@@ -130,6 +130,38 @@ test('one inactive worker plus two absences uses the seven-person 4 TO + 3 MO la
  assert.deepEqual(errors,[]);
 });
 
+test('staffing uses active people per day, including reactivation and changing absences',()=>{
+ const crew=names.filter(name=>!['Synek','Třasák','Střížek','Špadrna'].includes(name));
+ const core=['Synek','Třasák','Střížek'];
+ for(const activeCount of [7,8,9,10]){
+  const f=setup();
+  const active=new Set(core.concat(crew.slice(0,activeCount-7),crew.slice(0,4),activeCount>=8?['Špadrna']:[]));
+  // The transition 7 -> 8 explicitly reactivates Špadrna; additional names can rejoin as well.
+  if(activeCount===9)active.add(crew[4]);
+  if(activeCount===10)crew.forEach(name=>active.add(name));
+  assert.equal(active.size,activeCount,'fixture count '+activeCount);
+  f.context.app.machineSettingsRows[0].settings_json.workers.forEach(worker=>{worker.active=active.has(worker.name);});
+  for(const absentCount of [0,1]){
+   const unavailable=Array.from(active).filter(name=>name!=='Špadrna').slice(0,absentCount);
+   const monthKey='11/26',prepared=prepareMonth(f.context.app.rotation.months[monthKey],()=>0);
+   if(absentCount)prepared.notes.push(absenceNote(prepared.hard.rows[0].date,unavailable[0]));
+   f.context.prepared=prepared;
+   const actual=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+   const day=actual.hard.rows[0].cells.concat(actual.soft.rows[0].cells).filter(Boolean);
+   const availableCount=activeCount-absentCount;
+   const expectedHard=availableCount===7?4:Math.min(5,availableCount);
+   assert.equal(new Set(day).size,day.length,'no duplicates at '+activeCount+'/'+absentCount);
+   assert.equal(day.length,availableCount,'all available people at '+activeCount+'/'+absentCount);
+   assert(day.every(name=>active.has(name)&&!unavailable.includes(name)),'no absent or inactive workers');
+   assert.equal(actual.hard.rows[0].cells.filter(Boolean).length,expectedHard,'TO from availability '+availableCount);
+   assert.equal(actual.soft.rows[0].cells.filter(Boolean).length,availableCount-expectedHard,'MO from availability '+availableCount);
+   f.context.generated=actual;
+   const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+   assert.deepEqual(errors,[],'hard rules '+activeCount+'/'+absentCount+': '+JSON.stringify(errors));
+  }
+ }
+});
+
 test('seven real D-shift month templates preserve all hard rules for 0/1/2/3 absences and month boundaries',()=>{
  const {f,generated}=generateFutureSequence();
  assert.equal(f.evaluate("adminRotationGeneratorShouldSplitPressMachines('7.6. N8','6/26',generatedMonth)".replace('generatedMonth','app.rotation.months[\'6/26\']')),true);
