@@ -1214,6 +1214,15 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  // 2) Pak přesuň jednoho ze základu Měkoty na tvrdotní stroj v 3denním bloku.
  // Když někdo z nich později chybí, pořadí se smí prohodit, aby se tomu nevyhnul.
  let softCoreBlock = adminRotationGeneratorSoftCoreStateInfo(counters, knownNames);
+ // Pokud sedm dostupných lidí neobsazuje TPKW02, trojice na ní nesmí uváznout.
+ if (!preserveHardActive && adminRotationGeneratorThreeAbsences(knownNames, available)
+  && softCoreBlock.machine === 'TPKW02' && softCoreBlock.cycle.length) {
+  counters.softCoreMachineCursor = (counters.softCoreMachineCursor + 1) % softCoreBlock.cycle.length;
+  counters.softCoreFilledInMachine = 0;
+  counters.softCoreAssignedInMachineBlock = new Set();
+  counters.softCoreGapPending = false;
+  softCoreBlock = adminRotationGeneratorSoftCoreStateInfo(counters, knownNames);
+ }
  let cycleMachine = softCoreBlock.machine;
  let cycleIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycleMachine);
  let exchangeSoft = '';
@@ -1738,6 +1747,13 @@ function adminRotationGeneratorFindSoftCoreSequenceIssues(month, monthKey, known
 
  hardRows.forEach((row, rowIdx) => {
   const cells = Array.isArray(row && row.cells) ? row.cells : [];
+  const dateLabel = String(row && row.date || '');
+  const availableCount = names.length - adminRotationUnavailableNamesForDate(month, dateLabel, names).size;
+  if (availableCount === 7 && cycle[machineCursor] === 'TPKW02') {
+   machineCursor = (machineCursor + 1) % cycle.length;
+   filled = 0;
+   assigned = new Set();
+  }
   let completedBySkippedAbsence = false;
   if (assigned.size) {
    const dateLabel = String(row && row.date || '');
