@@ -141,6 +141,7 @@ test('staffing uses active people per day, including reactivation and changing a
   if(activeCount===10)crew.forEach(name=>active.add(name));
   assert.equal(active.size,activeCount,'fixture count '+activeCount);
   f.context.app.machineSettingsRows[0].settings_json.workers.forEach(worker=>{worker.active=active.has(worker.name);});
+  f.evaluate("adminRotationValidateMonthRules = ((original) => function(month,key,opts) { const result=original(month,key,opts); if(opts&&opts.source==='generator'&&result.issues.some(issue=>issue.type==='solo-mill-balance')) globalThis.__soloDebug={counts:adminRotationGeneratorCountSoloMill(month,adminGetKnownNames()),hard:month.hard.rows.map(row=>row.cells),soft:month.soft.rows.map(row=>row.cells)}; return result; })(adminRotationValidateMonthRules)");
   for(const absentCount of [0,1]){
    const unavailable=Array.from(active).filter(name=>name!=='Špadrna').slice(0,absentCount);
    const monthKey='11/26',prepared=prepareMonth(f.context.app.rotation.months[monthKey],()=>0);
@@ -148,7 +149,7 @@ test('staffing uses active people per day, including reactivation and changing a
    f.context.prepared=prepared;
    let actual;
    try { actual=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized")); }
-   catch(error) { throw new Error('active '+activeCount+', absent '+absentCount+': '+String(error&&error.message||error),{cause:error}); }
+   catch(error) { throw new Error('active '+activeCount+', absent '+absentCount+': '+String(error&&error.message||error)+'; debug='+JSON.stringify(f.evaluate('globalThis.__soloDebug')),{cause:error}); }
    const day=actual.hard.rows[0].cells.concat(actual.soft.rows[0].cells).filter(Boolean);
    const availableCount=activeCount-absentCount;
    const expectedHard=availableCount===7?4:Math.min(5,availableCount);
