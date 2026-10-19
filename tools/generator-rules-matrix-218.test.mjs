@@ -111,6 +111,64 @@ test('current TEST roster qualifications and all configured generator rules are 
  for(const [name,skills] of Object.entries(skillMap))assert.deepEqual(Array.from(f.evaluate(`getWorkerMachineSkills(${JSON.stringify(name)})`)),skills);
 });
 
+test('one inactive worker plus two absences uses the seven-person 4 TO + 3 MO layout',()=>{
+ const f=setup();
+ const roster=f.context.app.machineSettingsRows[0].settings_json.workers;
+ roster.find(worker=>worker.name==='Špadrna').active=false;
+ const monthKey='11/26';
+ const prepared=prepareMonth(f.context.app.rotation.months[monthKey],rowIdx=>rowIdx===0?2:0);
+ f.context.prepared=prepared;
+ const result=f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false})");
+ const generated=clone(result.normalized);
+ assert.equal(generated.hard.rows[0].cells.filter(Boolean).length,4);
+ assert.equal(generated.soft.rows[0].cells.filter(Boolean).length,3);
+ assert.equal(generated.hard.rows[0].cells[3],'','TPKW02 must remain empty with seven available workers');
+ assert.equal(generated.soft.rows[0].cells[0],'','MSKC01 must remain empty with seven available workers');
+ assert.equal(generated.soft.rows[0].cells[3],'','MFKF06 must remain empty with seven available workers');
+ f.context.generated=generated;
+ const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+ assert.deepEqual(errors,[]);
+});
+
+test('staffing uses active people per day, including reactivation and changing absences',()=>{
+ const f=setup();
+ const crew=names.filter(name=>!['Synek','Třasák','Střížek','Špadrna'].includes(name));
+ const core=['Synek','Třasák','Střížek'];
+ for(const activeCount of [7,8,9,10]){
+  const active=new Set(core.concat(crew.slice(0,activeCount-7),crew.slice(0,4),activeCount>=8?['Špadrna']:[]));
+  // The transition 7 -> 8 explicitly reactivates Špadrna; additional names can rejoin as well.
+  if(activeCount===9)active.add(crew[4]);
+  if(activeCount===10)crew.forEach(name=>active.add(name));
+  assert.equal(active.size,activeCount,'fixture count '+activeCount);
+  f.context.app.machineSettingsRows[0].settings_json.workers.forEach(worker=>{worker.active=active.has(worker.name);});
+  for(const absentCount of [0,1]){
+   const unavailable=Array.from(active).filter(name=>name!=='Špadrna').slice(0,absentCount);
+   const monthKey='11/26',prepared=prepareMonth(f.context.app.rotation.months[monthKey],()=>0);
+   if(absentCount)prepared.notes.push(absenceNote(prepared.hard.rows[0].date,unavailable[0]));
+   f.context.prepared=prepared;
+   let actual;
+   try { actual=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized")); }
+   catch(error) { throw new Error('active '+activeCount+', absent '+absentCount+': '+String(error&&error.message||error),{cause:error}); }
+   const day=actual.hard.rows[0].cells.concat(actual.soft.rows[0].cells).filter(Boolean);
+   const availableCount=activeCount-absentCount;
+   const expectedHard=availableCount===7?4:Math.min(5,availableCount);
+   assert.equal(new Set(day).size,day.length,'no duplicates at '+activeCount+'/'+absentCount);
+   assert.equal(day.length,availableCount,'all available people at '+activeCount+'/'+absentCount);
+   assert(day.every(name=>active.has(name)&&!unavailable.includes(name)),'no absent or inactive workers');
+   assert.equal(actual.hard.rows[0].cells.filter(Boolean).length,expectedHard,'TO from availability '+availableCount);
+   assert.equal(actual.soft.rows[0].cells.filter(Boolean).length,availableCount-expectedHard,'MO from availability '+availableCount);
+   if(activeCount===7 && !absentCount) {
+    const coreTO=actual.hard.rows.flatMap(row=>row.cells).filter(name=>core.includes(name));
+    assert(coreTO.length>=3,'seven-person shifts must continue MO trio through operating TO presses');
+    assert(actual.hard.rows.every(row=>row.cells[3]===''),'TPKW02 remains shut at seven people');
+   }
+   f.context.generated=actual;
+   const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+   assert.deepEqual(errors,[],'hard rules '+activeCount+'/'+absentCount+': '+JSON.stringify(errors));
+  }
+ }
+});
+
 test('seven real D-shift month templates preserve all hard rules for 0/1/2/3 absences and month boundaries',()=>{
  const {f,generated}=generateFutureSequence();
  assert.equal(f.evaluate("adminRotationGeneratorShouldSplitPressMachines('7.6. N8','6/26',generatedMonth)".replace('generatedMonth','app.rotation.months[\'6/26\']')),true);
@@ -142,4 +200,128 @@ test('every possible start row of current-month amendment freezes its prefix and
   const errors=clone(f.evaluate("adminRotationValidateMonthRules(candidate,'10/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error'&&adminRotationUnplannedIssueTouchesSelectedDate(issue,selected))"));
   assert.deepEqual(errors,[],'start '+allDays[startIdx]+' '+JSON.stringify(errors));
  }
+});
+
+test('all seven TO-qualified workers take turns on TO and MO, cycling several machines',()=>{
+ const f=setup();
+ const prepared=prepareMonth(f.context.app.rotation.months['11/26'],()=>0);
+ f.context.prepared=prepared;
+ const output=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ const core=new Set(['Synek','Třasák','Střížek']);
+ const crew=names.filter(name=>!core.has(name));
+ const machines=['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'];
+ const totals=Object.fromEntries(crew.map(name=>[name,{hard:0,soft:0,machines:new Set(),same:0,next:0,transitions:0}]));
+ const last=Object.create(null);
+ for(let i=0;i<output.hard.rows.length;i++){
+  output.hard.rows[i].cells.forEach((name,idx)=>{
+   if(!totals[name])return;
+   totals[name].hard++;
+   totals[name].machines.add(machines[idx]);
+   if(last[name]){
+    totals[name].transitions++;
+    if(last[name]===machines[idx])totals[name].same++;
+    if(machines[(machines.indexOf(last[name])+1)%machines.length]===machines[idx])totals[name].next++;
+   }
+   last[name]=machines[idx];
+  });
+  output.soft.rows[i].cells.forEach(name=>{if(totals[name])totals[name].soft++;});
+ }
+ const report=Object.fromEntries(crew.map(name=>[name,{hard:totals[name].hard,soft:totals[name].soft,hardKinds:totals[name].machines.size,same:totals[name].same,next:totals[name].next,transitions:totals[name].transitions}]));
+ console.log('[hard-cycle-fairness-222] '+JSON.stringify(report));
+ for(const name of crew){
+  assert(totals[name].hard>0&&totals[name].soft>0,name+' must work both TO and MO');
+  assert(totals[name].machines.size>=3,name+' should rotate across several TO machines');
+ }
+ const softCounts=crew.map(name=>totals[name].soft);
+ assert(Math.max(...softCounts)-Math.min(...softCounts)<=4,'Crew MO counts should be comparable: '+JSON.stringify(report));
+ const correct=crew.reduce((sum,name)=>sum+totals[name].next,0);
+ const all=crew.reduce((sum,name)=>sum+totals[name].transitions,0);
+ console.log('[hard-cycle-sequence-222] '+JSON.stringify({correct,all,rate:all?correct/all:0}));
+ assert(correct>=Math.ceil(all*0.6),'At least 60% of TO steps should be exact next-cycle moves with non-negotiable rules preserved');
+});
+
+test('optional additional MO for Kmínek/Novotný respects November absences and solo-MFKF10 fairness',()=>{
+ const f=setup();
+ f.context.app.machineSettingsRows[0].settings_json.workers.find(worker=>worker.name==='Špadrna').active=false;
+ const monthKey='11/26';
+ const prepared=prepareMonth(f.context.app.rotation.months[monthKey],()=>0);
+ const absentByDate={
+  '6.11.':['Střížek'],'7.11.':['Střížek'],'8.11.':['Střížek'],
+  '12.11.':['Novotný'],'16.11.':['Starý'],'22.11.':['Novotný'],
+  '25.11.':['Novotný','Střížek'],'26.11.':['Novotný','Střížek'],
+  '30.11.':['Střížek']
+ };
+ for(const date of dates(prepared))for(const [start,people] of Object.entries(absentByDate))
+  if(date.startsWith(start))for(const person of people)prepared.notes.push(absenceNote(date,person));
+ f.context.prepared=prepared;
+ const generated=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ const totals=Object.fromEntries(names.filter(name=>name!=='Špadrna').map(name=>[name,{mo:0,to:0,solo:0}]));
+ for(let idx=0;idx<generated.hard.rows.length;idx++){
+  const hard=generated.hard.rows[idx],soft=generated.soft.rows[idx];
+  for(const name of hard.cells)if(totals[name])totals[name].to++;
+  for(const name of soft.cells)if(totals[name])totals[name].mo++;
+  const solo=soft.cells[4];
+  if(solo&&totals[solo]&&!soft.cells[3])totals[solo].solo++;
+  const away=new Set(prepared.notes.filter(note=>note.date===hard.date).map(note=>note.person));
+  const filled=hard.cells.concat(soft.cells).filter(Boolean);
+  assert.equal(filled.length,9-away.size,hard.date+' all available people assigned');
+  assert.equal(new Set(filled).size,filled.length,hard.date+' no duplicate person');
+  assert(filled.every(name=>!away.has(name)&&name!=='Špadrna'),hard.date+' no absent/inactive person');
+  assert.equal(hard.cells.filter(Boolean).length,9-away.size===7?4:5,hard.date+' TO from available');
+ }
+ const solos=Object.values(totals).map(person=>person.solo);
+ console.log('[november-mo-solo-224] '+JSON.stringify(totals));
+ assert(totals['Kmínek'].mo>=3,'Kmínek may spend at least three available shifts on MO');
+ assert(totals['Novotný'].mo>=2,'Novotný may spend available shifts on MO');
+ assert(Math.max(...solos)-Math.min(...solos)<=2,'single MFKF10 remains approximately balanced');
+ f.context.generated=generated;
+ const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+ assert.deepEqual(errors,[],JSON.stringify(errors));
+});
+
+test('whole current month amendment uses exactly the full-month generation logic',()=>{
+ const f=setup(),source=prepareMonth(f.context.app.rotation.months['11/26'],()=>0);
+ f.context.source=source;f.context.prepared=source;
+ const baseline=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ f.evaluate("adminRotationGeneratorSetWizardState({mode:'amend',monthKey:'11/26',startDate:'2026-11-18',sourceMonth:source,days:adminRotationCollectMonthWorkDatesFromMonth(source),absencesByDay:adminRotationCollectMonthAbsencesFromMonth(source,adminRotationCollectMonthWorkDatesFromMonth(source))})");
+ assert.equal(f.evaluate("adminHandleRotationGeneratorWizardAction('generator-full-month',null)"),true);
+ const st=f.evaluate("adminRotationGeneratorGetWizardState()");
+ assert.equal(st.mode,'amend');assert.equal(st.startDate,'2026-11-01');
+ f.context.prepared=f.evaluate("adminRotationGeneratorEnsurePreparedMonthFromWizard()");
+ const result=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false,mutableDateLabels:adminRotationGeneratorGetWizardState().days,baselineMonth:source}).normalized"));
+ assert.deepEqual(result.hard.rows,baseline.hard.rows,'hard plan differs from standard generator');
+ assert.deepEqual(result.soft.rows,baseline.soft.rows,'soft plan differs from standard generator');
+});
+
+test('amending from mid-month freezes history and carries real machine/MO counters forward',()=>{
+ const f=setup();f.context.prepared=prepareMonth(f.context.app.rotation.months['11/26'],()=>0);
+ const saved=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ const startIdx=8;
+ f.context.saved=saved;
+ f.evaluate("adminRotationGeneratorSetWizardState({mode:'amend',monthKey:'11/26',startDate:adminRotationGeneratorDateLabelToIso(saved.hard.rows[8].date,'11/26'),sourceMonth:saved,days:saved.hard.rows.slice(8).map(r=>r.date),absencesByDay:adminRotationCollectMonthAbsencesFromMonth(saved,saved.hard.rows.slice(8).map(r=>r.date))})");
+ f.context.prepared=f.evaluate('adminRotationGeneratorEnsurePreparedMonthFromWizard()');
+ f.context.prefix=clone(f.context.prepared);
+ const replay=f.evaluate("(()=>{const model=adminBuildRotationGenerationModel('11/26'),c=adminRotationGeneratorCreateCounters(model);for(let i=0;i<8;i++)adminRotationGeneratorRememberRow(prefix,i,model,c);return {hard:c.hard,soft:c.soft,cycle:c.hardCycleCursor};})()");
+ const cycle=f.evaluate('getAdminRotationGeneratorRules().hardCycle');
+ const headers=['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'];
+ for(const name of names){
+  const mo=saved.soft.rows.slice(0,startIdx).flatMap(row=>row.cells).filter(n=>n===name).length;
+  const to=saved.hard.rows.slice(0,startIdx).flatMap(row=>row.cells).filter(n=>n===name).length;
+  assert.equal(replay.soft[name],mo,name+' remembered MO');
+  assert.equal(replay.hard[name],to,name+' remembered TO');
+  let lastMachine='';
+  for(let i=0;i<startIdx;i++)saved.hard.rows[i].cells.forEach((n,j)=>{if(n===name)lastMachine=headers[j];});
+  if(lastMachine)assert.equal(cycle[replay.cycle[name]],cycle[(cycle.indexOf(lastMachine)+1)%cycle.length],name+' next TO machine');
+ }
+ const generated=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false,mutableDateLabels:adminRotationGeneratorGetWizardState().days,baselineMonth:saved}).normalized"));
+ for(const section of ['hard','soft'])assert.deepEqual(generated[section].rows.slice(0,startIdx),saved[section].rows.slice(0,startIdx),section+' old dates preserved');
+ assert.equal(generated.hard.rows.length,saved.hard.rows.length);
+ for(let i=startIdx;i<generated.hard.rows.length;i++){
+  const people=generated.hard.rows[i].cells.concat(generated.soft.rows[i].cells).filter(Boolean);
+  assert.equal(people.length,10,'full attendance '+generated.hard.rows[i].date);
+  assert.equal(new Set(people).size,10,'no duplicates '+generated.hard.rows[i].date);
+ }
+ f.context.generated=generated;
+ const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+ assert.deepEqual(errors,[],JSON.stringify(errors));
 });

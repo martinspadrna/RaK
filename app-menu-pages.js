@@ -12,6 +12,8 @@ function buildAppMenuAboutHistoryHtml() {
         'Nový Přehled směny: počítadla vsázek, výpočty, celková tabulka a online záloha k účtu.',
         'Rozepsaný přehled se průběžně ukládá v zařízení; lze jej vymazat, online záloha se ukládá tlačítkem Uložit.',
         'Přehlednější rozpisy a neplánované absence s Neschopenkou. Kantýna a jídelna mají okna vedle sebe a výrazné časy.',
+        'Generátor rozpisů přesněji střídá stroje a vyrovnává MO/TO i samostatné frézky; jeho pravidla platí také při úpravě části měsíce.',
+        'Jednotná průhledná ikona aplikace na Windows i mobilu.'
         'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
       ]
     },
@@ -120,7 +122,7 @@ function buildAppMenuAboutHistoryHtml() {
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
       const releaseMetadata = window.RAK_RELEASE_METADATA || {};
-      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.19').trim();
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.27').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',

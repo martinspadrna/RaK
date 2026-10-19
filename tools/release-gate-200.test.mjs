@@ -34,14 +34,17 @@ test('missing authentication module times out closed and can be retried',async()
   assert.equal(await f.context.waitForSecureSignIn(12000),f.signIn);
 });
 test('v2 identities agree and About has a compact new section above history',()=>{
-  const pkg=JSON.parse(read('package.json'));assert.equal(pkg.version,'2.0.19');
+  const pkg=JSON.parse(read('package.json'));
+  assert.match(pkg.version,/^2\.0\.\d+$/);
   assert.equal(JSON.parse(read('package-lock.json')).version,pkg.version);
-  assert.match(read('core.js'),/const APP_VERSION = "2\.0\.19"/);
+  assert(read('core.js').includes('const APP_VERSION = "'+pkg.version+'"'));
   const about=read('app-menu-pages.js');
   assert(about.indexOf("range: 'RaK 2'")<about.indexOf("range: 'RaK 1.9'"));
-  assert.match(read('rak-release-metadata.js'),/moduleCacheVersion: '2\.0\.19'/);
-  assert.match(read('index.html'),/var e='v219'/);
+  assert(read('rak-release-metadata.js').includes("moduleCacheVersion: '"+pkg.version+"'"));
+  const epoch='v'+pkg.version.split('.')[0]+pkg.version.split('.')[2];
+  assert(read('index.html').includes("var e='"+epoch+"'"));
 });
+
 test('N is offered by UI and accepted by client; migration preserves legacy/CAS/security',()=>{
   const wizard=read('admin-rotation-generator-wizard.js');
   assert.match(wizard,/value: 'N', label: 'Neschopenka'/);

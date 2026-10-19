@@ -135,6 +135,7 @@ function prepareBackup(){
 function publish(){
   fs.rmSync(OUTPUT,{recursive:true,force:true});fs.mkdirSync(OUTPUT,{recursive:true});
   const candidates=trackedFiles().filter(isStatic);
+  for (const name of ['icon-any-16.png','icon-any-32.png','icon-any-180.png','icon-any-192.png','icon-any-512.png']) candidates.push('assets/app-icons/'+name);
   if(!candidates.includes(SUPABASE_VENDOR_RELATIVE))candidates.push(SUPABASE_VENDOR_RELATIVE);
   if(!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
   for(const relative of candidates.sort())if(fs.existsSync(path.join(WORK,relative)))copy(relative,WORK,OUTPUT);
@@ -168,6 +169,7 @@ export function build(){
   validateSourceTree('before build');
   const beforeFingerprint=sourceFingerprint();
   prepareWork();prepareBackup();prepareVendor();
+  run(process.execPath,[path.join(ROOT,'tools/build-transparent-pwa-icons.mjs'),WORK],{cwd:ROOT,stdio:'inherit'});
   const env={...process.env,GIT_DIR:path.join(ROOT,'.git'),GIT_WORK_TREE:WORK};
   if(process.platform==='win32')run(process.execPath,['tools/portable-check.mjs'],{cwd:WORK,env,stdio:'inherit'});
   else run('npm',['run','check'],{cwd:WORK,env,stdio:'inherit'});

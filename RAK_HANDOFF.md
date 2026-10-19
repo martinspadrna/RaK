@@ -2,6 +2,11 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — schválený převod TEST 2.0.27 na MAIN/PROD
+
+Vlastník schválil převod aktuálního TEST 2.0.27 na MAIN, se shodným funkčním generátorem včetně Úpravy tohoto měsíce, průhledných PWA ikon, při zachování produkční Supabase, produkčního bezpečnostního auditu, produkční SQL migration lock, izolace testovací DB, všech původních rolí a správného zobrazení O aplikaci bez TEST, bez data publikace. TEST development SHA 8606effab4a5150be1b542bded4613bc12c0861d, původní MAIN c28c524f3a3dda0bcb69cb7e4ac1b6c6e4a2210f. Před převodem vytvořeny backup/main-2.0.19-before-2.0.27-20261019 a backup/development-2.0.27-before-main-20261019. Release coordinator nastavena na schválený dev SHA a 2.0.27 a má před publikací spustit exact-SHA CI, post-CI audited production release, immutable HTTP a teprve pak alias s automatickým rollbackem. Neschvalovat jakékoliv migrace/změny backendu; pouze frontend produkce.
+
+
 ## 14. 10. 2026 — RaK 2.0.16 převeden na main a produkci (100 % automatické ověření a nasazení)
 
 Vlastník výslovně schválil „Ok dej test na main a produkci“ a upřesnil O aplikaci bez TEST i bez dnešního data, stačí popis verze2. Převod dokončen. Main funkční SHA 5fbf51b00bf407fe1744d0a3b17405fe63a3d090 má celý ověřený runtime/CSS TESTu2.0.16 (devfunctional526f0a977ac808743ec57af07f45d7c111c21878, schválený devHEAD1378a659266ccdd55f8fd9c9e9ef4d316bc9e9f1). Runtime rozdíl protiTESTu pouze app-menu-pages.js (neutrální O aplikaci) a supabase-config.js (produkční projektbkqamcbkiwumsvelahxr). V sekci RaK2 publishedprázdné, žádné TEST ani nové datum, původní krátký popis zachován. Runtime/cache/build2.0.16/release1/epochv216 stejně jakoTEST. Produkční environment guardy/auditované workflow obnoveny z původního main; produkční migrační SQL/lock zachovány. Žádná změna DB, Edge, dat ani funkcí.
