@@ -1178,8 +1178,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
 
  // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
  // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
- if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name))
-  .sort((a,b) => Number(counters.hard[a] || 0) - Number(counters.hard[b] || 0) || hardPreferred.indexOf(a) - hardPreferred.indexOf(b)).forEach((name) => {
+ if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
   if (usedNames.size >= hardTargetCount) return;
   const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
   const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, wantedMachine);
