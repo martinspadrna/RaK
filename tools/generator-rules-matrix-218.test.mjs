@@ -171,19 +171,23 @@ test('all seven TO-qualified workers take turns on TO and MO, cycling several ma
  const core=new Set(['Synek','Třasák','Střížek']);
  const crew=names.filter(name=>!core.has(name));
  const machines=['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'];
- const totals=Object.fromEntries(crew.map(name=>[name,{hard:0,soft:0,machines:new Set(),same:0}]));
+ const totals=Object.fromEntries(crew.map(name=>[name,{hard:0,soft:0,machines:new Set(),same:0,next:0,transitions:0}]));
  const last=Object.create(null);
  for(let i=0;i<output.hard.rows.length;i++){
   output.hard.rows[i].cells.forEach((name,idx)=>{
    if(!totals[name])return;
    totals[name].hard++;
    totals[name].machines.add(machines[idx]);
-   if(last[name]===machines[idx])totals[name].same++;
+   if(last[name]){
+    totals[name].transitions++;
+    if(last[name]===machines[idx])totals[name].same++;
+    if(machines[(machines.indexOf(last[name])+1)%machines.length]===machines[idx])totals[name].next++;
+   }
    last[name]=machines[idx];
   });
   output.soft.rows[i].cells.forEach(name=>{if(totals[name])totals[name].soft++;});
  }
- const report=Object.fromEntries(crew.map(name=>[name,{hard:totals[name].hard,soft:totals[name].soft,hardKinds:totals[name].machines.size,same:totals[name].same}]));
+ const report=Object.fromEntries(crew.map(name=>[name,{hard:totals[name].hard,soft:totals[name].soft,hardKinds:totals[name].machines.size,same:totals[name].same,next:totals[name].next,transitions:totals[name].transitions}]));
  console.log('[hard-cycle-fairness-222] '+JSON.stringify(report));
  for(const name of crew){
   assert(totals[name].hard>0&&totals[name].soft>0,name+' must work both TO and MO');
@@ -191,4 +195,8 @@ test('all seven TO-qualified workers take turns on TO and MO, cycling several ma
  }
  const softCounts=crew.map(name=>totals[name].soft);
  assert(Math.max(...softCounts)-Math.min(...softCounts)<=4,'Crew MO counts should be comparable: '+JSON.stringify(report));
+ const correct=crew.reduce((sum,name)=>sum+totals[name].next,0);
+ const all=crew.reduce((sum,name)=>sum+totals[name].transitions,0);
+ console.log('[hard-cycle-sequence-222] '+JSON.stringify({correct,all,rate:all?correct/all:0}));
+ assert(correct>=Math.ceil(all*0.6),'At least 60% of TO steps should be exact next-cycle moves with non-negotiable rules preserved');
 });
