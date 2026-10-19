@@ -3,6 +3,15 @@
 Toto je jediný živý řídicí dokument projektu RaK.
 
 
+## 19. 10. 2026 — DEVELOPMENT 2.0.21: obsazení MO/TO, Starý a série brusů
+
+Pouze větev `development`; `main`, produkce, Supabase DB a Edge zůstávají beze změn. Pro 7 skutečně dostupných pracovníků má generátor 4 TO + 3 MO. Pokud režim MO tvoří 2 soustruhy + 1 frézka, zákaz Starého na soustruzích je pro automatické generování závazný (včetně následných prohození); MFKF10 povolena, ruční úprava může být výjimkou. Nové kvalifikačně a provozně bezpečné výměny MO↔MO, TO↔MO a TO↔TO umožňují doplnit místo, které nelze obsadit přímo kvůli předchozímu nýtování, například prázdnou TPKW01.
+
+Dále generátor opravuje 3 a více navazujících směn jednoho člověka na stejném brusu TBKR01/TBKR07 bezpečnou výměnou dvou kvalifikovaných pracovníků; nepodaří-li se výměna, zůstane upozornění. Přidané regresní testy `tools/generator-mandatory-rules-220.test.mjs` jsou zapojené do npm check a generator-matrix. Matice reálných směn a úprav měsíce po opravách prošla; dřívější CI správně zastavilo překročení fixního velikostního limitu o 8,5 kB, ten nebyl zvýšen, nová implementace byla beze změny chování zmenšena o cca 9,6 kB. Po aktualizaci viditelné verze na 2.0.21 ověřit celý CI včetně pevného limitu velikosti, výkonnosti, mobilního Chromium a TEST deployment. Neoznačovat před dokončením CI za nasazeno.
+
+Další fyzická kontrola: listopad 2026, 7 dostupných => 4 TO/3 MO, Starý na frézce nikoli na obou soustruzích, žádná neobsazená kvalifikovaná osoba, TNKS/TPKW návaznost a série TBKR. Nezavádět do produkce bez dalšího schválení.
+
+
 ## 15. 10. 2026 — TEST 2.0.18 kompaktní Závěr a maticové ověření generátoru (100 % automatické ověření a nasazení)
 
 Pouze TEST. Obrábění / Závěr má nyní dva kompaktní procesní řádky: vlevo MO a TO, vpravo u každého všechny indexy AG/AE, AF/AD a AH. MO zachovává pro každý index samostatné hodnoty Volné a Pod lisem, TO hodnotu Počet. Uložené klíče, normalizace i výsledný přehled zůstávají beze změny. Skutečný mobilní Chromium test kontroluje, že jsou popisky MO/TO vlevo od všech indexů, oba řádky jsou oddělené a všech šest indexových voleb je dostupných.
