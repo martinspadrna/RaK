@@ -28,6 +28,8 @@ assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'), 'Supabase SD
 assert(appJs.includes("const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js'"), 'Self-hosted Supabase lazy client missing');
 assert(appJs.includes("const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD'"), 'Self-hosted Supabase integrity pin missing');
 assert(appJs.includes('script.integrity = RAK_SUPABASE_SDK_INTEGRITY'), 'Supabase lazy loader must enforce the integrity pin');
+assert(appJs.includes("const RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL = 'https://skoda-spada.vercel.app/supabase-vendor-2.110.7.js'"), 'First-party RaK Supabase fallback missing');
+assert(csp.value.includes('https://skoda-spada.vercel.app'), 'Experiment CSP must allow only verified RaK static source');
 assert(swJs.includes("'./supabase-vendor-2.110.7.js'"), 'Self-hosted Supabase client must remain PWA-cached');
 assert(!index.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js') && !appJs.includes('cdn.jsdelivr.net/npm/@supabase/supabase-js'), 'Supabase client must not depend on a third-party startup CDN');
 assert(!index.includes('xlsx.full.min.js'), 'XLSX must stay lazy after build transforms');
