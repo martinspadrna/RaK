@@ -68,9 +68,9 @@ test('24 and 25 October are not recurring CZD days', () => {
   );
 });
 
-test('2.0.22 identity and regression gate are wired into the full check', () => {
-  assert.equal(packageJson.version, '2.0.22');
-  assert(metadata.includes("displayVersion: '2.0.22'"));
+test('current v2 identity and inventory regression gate are wired into the full check', () => {
+  assert.match(packageJson.version, /^2\.0\.\d+$/);
+  assert(metadata.includes("displayVersion: '"+packageJson.version+"'"));
   assert(packageJson.scripts.check.includes('tools/person-schedule-inventory-219.test.mjs'));
 });
 
