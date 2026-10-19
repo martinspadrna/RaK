@@ -826,6 +826,19 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
         addIssue('error', 'duplicate-day', String(dateLabel) + ': ' + name + ' je ve stejný den víckrát.', places.map((place) => place.machineName).join(', '));
       }
     });
+    // Ruční zásah smí být výjimkou; automatický návrh však musí dodržet
+    // pevný zákaz z nastavení i po všech pozdějších dorovnávacích výměnách.
+    if (opts.source === 'generator') {
+      (Array.isArray(softRow && softRow.cells) ? softRow.cells : []).forEach((cell, idx) => {
+        const machine = SOFT_MACHINE_HEADERS[idx] || '';
+        const name = adminRotationCanonicalName(cell, knownNames);
+        if (name && !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machine, name, knownNames)) {
+          addIssue('error', 'protected-lathe', String(dateLabel) + ': ' + name
+            + ' má v režimu 2 soustruhy + 1 frézka zákaz ' + machine + '.',
+            'Výjimka je povolená pouze při ruční úpravě rozpisu.');
+        }
+      });
+    }
     noteNamesForDate(dateLabel).forEach((noteName) => {
       if (!knownNames.includes(noteName.canonical)) {
         addIssue('warn', 'unknown-absence-name', String(dateLabel) + ': absence má neznámé jméno ' + noteName.raw + '.', '');
@@ -1122,7 +1135,15 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
   const pressHalfStepBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey);
   // RAK_TPKW02_FINAL_CALL_17013
   const finalTpkw02Balance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey);
+  const grinderStreakRepair = scopedGeneration ? { swaps: 0, unresolved: [] }
+    : adminRotationGeneratorRepairGrinderStreaks(month, model, monthKey);
   const ruleCheck = adminRotationValidateMonthRules(month, monthKey, { source: 'generator' });
+  if (grinderStreakRepair.unresolved.length) {
+    ruleCheck.issues.push({
+      severity: 'warn', type: 'grinder-streak', message:
+        'Na brusu zůstává série 3 a více směn, protože nebyla nalezena kvalifikovaná bezpečná výměna.'
+    });
+  }
   if (finalTpkw02Balance.spread > 1 && !finalTpkw02Balance.disabled) {
     ruleCheck.issues.push({ severity: 'warn', code: 'tpkw02-month-spread', message: 'TPKW02 nelze s aktuální kvalifikací bezpečně vyrovnat na rozdíl 1 směny.' });
   }
@@ -1171,6 +1192,8 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
     pressHalfStepMonthlySpread: pressHalfStepBalance && Number(pressHalfStepBalance.spread || 0),
     finalTpkw02BalanceSwaps: finalTpkw02Balance && Number(finalTpkw02Balance.swaps || 0),
     finalTpkw02MonthlySpread: finalTpkw02Balance && Number(finalTpkw02Balance.spread || 0),
+    grinderStreakSwaps: grinderStreakRepair && Number(grinderStreakRepair.swaps || 0),
+    grinderStreakUnresolved: grinderStreakRepair && Array.isArray(grinderStreakRepair.unresolved) ? grinderStreakRepair.unresolved.length : 0,
     soloMillConsecutiveRepairs: finalSoloMillStreakRepair && Number(finalSoloMillStreakRepair.repairs || 0),
     soloMillConsecutiveUnresolved: finalSoloMillStreakRepair && Array.isArray(finalSoloMillStreakRepair.unresolved) ? finalSoloMillStreakRepair.unresolved.length : 0,
     tpkw02BalanceSwaps: tpkw02Balance && Number(tpkw02Balance.swaps || 0),
