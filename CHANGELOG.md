@@ -1,3 +1,11 @@
+## RaK 2.0.21 (development)
+
+- Generátor při sedmi skutečně dostupných lidech drží 4 TO + 3 MO i po deaktivaci pracovníka a absencích.
+- Starý se při automatickém rozdělení 2 soustruhy + 1 frézka nepřiřazuje na soustruhy MSKC03/MSKC04 ani následným prohozením; frézka MFKF10 je možná. Ruční výjimky zůstávají povolené.
+- Bezpečné výměny kvalifikovaných pracovníků doplňují neobsazená místa bez porušení návaznosti TNKS01/TPKW01.
+- Generátor zkouší přerušit 3 a více po sobě jdoucích směn na stejném brusu TBKR01/TBKR07; pokud není bezpečná výměna, vypíše upozornění.
+- Doplněny regresní testy pravidel rozpisu; PWA cache a vydání sjednoceny na 2.0.21.
+
 ## RaK 2.0.20 (development)
 
 - Generátor rozhoduje o rozdělení směny podle skutečného počtu dostupných pracovníků. Při sedmi lidech vždy použije 4 TO + 3 MO, i když je jeden pracovník deaktivovaný a další dva mají absenci.
