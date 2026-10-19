@@ -146,7 +146,9 @@ test('staffing uses active people per day, including reactivation and changing a
    const monthKey='11/26',prepared=prepareMonth(f.context.app.rotation.months[monthKey],()=>0);
    if(absentCount)prepared.notes.push(absenceNote(prepared.hard.rows[0].date,unavailable[0]));
    f.context.prepared=prepared;
-   const actual=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+   let actual;
+   try { actual=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized")); }
+   catch(error) { throw new Error('active '+activeCount+', absent '+absentCount+': '+String(error&&error.message||error),{cause:error}); }
    const day=actual.hard.rows[0].cells.concat(actual.soft.rows[0].cells).filter(Boolean);
    const availableCount=activeCount-absentCount;
    const expectedHard=availableCount===7?4:Math.min(5,availableCount);
