@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../admin-rotation-generator.js', import.meta.url), 'utf8');
 const actualNames = [
+  'adminRotationGeneratorNextHardCycleMachine',
+  'adminRotationGeneratorAdvanceHardCycle',
   'adminRotationGeneratorThreeAbsences',
   'adminRotationGeneratorHardTarget',
   'adminRotationGeneratorSoftSlotPlan',
@@ -44,7 +46,8 @@ const deps = {
   adminRotationUnavailableNamesForDate: (month) => new Set(month.absent || []),
   getAdminRotationGeneratorRules: () => ({
     avoidLatheWhenTwoLathesOneMillEnabled: forbidden,
-    avoidLatheWhenTwoLathesOneMillNames: ['Starý']
+    avoidLatheWhenTwoLathesOneMillNames: ['Starý'],
+    hardCycle: ['TBKR01','TNKS01','TBKR07','TPKW01','TPKW02']
   }),
   adminRotationGeneratorIsWorkingRow: () => true,
   adminRotationGeneratorCanEditRow: () => true,
@@ -100,4 +103,12 @@ test('unrepairable grinder streak is reported, never silently overridden', () =>
   } finally {
     grinderQualified = true;
   }
+});
+
+test('TO cursor advances from actual assigned machine, not a stale prediction', () => {
+ const counters={hardCycleCursor:{Kmínek:0}};
+ f.adminRotationGeneratorAdvanceHardCycle(counters,'Kmínek','TPKW01');
+ assert.equal(f.adminRotationGeneratorNextHardCycleMachine(counters,'Kmínek'),'TPKW02');
+ f.adminRotationGeneratorAdvanceHardCycle(counters,'Kmínek','TPKW02');
+ assert.equal(f.adminRotationGeneratorNextHardCycleMachine(counters,'Kmínek'),'TBKR01');
 });

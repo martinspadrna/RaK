@@ -162,3 +162,33 @@ test('every possible start row of current-month amendment freezes its prefix and
   assert.deepEqual(errors,[],'start '+allDays[startIdx]+' '+JSON.stringify(errors));
  }
 });
+
+test('all seven TO-qualified workers take turns on TO and MO, cycling several machines',()=>{
+ const f=setup();
+ const prepared=prepareMonth(f.context.app.rotation.months['11/26'],()=>0);
+ f.context.prepared=prepared;
+ const output=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ const core=new Set(['Synek','Třasák','Střížek']);
+ const crew=names.filter(name=>!core.has(name));
+ const machines=['TNKS01','TBKR07','TPKW01','TPKW02','TBKR01'];
+ const totals=Object.fromEntries(crew.map(name=>[name,{hard:0,soft:0,machines:new Set(),same:0}]));
+ const last=Object.create(null);
+ for(let i=0;i<output.hard.rows.length;i++){
+  output.hard.rows[i].cells.forEach((name,idx)=>{
+   if(!totals[name])return;
+   totals[name].hard++;
+   totals[name].machines.add(machines[idx]);
+   if(last[name]===machines[idx])totals[name].same++;
+   last[name]=machines[idx];
+  });
+  output.soft.rows[i].cells.forEach(name=>{if(totals[name])totals[name].soft++;});
+ }
+ const report=Object.fromEntries(crew.map(name=>[name,{hard:totals[name].hard,soft:totals[name].soft,hardKinds:totals[name].machines.size,same:totals[name].same}]));
+ console.log('[hard-cycle-fairness-222] '+JSON.stringify(report));
+ for(const name of crew){
+  assert(totals[name].hard>0&&totals[name].soft>0,name+' must work both TO and MO');
+  assert(totals[name].machines.size>=3,name+' should rotate across several TO machines');
+ }
+ const softCounts=crew.map(name=>totals[name].soft);
+ assert(Math.max(...softCounts)-Math.min(...softCounts)<=4,'Crew MO counts should be comparable: '+JSON.stringify(report));
+});

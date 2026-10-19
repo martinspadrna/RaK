@@ -77,7 +77,7 @@ test('TO lock is refused when another unavailable person makes the old TO row in
 test('BuildDay preserves hard cells and skips hard-cycle exchange only when preserveHardActive is valid',()=>{
   assert(generator.includes('const preserveHardActive = !!(requestedHardCells'));
   assert(generator.includes('if (preserveHardActive) {'));
-  assert(generator.includes('if (!preserveHardActive) hardPreferred.filter'));
+  assert(generator.includes('if (!preserveHardActive) hardCrew.filter'));
   assert(generator.includes('if (!preserveHardActive) {'));
   assert(generator.includes('if (!preserveHardActive) HARD_MACHINE_HEADERS.forEach'));
 });

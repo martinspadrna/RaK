@@ -1430,8 +1430,6 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   emptyProtected += 1;
  }
 
- // Jediné platné pokračování cyklu je ze skutečného konečného stroje
- // na TO. Přesun na MO kurzor neposouvá; následné prohození TO ho přepočítá.
  if (!preserveHardActive) hardCrew.forEach((name) => { counters.hardCycleCursor[name] = initialHardCursor[name]; });
  hardCells.forEach((name, idx) => {
   if (hardCrew.includes(name)) adminRotationGeneratorAdvanceHardCycle(counters, name, HARD_MACHINE_HEADERS[idx]);

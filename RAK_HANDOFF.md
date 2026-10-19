@@ -2,6 +2,12 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — DEVELOPMENT 2.0.22: tvrdotový cyklus má přednost (ověřování)
+
+Uživatel upřesnil základní algoritmus: nejprve se obsadí tvrdota po jednotlivých lidech s přesným cyklem **TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01**, navazujícím na jejich poslední skutečnou pozici. Teprve poté do obsazených lisů vstupuje trojice z měkoty, na TNKS01 → TPKW01 → TPKW02 po trojicích; lidé vytlačení ze strojů přejdou na MO. Kvalifikovaní členové tvrdoty včetně Špadrny a Novotného mají dostávat přibližně srovnatelný podíl MO; Kmínek a Novotný mohou mít mírně více MO, není to povinnost. Všechna bezpečnostní, personální, absence, nedělní, TNKS/TPKW, frézková a ostatní pravidla mají přednost před jemnou optimalizací.
+
+Nový pokus srovnává skutečné pokračování kurzu po TO→MO přesunu, přidělení dalšího náhradního stroje od aktuální pozice a sedmičlennou kvalifikovanou rotaci. Přidány regresní testy. Větev `development` a TEST 2.0.22 **dosud bez potvrzeného kompletního CI a nasazení**, nesahat na main/produkci. Před vydáním ověřit sedm měsíců v matici, úpravu aktuálního měsíce, pevné výkonové limity, skutečné mobilní Chromium a bezpečnostní pravidla. Při neúspěchu nesnižovat limity, odstranit příčinu.
+
 
 ## 19. 10. 2026 — RaK TEST 2.0.21 NASAZEN (CI i Vercel ověřeny)
 
