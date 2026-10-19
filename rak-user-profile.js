@@ -241,6 +241,33 @@
     }
     const clientFactory = window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient : null;
     const config = window.SUPABASE_CONFIG || {};
+
+    // The isolated historical preview can be behind Vercel's protection page.
+    // If the locally served Supabase SDK fails to load, use the same public,
+    // rate-limited, anonymous RPC over direct REST. Never read account tables.
+    if (!clientFactory && config.url && config.publishableKey && typeof fetch === 'function') {
+      try {
+        const endpoint = String(config.url).replace(/\/$/, '') + '/rest/v1/rpc/rak_lookup_account_for_login_v4';
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
+          cache: 'no-store',
+          headers: { apikey: config.publishableKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ p_last4: suffix })
+        });
+        if (!response.ok) return { ok: false, reason: 'lookup-http-error', status: response.status };
+        const data = await response.json();
+        if (!data || data.ok !== true) return { ok: false, reason: data && data.reason || 'not-found' };
+        if (typeof data.requiresAdminAuth !== 'boolean') return { ok: false, reason: 'admin-gate-unavailable' };
+        const shiftTeam = String(data.shiftTeam || '').trim().toUpperCase();
+        if (!['A', 'B', 'C', 'D'].includes(shiftTeam)) return { ok: false, reason: 'shift-team-unavailable' };
+        const calendarAssignment = normalizeCalendarAssignment(data.calendarAssignment || '', shiftTeam);
+        return { ok: true, accountNumber: String(data.accountNumber || '').trim(), fullName: String(data.fullName || '').trim(), shiftTeam, calendarAssignment, requiresAdminAuth: data.requiresAdminAuth };
+      } catch (_) {
+        return { ok: false, reason: 'lookup-network-error' };
+      }
+    }
     if (!clientFactory || !config.url || !config.publishableKey) return { ok: false, reason: 'online-not-ready' };
     try {
       const client = clientFactory(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
