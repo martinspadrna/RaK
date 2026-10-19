@@ -15,6 +15,12 @@
   "description": "Směny, rotace, kalkulačky a pracovní přehledy pro mobilní použití.",
   "icons": [
     {
+      "src": "apple-touch-icon.png?v=2.0.27-ios1",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "assets/app-icons/icon-any-192.png?v=2.0.27",
       "sizes": "192x192",
       "type": "image/png",
