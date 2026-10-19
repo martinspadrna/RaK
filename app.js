@@ -12,8 +12,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const RAK_BOOT_V2_ENABLED = true;
   const RAK_SUPABASE_SDK_URL = 'supabase-vendor-2.110.7.js';
   // Isolated 1.8 generator experiment: if Vercel's protected asset cannot load,
-  // use the identical pinned same-origin UMD bundle. SHA-384 remains mandatory.
-  const RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL = 'rak-auth-vendor-21107.js';
+  // use the identical pinned first-party RaK bundle. SHA-384 remains mandatory.
+  const RAK_SUPABASE_SDK_LOCAL_FALLBACK_URL = 'https://skoda-spada.vercel.app/supabase-vendor-2.110.7.js';
   const RAK_SUPABASE_SDK_INTEGRITY = 'sha384-hazsLVND17GNLVdtV19te6qbFT2YuLgl8SamcF+QR5eIOC+W4dGKrUNMxU1jH1zD';
   let supabaseSdkLoadPromise = null;
   // Carry a branch-specific Vercel share token to protected lazy assets when
