@@ -2397,6 +2397,73 @@ function adminRotationGeneratorBalanceTpkw02Final17013(month, model, monthKey) {
   return { swaps, spread: adminRotationGeneratorTpkw02Score17013(counts,eligible).spread, counts, eligible: eligible.slice() };
 }
 
+
+// Za běžných okolností připusť nejvýš dvě navazující směny na stejném brusu.
+// Posuzují se skutečné po sobě jdoucí pracovní směny, ne kalendářní dny.
+function adminRotationGeneratorGrinderStreaks(month, knownNames) {
+  const names = Array.isArray(knownNames) ? knownNames : adminGetKnownNames();
+  const rows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+  let previous = new Map();
+  const violations = [];
+  let maxStreak = 0;
+  rows.forEach((row, rowIdx) => {
+    if (!adminRotationGeneratorIsWorkingRow(month, rowIdx)) return;
+    const cells = Array.isArray(row && row.cells) ? row.cells : [];
+    const current = new Map();
+    HARD_MACHINE_HEADERS.forEach((machineName, idx) => {
+      if (!/^TBKR/i.test(String(machineName || ''))) return;
+      const name = adminRotationCanonicalName(cells[idx], names);
+      if (!name) return;
+      const earlier = previous.get(name);
+      const count = earlier && earlier.machine === machineName ? earlier.count + 1 : 1;
+      current.set(name, { machine: machineName, count });
+      maxStreak = Math.max(maxStreak, count);
+      if (count >= 3) violations.push({ rowIdx, idx, name, machine: machineName, count });
+    });
+    previous = current;
+  });
+  return { violations, excess: violations.length, maxStreak };
+}
+
+function adminRotationGeneratorRepairGrinderStreaks(month, model, monthKey) {
+  const names = model && Array.isArray(model.knownNames) ? model.knownNames : adminGetKnownNames();
+  const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+  let current = adminRotationGeneratorGrinderStreaks(month, names);
+  let swaps = 0;
+  for (let pass = 0; pass < hardRows.length * 2 && current.excess > 0; pass += 1) {
+    let best = null;
+    current.violations.forEach(({ rowIdx, idx, name, machine }) => {
+      if (!adminRotationGeneratorCanEditRow(month, rowIdx)) return;
+      const cells = hardRows[rowIdx] && hardRows[rowIdx].cells;
+      if (!Array.isArray(cells) || adminRotationCanonicalName(cells[idx], names) !== name) return;
+      HARD_MACHINE_HEADERS.forEach((otherMachine, otherIdx) => {
+        if (otherIdx === idx || !/^TBKR/i.test(String(otherMachine || ''))) return;
+        const other = adminRotationCanonicalName(cells[otherIdx], names);
+        if (!other || other === name) return;
+        if (!adminRotationGeneratorPersonKnowsMachine(name, otherMachine)
+          || !adminRotationGeneratorPersonKnowsMachine(other, machine)) return;
+        if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, otherMachine, name, names, monthKey)
+          || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, machine, other, names, monthKey)) return;
+        cells[idx] = other;
+        cells[otherIdx] = name;
+        const proposed = adminRotationGeneratorGrinderStreaks(month, names);
+        cells[idx] = name;
+        cells[otherIdx] = other;
+        if (proposed.excess >= current.excess) return;
+        if (!best || proposed.excess < best.excess || (proposed.excess === best.excess && proposed.maxStreak < best.maxStreak)) {
+          best = { cells, idx, otherIdx, name, other, excess: proposed.excess, maxStreak: proposed.maxStreak };
+        }
+      });
+    });
+    if (!best) break;
+    best.cells[best.idx] = best.other;
+    best.cells[best.otherIdx] = best.name;
+    swaps += 1;
+    current = adminRotationGeneratorGrinderStreaks(month, names);
+  }
+  return { swaps, unresolved: current.violations, maxStreak: current.maxStreak };
+}
+
 function adminRotationGeneratorCountSoftKinds(month, names) {
   const result = Object.create(null);
   const list = Array.isArray(names) ? names : adminGetKnownNames();
