@@ -1176,26 +1176,38 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
  const hardOrdered = preserveHardActive ? [] : hardCrew.filter((name) => available.includes(name))
   .sort((a, b) => {
-   const target = (name) => Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)
+   const balance = (name) => Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)
     - (name === 'Kmínek' || name === 'Novotný' ? 0.5 : 0);
-   return target(b) - target(a) || (hardPreferred.indexOf(a) < 0 ? 1 : 0) - (hardPreferred.indexOf(b) < 0 ? 1 : 0)
-    || a.localeCompare(b, 'cs');
+   return balance(b) - balance(a) || a.localeCompare(b, 'cs');
   });
- // Nejprve skutečný následující stroj všech zájemců, teprve pak náhradní sloty.
- hardOrdered.forEach((name) => {
-  if (usedNames.size >= hardTargetCount) return;
-  const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, adminRotationGeneratorNextHardCycleMachine(counters, name));
-  assignHardCell(wantedIdx, name, 'hard-cycle');
- });
- hardOrdered.forEach((name) => {
-  if (usedNames.size >= hardTargetCount || usedNames.has(name)) return;
-  const cycle = generatorRules.hardCycle || [];
-  const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
-  const start = Math.max(0, cycle.indexOf(wantedMachine));
-  for (let offset = 1; offset < cycle.length; offset += 1) {
-   if (assignHardCell(adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycle[(start + offset) % cycle.length]), name, 'hard-cycle')) return;
+ // Nejprve vyber celou denní TO rotaci, bez předčasného obsazení stroje.
+ // Každý člověk má nejvyšší prioritu na svém dalším stroji; bezpečnost a obsazení mají přednost.
+ const cycle = generatorRules.hardCycle || [];
+ const wanted = Object.fromEntries(hardOrdered.map((name) => [name, adminRotationGeneratorNextHardCycleMachine(counters, name)]));
+ const machines = HARD_MACHINE_HEADERS.map((machine, idx) => ({ machine, idx }))
+  .filter(({machine}) => !(adminRotationGeneratorThreeAbsences(knownNames, available) && machine === 'TPKW02'));
+ let bestScore = -Infinity, bestPlan = [];
+ const choose = (idx, plan, score) => {
+  if (idx === machines.length) {
+   const total = plan.length * 10000 + score;
+   if (total > bestScore) { bestScore = total; bestPlan = plan; }
+   return;
   }
- });
+  choose(idx + 1, plan, score);
+  if (plan.length >= hardTargetCount) return;
+  const slot = machines[idx];
+  for (const name of hardOrdered) {
+   if (plan.some((entry) => entry.name === name)
+    || !adminRotationGeneratorPersonKnowsMachine(name, slot.machine)
+    || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, slot.machine, name, knownNames, monthKey)) continue;
+   const distance = (cycle.indexOf(slot.machine) - cycle.indexOf(wanted[name]) + cycle.length) % cycle.length;
+   const continuity = distance === 0 ? 600 : 120 - distance * 80;
+   const fairness = (Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)) * 3;
+   choose(idx + 1, plan.concat({ idx: slot.idx, name }), score + continuity + fairness);
+  }
+ };
+ if (hardOrdered.length) choose(0, [], 0);
+ bestPlan.forEach(({idx, name}) => assignHardCell(idx, name, 'hard-cycle'));
 
  // 2) Pak přesuň jednoho ze základu Měkoty na tvrdotní stroj v 3denním bloku.
  // Když někdo z nich později chybí, pořadí se smí prohodit, aby se tomu nevyhnul.
