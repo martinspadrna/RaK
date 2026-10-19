@@ -2,6 +2,11 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — TEST 2.0.26: průhledné Windows PWA ikony
+
+Nová samostatná transparentní (RGBA) ikona RaK pro zástupce ve Windows; zdroj assets/app-icons/icon-any-source-128.png je verzovaný a tools/build-transparent-pwa-icons.mjs vytváří 16/32/192/512 PNG v čistém canonical WORK, bez úpravy source a s opakovatelným buildem. V manifest.webmanifest oddělit `purpose:any` (průhledné) a `purpose:maskable` (původní plná ikona mobilu). Windows PWA po aktualizaci někdy podrží starou ikonu a vyžaduje znovu připnutí/instalaci, případně ruční .ico. Dodat testy alpha a manifestu. Main/produkce beze změn.
+
+
 ## 19. 10. 2026 — TEST 2.0.25: shodný generátor při úpravě aktuálního měsíce
 
 Administrace → Rozpisy → Generátor rozpisu → Úprava tohoto měsíce: původní 2.0.24 plánovací jádro ponechat bez změny, ať se plánuje celý měsíc nebo až od vybraného dne. Volba Celý měsíc v tomto průvodci přejde rovnou na dny a absence. Při částečném plánování se staré směny nemění, ale počítají do TO cyklu, bloku MO trojice, počtů MO/TO, TNKS a MFKF10. Prefix pro stav MO trojice nyní bere pouze chronologicky starší řádky před prvním editovatelným řádkem, nikoliv všechny needitovatelné včetně pozdějších. Dodány testy celého měsíce a částečného přegenerování s kontrolou přesného zachování historie. CI + Vercel TEST kontrolovat před označením hotovo; main a produkci neměnit.

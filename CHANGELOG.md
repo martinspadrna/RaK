@@ -1,3 +1,9 @@
+## RaK 2.0.26 (development)
+
+- Zástupci PWA ve Windows nyní dostávají samostatné PNG ikony s průhledným pozadím bez černého čtverce. Zdroj je ve verzovaném PNG a izolované sestavení z něj deterministicky připravuje 16/32/192/512 px s alfa kanálem.
+- Původní ikona zůstává pro mobil jako samostatná maskable, změna nezasahuje do vzhledu uvnitř aplikace. U staré instalované PWA může být nutné odebrat a znovu vytvořit zástupce kvůli cache Windows.
+- Jen TEST, main a produkce beze změn.
+
 ## RaK 2.0.25 (development)
 
 - Úprava tohoto měsíce používá stejný generátor jako nový měsíc: volba celého měsíce nyní přímo pokračuje k potvrzení dnů v témže průvodci.
