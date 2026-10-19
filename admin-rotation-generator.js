@@ -1174,23 +1174,26 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
 
  // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
  // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
- if (!preserveHardActive) hardCrew.filter((name) => available.includes(name))
+ const hardOrdered = preserveHardActive ? [] : hardCrew.filter((name) => available.includes(name))
   .sort((a, b) => {
    const target = (name) => Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)
     - (name === 'Kmínek' || name === 'Novotný' ? 0.5 : 0);
    return target(b) - target(a) || (hardPreferred.indexOf(a) < 0 ? 1 : 0) - (hardPreferred.indexOf(b) < 0 ? 1 : 0)
     || a.localeCompare(b, 'cs');
-  }).forEach((name) => {
+  });
+ // Nejprve skutečný následující stroj všech zájemců, teprve pak náhradní sloty.
+ hardOrdered.forEach((name) => {
   if (usedNames.size >= hardTargetCount) return;
+  const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, adminRotationGeneratorNextHardCycleMachine(counters, name));
+  assignHardCell(wantedIdx, name, 'hard-cycle');
+ });
+ hardOrdered.forEach((name) => {
+  if (usedNames.size >= hardTargetCount || usedNames.has(name)) return;
+  const cycle = generatorRules.hardCycle || [];
   const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
-  const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, wantedMachine);
-  if (assignHardCell(wantedIdx, name, 'hard-cycle')) return;
-  const cycle = Array.isArray(generatorRules.hardCycle) ? generatorRules.hardCycle : [];
   const start = Math.max(0, cycle.indexOf(wantedMachine));
   for (let offset = 1; offset < cycle.length; offset += 1) {
-   const machine = cycle[(start + offset) % cycle.length];
-   const idx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, machine);
-   if (assignHardCell(idx, name, 'hard-cycle')) return;
+   if (assignHardCell(adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycle[(start + offset) % cycle.length]), name, 'hard-cycle')) return;
   }
  });
 
