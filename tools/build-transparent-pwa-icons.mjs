@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Create the SAME alpha-transparent logo for Windows, Android and iOS.
+// Preserve transparent desktop/Android symbols; generate a compatible iOS fallback from the proven legacy logo.
 // Do not reintroduce the old opaque square as an Android maskable icon.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,7 +24,20 @@ export async function generateTransparentAppIcons(targetRoot) {
     if (output.width !== size || output.height !== size || !output.hasAlpha)
       throw Error('Transparent icon output invalid: ' + destination);
   }
-  console.log('[pwa-transparent-icons] PASS: 16/32/180/192/512 PNG alpha assets');
+  // iOS (including Edge Add to Home Screen) may reject fully transparent launcher artwork.
+  // Use the SAME proven icon-180.png artwork that was used by RaK 2.0.19.
+  const iosSource = path.join(folder, 'icon-180.png');
+  if (!fs.existsSync(iosSource)) throw Error('Missing previously working iOS icon');
+  const iosDestination = path.join(root, 'apple-touch-icon.png');
+  await sharp(iosSource)
+    .resize(180, 180, { fit: 'cover', kernel: sharp.kernel.lanczos3 })
+    .flatten({ background: '#0b0f0c' })
+    .png({ compressionLevel: 9, palette: false })
+    .toFile(iosDestination);
+  const ios = await sharp(iosDestination).metadata();
+  if (ios.width !== 180 || ios.height !== 180 || ios.hasAlpha)
+    throw Error('Invalid opaque Apple touch icon');
+  console.log('[pwa-transparent-icons] PASS: transparent Windows/Android and compatible opaque iOS 180 PNG');
 }
 if (process.argv[1] && import.meta.url === new URL('file://' + path.resolve(process.argv[1])).href) {
   await generateTransparentAppIcons(process.argv[2] || process.cwd());
