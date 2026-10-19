@@ -1312,7 +1312,11 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  });
 
  // 6) Špadrna a Novotný pomáhají vyrovnat Tvrdotu; zbytek dnů jdou hlavně na frézky/Měkotu.
- softSlots.forEach((machineIdx) => {
+ // Při 4 TO / 3 MO zajisti jedinou frézku dřív než volné soustruhy.
+ const fillSoftSlots = available.length === 7
+  ? softSlots.slice().sort((a, b) => Number(SOFT_MACHINE_HEADERS[b] === 'MFKF10') - Number(SOFT_MACHINE_HEADERS[a] === 'MFKF10'))
+  : softSlots;
+ fillSoftSlots.forEach((machineIdx) => {
   if (softCells[machineIdx]) return;
   const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
   const kind = adminRotationGeneratorSoftKind(machineName);
