@@ -1305,6 +1305,59 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     if (name) assignSoftCell(machineIdx, name, 'soft-fill');
   });
 
+  // Při závazném zákazu 2+1 nesmí kvalifikovaný člověk zůstat volný jen
+  // proto, že byl už rozebrán vhodný soustruh. Nejprve zkus přesun uvnitř
+  // MO (frézka -> soustruh, chráněný člověk -> frézka), teprve potom TO -> MO.
+  if (latheAvoidNames.length && adminRotationGeneratorIsTwoLatheOneMillPlan(softSlots)) {
+    for (const protectedName of latheAvoidNames) {
+      if (!available.includes(protectedName) || usedNames.has(protectedName)) continue;
+      for (const latheIdx of softSlots) {
+        const latheMachine = SOFT_MACHINE_HEADERS[latheIdx] || '';
+        if (adminRotationGeneratorSoftKind(latheMachine) !== 'lathe' || softCells[latheIdx]) continue;
+        let resolved = false;
+        for (const millIdx of softSlots) {
+          const millMachine = SOFT_MACHINE_HEADERS[millIdx] || '';
+          const millName = adminRotationCanonicalName(softCells[millIdx], knownNames);
+          if (adminRotationGeneratorSoftKind(millMachine) !== 'mill' || !millName) continue;
+          if (!adminRotationGeneratorPersonKnowsMachine(millName, latheMachine)
+            || !adminRotationGeneratorPersonKnowsMachine(protectedName, millMachine)) continue;
+          if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, latheMachine, millName, knownNames, softSlots)) continue;
+          if (millMachine === 'MFKF10'
+            && (!adminRotationGeneratorCanUseSoloMill(month, rowIdx, protectedName, knownNames, monthKey)
+              || adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, protectedName, knownNames))) continue;
+          adminRotationGeneratorUnmarkAssignment(counters, 'soft', millMachine, millName, 'mill');
+          softCells[latheIdx] = millName;
+          adminRotationGeneratorMarkAssignment(counters, 'soft', latheMachine, millName, 'lathe');
+          softCells[millIdx] = protectedName;
+          adminRotationGeneratorMarkAssignment(counters, 'soft', millMachine, protectedName, 'mill');
+          usedNames.add(protectedName);
+          resolved = true;
+          break;
+        }
+        if (resolved) break;
+        for (let hardIdx = 0; hardIdx < hardCells.length; hardIdx += 1) {
+          const hardMachine = HARD_MACHINE_HEADERS[hardIdx] || '';
+          if (!/^(?:TBKR01|TBKR07|TPKW02)$/.test(hardMachine)) continue;
+          const hardName = adminRotationCanonicalName(hardCells[hardIdx], knownNames);
+          if (!hardName || adminRotationGeneratorIsSoftCoreName(hardName, knownNames)) continue;
+          if (!adminRotationGeneratorPersonKnowsMachine(hardName, latheMachine)
+            || !adminRotationGeneratorPersonKnowsMachine(protectedName, hardMachine)) continue;
+          if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, latheMachine, hardName, knownNames, softSlots)
+            || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, hardMachine, protectedName, knownNames, monthKey)) continue;
+          adminRotationGeneratorUnmarkAssignment(counters, 'hard', hardMachine, hardName);
+          hardCells[hardIdx] = protectedName;
+          adminRotationGeneratorMarkAssignment(counters, 'hard', hardMachine, protectedName);
+          softCells[latheIdx] = hardName;
+          adminRotationGeneratorMarkAssignment(counters, 'soft', latheMachine, hardName, 'lathe');
+          usedNames.add(protectedName);
+          resolved = true;
+          break;
+        }
+        if (resolved) break;
+      }
+    }
+  }
+
   const mfkf06Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
   const mfkf10Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10');
   const mskc01Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC01');
