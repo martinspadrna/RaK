@@ -13,7 +13,7 @@ test('production has one release identity across runtime, PWA and package metada
   assert.equal(metadata.visibleTestVersion,version);
   assert.equal(metadata.technicalVersion,version);
   assert.equal(metadata.moduleCacheVersion,version);
-  assert.equal(metadata.cacheVersion,'v'+version');
+  assert.equal(metadata.cacheVersion,'v'+version);
   assert.equal(metadata.buildId,'v'+version+'-release1');
   assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,version);
   assert(read('index.html').includes('app.js?v='+version));

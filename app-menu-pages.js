@@ -13,7 +13,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Rozepsaný přehled se průběžně ukládá v zařízení; lze jej vymazat, online záloha se ukládá tlačítkem Uložit.',
         'Přehlednější rozpisy a neplánované absence s Neschopenkou. Kantýna a jídelna mají okna vedle sebe a výrazné časy.',
         'Generátor rozpisů přesněji střídá stroje a vyrovnává MO/TO i samostatné frézky; jeho pravidla platí také při úpravě části měsíce.',
-        'Jednotná průhledná ikona aplikace na Windows i mobilu.'
+        'Jednotná průhledná ikona aplikace na Windows i mobilu.',
         'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
       ]
     },
