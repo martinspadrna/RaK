@@ -1101,342 +1101,229 @@ function adminRotationGeneratorHardTarget(knownNames, available) {
 }
 
 function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabel, blockedNames, monthKey, dayOptions) {
- const knownNames = model.knownNames;
- const generatorRules = getAdminRotationGeneratorRules();
- const softPreferred = generatorRules.softPreferred.filter((name) => knownNames.includes(name));
- const hardPreferred = generatorRules.hardPreferred.filter((name) => knownNames.includes(name));
- const hardCrew = knownNames.filter((name) => !adminRotationGeneratorIsSoftCoreName(name, knownNames)
-  && HARD_MACHINE_HEADERS.some((machine) => adminRotationGeneratorPersonKnowsMachine(name, machine)));
- const available = knownNames.filter((name) => !blockedNames.has(name));
- const usedNames = new Set();
- const forcedSoft = new Set();
- const hardCells = Array(HARD_MACHINE_HEADERS.length).fill('');
- const softCells = Array(SOFT_MACHINE_HEADERS.length).fill('');
- const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
- const initialHardCursor = Object.assign({}, counters.hardCycleCursor);
- const softTargetCount = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTargetCount));
- const requestedHardCells = dayOptions && Array.isArray(dayOptions.preserveHardCells)
-  ? dayOptions.preserveHardCells.slice(0, HARD_MACHINE_HEADERS.length)
-  : null;
- const preserveHardActive = !!(requestedHardCells && requestedHardCells.length === HARD_MACHINE_HEADERS.length && (() => {
-  const seen = new Set();
-  let count = 0;
-  for (let idx = 0; idx < HARD_MACHINE_HEADERS.length; idx += 1) {
-   const name = adminRotationCanonicalName(requestedHardCells[idx], knownNames);
-   if (!name) continue;
-   const machineName = HARD_MACHINE_HEADERS[idx] || '';
-   if (!available.includes(name) || seen.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
-   if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
-   seen.add(name);
-   count += 1;
-  }
-  return count === hardTargetCount;
- })());
-
- if (!available.length) return { hardCells, softCells, filledCells: 0, emptyProtected: 0 };
-
- const assignHardCell = (machineIdx, name, reason) => {
-  const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';
-  if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
-  if (machineIdx < 0 || !machineName || !name || usedNames.has(name) || !available.includes(name) || hardCells[machineIdx]) return false;
-  if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey, reason === 'soft-core-hard-block')) return false;
-  if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
-  hardCells[machineIdx] = name;
-  usedNames.add(name);
-  adminRotationGeneratorMarkAssignment(counters, 'hard', machineName, name);
-  if (reason === 'hard-cycle') adminRotationGeneratorAdvanceHardCycle(counters, name, machineName);
-  if (reason === 'soft-core-hard-block') adminRotationGeneratorAdvanceSoftCoreCycle(counters, knownNames, name, machineName, month, rowIdx);
-  return true;
- };
-
- const assignSoftCell = (machineIdx, name, reason) => {
-  const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
-  if (machineIdx < 0 || !machineName || !name || usedNames.has(name) || !available.includes(name) || softCells[machineIdx]) return false;
-  if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
-  if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, name, knownNames, softSlots)) return false;
-  if (machineName === 'MFKF10' && softTargetCount < 5 && !adminRotationGeneratorCanUseSoloMill(month, rowIdx, name, knownNames, monthKey)) return false;
-  const kind = adminRotationGeneratorSoftKind(machineName);
-  softCells[machineIdx] = name;
-  usedNames.add(name);
-  adminRotationGeneratorMarkAssignment(counters, 'soft', machineName, name, kind);
-  return true;
- };
-
- if (preserveHardActive) {
-  requestedHardCells.forEach((value, machineIdx) => {
-   const name = adminRotationCanonicalName(value, knownNames);
-   if (!name) return;
-   hardCells[machineIdx] = name;
-   usedNames.add(name);
-   adminRotationGeneratorMarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[machineIdx] || '', name);
-  });
- }
-
- // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
- // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
- const hardOrdered = preserveHardActive ? [] : hardCrew.filter((name) => available.includes(name))
-  .sort((a, b) => {
-   const target = (name) => Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)
-    - (name === 'Kmínek' || name === 'Novotný' ? 0.5 : 0);
-   return target(b) - target(a) || (hardPreferred.indexOf(a) < 0 ? 1 : 0) - (hardPreferred.indexOf(b) < 0 ? 1 : 0)
-    || a.localeCompare(b, 'cs');
-  });
- // Nejprve skutečný následující stroj všech zájemců, teprve pak náhradní sloty.
- hardOrdered.forEach((name) => {
-  if (usedNames.size >= hardTargetCount) return;
-  const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, adminRotationGeneratorNextHardCycleMachine(counters, name));
-  assignHardCell(wantedIdx, name, 'hard-cycle');
- });
- hardOrdered.forEach((name) => {
-  if (usedNames.size >= hardTargetCount || usedNames.has(name)) return;
-  const cycle = generatorRules.hardCycle || [];
-  const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
-  const start = Math.max(0, cycle.indexOf(wantedMachine));
-  for (let offset = 1; offset < cycle.length; offset += 1) {
-   if (assignHardCell(adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycle[(start + offset) % cycle.length]), name, 'hard-cycle')) return;
-  }
- });
-
- // 2) Pak přesuň jednoho ze základu Měkoty na tvrdotní stroj v 3denním bloku.
- // Když někdo z nich později chybí, pořadí se smí prohodit, aby se tomu nevyhnul.
- let softCoreBlock = adminRotationGeneratorSoftCoreStateInfo(counters, knownNames);
- let cycleMachine = softCoreBlock.machine;
- let cycleIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycleMachine);
- let exchangeSoft = '';
- if (!preserveHardActive) {
-  if (counters.softCoreGapPending) {
-   counters.softCoreGapPending = false;
-  } else {
-   exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
-    ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
-    : '';
-   if (!exchangeSoft) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
-  }
- }
- const displacedToSoft = [];
- if (exchangeSoft && cycleIdx >= 0 && available.includes(exchangeSoft) && !usedNames.has(exchangeSoft)) {
-  const displaced = adminRotationCanonicalName(hardCells[cycleIdx], knownNames);
-  if (displaced) {
-   if (hardCrew.includes(displaced)) counters.hardCycleCursor[displaced] = initialHardCursor[displaced];
-   adminRotationGeneratorUnmarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[cycleIdx] || '', displaced);
-   usedNames.delete(displaced);
-   forcedSoft.add(displaced);
-   displacedToSoft.push(displaced);
-  }
-  hardCells[cycleIdx] = '';
-  assignHardCell(cycleIdx, exchangeSoft, 'soft-core-hard-block');
- }
-
- const filterHardCandidates = (machineName, candidates) => Array.from(new Set(Array.isArray(candidates) ? candidates : []))
-  .filter((name) => adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey));
-
- // 3) Doplnění zbytku Tvrdoty až po základním rozepsání a výměně.
- if (!preserveHardActive) HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
-  if (hardCells[machineIdx] || hardCells.filter((cell) => String(cell || '').trim()).length >= hardTargetCount) return;
-  const historicalCandidates = (model.dayTemplates[rowIdx % model.dayTemplates.length] && model.dayTemplates[rowIdx % model.dayTemplates.length].hardCells) || [];
-  const suggested = adminRotationCanonicalName(historicalCandidates[machineIdx] || '', knownNames);
-  const preferred = hardCrew.filter((name) => available.includes(name) && !forcedSoft.has(name));
-  const balancing = ['Špadrna', 'Novotný'].map((name) => adminRotationCanonicalName(name, knownNames)).filter((name) => available.includes(name) && !forcedSoft.has(name));
-  const fallback = available.filter((name) => !softPreferred.includes(name) && !forcedSoft.has(name))
-   .concat(balancing, available.filter((name) => softPreferred.includes(name) && !forcedSoft.has(name)));
-  const ordered = filterHardCandidates(machineName, (suggested ? [suggested] : []).concat(preferred, fallback)).filter((name) => available.includes(name));
-  const name = adminRotationGeneratorPickName(ordered, usedNames, counters, {
-   sectionKey: 'hard',
-   machineName,
-   rowIdx,
-   preferred: hardPreferred,
-   avoid: softPreferred,
-   historical: adminRotationGeneratorHistoricalMachineScore(model, 'hard', machineIdx, suggested || '')
-  });
-  if (name) assignHardCell(machineIdx, name, hardCrew.includes(name) ? 'hard-cycle' : 'hard-fill');
- });
-
- const softSlots = adminRotationGeneratorSoftSlotPlan(Math.min(softTargetCount, available.filter((name) => !usedNames.has(name)).length));
- const hasSoftSlot = (machineName) => softSlots.includes(adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName));
- const latheAvoidNames = adminRotationGeneratorAvoidLatheNamesForPlan(generatorRules, softSlots, knownNames);
- const softKindBalanceNames = generatorRules.softKindGlobalBalanceEnabled === false
-  ? adminRotationGeneratorRawList(generatorRules.hardPeopleSoftKindBalanceNames)
-   .map((name) => adminRotationCanonicalName(name, knownNames))
-   .filter((name) => name && knownNames.includes(name))
-  : [];
-
- // 4) Základ Měkoty: Třasák/MSKC01, Střížek/MSKC03, Synek/MSKC04, pokud jsou dostupní a nejsou zrovna na Tvrdotě.
- ['MSKC01', 'MSKC03', 'MSKC04'].forEach((machineName) => {
-  const idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName);
-  if (!hasSoftSlot(machineName) || softCells[idx]) return;
-  const base = adminRotationGeneratorBaseLathePerson(machineName, knownNames, available, usedNames);
-  if (base && adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, base, knownNames, softSlots)) assignSoftCell(idx, base, 'soft-base-lathe');
- });
-
- // 5) Člověk vytlačený z Tvrdoty člověkem z Měkoty jde přednostně na frézky.
- ['MFKF10', 'MFKF06'].forEach((machineName) => {
-  const idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName);
-  if (!hasSoftSlot(machineName) || softCells[idx]) return;
-  const displacedCandidates = displacedToSoft.filter((person) => available.includes(person) && !usedNames.has(person));
-  const safeDisplacedCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, displacedCandidates, knownNames);
-  const name = safeDisplacedCandidates[0] || '';
-  if (name) assignSoftCell(idx, name, 'hard-displaced-to-mill');
- });
-
- // 6) Špadrna a Novotný pomáhají vyrovnat Tvrdotu; zbytek dnů jdou hlavně na frézky/Měkotu.
- softSlots.forEach((machineIdx) => {
-  if (softCells[machineIdx]) return;
-  const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
-  const kind = adminRotationGeneratorSoftKind(machineName);
-  const remainingNow = available.filter((name) => !usedNames.has(name));
-  const baseLathe = kind === 'lathe' ? adminRotationGeneratorBaseLathePerson(machineName, knownNames, available, usedNames) : '';
-  const flexSoft = ['Špadrna', 'Novotný'].map((name) => adminRotationCanonicalName(name, knownNames)).filter((name) => remainingNow.includes(name));
-  const avoidLathe = kind === 'lathe' ? latheAvoidNames.filter((name) => remainingNow.includes(name)) : [];
-  const nonAvoid = (name) => !avoidLathe.includes(name);
-  const latheBase = baseLathe && nonAvoid(baseLathe) ? [baseLathe] : [];
-  const preferred = kind === 'mill'
-   ? displacedToSoft.concat(flexSoft, remainingNow.filter((name) => !softPreferred.includes(name)), remainingNow.filter((name) => softPreferred.includes(name)))
-   : latheBase.concat(
-    remainingNow.filter((name) => softPreferred.includes(name) && nonAvoid(name)),
-    flexSoft.filter(nonAvoid),
-    remainingNow.filter((name) => !softPreferred.includes(name) && nonAvoid(name)),
-    avoidLathe
-   );
-  const allowedCandidates = preferred.filter((person) => adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, person, knownNames, softSlots));
-  const pickCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, Array.from(new Set(allowedCandidates)), knownNames);
-  const name = adminRotationGeneratorPickName(pickCandidates, usedNames, counters, {
-   sectionKey: 'soft',
-   machineName,
-   rowIdx,
-   softKind: kind,
-   softKindBalanceEnabled: generatorRules.hardPeopleSoftKindBalanceEnabled !== false,
-   softKindBalanceNames,
-   softKindMixedMinimumShifts: generatorRules.softKindMixedMinimumShifts,
-   preferred: kind === 'lathe' ? softPreferred : hardPreferred,
-   avoid: avoidLathe,
-   historical: adminRotationGeneratorHistoricalMachineScore(model, 'soft', machineIdx, preferred[0] || '')
-  });
-  if (name) assignSoftCell(machineIdx, name, 'soft-fill');
- });
-
- // Při závazném zákazu 2+1 nesmí kvalifikovaný člověk zůstat volný jen
- // proto, že byl už rozebrán vhodný soustruh. Nejprve zkus přesun uvnitř
- // MO (frézka -> soustruh, chráněný člověk -> frézka), teprve potom TO -> MO.
- if (latheAvoidNames.length && adminRotationGeneratorIsTwoLatheOneMillPlan(softSlots)) {
-  for (const protectedName of latheAvoidNames) {
-   if (!available.includes(protectedName) || usedNames.has(protectedName)) continue;
-   for (const latheIdx of softSlots) {
-    const latheMachine = SOFT_MACHINE_HEADERS[latheIdx] || '';
-    if (adminRotationGeneratorSoftKind(latheMachine) !== 'lathe' || softCells[latheIdx]) continue;
-    let resolved = false;
-    for (const millIdx of softSlots) {
-     const millMachine = SOFT_MACHINE_HEADERS[millIdx] || '';
-     const millName = adminRotationCanonicalName(softCells[millIdx], knownNames);
-     if (adminRotationGeneratorSoftKind(millMachine) !== 'mill' || !millName) continue;
-     if (!adminRotationGeneratorPersonKnowsMachine(millName, latheMachine)
-      || !adminRotationGeneratorPersonKnowsMachine(protectedName, millMachine)) continue;
-     if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, latheMachine, millName, knownNames, softSlots)) continue;
-     if (millMachine === 'MFKF10'
-      && (!adminRotationGeneratorCanUseSoloMill(month, rowIdx, protectedName, knownNames, monthKey)
-       || adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, protectedName, knownNames))) continue;
-     adminRotationGeneratorUnmarkAssignment(counters, 'soft', millMachine, millName, 'mill');
-     softCells[latheIdx] = millName;
-     adminRotationGeneratorMarkAssignment(counters, 'soft', latheMachine, millName, 'lathe');
-     softCells[millIdx] = protectedName;
-     adminRotationGeneratorMarkAssignment(counters, 'soft', millMachine, protectedName, 'mill');
-     usedNames.add(protectedName);
-     resolved = true;
-     break;
+  const knownNames = model.knownNames;
+  const generatorRules = getAdminRotationGeneratorRules();
+  const softPreferred = generatorRules.softPreferred.filter((name) => knownNames.includes(name));
+  const hardPreferred = generatorRules.hardPreferred.filter((name) => knownNames.includes(name));
+  const available = knownNames.filter((name) => !blockedNames.has(name));
+  const usedNames = new Set();
+  const forcedSoft = new Set();
+  const hardCells = Array(HARD_MACHINE_HEADERS.length).fill('');
+  const softCells = Array(SOFT_MACHINE_HEADERS.length).fill('');
+  const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
+  const softTargetCount = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTargetCount));
+  const requestedHardCells = dayOptions && Array.isArray(dayOptions.preserveHardCells)
+    ? dayOptions.preserveHardCells.slice(0, HARD_MACHINE_HEADERS.length)
+    : null;
+  const preserveHardActive = !!(requestedHardCells && requestedHardCells.length === HARD_MACHINE_HEADERS.length && (() => {
+    const seen = new Set();
+    let count = 0;
+    for (let idx = 0; idx < HARD_MACHINE_HEADERS.length; idx += 1) {
+      const name = adminRotationCanonicalName(requestedHardCells[idx], knownNames);
+      if (!name) continue;
+      const machineName = HARD_MACHINE_HEADERS[idx] || '';
+      if (!available.includes(name) || seen.has(name) || !adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
+      if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
+      seen.add(name);
+      count += 1;
     }
-    if (resolved) break;
-    for (let hardIdx = 0; hardIdx < hardCells.length; hardIdx += 1) {
-     const hardMachine = HARD_MACHINE_HEADERS[hardIdx] || '';
-     if (!/^(?:TBKR01|TBKR07|TPKW02)$/.test(hardMachine)) continue;
-     const hardName = adminRotationCanonicalName(hardCells[hardIdx], knownNames);
-     if (!hardName || adminRotationGeneratorIsSoftCoreName(hardName, knownNames)) continue;
-     if (!adminRotationGeneratorPersonKnowsMachine(hardName, latheMachine)
-      || !adminRotationGeneratorPersonKnowsMachine(protectedName, hardMachine)) continue;
-     if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, latheMachine, hardName, knownNames, softSlots)
-      || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, hardMachine, protectedName, knownNames, monthKey)) continue;
-     adminRotationGeneratorUnmarkAssignment(counters, 'hard', hardMachine, hardName);
-     hardCells[hardIdx] = protectedName;
-     adminRotationGeneratorMarkAssignment(counters, 'hard', hardMachine, protectedName);
-     softCells[latheIdx] = hardName;
-     adminRotationGeneratorMarkAssignment(counters, 'soft', latheMachine, hardName, 'lathe');
-     usedNames.add(protectedName);
-     resolved = true;
-     break;
+    return count === hardTargetCount;
+  })());
+
+  if (!available.length) return { hardCells, softCells, filledCells: 0, emptyProtected: 0 };
+
+  const assignHardCell = (machineIdx, name, reason) => {
+    const machineName = HARD_MACHINE_HEADERS[machineIdx] || '';
+    if (adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02') return false;
+    if (machineIdx < 0 || !machineName || !name || usedNames.has(name) || !available.includes(name) || hardCells[machineIdx]) return false;
+    if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey, reason === 'soft-core-hard-block')) return false;
+    if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
+    hardCells[machineIdx] = name;
+    usedNames.add(name);
+    adminRotationGeneratorMarkAssignment(counters, 'hard', machineName, name);
+    if (reason === 'hard-cycle') adminRotationGeneratorAdvanceHardCycle(counters, name);
+    if (reason === 'soft-core-hard-block') adminRotationGeneratorAdvanceSoftCoreCycle(counters, knownNames, name, machineName, month, rowIdx);
+    return true;
+  };
+
+  const assignSoftCell = (machineIdx, name, reason) => {
+    const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
+    if (machineIdx < 0 || !machineName || !name || usedNames.has(name) || !available.includes(name) || softCells[machineIdx]) return false;
+    if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
+    // 2.0.22 safety adapter: keep stored 2+1 lathe prohibition while comparing old placement.
+    if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, name, knownNames, softSlots)) return false;
+    if (machineName === 'MFKF10' && softTargetCount < 5 && !adminRotationGeneratorCanUseSoloMill(month, rowIdx, name, knownNames, monthKey)) return false;
+    const kind = adminRotationGeneratorSoftKind(machineName);
+    softCells[machineIdx] = name;
+    usedNames.add(name);
+    adminRotationGeneratorMarkAssignment(counters, 'soft', machineName, name, kind);
+    return true;
+  };
+
+  if (preserveHardActive) {
+    requestedHardCells.forEach((value, machineIdx) => {
+      const name = adminRotationCanonicalName(value, knownNames);
+      if (!name) return;
+      hardCells[machineIdx] = name;
+      usedNames.add(name);
+      adminRotationGeneratorMarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[machineIdx] || '', name);
+    });
+  }
+
+  // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
+  // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
+  if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
+    if (usedNames.size >= hardTargetCount) return;
+    const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
+    const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, wantedMachine);
+    if (assignHardCell(wantedIdx, name, 'hard-cycle')) return;
+    const cycle = Array.isArray(generatorRules.hardCycle) ? generatorRules.hardCycle : [];
+    for (const machine of cycle) {
+      const idx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, machine);
+      if (assignHardCell(idx, name, 'hard-cycle')) return;
     }
-    if (resolved) break;
-   }
+  });
+
+  // 2) Pak přesuň jednoho ze základu Měkoty na tvrdotní stroj v 3denním bloku.
+  // Když někdo z nich později chybí, pořadí se smí prohodit, aby se tomu nevyhnul.
+  let softCoreBlock = adminRotationGeneratorSoftCoreStateInfo(counters, knownNames);
+  let cycleMachine = softCoreBlock.machine;
+  let cycleIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, cycleMachine);
+  let exchangeSoft = '';
+  if (!preserveHardActive) {
+    if (counters.softCoreGapPending) {
+      counters.softCoreGapPending = false;
+    } else {
+      exchangeSoft = cycleIdx >= 0 && hardTargetCount > 0 && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')
+        ? adminRotationGeneratorPickSoftCoreForHard(month, knownNames, rowIdx, cycleIdx, available, usedNames, counters, monthKey)
+        : '';
+      if (!exchangeSoft && !(adminRotationGeneratorThreeAbsences(knownNames, available) && cycleMachine === 'TPKW02')) adminRotationGeneratorSkipUnavailableSoftCoreRemainder(month, knownNames, rowIdx, available, usedNames, counters, monthKey);
+    }
   }
- }
-
- // Kvalifikovaný, ale přímo nepřiřaditelný pracovník může bezpečně
- // doplnit volnou TO pozici přes dvoukrok uvnitř TO. Typicky TPKW01
- // nelze přidělit Starému po předchozím nýtování; kvalifikovaný kolega
- // přejde ze svého brusu na TPKW01 a Starý na uvolněný brus.
- for (let targetIdx = 0; targetIdx < hardCells.length; targetIdx += 1) {
-  const targetMachine = HARD_MACHINE_HEADERS[targetIdx] || '';
-  if (hardCells[targetIdx] || hardCells.filter(Boolean).length >= hardTargetCount) continue;
-  if (adminRotationGeneratorThreeAbsences(knownNames, available) && targetMachine === 'TPKW02') continue;
-  const unusedPeople = available.filter((name) => !usedNames.has(name));
-  let filled = false;
-  for (const unusedName of unusedPeople) {
-   if (adminRotationGeneratorPersonKnowsMachine(unusedName, targetMachine)
-    && adminRotationGeneratorCanUseHardMachine(month, rowIdx, targetMachine, unusedName, knownNames, monthKey)) {
-    hardCells[targetIdx] = unusedName;
-    usedNames.add(unusedName);
-    adminRotationGeneratorMarkAssignment(counters, 'hard', targetMachine, unusedName);
-    filled = true;
-    break;
-   }
-   for (let donorIdx = 0; donorIdx < hardCells.length; donorIdx += 1) {
-    if (donorIdx === targetIdx) continue;
-    const donorMachine = HARD_MACHINE_HEADERS[donorIdx] || '';
-    const donorName = adminRotationCanonicalName(hardCells[donorIdx], knownNames);
-    if (!donorName || adminRotationGeneratorIsSoftCoreName(donorName, knownNames)) continue;
-    if (!adminRotationGeneratorPersonKnowsMachine(donorName, targetMachine)
-     || !adminRotationGeneratorPersonKnowsMachine(unusedName, donorMachine)) continue;
-    if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, targetMachine, donorName, knownNames, monthKey)
-     || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, donorMachine, unusedName, knownNames, monthKey)) continue;
-    adminRotationGeneratorUnmarkAssignment(counters, 'hard', donorMachine, donorName);
-    hardCells[targetIdx] = donorName;
-    adminRotationGeneratorMarkAssignment(counters, 'hard', targetMachine, donorName);
-    hardCells[donorIdx] = unusedName;
-    adminRotationGeneratorMarkAssignment(counters, 'hard', donorMachine, unusedName);
-    usedNames.add(unusedName);
-    filled = true;
-    break;
-   }
-   if (filled) break;
+  const displacedToSoft = [];
+  if (exchangeSoft && cycleIdx >= 0 && available.includes(exchangeSoft) && !usedNames.has(exchangeSoft)) {
+    const displaced = adminRotationCanonicalName(hardCells[cycleIdx], knownNames);
+    if (displaced) {
+      adminRotationGeneratorUnmarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[cycleIdx] || '', displaced);
+      usedNames.delete(displaced);
+      forcedSoft.add(displaced);
+      displacedToSoft.push(displaced);
+    }
+    hardCells[cycleIdx] = '';
+    assignHardCell(cycleIdx, exchangeSoft, 'soft-core-hard-block');
   }
- }
 
- const mfkf06Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
- const mfkf10Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10');
- const mskc01Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC01');
- const millPeopleCount = [mfkf06Idx, mfkf10Idx].filter((idx) => idx >= 0 && String(softCells[idx] || '').trim()).length;
- const lathePeopleCount = [mskc01Idx, adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC03'), adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC04')].filter((idx) => idx >= 0 && String(softCells[idx] || '').trim()).length;
- let emptyProtected = 0;
- if (millPeopleCount === 1 && mfkf06Idx >= 0) {
-  const removed = adminRotationCanonicalName(softCells[mfkf06Idx], knownNames);
-  if (removed) adminRotationGeneratorUnmarkAssignment(counters, 'soft', 'MFKF06', removed, 'mill');
-  softCells[mfkf06Idx] = '';
-  emptyProtected += 1;
- }
- if (softTargetCount === 3 && lathePeopleCount === 2 && mskc01Idx >= 0) {
-  const removed = adminRotationCanonicalName(softCells[mskc01Idx], knownNames);
-  if (removed) adminRotationGeneratorUnmarkAssignment(counters, 'soft', 'MSKC01', removed, 'lathe');
-  softCells[mskc01Idx] = '';
-  emptyProtected += 1;
- }
+  const filterHardCandidates = (machineName, candidates) => Array.from(new Set(Array.isArray(candidates) ? candidates : []))
+    .filter((name) => adminRotationGeneratorCanUseHardMachine(month, rowIdx, machineName, name, knownNames, monthKey));
 
- if (!preserveHardActive) hardCrew.forEach((name) => { counters.hardCycleCursor[name] = initialHardCursor[name]; });
- hardCells.forEach((name, idx) => {
-  if (hardCrew.includes(name)) adminRotationGeneratorAdvanceHardCycle(counters, name, HARD_MACHINE_HEADERS[idx]);
- });
- return {
-  hardCells,
-  softCells,
-  filledCells: hardCells.concat(softCells).filter((cell) => String(cell || '').trim()).length,
-  emptyProtected
- };
+  // 3) Doplnění zbytku Tvrdoty až po základním rozepsání a výměně.
+  if (!preserveHardActive) HARD_MACHINE_HEADERS.forEach((machineName, machineIdx) => {
+    if (hardCells[machineIdx] || hardCells.filter((cell) => String(cell || '').trim()).length >= hardTargetCount) return;
+    const historicalCandidates = (model.dayTemplates[rowIdx % model.dayTemplates.length] && model.dayTemplates[rowIdx % model.dayTemplates.length].hardCells) || [];
+    const suggested = adminRotationCanonicalName(historicalCandidates[machineIdx] || '', knownNames);
+    const preferred = hardPreferred.filter((name) => available.includes(name) && !forcedSoft.has(name));
+    const balancing = ['Špadrna', 'Novotný'].map((name) => adminRotationCanonicalName(name, knownNames)).filter((name) => available.includes(name) && !forcedSoft.has(name));
+    const fallback = available.filter((name) => !softPreferred.includes(name) && !forcedSoft.has(name))
+      .concat(balancing, available.filter((name) => softPreferred.includes(name) && !forcedSoft.has(name)));
+    const ordered = filterHardCandidates(machineName, (suggested ? [suggested] : []).concat(preferred, fallback)).filter((name) => available.includes(name));
+    const name = adminRotationGeneratorPickName(ordered, usedNames, counters, {
+      sectionKey: 'hard',
+      machineName,
+      rowIdx,
+      preferred: hardPreferred,
+      avoid: softPreferred,
+      historical: adminRotationGeneratorHistoricalMachineScore(model, 'hard', machineIdx, suggested || '')
+    });
+    if (name) assignHardCell(machineIdx, name, hardPreferred.includes(name) ? 'hard-cycle' : 'hard-fill');
+  });
+
+  const softSlots = adminRotationGeneratorSoftSlotPlan(Math.min(softTargetCount, available.filter((name) => !usedNames.has(name)).length));
+  const hasSoftSlot = (machineName) => softSlots.includes(adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName));
+  const latheAvoidNames = adminRotationGeneratorAvoidLatheNamesForPlan(generatorRules, softSlots, knownNames);
+  const softKindBalanceNames = generatorRules.softKindGlobalBalanceEnabled === false
+    ? adminRotationGeneratorRawList(generatorRules.hardPeopleSoftKindBalanceNames)
+      .map((name) => adminRotationCanonicalName(name, knownNames))
+      .filter((name) => name && knownNames.includes(name))
+    : [];
+
+  // 4) Základ Měkoty: Třasák/MSKC01, Střížek/MSKC03, Synek/MSKC04, pokud jsou dostupní a nejsou zrovna na Tvrdotě.
+  ['MSKC01', 'MSKC03', 'MSKC04'].forEach((machineName) => {
+    const idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName);
+    if (!hasSoftSlot(machineName) || softCells[idx]) return;
+    const base = adminRotationGeneratorBaseLathePerson(machineName, knownNames, available, usedNames);
+    if (base) assignSoftCell(idx, base, 'soft-base-lathe');
+  });
+
+  // 5) Člověk vytlačený z Tvrdoty člověkem z Měkoty jde přednostně na frézky.
+  ['MFKF10', 'MFKF06'].forEach((machineName) => {
+    const idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName);
+    if (!hasSoftSlot(machineName) || softCells[idx]) return;
+    const displacedCandidates = displacedToSoft.filter((person) => available.includes(person) && !usedNames.has(person));
+    const safeDisplacedCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, displacedCandidates, knownNames);
+    const name = safeDisplacedCandidates[0] || '';
+    if (name) assignSoftCell(idx, name, 'hard-displaced-to-mill');
+  });
+
+  // 6) Špadrna a Novotný pomáhají vyrovnat Tvrdotu; zbytek dnů jdou hlavně na frézky/Měkotu.
+  softSlots.forEach((machineIdx) => {
+    if (softCells[machineIdx]) return;
+    const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
+    const kind = adminRotationGeneratorSoftKind(machineName);
+    const remainingNow = available.filter((name) => !usedNames.has(name));
+    const baseLathe = kind === 'lathe' ? adminRotationGeneratorBaseLathePerson(machineName, knownNames, available, usedNames) : '';
+    const flexSoft = ['Špadrna', 'Novotný'].map((name) => adminRotationCanonicalName(name, knownNames)).filter((name) => remainingNow.includes(name));
+    const avoidLathe = kind === 'lathe' ? latheAvoidNames.filter((name) => remainingNow.includes(name)) : [];
+    const nonAvoid = (name) => !avoidLathe.includes(name);
+    const latheBase = baseLathe && nonAvoid(baseLathe) ? [baseLathe] : [];
+    const preferred = kind === 'mill'
+      ? displacedToSoft.concat(flexSoft, remainingNow.filter((name) => !softPreferred.includes(name)), remainingNow.filter((name) => softPreferred.includes(name)))
+      : latheBase.concat(
+        remainingNow.filter((name) => softPreferred.includes(name) && nonAvoid(name)),
+        flexSoft.filter(nonAvoid),
+        remainingNow.filter((name) => !softPreferred.includes(name) && nonAvoid(name)),
+        avoidLathe
+      );
+    const pickCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, Array.from(new Set(preferred)), knownNames);
+    const name = adminRotationGeneratorPickName(pickCandidates, usedNames, counters, {
+      sectionKey: 'soft',
+      machineName,
+      rowIdx,
+      softKind: kind,
+      softKindBalanceEnabled: generatorRules.hardPeopleSoftKindBalanceEnabled !== false,
+      softKindBalanceNames,
+      softKindMixedMinimumShifts: generatorRules.softKindMixedMinimumShifts,
+      preferred: kind === 'lathe' ? softPreferred : hardPreferred,
+      avoid: avoidLathe,
+      historical: adminRotationGeneratorHistoricalMachineScore(model, 'soft', machineIdx, preferred[0] || '')
+    });
+    if (name) assignSoftCell(machineIdx, name, 'soft-fill');
+  });
+
+  const mfkf06Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
+  const mfkf10Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10');
+  const mskc01Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC01');
+  const millPeopleCount = [mfkf06Idx, mfkf10Idx].filter((idx) => idx >= 0 && String(softCells[idx] || '').trim()).length;
+  const lathePeopleCount = [mskc01Idx, adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC03'), adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC04')].filter((idx) => idx >= 0 && String(softCells[idx] || '').trim()).length;
+  let emptyProtected = 0;
+  if (millPeopleCount === 1 && mfkf06Idx >= 0) {
+    const removed = adminRotationCanonicalName(softCells[mfkf06Idx], knownNames);
+    if (removed) adminRotationGeneratorUnmarkAssignment(counters, 'soft', 'MFKF06', removed, 'mill');
+    softCells[mfkf06Idx] = '';
+    emptyProtected += 1;
+  }
+  if (softTargetCount === 3 && lathePeopleCount === 2 && mskc01Idx >= 0) {
+    const removed = adminRotationCanonicalName(softCells[mskc01Idx], knownNames);
+    if (removed) adminRotationGeneratorUnmarkAssignment(counters, 'soft', 'MSKC01', removed, 'lathe');
+    softCells[mskc01Idx] = '';
+    emptyProtected += 1;
+  }
+
+  return {
+    hardCells,
+    softCells,
+    filledCells: hardCells.concat(softCells).filter((cell) => String(cell || '').trim()).length,
+    emptyProtected
+  };
 }
 
 function adminRotationGeneratorCollectWorkingNames(month, knownNames) {
