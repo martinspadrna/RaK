@@ -6,19 +6,20 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('2.0.19 has one release identity across runtime, PWA and package metadata',()=>{
-  const metadata=assertCurrentReleaseIdentity(read,'2.0.19');
-  assert.equal(metadata.displayVersion,'2.0.19');
-  assert.equal(metadata.visibleTestVersion,'2.0.19');
-  assert.equal(metadata.technicalVersion,'2.0.19');
-  assert.equal(metadata.moduleCacheVersion,'2.0.19');
-  assert.equal(metadata.cacheVersion,'v2.0.19');
-  assert.equal(metadata.buildId,'v2.0.19-release1');
-  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,'2.0.19');
-  assert(read('index.html').includes('app.js?v=2.0.19'));
-  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw=2.0.19')"));
-  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v2.0.19'"));
-  assert(read('CHANGELOG.md').includes('## RaK 2.0.19 (development)'));
+test('production has one release identity across runtime, PWA and package metadata',()=>{
+  const version=JSON.parse(read('package.json')).version;
+  const metadata=assertCurrentReleaseIdentity(read,version);
+  assert.equal(metadata.displayVersion,version);
+  assert.equal(metadata.visibleTestVersion,version);
+  assert.equal(metadata.technicalVersion,version);
+  assert.equal(metadata.moduleCacheVersion,version);
+  assert.equal(metadata.cacheVersion,'v'+version);
+  assert.equal(metadata.buildId,'v'+version+'-release1');
+  assert.equal(JSON.parse(read('tools/performance-parity-17069.json')).current.version,version);
+  assert(read('index.html').includes('app.js?v='+version));
+  assert(read('sw.js').includes("importScripts('./rak-release-metadata.js?sw="+version+"')"));
+  assert(read('sw.js').includes("const SW_RELEASE_CACHE_MARKER = 'v"+version+"'"));
+  assert(read('CHANGELOG.md').includes('## RaK '+version+' (development)'));
 });
 
 test('1.9 About summary covers performance, parity, isolation and cross-shift navigation',()=>{

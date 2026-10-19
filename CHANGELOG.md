@@ -1,3 +1,57 @@
+## RaK 2.0.27 (development)
+
+- Windows, Android a iPhone nyní používají **stejné transparentní logo RaK bez černého čtvercového pozadí**. Mobilní ikony v manifestu jsou jen purpose:any; původní neprůhledné maskable ikony nejsou pro instalaci nabízené.
+- iOS apple-touch-icon je nový transparentní icon-any-180.png ze stejného zdrojového PNG. Canonical build deterministicky vyrábí všechny potřebné velikosti 16/32/180/192/512 a SW cache aktualizuje odkazy.
+- Změna grafiky PWA bez zásahů do generátoru rozpisů a ostatních modulů. Operační systémy mohou samy vložit pozadí/adaptivní masku i transparentnímu obrázku; již nainstalované zástupce někdy nutno vytvořit znovu.
+- TEST only; main a produkce beze změn.
+
+## RaK 2.0.26 (development)
+
+- Zástupci PWA ve Windows nyní dostávají samostatné PNG ikony s průhledným pozadím bez černého čtverce. Zdroj je ve verzovaném PNG a izolované sestavení z něj deterministicky připravuje 16/32/192/512 px s alfa kanálem.
+- Původní ikona zůstává pro mobil jako samostatná maskable, změna nezasahuje do vzhledu uvnitř aplikace. U staré instalované PWA může být nutné odebrat a znovu vytvořit zástupce kvůli cache Windows.
+- Jen TEST, main a produkce beze změn.
+
+## RaK 2.0.25 (development)
+
+- Úprava tohoto měsíce používá stejný generátor jako nový měsíc: volba celého měsíce nyní přímo pokračuje k potvrzení dnů v témže průvodci.
+- Při volbě začátku uprostřed měsíce se chrání staré dny a berou jako historie pro denní rotaci TO, blok trojice MO, MO/TO a vyrovnání samostatné MFKF10. Nesmí se předčasně přehrát pozdější ponechané směny.
+- Přidány testy shody úplného generování a návaznosti částečné změny. Pouze TEST, main/produkce beze změn.
+
+## RaK 2.0.24 (development)
+
+- Novotný a Kmínek mohou být o něco častěji na měkotě: pouze jemná preference při obsazování TO, nikoliv pevné omezení nebo prohazování brusů.
+- Původní návaznost denního cyklu TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 má nadále výrazně vyšší prioritu, stejně jako kvalifikace, bezpečnost a aktuálně dostupní pracovníci.
+- Vyrovnávání samostatné frézky MFKF10 zůstává zapnuté; doplněn regresní listopadový scénář s absencemi a neaktivním pracovníkem.
+- TEST a PWA cache 2.0.24, main a produkce beze změn.
+
+## RaK 2.0.23 (development)
+
+- Denní cyklus tvrdoty se nyní plánuje jako celek před výměnou s trojicí z měkoty a před měsíčním dorovnáváním.
+- Trojice na MO správně pokračuje v cyklu i při 7 dostupných lidech, kdy není obsazována TPKW02; zohlední se návaznost prvního dne a MFKF10.
+- Rozdělení 4 TO / 3 MO a ostatní obsazení se počítají ze skutečně aktivních a přítomných pracovníků každé směny, ne ze statického počtu absencí. Ověřeny návraty do aktivního seznamu (7–10 lidí).
+- Zachována všechna dosavadní pravidla kvalifikací, střídání, absencí, soustruhů a měsíčních dorovnání; nové regresní testy a pevné limity výkonu zůstávají zapnuté.
+- Číslo TEST a PWA cache zvýšeno na 2.0.23; produkce zůstává beze změn.
+
+## RaK 2.0.22 (development)
+
+- Rotace tvrdoty přechází na skutečný další stroj TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 a při přesunu na měkotu se kurzor neposouvá.
+- Do průběžného střídání se zahrnují všichni kvalifikovaní pracovníci mimo samostatnou trojici z měkoty; TO/MO se má rozdělovat přibližně rovnoměrně, mírně větší MO podíl Kmínka a Novotného je přípustný.
+- Trojice z měkoty po základním rozpisu tvrdoty dál střídá TNKS01, TPKW01, TPKW02 a vytlačuje pracovníky na měkotu. Přednost mají bezpečnostní pravidla a kvalifikace.
+- Doplněny kontroly rotace. Vydání jen po úspěšném kompletním CI a testu na zařízení.
+
+## RaK 2.0.21 (development)
+
+- Generátor při sedmi skutečně dostupných lidech drží 4 TO + 3 MO i po deaktivaci pracovníka a absencích.
+- Starý se při automatickém rozdělení 2 soustruhy + 1 frézka nepřiřazuje na soustruhy MSKC03/MSKC04 ani následným prohozením; frézka MFKF10 je možná. Ruční výjimky zůstávají povolené.
+- Bezpečné výměny kvalifikovaných pracovníků doplňují neobsazená místa bez porušení návaznosti TNKS01/TPKW01.
+- Generátor zkouší přerušit 3 a více po sobě jdoucích směn na stejném brusu TBKR01/TBKR07; pokud není bezpečná výměna, vypíše upozornění.
+- Doplněny regresní testy pravidel rozpisu; PWA cache a vydání sjednoceny na 2.0.21.
+
+## RaK 2.0.20 (development)
+
+- Generátor rozhoduje o rozdělení směny podle skutečného počtu dostupných pracovníků. Při sedmi lidech vždy použije 4 TO + 3 MO, i když je jeden pracovník deaktivovaný a další dva mají absenci.
+- Kontrola rozpisu nově stejné pravidlo ověřuje podle dostupného počtu, ne pouze podle tří absencí v desetihlavém seznamu.
+
 ## RaK 2.0.19 (development)
 
 - Rozpis 24. a 25. října se už neschovává po kliknutí na jméno kvůli starému každoročně opakovanému označení CZD.

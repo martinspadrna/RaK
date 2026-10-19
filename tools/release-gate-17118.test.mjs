@@ -14,14 +14,14 @@ test('1.7.118 remains a historical milestone while successors preserve its staff
   assert(read('CHANGELOG.md').includes('## RaK 1.7.118 (development)'));
 });
 
-test('1.7.118 removes the invalid four-absence branch and preserves the established three-absence rule',()=>{
+test('1.7.118 removes the invalid four-absence branch while successors apply its layout at seven available workers',()=>{
   const generator=read('admin-rotation-generator.js');
   const rotation=read('admin-rotation.js');
   assert(generator.includes('function adminRotationGeneratorThreeAbsences('));
   assert(generator.includes("adminRotationGeneratorThreeAbsences(knownNames, available) && machineName === 'TPKW02'"));
   assert(!generator.includes('adminRotationGeneratorTpkw02ClosedForStaffing'));
   assert(!generator.includes('missing === 4'));
-  assert(rotation.includes('absent.size !== 3'));
+  assert(rotation.includes("knownNames.filter((name) => !absent.has(name)).length !== 7"));
   assert(rotation.includes("inspect(SOFT_MACHINE_HEADERS, softRow, ['MSKC03', 'MSKC04', 'MFKF10']);"));
   assert(!rotation.includes('absent.size !== 4'));
   assert(!rotation.includes('Při čtyřech absencích'));
