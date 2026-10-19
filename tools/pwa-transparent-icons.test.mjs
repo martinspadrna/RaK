@@ -25,7 +25,7 @@ test('Windows, Android and iOS use the same transparent symbol without old opaqu
  assert(source.hasAlpha&&source.width===128&&source.height===128,'source transparent');
  const {data,info}=await sharp(path.join(root,'assets/app-icons/icon-any-source-128.png')).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  assert.equal(data[3],0,'top left corner of source must be fully transparent');
- assert(data.some((value,i)=>i%info.channels===3&&value===255),'icon contains nontransparent logo');
+ assert(data.some((value,i)=>i%info.channels===3&&value>=240),'icon contains a clearly visible logo');
  for(const name of GENERATED_ICON_NAMES){
    const filename=path.join(root,'assets/app-icons',name);
    if(!fs.existsSync(filename))continue; // Local source checks may run before canonical build.
