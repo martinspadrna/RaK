@@ -802,6 +802,30 @@ function adminRotationGeneratorAvoidLatheNamesForPlan(generatorRules, softSlots,
     .filter((name) => name && names.includes(name));
 }
 
+
+/* Automatický rozpis: při plánu 2 soustruhy + 1 frézka jsou zadaná
+   vyloučení soustruhů závazná, nikoli pouhá záporná preference.
+   Ruční editor toto pravidlo neomezuje. */
+function adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, person, knownNames, plannedSlots) {
+  if (!/^MSKC\d+$/i.test(String(machineName || ''))) return true;
+  const names = Array.isArray(knownNames) ? knownNames : adminGetKnownNames();
+  const name = adminRotationCanonicalName(person, names);
+  if (!name) return true;
+  const slots = Array.isArray(plannedSlots) ? plannedSlots : (() => {
+    const hardRows = Array.isArray(month && month.hard && month.hard.rows) ? month.hard.rows : [];
+    const softRows = Array.isArray(month && month.soft && month.soft.rows) ? month.soft.rows : [];
+    const row = hardRows[rowIdx] || softRows[rowIdx] || null;
+    const dateLabel = String(row && row.date || '');
+    if (!dateLabel) return [];
+    const absent = adminRotationUnavailableNamesForDate(month, dateLabel, names);
+    const available = names.filter((candidate) => !absent.has(candidate));
+    const softCount = Math.min(SOFT_MACHINE_HEADERS.length,
+      Math.max(0, available.length - adminRotationGeneratorHardTarget(names, available)));
+    return adminRotationGeneratorSoftSlotPlan(softCount);
+  })();
+  return !adminRotationGeneratorAvoidLatheNamesForPlan(getAdminRotationGeneratorRules(), slots, names).includes(name);
+}
+
 function adminRotationGeneratorParseDayMeta(dateLabel, monthKey) {
   const parsed = typeof parseDateToken === 'function' ? parseDateToken(dateLabel) : null;
   const monthParsed = typeof parseMonthKey === 'function' ? parseMonthKey(monthKey) : null;
@@ -1132,6 +1156,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     const machineName = SOFT_MACHINE_HEADERS[machineIdx] || '';
     if (machineIdx < 0 || !machineName || !name || usedNames.has(name) || !available.includes(name) || softCells[machineIdx]) return false;
     if (!adminRotationGeneratorPersonKnowsMachine(name, machineName)) return false;
+    if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, name, knownNames, softSlots)) return false;
     if (machineName === 'MFKF10' && softTargetCount < 5 && !adminRotationGeneratorCanUseSoloMill(month, rowIdx, name, knownNames, monthKey)) return false;
     const kind = adminRotationGeneratorSoftKind(machineName);
     softCells[machineIdx] = name;
@@ -1231,7 +1256,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     const idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName);
     if (!hasSoftSlot(machineName) || softCells[idx]) return;
     const base = adminRotationGeneratorBaseLathePerson(machineName, knownNames, available, usedNames);
-    if (base) assignSoftCell(idx, base, 'soft-base-lathe');
+    if (base && adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, base, knownNames, softSlots)) assignSoftCell(idx, base, 'soft-base-lathe');
   });
 
   // 5) Člověk vytlačený z Tvrdoty člověkem z Měkoty jde přednostně na frézky.
@@ -1263,7 +1288,8 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
         remainingNow.filter((name) => !softPreferred.includes(name) && nonAvoid(name)),
         avoidLathe
       );
-    const pickCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, Array.from(new Set(preferred)), knownNames);
+    const allowedCandidates = preferred.filter((person) => adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, person, knownNames, softSlots));
+    const pickCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, Array.from(new Set(allowedCandidates)), knownNames);
     const name = adminRotationGeneratorPickName(pickCandidates, usedNames, counters, {
       sectionKey: 'soft',
       machineName,
@@ -1557,6 +1583,7 @@ function adminRotationGeneratorRepairConsecutiveTnks(month, model, monthKey) {
       .filter((cell) => adminRotationGeneratorPersonKnowsMachine(cell.name, current.machine))
       .filter((cell) => adminRotationGeneratorPersonKnowsMachine(current.name, cell.machine))
       .filter((cell) => adminRotationGeneratorCanUseHardMachine(month, current.rowIdx, current.machine, cell.name, knownNames, monthKey))
+      .filter((cell) => cell.sectionKey !== 'soft' || adminRotationGeneratorCanAutoUseSoftMachine(month, current.rowIdx, cell.machine, current.name, knownNames))
       .sort((a, b) => Number(counts[a.name] || 0) - Number(counts[b.name] || 0) || a.name.localeCompare(b.name, 'cs'));
     const swap = candidates[0];
     if (!swap || !swap.cells) break;
@@ -1775,6 +1802,7 @@ function adminRotationGeneratorBalanceSoloMill(month, model, monthKey) {
         const lowCell = adminRotationGeneratorFindSoloMillSwapCell(month, rowIdx, lowName);
         if (!lowCell || !lowCell.cells) continue;
         if (!adminRotationGeneratorPersonKnowsMachine(lowName, 'MFKF10') || !adminRotationGeneratorPersonKnowsMachine(highName, lowCell.machine)) continue;
+        if (lowCell.sectionKey === 'soft' && !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, lowCell.machine, highName, knownNames)) continue;
         if (adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, lowName, knownNames)) continue;
         if (lowCell.sectionKey === 'hard' && /^(?:TNKS01|TPKW01|TPKW02)$/.test(lowCell.machine)) continue;
         if (lowCell.sectionKey === 'hard' && (adminRotationGeneratorIsSoftCoreName(highName, knownNames) || adminRotationGeneratorIsSoftCoreName(lowName, knownNames))) continue;
@@ -1836,6 +1864,7 @@ function adminRotationGeneratorTryRepairSoloMillRow17008(month, rowIdx, repeated
     const candidateOnHard = candidateCell.sectionKey === 'hard';
     const protectedHard = candidateOnHard && /^(?:TNKS01|TPKW01|TPKW02)$/i.test(String(candidateCell.machine || ''));
     if (!protectedHard
+        && (candidateOnHard || adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, candidateCell.machine, repeated, knownNames))
         && adminRotationGeneratorPersonKnowsMachine(repeated, candidateCell.machine)
         && (!candidateOnHard || adminRotationGeneratorCanUseHardMachine(month, rowIdx, candidateCell.machine, repeated, knownNames, monthKey))
         && (!candidateOnHard || (!adminRotationGeneratorIsSoftCoreName(repeated, knownNames) && !adminRotationGeneratorIsSoftCoreName(candidate, knownNames)))) {
@@ -1858,6 +1887,8 @@ function adminRotationGeneratorTryRepairSoloMillRow17008(month, rowIdx, repeated
       if (!third || third === repeated || third === candidate) continue;
       if (!adminRotationGeneratorPersonKnowsMachine(repeated, destMachine)) continue;
       if (!adminRotationGeneratorPersonKnowsMachine(third, candidateMachine)) continue;
+      if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, destMachine, repeated, knownNames)
+        || !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, candidateMachine, third, knownNames)) continue;
       candidateCell.cells[candidateCell.idx] = third;
       softCells[destIdx] = repeated;
       softCells[mfkf10Idx] = candidate;
@@ -2149,6 +2180,8 @@ function adminRotationGeneratorCanSwapSundayCleanup17011(month, rowIdx, first, s
   if (!adminRotationGeneratorPersonKnowsMachine(second.name, first.machine)) return false;
   if (second.sectionKey === 'hard' && !adminRotationGeneratorCanUseHardMachine(month, rowIdx, second.machine, first.name, knownNames, monthKey)) return false;
   if (first.sectionKey === 'hard' && !adminRotationGeneratorCanUseHardMachine(month, rowIdx, first.machine, second.name, knownNames, monthKey)) return false;
+  if (first.sectionKey === 'soft' && !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, first.machine, second.name, knownNames)) return false;
+  if (second.sectionKey === 'soft' && !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, second.machine, first.name, knownNames)) return false;
   return true;
 }
 
@@ -2428,6 +2461,8 @@ function adminRotationGeneratorFindSoftKindReliefCellOnDay(month, rowIdx, target
     if (adminRotationGeneratorSoftKind(machine) !== kind) continue;
     if (!adminRotationGeneratorPersonKnowsMachine(target, machine)) continue;
     if (!adminRotationGeneratorPersonKnowsMachine(candidate, source)) continue;
+    if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machine, target, knownNames)
+      || !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, source, candidate, knownNames)) continue;
     matches.push({ sectionKey: 'soft', row, cells, idx, machine, name: candidate });
   }
   return matches.sort((a, b) => {
@@ -2506,6 +2541,8 @@ function adminRotationGeneratorBalanceSoftKind(month, model) {
       if (!sourceCell || !reliefCell || !sourceCell.cells || !reliefCell.cells) continue;
       if (!adminRotationGeneratorPersonKnowsMachine(name, reliefCell.machine)) continue;
       if (!adminRotationGeneratorPersonKnowsMachine(oppositeName, sourceCell.machine)) continue;
+      if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, reliefCell.machine, name, knownNames)
+        || !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, sourceCell.machine, oppositeName, knownNames)) continue;
       swapSoftCells(sourceCell, reliefCell, name, oppositeName);
       return true;
     }
@@ -2585,6 +2622,7 @@ function adminRotationGeneratorBalanceSoftTotals(month, model, monthKey) {
         if (!adminRotationGeneratorPersonKnowsMachine(highName, lowCell.machine)) continue;
         if (!adminRotationGeneratorPersonKnowsMachine(targetLowName, highCell.machine)) continue;
         if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, lowCell.machine, highName, knownNames, monthKey)) continue;
+        if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, highCell.machine, targetLowName, knownNames)) continue;
         highCell.cells[highCell.idx] = targetLowName;
         lowCell.cells[lowCell.idx] = highName;
         swaps += 1;
@@ -2719,6 +2757,7 @@ function adminRotationGeneratorBalanceHardMachine(month, machineName, model, mon
           if (!adminRotationGeneratorPersonKnowsMachine(targetLowName, highCell.machine) || !adminRotationGeneratorPersonKnowsMachine(highName, lowCell.machine)) continue;
           if (lowCell.machine === 'MFKF10' && (!adminRotationGeneratorCanUseSoloMill(month, rowIdx, highName, knownNames, monthKey) || adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, highName, knownNames))) continue;
         }
+        if (lowCell.sectionKey === 'soft' && !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, lowCell.machine, highName, knownNames)) continue;
         if (isPressBalance && !adminRotationGeneratorCanUseHardMachine(month, rowIdx, highCell.machine, targetLowName, knownNames, monthKey)) continue;
         if (isPressBalance && lowCell.sectionKey === 'hard' && !adminRotationGeneratorCanUseHardMachine(month, rowIdx, lowCell.machine, highName, knownNames, monthKey)) continue;
         lowCell.cells[lowCell.idx] = highName;
@@ -2906,7 +2945,9 @@ function adminRotationGeneratorFindBridgeSoftSwapForEmptyHard(month, rowIdx, har
     unusedNames.forEach((unusedName) => {
       const baseMachine = String(softBaseLathe && softBaseLathe[unusedName] || '').toUpperCase();
       const baseIdx = baseMachine ? adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, baseMachine) : -1;
-      if (baseIdx >= 0 && allowedSoftSlots.has(baseIdx) && !String(softCells[baseIdx] || '').trim() && adminRotationGeneratorPersonKnowsMachine(unusedName, SOFT_MACHINE_HEADERS[baseIdx] || '')) {
+      if (baseIdx >= 0 && allowedSoftSlots.has(baseIdx) && !String(softCells[baseIdx] || '').trim()
+        && adminRotationGeneratorPersonKnowsMachine(unusedName, SOFT_MACHINE_HEADERS[baseIdx] || '')
+        && adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, SOFT_MACHINE_HEADERS[baseIdx], unusedName, knownNames)) {
         const hardPrefReward = Array.isArray(hardPreferred) && hardPreferred.includes(softName) ? -90 : 0;
         const softPrefReward = Array.isArray(softPreferred) && softPreferred.includes(unusedName) ? -70 : 0;
         const hardLoad = Number(hardTotals && hardTotals[softName] || 0) * 10;
@@ -2916,6 +2957,7 @@ function adminRotationGeneratorFindBridgeSoftSwapForEmptyHard(month, rowIdx, har
         return;
       }
       if (!adminRotationGeneratorPersonKnowsMachine(unusedName, softMachine)) return;
+      if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, softMachine, unusedName, knownNames)) return;
       const baseReward = baseMachine && baseMachine === String(softMachine || '').toUpperCase() ? -120 : 0;
       const hardPrefReward = Array.isArray(hardPreferred) && hardPreferred.includes(softName) ? -90 : 0;
       const softPrefReward = Array.isArray(softPreferred) && softPreferred.includes(unusedName) ? -70 : 0;
@@ -2965,6 +3007,7 @@ function adminRotationGeneratorFindThreeWayBridgeForEmptyHard(month, rowIdx, har
       if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, donorMachine, softName, knownNames, monthKey)) return;
       unusedNames.forEach((unusedName) => {
         if (!unusedName || !adminRotationGeneratorPersonKnowsMachine(unusedName, softMachine)) return;
+        if (!adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, softMachine, unusedName, knownNames)) return;
         if (softMachine === 'MFKF10'
             && (!adminRotationGeneratorCanUseSoloMill(month, rowIdx, unusedName, knownNames, monthKey)
               || adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, unusedName, knownNames))) return;
