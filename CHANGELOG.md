@@ -1,3 +1,10 @@
+## RaK 2.0.24 (development)
+
+- Novotný a Kmínek mohou být o něco častěji na měkotě: pouze jemná preference při obsazování TO, nikoliv pevné omezení nebo prohazování brusů.
+- Původní návaznost denního cyklu TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 má nadále výrazně vyšší prioritu, stejně jako kvalifikace, bezpečnost a aktuálně dostupní pracovníci.
+- Vyrovnávání samostatné frézky MFKF10 zůstává zapnuté; doplněn regresní listopadový scénář s absencemi a neaktivním pracovníkem.
+- TEST a PWA cache 2.0.24, main a produkce beze změn.
+
 ## RaK 2.0.23 (development)
 
 - Denní cyklus tvrdoty se nyní plánuje jako celek před výměnou s trojicí z měkoty a před měsíčním dorovnáváním.
