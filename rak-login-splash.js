@@ -131,12 +131,25 @@
     const input=overlay.querySelector('#rakUserLoginAccountNumber'), button=overlay.querySelector('#rakUserLoginSubmit'), brand=overlay.querySelector('#rakSplashBrand');
     input?.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,4);brand?.classList.toggle('ready',input.value.length===4)}); input?.addEventListener('focus',()=>brand?.classList.add('listening')); input?.addEventListener('blur',()=>brand?.classList.remove('listening')); input?.addEventListener('keydown',e=>{if(e.key==='Enter')button?.click()}); button?.addEventListener('click',submit); setTimeout(()=>input?.focus(),120); return overlay;
   }
+  function loginLookupFailure(result){
+    const reason=String(result?.reason||'');
+    if(reason==='not-found')return 'Účet nebyl nalezen.';
+    if(reason==='ambiguous')return 'Číslo není jednoznačné. Obrať se na správce.';
+    if(reason==='rate-limited')return 'Příliš mnoho pokusů o přihlášení. Zkus to později.';
+    if(reason==='online-not-ready')return 'Nepodařilo se načíst online klienta (E1).';
+    if(reason==='lookup-network-error')return 'Není dostupné spojení s TEST databází (E2).';
+    if(reason==='lookup-http-error')return 'TEST databáze odmítla požadavek (E3: '+String(result?.status||'?')+').';
+    if(reason==='lookup-failed')return 'Ověření v TEST databázi selhalo (E4).';
+    if(reason==='admin-gate-unavailable')return 'Chybí ověření zabezpečení účtu (E5).';
+    if(reason==='shift-team-unavailable')return 'Chybí platné zařazení směny (E6).';
+    return 'Ověření se nepodařilo (E0). Zkus to znovu.';
+  }
   function status(text,error){const el=document.getElementById('rakUserLoginStatus');if(!el)return;el.textContent=text||'';el.classList.toggle('error',!!error)}
   async function submit(){
     const overlay=document.getElementById(OVERLAY_ID), input=overlay?.querySelector('#rakUserLoginAccountNumber'), button=overlay?.querySelector('#rakUserLoginSubmit'), brand=document.getElementById('rakSplashBrand'), panel=document.getElementById('rakSplashPanel');
     const last4=String(input?.value||'').replace(/\D/g,''); const reject=msg=>{brand?.classList.remove('error','ready','listening');panel?.classList.remove('error');void brand?.offsetWidth;void panel?.offsetWidth;brand?.classList.add('error');panel?.classList.add('error');status(msg,true)};
     if(!/^\d{4}$/.test(last4)){reject('Zadej 4 číslice.');return} if(button)button.disabled=true;status('Ověřuji…',false);
-    try{if(typeof rakUserProfileLookup!=='function')throw new Error('lookup unavailable');const result=await rakUserProfileLookup(last4);if(!result?.ok){reject(result?.reason==='not-found'?'Účet nebyl nalezen.':result?.reason==='ambiguous'?'Číslo není jednoznačné. Obrať se na správce.':'Ověření se nepodařilo. Zkus to znovu.');return}if(typeof rakUserProfileWrite==='function')rakUserProfileWrite(result);if(typeof rakUserProfileApplyToRuntime==='function')rakUserProfileApplyToRuntime(result);brand?.classList.remove('error','ready','listening');panel?.classList.remove('error');brand?.classList.add('success');setTimeout(()=>overlay?.classList.add('pageSplit'),480);setTimeout(()=>{overlay?.remove();active=false;try{if(typeof rakUserProfileRefreshMenu==='function')rakUserProfileRefreshMenu()}catch(e){}},1820)}catch(e){reject('Ověření se nepodařilo. Zkus to znovu.')}finally{if(button)button.disabled=false}
+    try{if(typeof rakUserProfileLookup!=='function')throw new Error('lookup unavailable');const result=await rakUserProfileLookup(last4);if(!result?.ok){reject(loginLookupFailure(result));return}if(typeof rakUserProfileWrite==='function')rakUserProfileWrite(result);if(typeof rakUserProfileApplyToRuntime==='function')rakUserProfileApplyToRuntime(result);brand?.classList.remove('error','ready','listening');panel?.classList.remove('error');brand?.classList.add('success');setTimeout(()=>overlay?.classList.add('pageSplit'),480);setTimeout(()=>{overlay?.remove();active=false;try{if(typeof rakUserProfileRefreshMenu==='function')rakUserProfileRefreshMenu()}catch(e){}},1820)}catch(e){reject('Ověření se nepodařilo. Zkus to znovu.')}finally{if(button)button.disabled=false}
   }
   function install(prefill=''){style();if(active)return document.getElementById(OVERLAY_ID);active=true;const overlay=build();const input=overlay?.querySelector('#rakUserLoginAccountNumber'),digits=String(prefill||'').replace(/\D/g,'');if(input)input.value=digits.length>4?digits.slice(-4):digits;return overlay}
   window.installRakLoginSplash=install;
