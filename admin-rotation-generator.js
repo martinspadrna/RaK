@@ -1180,31 +1180,33 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     - (name === 'Kmínek' || name === 'Novotný' ? 0.5 : 0);
    return balance(b) - balance(a) || a.localeCompare(b, 'cs');
   });
- // Nejprve vyber celou denní TO rotaci, bez předčasného obsazení stroje.
- // Každý člověk má nejvyšší prioritu na svém dalším stroji; bezpečnost a obsazení mají přednost.
+ // Nejdřív sestav denní TO cyklus, až potom měkotní výměnu a vyrovnání.
  const cycle = generatorRules.hardCycle || [];
- const wanted = Object.fromEntries(hardOrdered.map((name) => [name, adminRotationGeneratorNextHardCycleMachine(counters, name)]));
- const machines = HARD_MACHINE_HEADERS.map((machine, idx) => ({ machine, idx }))
-  .filter(({machine}) => !(adminRotationGeneratorThreeAbsences(knownNames, available) && machine === 'TPKW02'));
+ const choices = HARD_MACHINE_HEADERS.map((machine, idx) => ({
+  idx,
+  people: adminRotationGeneratorThreeAbsences(knownNames, available) && machine === 'TPKW02' ? [] :
+   hardOrdered.filter((name) => adminRotationGeneratorPersonKnowsMachine(name, machine)
+    && adminRotationGeneratorCanUseHardMachine(month, rowIdx, machine, name, knownNames, monthKey))
+    .map((name) => {
+     const next = adminRotationGeneratorNextHardCycleMachine(counters, name);
+     const steps = (cycle.indexOf(machine) - cycle.indexOf(next) + cycle.length) % cycle.length;
+     return { name, score: (steps === 0 ? 600 : 120 - steps * 80)
+      + (Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)) * 3 };
+    })
+ }));
  let bestScore = -Infinity, bestPlan = [];
  const choose = (idx, plan, score) => {
-  if (idx === machines.length) {
+  if (idx === choices.length) {
    const total = plan.length * 10000 + score;
    if (total > bestScore) { bestScore = total; bestPlan = plan; }
    return;
   }
   choose(idx + 1, plan, score);
   if (plan.length >= hardTargetCount) return;
-  const slot = machines[idx];
-  for (const name of hardOrdered) {
-   if (plan.some((entry) => entry.name === name)
-    || !adminRotationGeneratorPersonKnowsMachine(name, slot.machine)
-    || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, slot.machine, name, knownNames, monthKey)) continue;
-   const distance = (cycle.indexOf(slot.machine) - cycle.indexOf(wanted[name]) + cycle.length) % cycle.length;
-   const continuity = distance === 0 ? 600 : 120 - distance * 80;
-   const fairness = (Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)) * 3;
-   choose(idx + 1, plan.concat({ idx: slot.idx, name }), score + continuity + fairness);
-  }
+  choices[idx].people.forEach(({ name, score: priority }) => {
+   if (plan.some((entry) => entry.name === name)) return;
+   choose(idx + 1, plan.concat({ idx: choices[idx].idx, name }), score + priority);
+  });
  };
  if (hardOrdered.length) choose(0, [], 0);
  bestPlan.forEach(({idx, name}) => assignHardCell(idx, name, 'hard-cycle'));
