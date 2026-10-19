@@ -1115,7 +1115,7 @@ function adminGenerateRotationMonthDraft(monthKey, preparedMonth, options) {
  const softTotalBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftTotals(month, model, monthKey);
  const softKindBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoftKind(month, model);
  const soloMillRebalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceSoloMill(month, model, monthKey);
- const kminekNovotnyMoToBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model);
+ const kminekNovotnyMoToBalance = scopedGeneration ? scopedNoop() : adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model, monthKey);
  const emptyHardRepair = scopedGeneration ? scopedNoop() : adminRotationGeneratorRepairEmptyHardCells(month, model, monthKey);
  const tnksPostRepairBalance = !scopedGeneration && emptyHardRepair && Number(emptyHardRepair.repairs || 0)
   ? adminRotationGeneratorBalanceHardMachine(month, 'TNKS01', model, monthKey)

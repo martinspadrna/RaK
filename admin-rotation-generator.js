@@ -3042,7 +3042,7 @@ function adminRotationGeneratorFindPairCellOnDay(month, rowIdx, person, sectionK
  return null;
 }
 
-function adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model) {
+function adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model, monthKey) {
  const knownNames = model && Array.isArray(model.knownNames) ? model.knownNames : adminGetKnownNames();
  const kminek = adminRotationCanonicalName('Kmínek', knownNames);
  const novotny = adminRotationCanonicalName('Novotný', knownNames);
@@ -3071,6 +3071,13 @@ function adminRotationGeneratorBalanceKminekNovotnyMoTo(month, model) {
     if (!hardCell || !softCell || !hardCell.cells || !softCell.cells) continue;
     const hardName = adminRotationCanonicalName(hardCell.cells[hardCell.idx], knownNames);
     const softName = adminRotationCanonicalName(softCell.cells[softCell.idx], knownNames);
+    if (!adminRotationGeneratorPersonKnowsMachine(softName, hardCell.machine)
+     || !adminRotationGeneratorPersonKnowsMachine(hardName, softCell.machine)
+     || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, hardCell.machine, softName, knownNames, monthKey)
+     || !adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, softCell.machine, hardName, knownNames)
+     || (softCell.machine === 'MFKF10' &&
+      (!adminRotationGeneratorCanUseSoloMill(month, rowIdx, hardName, knownNames, monthKey)
+       || adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, hardName, knownNames)))) continue;
     const nextTotals = JSON.parse(JSON.stringify(totals));
     if (nextTotals[hardName]) {
      nextTotals[hardName].hard -= 1;
