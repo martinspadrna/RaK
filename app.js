@@ -19,6 +19,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // Carry a branch-specific Vercel share token to protected lazy assets when
   // an embedded iOS browser does not retain the initial share cookie.
   function rakProtectedSdkUrl(asset) {
+    // Preview bypass tokens are valid only for the preview origin. Never send
+    // that token to the independent public RaK static fallback.
+    if (/^https?:\/\//i.test(asset)) return asset;
     try {
       const token = new URLSearchParams(location.search).get('_vercel_share') || '';
       return /^[a-zA-Z0-9_-]{16,256}$/.test(token) ? asset + '?_vercel_share=' + encodeURIComponent(token) : asset;
