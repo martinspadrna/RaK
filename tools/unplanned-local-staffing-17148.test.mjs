@@ -45,6 +45,18 @@ test('two absences mean 5 TO + 3 MO on two lathes and MFKF10',()=>{
   assert.deepEqual(Array.from(c.adminRotationGeneratorSoftSlotPlan(s)).map(i=>soft[i]),['MSKC03','MSKC04','MFKF10']);
 });
 
+test('one inactive worker plus two absences still means 4 TO + 3 MO',()=>{
+  const c=vm.createContext({Array,Math,HARD_MACHINE_HEADERS:hard,SOFT_MACHINE_HEADERS:soft,adminRotationGeneratorMachineIndex:(h,m)=>h.indexOf(m)});
+  vm.runInContext(softPlan+'\n'+hardTarget,c);
+  const activeNames=names.slice(0,9);
+  const available=activeNames.slice(0,7);
+  const h=c.adminRotationGeneratorHardTarget(activeNames,available);
+  const s=available.length-h;
+  assert.equal(h,4);
+  assert.equal(s,3);
+  assert.deepEqual(Array.from(c.adminRotationGeneratorSoftSlotPlan(s)).map(i=>soft[i]),['MSKC03','MSKC04','MFKF10']);
+});
+
 test('absence reasons write the person to notes/Absence and keep an existing absence',()=>{
   const c=vm.createContext({
     Array,String,Set,JSON,

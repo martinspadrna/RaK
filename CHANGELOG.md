@@ -1,3 +1,8 @@
+## RaK 2.0.20 (development)
+
+- Generátor rozhoduje o rozdělení směny podle skutečného počtu dostupných pracovníků. Při sedmi lidech vždy použije 4 TO + 3 MO, i když je jeden pracovník deaktivovaný a další dva mají absenci.
+- Kontrola rozpisu nově stejné pravidlo ověřuje podle dostupného počtu, ne pouze podle tří absencí v desetihlavém seznamu.
+
 ## RaK 2.0.19 (development)
 
 - Rozpis 24. a 25. října se už neschovává po kliknutí na jméno kvůli starému každoročně opakovanému označení CZD.

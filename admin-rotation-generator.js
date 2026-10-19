@@ -1073,7 +1073,10 @@ function adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, ma
 }
 
 function adminRotationGeneratorThreeAbsences(knownNames, available) {
-  return Array.isArray(knownNames) && knownNames.length === 10 && Array.isArray(available) && available.length === 7;
+  // Historicky šlo o 10 lidí a 3 absence. Rozhodující je ale skutečný
+  // počet dostupných lidí: i při deaktivovaném pracovníkovi musí 7 lidí
+  // zůstat rozdělených 4 TO + 3 MO.
+  return Array.isArray(available) && available.length === 7;
 }
 function adminRotationGeneratorHardTarget(knownNames, available) {
   return adminRotationGeneratorThreeAbsences(knownNames, available) ? 4 : Math.min(HARD_MACHINE_HEADERS.length, available.length);

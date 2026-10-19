@@ -743,10 +743,10 @@ function buildAdminPressRotationOverridesHtml(month, monthKey, hardRows) {
   ].join('');
 }
 
-// Pro tri absence je rezervovana jedna pozice na frezkach. Validujeme cely den,
-// ne jen celkovy pocet lidi: prazdne TPKW02, MSKC01 a MFKF06 jsou zamerne.
+// Pro sedm skutečně dostupných lidí je rozdělení 4 TO + 3 MO. Validujeme celý
+// den, ne jen celkový počet: prázdné TPKW02, MSKC01 a MFKF06 jsou záměrné.
 function adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent) {
-  if (!Array.isArray(knownNames) || knownNames.length !== 10 || !absent || absent.size !== 3) return [];
+  if (!Array.isArray(knownNames) || !absent || knownNames.filter((name) => !absent.has(name)).length !== 7) return [];
   const issues = [];
   const inspect = (headers, row, required) => {
     (Array.isArray(headers) ? headers : []).forEach((machine, idx) => {
@@ -839,7 +839,7 @@ function adminRotationValidateMonthRules(month, monthKey, options) {
       adminRotationThreeAbsenceStaffingIssues(hardRow, softRow, knownNames, absent).forEach((issue) => {
         addIssue('error', 'three-absence-staffing', String(dateLabel) + ': ' + issue.machine
           + (issue.shouldBeOccupied ? ' musí být obsazená.' : ' musí zůstat neobsazená.'),
-          'Při třech absencích: 4 TO (bez TPKW02), 3 MO (MSKC03, MSKC04, MFKF10).');
+          'Při sedmi dostupných lidech: 4 TO (bez TPKW02), 3 MO (MSKC03, MSKC04, MFKF10).');
       });
       const unused = knownNames.filter((name) => !absent.has(name) && !assigned.has(name));
       if (unused.length) {

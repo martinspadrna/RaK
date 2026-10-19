@@ -111,6 +111,25 @@ test('current TEST roster qualifications and all configured generator rules are 
  for(const [name,skills] of Object.entries(skillMap))assert.deepEqual(Array.from(f.evaluate(`getWorkerMachineSkills(${JSON.stringify(name)})`)),skills);
 });
 
+test('one inactive worker plus two absences uses the seven-person 4 TO + 3 MO layout',()=>{
+ const f=setup();
+ const roster=f.context.app.machineSettingsRows[0].settings_json.workers;
+ roster.find(worker=>worker.name==='Špadrna').active=false;
+ const monthKey='11/26';
+ const prepared=prepareMonth(f.context.app.rotation.months[monthKey],rowIdx=>rowIdx===0?2:0);
+ f.context.prepared=prepared;
+ const result=f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false})");
+ const generated=clone(result.normalized);
+ assert.equal(generated.hard.rows[0].cells.filter(Boolean).length,4);
+ assert.equal(generated.soft.rows[0].cells.filter(Boolean).length,3);
+ assert.equal(generated.hard.rows[0].cells[3],'','TPKW02 must remain empty with seven available workers');
+ assert.equal(generated.soft.rows[0].cells[0],'','MSKC01 must remain empty with seven available workers');
+ assert.equal(generated.soft.rows[0].cells[3],'','MFKF06 must remain empty with seven available workers');
+ f.context.generated=generated;
+ const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+ assert.deepEqual(errors,[]);
+});
+
 test('seven real D-shift month templates preserve all hard rules for 0/1/2/3 absences and month boundaries',()=>{
  const {f,generated}=generateFutureSequence();
  assert.equal(f.evaluate("adminRotationGeneratorShouldSplitPressMachines('7.6. N8','6/26',generatedMonth)".replace('generatedMonth','app.rotation.months[\'6/26\']')),true);
