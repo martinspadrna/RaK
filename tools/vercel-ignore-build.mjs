@@ -4,6 +4,8 @@ import { classifyVercelBuild } from './vercel-build-policy.mjs';
 
 const previous = String(process.env.VERCEL_GIT_PREVIOUS_SHA || '').trim();
 const branch = String(process.env.VERCEL_GIT_COMMIT_REF || '').trim();
+// Isolated generator regression preview; leave development and main untouched.
+if (branch === 'fix/grinder-adjacent-tbkr-20261019') process.exit(1);
 // Feature/PR branches are verified by GitHub Actions before merging to development.
 // No application changes are built here until the release branch receives the commit.
 const branchDecision = classifyVercelBuild({ branch, previous });
