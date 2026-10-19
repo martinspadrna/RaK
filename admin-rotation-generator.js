@@ -1358,6 +1358,47 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     }
   }
 
+  // Kvalifikovaný, ale přímo nepřiřaditelný pracovník může bezpečně
+  // doplnit volnou TO pozici přes dvoukrok uvnitř TO. Typicky TPKW01
+  // nelze přidělit Starému po předchozím nýtování; kvalifikovaný kolega
+  // přejde ze svého brusu na TPKW01 a Starý na uvolněný brus.
+  for (let targetIdx = 0; targetIdx < hardCells.length; targetIdx += 1) {
+    const targetMachine = HARD_MACHINE_HEADERS[targetIdx] || '';
+    if (hardCells[targetIdx] || hardCells.filter(Boolean).length >= hardTargetCount) continue;
+    if (adminRotationGeneratorThreeAbsences(knownNames, available) && targetMachine === 'TPKW02') continue;
+    const unusedPeople = available.filter((name) => !usedNames.has(name));
+    let filled = false;
+    for (const unusedName of unusedPeople) {
+      if (adminRotationGeneratorPersonKnowsMachine(unusedName, targetMachine)
+        && adminRotationGeneratorCanUseHardMachine(month, rowIdx, targetMachine, unusedName, knownNames, monthKey)) {
+        hardCells[targetIdx] = unusedName;
+        usedNames.add(unusedName);
+        adminRotationGeneratorMarkAssignment(counters, 'hard', targetMachine, unusedName);
+        filled = true;
+        break;
+      }
+      for (let donorIdx = 0; donorIdx < hardCells.length; donorIdx += 1) {
+        if (donorIdx === targetIdx) continue;
+        const donorMachine = HARD_MACHINE_HEADERS[donorIdx] || '';
+        const donorName = adminRotationCanonicalName(hardCells[donorIdx], knownNames);
+        if (!donorName || adminRotationGeneratorIsSoftCoreName(donorName, knownNames)) continue;
+        if (!adminRotationGeneratorPersonKnowsMachine(donorName, targetMachine)
+          || !adminRotationGeneratorPersonKnowsMachine(unusedName, donorMachine)) continue;
+        if (!adminRotationGeneratorCanUseHardMachine(month, rowIdx, targetMachine, donorName, knownNames, monthKey)
+          || !adminRotationGeneratorCanUseHardMachine(month, rowIdx, donorMachine, unusedName, knownNames, monthKey)) continue;
+        adminRotationGeneratorUnmarkAssignment(counters, 'hard', donorMachine, donorName);
+        hardCells[targetIdx] = donorName;
+        adminRotationGeneratorMarkAssignment(counters, 'hard', targetMachine, donorName);
+        hardCells[donorIdx] = unusedName;
+        adminRotationGeneratorMarkAssignment(counters, 'hard', donorMachine, unusedName);
+        usedNames.add(unusedName);
+        filled = true;
+        break;
+      }
+      if (filled) break;
+    }
+  }
+
   const mfkf06Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF06');
   const mfkf10Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MFKF10');
   const mskc01Idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, 'MSKC01');
