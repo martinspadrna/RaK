@@ -1303,7 +1303,9 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  ['MFKF10', 'MFKF06'].forEach((machineName) => {
   const idx = adminRotationGeneratorMachineIndex(SOFT_MACHINE_HEADERS, machineName);
   if (!hasSoftSlot(machineName) || softCells[idx]) return;
-  const displacedCandidates = displacedToSoft.filter((person) => available.includes(person) && !usedNames.has(person));
+  const displacedCandidates = displacedToSoft.filter((person) => available.includes(person) && !usedNames.has(person)
+   && (machineName !== 'MFKF10' || softTargetCount >= 5
+    || adminRotationGeneratorCanUseSoloMill(month, rowIdx, person, knownNames, monthKey)));
   const safeDisplacedCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, displacedCandidates, knownNames);
   const name = safeDisplacedCandidates[0] || '';
   if (name) assignSoftCell(idx, name, 'hard-displaced-to-mill');
@@ -1328,7 +1330,9 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
     remainingNow.filter((name) => !softPreferred.includes(name) && nonAvoid(name)),
     avoidLathe
    );
-  const allowedCandidates = preferred.filter((person) => adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, person, knownNames, softSlots));
+  const allowedCandidates = preferred.filter((person) => adminRotationGeneratorCanAutoUseSoftMachine(month, rowIdx, machineName, person, knownNames, softSlots)
+   && (machineName !== 'MFKF10' || softTargetCount >= 5
+    || adminRotationGeneratorCanUseSoloMill(month, rowIdx, person, knownNames, monthKey)));
   const pickCandidates = adminRotationGeneratorAvoidRepeatedSoloMillCandidates(month, rowIdx, machineName, Array.from(new Set(allowedCandidates)), knownNames);
   const name = adminRotationGeneratorPickName(pickCandidates, usedNames, counters, {
    sectionKey: 'soft',
