@@ -454,9 +454,6 @@ function adminBuildRotationGenerationModel(targetMonthKey) {
   const previousIdx = (currentIdx - 1 + cycleLength) % cycleLength;
   const blockLength = Math.max(1, Number(generatorRules.softHardBlockLength) || 3);
 
-  // RaK 1.2 (1.155): návaznost Synka/Třasáka/Střížka se nesmí odvozovat jen z posledního dne
-  // ani resetovat zpět, když je v historii po dokončeném bloku ještě extra TNKS01.
-  // Procházíme celý předchozí měsíc chronologicky a zpětný "spillover" předchozího stroje ignorujeme.
   if (machineIdx !== currentIdx) {
    const looksLikePreviousMachineSpillover = machineIdx === previousIdx;
    if (looksLikePreviousMachineSpillover) return;
@@ -643,7 +640,6 @@ function adminRotationGeneratorCreateCounters(model) {
   softCoreMachineCursor: Number(softCoreState.machineCursor || 0) || 0,
   softCorePersonCursor: Number(softCoreState.personCursor || 0) || 0,
   // Novy mesic drzi navazny stroj i rozdelany blok z historie.
-  // Kdyz minuly mesic na TPKW02 byli Strizek a Synek, dalsi dostupny ma jit Trasak, ne znovu stejni dva.
   softCoreFilledInMachine: Number(softCoreState.filledInMachine || 0) || 0,
   softCoreAssignedInMachineBlock: new Set(Array.isArray(softCoreState.assignedInMachineBlock) ? softCoreState.assignedInMachineBlock : []),
   softCoreGapPending: false,
@@ -967,8 +963,6 @@ function adminRotationGeneratorShouldGapSoftCore(counters, knownNames, month, ro
  if (!info.core.length || info.blockLength <= 1) return false;
  const remaining = adminRotationGeneratorRemainingSoftCoreWorkDays(month, knownNames, rowIdx);
  const remainder = remaining % info.blockLength;
- // Mezera je jen zarovnani konce mesice: po dokoncenem bloku ji vloz, pokud by zbytek mesice
- // jinak rozjel necelou trojici na dalsim stroji. Uprostred mesice kvuli prubeznym poctum nestoji.
  return remaining >= info.blockLength && remainder > 0;
 }
 
@@ -1983,9 +1977,7 @@ function adminRotationGeneratorTryRepairSoloMillRow17008(month, rowIdx, repeated
    return { mode: 'direct', rowIdx, from: repeated, to: candidate, machine: candidateCell.machine };
   }
 
-  // Když přímá výměna nejde (typicky každý z trojice má svůj základní soustruh),
   // zkus bezpečnou třícestnou výměnu pouze uvnitř měkoty:
-  // kandidát -> MFKF10, původní solo člověk -> jiný soustruh, třetí člověk -> soustruh kandidáta.
   if (candidateCell.sectionKey !== 'soft') continue;
   const candidateMachine = String(candidateCell.machine || '').toUpperCase();
   if (!/^MSKC\d+$/i.test(candidateMachine)) continue;
@@ -2391,8 +2383,6 @@ function adminRotationGeneratorBalancePressHalfSteps17012(month, model, monthKey
  let counts = adminRotationGeneratorCountHardMachine(month, 'TNKS01', eligible, monthKey);
  const initial = adminRotationGeneratorPressFairnessScore17012(counts, eligible, yearCounts);
 
- // Swap only two occupied TO cells on a split shift. This keeps MO/TO totals, solo mills,
- // Sunday cleanup, staffed-machine counts and the soft-core three-person cycle untouched.
  for (let pass = 0; pass < hardRows.length * 4; pass += 1) {
   const before = adminRotationGeneratorPressFairnessScore17012(counts, eligible, yearCounts);
   let best = null;
@@ -2969,8 +2959,6 @@ function adminRotationGeneratorBalanceHardMachine(month, machineName, model, mon
     continue;
    }
    if (yearTieBreakUsed) break;
-   // Roční dorovnání je jen jemný tie-break: když je měsíc prakticky vyrovnaný
-   // a jen 1 člověk má o 0,5 více, smí se max jednou přesunout na člověka s nejnižším rokem.
    if (Math.abs(monthSpread - allowedDiff) > 0.001) break;
    const maxMonth = currentCount(highName);
    const minMonth = currentCount(lowName);
