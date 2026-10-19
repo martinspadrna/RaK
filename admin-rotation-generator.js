@@ -1194,9 +1194,17 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
       + (Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)) * 3 };
     })
  }));
+ // Se sedmi dostupnými lidmi musí po osazení TO zbýt někdo schopný
+ // samostatné MFKF10, včetně návaznosti na poslední směnu minulého měsíce.
+ const soloRelief = available.length === 7 && hardOrdered.length > hardTargetCount
+  ? hardOrdered.filter((name) => adminRotationGeneratorPersonKnowsMachine(name, 'MFKF10')
+   && adminRotationGeneratorCanUseSoloMill(month, rowIdx, name, knownNames, monthKey)
+   && !adminRotationGeneratorWouldRepeatSoloMill(month, rowIdx, name, knownNames)) : [];
  let bestScore = -Infinity, bestPlan = [];
  const choose = (idx, plan, score) => {
   if (idx === choices.length) {
+   if (plan.length >= hardTargetCount && soloRelief.length
+    && !soloRelief.some((name) => !plan.some((entry) => entry.name === name))) return;
    const total = plan.length * 10000 + score;
    if (total > bestScore) { bestScore = total; bestPlan = plan; }
    return;
