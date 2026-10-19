@@ -753,12 +753,12 @@ function adminRotationGeneratorNextHardCycleMachine(counters, name) {
  return cycle[((cursor % cycle.length) + cycle.length) % cycle.length] || '';
 }
 
-function adminRotationGeneratorAdvanceHardCycle(counters, name) {
- const generatorRules = getAdminRotationGeneratorRules();
- const cycle = Array.isArray(generatorRules.hardCycle) ? generatorRules.hardCycle : [];
+function adminRotationGeneratorAdvanceHardCycle(counters, name, machineName) {
+ const cycle = getAdminRotationGeneratorRules().hardCycle || [];
  if (!name || !cycle.length) return;
- const cursor = Number(counters && counters.hardCycleCursor ? counters.hardCycleCursor[name] : 0) || 0;
- counters.hardCycleCursor[name] = (cursor + 1) % cycle.length;
+ const idx = cycle.indexOf(machineName);
+ const cursor = Number(counters.hardCycleCursor[name] || 0);
+ counters.hardCycleCursor[name] = ((idx >= 0 ? idx : cursor) + 1) % cycle.length;
 }
 
 function adminRotationGeneratorSoftSlotPlan(softCount) {
@@ -1117,6 +1117,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  const hardCells = Array(HARD_MACHINE_HEADERS.length).fill('');
  const softCells = Array(SOFT_MACHINE_HEADERS.length).fill('');
  const hardTargetCount = adminRotationGeneratorHardTarget(knownNames, available);
+ const initialHardCursor = Object.assign({}, counters.hardCycleCursor);
  const softTargetCount = Math.max(0, Math.min(SOFT_MACHINE_HEADERS.length, available.length - hardTargetCount));
  const requestedHardCells = dayOptions && Array.isArray(dayOptions.preserveHardCells)
   ? dayOptions.preserveHardCells.slice(0, HARD_MACHINE_HEADERS.length)
@@ -1147,7 +1148,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   hardCells[machineIdx] = name;
   usedNames.add(name);
   adminRotationGeneratorMarkAssignment(counters, 'hard', machineName, name);
-  if (reason === 'hard-cycle') adminRotationGeneratorAdvanceHardCycle(counters, name);
+  if (reason === 'hard-cycle') adminRotationGeneratorAdvanceHardCycle(counters, name, machineName);
   if (reason === 'soft-core-hard-block') adminRotationGeneratorAdvanceSoftCoreCycle(counters, knownNames, name, machineName, month, rowIdx);
   return true;
  };
@@ -1177,13 +1178,16 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
 
  // 1) Nejdřív rozepiš základ Tvrdoty podle návazné rotace z minulého měsíce:
  // TBKR01 → TNKS01 → TBKR07 → TPKW01 → TPKW02.
- if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name)).forEach((name) => {
+ if (!preserveHardActive) hardPreferred.filter((name) => available.includes(name))
+  .sort((a,b) => Number(counters.hard[a] || 0) - Number(counters.hard[b] || 0) || hardPreferred.indexOf(a) - hardPreferred.indexOf(b)).forEach((name) => {
   if (usedNames.size >= hardTargetCount) return;
   const wantedMachine = adminRotationGeneratorNextHardCycleMachine(counters, name);
   const wantedIdx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, wantedMachine);
   if (assignHardCell(wantedIdx, name, 'hard-cycle')) return;
   const cycle = Array.isArray(generatorRules.hardCycle) ? generatorRules.hardCycle : [];
-  for (const machine of cycle) {
+  const start = Math.max(0, cycle.indexOf(wantedMachine));
+  for (let offset = 1; offset < cycle.length; offset += 1) {
+   const machine = cycle[(start + offset) % cycle.length];
    const idx = adminRotationGeneratorMachineIndex(HARD_MACHINE_HEADERS, machine);
    if (assignHardCell(idx, name, 'hard-cycle')) return;
   }
@@ -1209,6 +1213,7 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  if (exchangeSoft && cycleIdx >= 0 && available.includes(exchangeSoft) && !usedNames.has(exchangeSoft)) {
   const displaced = adminRotationCanonicalName(hardCells[cycleIdx], knownNames);
   if (displaced) {
+   if (hardPreferred.includes(displaced)) counters.hardCycleCursor[displaced] = initialHardCursor[displaced];
    adminRotationGeneratorUnmarkAssignment(counters, 'hard', HARD_MACHINE_HEADERS[cycleIdx] || '', displaced);
    usedNames.delete(displaced);
    forcedSoft.add(displaced);
@@ -1418,6 +1423,12 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
   emptyProtected += 1;
  }
 
+ // Jediné platné pokračování cyklu je ze skutečného konečného stroje
+ // na TO. Přesun na MO kurzor neposouvá; následné prohození TO ho přepočítá.
+ if (!preserveHardActive) hardPreferred.forEach((name) => { counters.hardCycleCursor[name] = initialHardCursor[name]; });
+ hardCells.forEach((name, idx) => {
+  if (hardPreferred.includes(name)) adminRotationGeneratorAdvanceHardCycle(counters, name, HARD_MACHINE_HEADERS[idx]);
+ });
  return {
   hardCells,
   softCells,
