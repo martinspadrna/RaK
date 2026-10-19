@@ -3,6 +3,14 @@
 Toto je jediný živý řídicí dokument projektu RaK.
 
 
+## 19. 10. 2026 — RaK TEST 2.0.21 NASAZEN (CI i Vercel ověřeny)
+
+Závazné funkční vydání `57192702e589d8acf8fc4e9a31784b42ee6793f6` na `development`. GitHub Actions [39215341079](https://github.com/martinspadrna/RaK/actions/runs/39215341079), **attempt 2: SUCCESS verify + release-preview**. TEST Vercel deployment **READY** `dpl_HWiJYo5enAR13zHqx2bD81Kt3ByN`, immutable `https://skoda-spada-oia1iyonn-martinspadrnas-projects.vercel.app/`, stabilní veřejný TEST `https://skoda-spada-git-development-martinspadrnas-projects.vercel.app/`. Ověřena vazba aliasu na přesné funkční SHA, TEST izolace a veřejné assety; main a produkční alias během vydání beze změny. Pozdější handoff-only commit může posunout HEAD bez změny nasazeného funkčního SHA.
+
+Zádrhele verzování odstraněny bez úprav provozní logiky: PWA update-epoch test `v221`, položka v CHANGELOG, `core.js` `APP_VERSION`, dva v2 testy a obě kořenové verze v `package-lock.json`. První běh funkčního SHA (`attempt 1`) prošel veškerými funkčními testy a 3 cykly PWA budgetu, ale selhal na nestabilních špičkách FCP v parity testu (P90 840 ms proti limitu 403 ms). Druhý běh téhož identického SHA **bez změny kódu či limitů** prošel: FCP medián 232 ms / baseline 228 ms a P90 264 ms / baseline 248 ms (limit 323 ms). Zachovány pevné budgety: startupCore 471312 / 471314 B, rootJsCssSurface 4795154 / 4796255 B, indexHtml 57182 / 57414 B. Plné `npm check`, dvojité canonical sestavení, kvalifikace a rozpisové matice, reálné mobilní Chromium, offline/update recovery, bezpečnostní role/CAS i TEST release kontrola PASS. Main/produkce/DB/Edge se touto úpravou nepřepisovaly. Při následné kontrole byl main `c28c524f3a3dda0bcb69cb7e4ac1b6c6e4a2210f`, produkční Vercel READY `dpl_H5vYq8DDWVbtmimxL3XZ63FBE3pD` s tímto SHA.
+
+Zbývá **fyzicky** ověřit listopadový rozpis: 7 lidí -> 4 TO/3 MO; Starý jen frézka MFKF10, ne MSKC03/MSKC04 při obsazení 2 soustruhů+1 frézky; nesmyslné série na TBKR01/TBKR07 se bezpečně rozbijí nebo zobrazí upozornění; bez nezamýšlených porušení návaznosti TNKS/TPKW. Produkci nenasazovat bez nového výslovného schválení.
+
 ## 19. 10. 2026 — DEVELOPMENT 2.0.21: obsazení MO/TO, Starý a série brusů
 
 Pouze větev `development`; `main`, produkce, Supabase DB a Edge zůstávají beze změn. Pro 7 skutečně dostupných pracovníků má generátor 4 TO + 3 MO. Pokud režim MO tvoří 2 soustruhy + 1 frézka, zákaz Starého na soustruzích je pro automatické generování závazný (včetně následných prohození); MFKF10 povolena, ruční úprava může být výjimkou. Nové kvalifikačně a provozně bezpečné výměny MO↔MO, TO↔MO a TO↔TO umožňují doplnit místo, které nelze obsadit přímo kvůli předchozímu nýtování, například prázdnou TPKW01.
