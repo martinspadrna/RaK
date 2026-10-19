@@ -2,6 +2,11 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 19. 10. 2026 — TEST 2.0.24: jemná preference MO pro Novotného a Kmínka
+
+Vlastník schválil podobu 2.0.23 a listopadový návrh, žádá pouze umožnit Novotnému a Kmínkovi o trochu více MO. Z přiloženého rozpisu 11/2026: Novotný 2 MO, Kmínek 3 MO; samostatná MFKF10 byla rozložena přibližně 1–2× mezi dostupné pracovníky. Proto je přidána jen slabá preference při základním denním výběru TO (40 bodů, pokud má pracovník zatím více TO než MO); výhoda přesného navazujícího TO stroje je 480 bodů. Nedělat z toho tvrdý limit, nepřehazovat brusy dodatečně a zachovat měsíční dorovnání samostatné MFKF10 i všechna dřívější povinná pravidla. Dodán regresní test reálných listopadových absencí s neaktivním Špadrnou, ochranou přidělení a přibližnou rovnoměrností sólové frézky. Main/produkci neaktualizovat; TEST vydat pouze po úspěšném CI a ověření Vercel aliasu.
+
+
 ## 19. 10. 2026 — rozhodnutí vlastníka: experiment generátoru ZAMÍTNUT
 
 Vlastník výslovně odmítl izolovanou experimentální větev `fix/hard-cycle-first-20261019`: výsledky nebyly v pořádku. **NEPŘENÁŠET její úpravy ani merge do `development`/běžného TESTu**. Stejně tak nepoužívat starší `fix/grinder-adjacent-tbkr-20261019` ani historický experiment 1.8 jako řešení. Pokračovat přímo na stávajícím běžném TESTu ze zachované verze 2.0.22; vycházet z primárního denního cyklu TO TNKS01 → TBKR07 → TPKW01 → TPKW02 → TBKR01 → TNKS01 a až následně doplnit vstupy MO, absence, kvalifikace a dorovnání bez rozbití cyklu. Záložní ref současného development před dalšími úpravami: `backup/development-2.0.22-before-cycle-20261019` (commit `261d543300b5e6e608b79078ae9d3e4e7f944150`). Vytvořenou, nepoužitou integrační větev `fix/standard-test-hard-cycle-20261019` rovněž nevyužívat. Main/produkce/DB/Edge beze změn.

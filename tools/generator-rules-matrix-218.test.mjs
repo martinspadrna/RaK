@@ -239,3 +239,42 @@ test('all seven TO-qualified workers take turns on TO and MO, cycling several ma
  console.log('[hard-cycle-sequence-222] '+JSON.stringify({correct,all,rate:all?correct/all:0}));
  assert(correct>=Math.ceil(all*0.6),'At least 60% of TO steps should be exact next-cycle moves with non-negotiable rules preserved');
 });
+
+test('optional additional MO for Kmínek/Novotný respects November absences and solo-MFKF10 fairness',()=>{
+ const f=setup();
+ f.context.app.machineSettingsRows[0].settings_json.workers.find(worker=>worker.name==='Špadrna').active=false;
+ const monthKey='11/26';
+ const prepared=prepareMonth(f.context.app.rotation.months[monthKey],()=>0);
+ const absentByDate={
+  '6.11.':['Střížek'],'7.11.':['Střížek'],'8.11.':['Střížek'],
+  '12.11.':['Novotný'],'16.11.':['Starý'],'22.11.':['Novotný'],
+  '25.11.':['Novotný','Střížek'],'26.11.':['Novotný','Střížek'],
+  '30.11.':['Střížek']
+ };
+ for(const date of dates(prepared))for(const [start,people] of Object.entries(absentByDate))
+  if(date.startsWith(start))for(const person of people)prepared.notes.push(absenceNote(date,person));
+ f.context.prepared=prepared;
+ const generated=clone(f.evaluate("adminGenerateRotationMonthDraft('11/26',prepared,{ignoreDom:true,persistPending:false}).normalized"));
+ const totals=Object.fromEntries(names.filter(name=>name!=='Špadrna').map(name=>[name,{mo:0,to:0,solo:0}]));
+ for(let idx=0;idx<generated.hard.rows.length;idx++){
+  const hard=generated.hard.rows[idx],soft=generated.soft.rows[idx];
+  for(const name of hard.cells)if(totals[name])totals[name].to++;
+  for(const name of soft.cells)if(totals[name])totals[name].mo++;
+  const solo=soft.cells[4];
+  if(solo&&totals[solo]&&!soft.cells[3])totals[solo].solo++;
+  const away=new Set(prepared.notes.filter(note=>note.date===hard.date).map(note=>note.person));
+  const filled=hard.cells.concat(soft.cells).filter(Boolean);
+  assert.equal(filled.length,9-away.size,hard.date+' all available people assigned');
+  assert.equal(new Set(filled).size,filled.length,hard.date+' no duplicate person');
+  assert(filled.every(name=>!away.has(name)&&name!=='Špadrna'),hard.date+' no absent/inactive person');
+  assert.equal(hard.cells.filter(Boolean).length,9-away.size===7?4:5,hard.date+' TO from available');
+ }
+ const solos=Object.values(totals).map(person=>person.solo);
+ console.log('[november-mo-solo-224] '+JSON.stringify(totals));
+ assert(totals['Kmínek'].mo>=3,'Kmínek may spend at least three available shifts on MO');
+ assert(totals['Novotný'].mo>=2,'Novotný may spend available shifts on MO');
+ assert(Math.max(...solos)-Math.min(...solos)<=2,'single MFKF10 remains approximately balanced');
+ f.context.generated=generated;
+ const errors=clone(f.evaluate("adminRotationValidateMonthRules(generated,'11/26',{source:'generator'}).issues.filter(issue=>issue.severity==='error')"));
+ assert.deepEqual(errors,[],JSON.stringify(errors));
+});

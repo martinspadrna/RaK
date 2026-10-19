@@ -1190,8 +1190,12 @@ function adminRotationGeneratorBuildDay(month, model, counters, rowIdx, dateLabe
  .map((name) => {
  const next = adminRotationGeneratorNextHardCycleMachine(counters, name);
  const steps = (cycle.indexOf(machine) - cycle.indexOf(next) + cycle.length) % cycle.length;
+ // A modest MO allowance for Kmínek and Novotný is lower than the 480-point
+ // next-machine advantage: TO daily order, qualifications and safety remain first.
+ const moAllowance = (name === 'Kmínek' || name === 'Novotný')
+  && Number(counters.hard[name] || 0) > Number(counters.soft[name] || 0) ? 40 : 0;
  return { name, score: (steps === 0 ? 600 : 120 - steps * 80)
- + (Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)) * 3 };
+ + (Number(counters.soft[name] || 0) - Number(counters.hard[name] || 0)) * 3 - moAllowance };
  })
  }));
  // Se sedmi dostupnými lidmi musí po osazení TO zbýt někdo schopný
