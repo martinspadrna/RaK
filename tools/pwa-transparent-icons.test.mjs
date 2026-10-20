@@ -18,9 +18,17 @@ test('Windows and Android keep transparent icons while iOS receives a compatible
  }
  const index=read('index.html'),worker=read('sw.js');
  assert(index.includes('icon-any-32.png'),'transparent favicon');
- assert(index.includes('apple-touch-icon') && index.includes('apple-touch-icon.png?v=2.0.27-ios1'),'iOS points to compatible cache-busted icon');
+ assert(index.includes('apple-touch-icon') && index.includes('assets/app-icons/icon-180.png?v=2.0.27-ios3'),'iOS points to compatible cache-busted icon');
  const iosManifestIcon=icons.find(x=>x.sizes==='180x180'&&x.purpose==='any');
- assert(iosManifestIcon?.src==='apple-touch-icon.png?v=2.0.27-ios1','Edge manifest has an explicit iOS fallback');
+ assert(iosManifestIcon?.src==='assets/app-icons/icon-180.png?v=2.0.27-ios3','Edge manifest has an explicit iOS fallback');
+ const trackedInstaller=read('ios-install.html');
+ assert(trackedInstaller.includes('<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,'),'tracked installer embeds inline touch icon');
+ assert(trackedInstaller.includes('assets/app-icons/icon-180.png?v=2.0.27-ios3'),'tracked installer preview references served 180px PNG');
+ const legacyIcon=path.join(root,'assets','app-icons','icon-180.png');
+ const legacyMeta=await sharp(legacyIcon).metadata();
+ assert.equal(legacyMeta.width,180);
+ assert.equal(legacyMeta.height,180);
+ assert(!legacyMeta.hasAlpha,'the reachable legacy launcher icon must have no alpha');
  const iosPath=path.join(root,'apple-touch-icon.png');
  if(fs.existsSync(iosPath)){
    const ios=await sharp(iosPath).metadata();
