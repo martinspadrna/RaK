@@ -156,6 +156,53 @@ function rakCleanupAdminChangeYear(delta, root) {
   return true;
 }
 
+// Scroll only the week list. Never use scrollIntoView(): on iOS that would also
+// jump the entire Administration page or move the user's active input.
+function rakCleanupAdminRememberScroll(root) {
+  const list = root && typeof root.querySelector === 'function'
+    ? root.querySelector('.rakCleanupWeeks[data-cleanup-year]') : null;
+  if (!list) return null;
+  const year = Number(list.getAttribute('data-cleanup-year'));
+  return { year, top: Number(list.scrollTop) || 0 };
+}
+
+function rakCleanupAdminPositionScroll(root, previous) {
+  const list = root && typeof root.querySelector === 'function'
+    ? root.querySelector('.rakCleanupWeeks[data-cleanup-year]') : null;
+  if (!list) return;
+  const year = Number(list.getAttribute('data-cleanup-year'));
+  const place = () => {
+    // A later navigation/render must win over a queued frame from an older view.
+    if (!root || root.querySelector('.rakCleanupWeeks[data-cleanup-year]') !== list) return;
+    if (previous && previous.year === year) {
+      list.scrollTop = previous.top;
+      return;
+    }
+    const row = list.querySelector('.rakCleanupWeek.isCurrent');
+    if (!row) {
+      list.scrollTop = 0; // a different year has no current week
+      return;
+    }
+    const viewport = list.getBoundingClientRect();
+    const item = row.getBoundingClientRect();
+    if (!viewport.height || !item.height) return;
+    const centered = list.scrollTop + item.top - viewport.top
+      - (list.clientHeight - item.height) / 2;
+    list.scrollTop = Math.max(0,
+      Math.min(Math.max(0, list.scrollHeight - list.clientHeight), centered));
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(place);
+  else place();
+}
+
+function rakCleanupAdminResetToCurrentYear() {
+  const now = new Date();
+  const iso = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0')].join('-');
+  const week = rakCleanupWeekForISO(iso);
+  window.rakCleanupAdminYear = week ? week.year : now.getFullYear();
+}
+
 function rakCleanupAdminHtml() {
   const year = rakCleanupAdminSelectedYear();
   const overrides = rakCleanupSettings();
@@ -182,7 +229,7 @@ function rakCleanupAdminHtml() {
     ' <button type="button" class="appMenuAction" data-admin-action="cleanup-next-year" aria-label="Další rok">›</button>',
     '</div>',
     '<div class="rakCleanupHeader"><span>Kalendářní týden</span><span>Den úklidu (ranní)</span></div>',
-    '<div class="rakCleanupWeeks">',
+    '<div class="rakCleanupWeeks" data-cleanup-year="' + String(year) + '">',
     ...weeks.map(info => {
       const special = overrides.has(info.key);
       const active = current && info.key === current.key;
