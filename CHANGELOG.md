@@ -1,3 +1,10 @@
+## RaK 2.0.28 (development)
+
+- Administrace → Úklid: přehled kalendářních týdnů jako „43 KT“ bez rozsahu dat, výchozí nedělní ranní; možnost změnit den v daném týdnu nebo úklid vypnout.
+- Ukládají se pouze týdenní výjimky do stávajícího zabezpečeného nastavení strojů (bez migrace). Při načtení na dalším zařízení se zobrazuje stejný výběr.
+- Statistika úklidu po pracovnících/strojích a roční dorovnání MSK/TBK v generátoru používají totožný zvolený den. Při přesunu ze 25.10. na 24.10. se neděle nezapočítává.
+- Zachované hlídání neuložených změn při přepínání roků, stejné ověřování oprávnění, záloh a rozpisů. Pouze TEST; main a produkce beze změn.
+
 ## RaK 2.0.27 (development)
 
 - Windows, Android a iPhone nyní používají **stejné transparentní logo RaK bez černého čtvercového pozadí**. Mobilní ikony v manifestu jsou jen purpose:any; původní neprůhledné maskable ikony nejsou pro instalaci nabízené.
