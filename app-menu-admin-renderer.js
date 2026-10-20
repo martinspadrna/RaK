@@ -136,7 +136,7 @@ function renderAdminMenuBody(body, section) {
     '</div>'
   ].join('');
 
-  const cleanupHtml = [
+  const cleanupHtml = mode === 'cleanup' ? [
     '<div class="appMenuCard appMenuAdminCard adminCleanupCard">',
     '  <div class="appMenuCardTitle">Úklid</div>',
     '  <div class="appMenuText"><div>Výchozí úklid je nedělní ranní. Pro každý kalendářní týden můžeš vybrat jiný den nebo úklid vypnout.</div>',
@@ -148,7 +148,7 @@ function renderAdminMenuBody(body, section) {
     '    <button type="button" class="appMenuAction" data-admin-action="back-admin">Zpět</button>',
     '  </div>',
     '</div>'
-  ].join('');
+  ].join('') : '';
 
   const generatorSettingsHtml = [
     '<div class="appMenuCard appMenuAdminCard adminGeneratorSettingsCard adminOpsUnifiedCard">',
