@@ -18,7 +18,7 @@ const DEVELOPMENT_ASSET_OPTIMIZATION_POLICY = 'lossless-png-sharp-0.34.4;pixel-i
 const DEVELOPMENT_LOGIN_ASSET_POLICY = 'login-png-1024;retina-safe;sharp-lanczos3';
 const DEVELOPMENT_CACHE_TUNING_POLICY = 'normalize-update-navigation-cache;waituntil-runtime-write;cleanup-transient-nav';
 const DEVELOPMENT_VISUAL_PARITY_HOTFIX_POLICY = 'parser-css-main-parity;nav-order-1234';
-// Previous canonical warm-start budget before offline Rotace: const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm58;startup-js-1536k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
+// Historical core budget retained in release notes.
 const DEVELOPMENT_PERFORMANCE_GUARD_POLICY = 'core8;warm69;startup-js-2304k;startup-file-300k;login-each-1000k;login-total-2900k;eager-diagnostics-0;qr-full';
 const DEVELOPMENT_OFFLINE_ROTATION_POLICY = 'prewarm-retained-on-quota;repair-protocol;dashboard-icons-required;cached-state-first;semantic-ui-conflict';
 const DEVELOPMENT_STARTUP_EXECUTION_POLICY = 'mobile-layout-guard-idle;warm-cache-preserved;startup-files-15';
@@ -104,7 +104,6 @@ const CORE = [
 './manifest.webmanifest',
 './assets/app-icons/icon-any-180.png?v=2.0.28',
 './assets/app-icons/icon-any-32.png?v=2.0.28',
-'./assets/app-icons/icon-any-180.png?v=2.0.28',
 './assets/app-icons/icon-any-192.png?v=2.0.28',
 './assets/app-icons/icon-any-512.png?v=2.0.28',
 './assets/app-icons/icon-32.png?v=2.0.28',
@@ -184,6 +183,7 @@ const WARM_START = [
 './rak-runtime-stability.js?v=2.0.28',
 './rak-mobile-layout-guard.js?v=2.0.28',
 './rak-feature-routing.js?v=2.0.28',
+'./rak-cleanup-schedule.js?v=2.0.28',
 './stats.js?v=2.0.28',
 './rotation-name-index.js?v=2.0.28',
 './rotace.js?v=2.0.28',
@@ -220,12 +220,12 @@ const OFFLINE_REQUIRED = Object.freeze([
 './core.js?v=2.0.28','./lifecycle.js?v=2.0.28','./app-runtime-guards.js?v=2.0.28','./ui.js?v=2.0.28',
 './app-navigation.js?v=2.0.28','./app-bottom-nav.js?v=2.0.28','./app-actions.js?v=2.0.28',
 './app-pwa-connectivity.js?v=2.0.28','./app-home-boot.js?v=2.0.28','./rak-runtime-stability.js?v=2.0.28',
-'./rak-mobile-layout-guard.js?v=2.0.28','./rak-feature-routing.js?v=2.0.28','./stats.js?v=2.0.28',
+'./rak-mobile-layout-guard.js?v=2.0.28','./rak-feature-routing.js?v=2.0.28','./rak-cleanup-schedule.js?v=2.0.28','./stats.js?v=2.0.28',
 './rotation-name-index.js?v=2.0.28','./rotace.js?v=2.0.28','./rotation-tasks.js?v=2.0.28','./admin-daymods.js?v=2.0.28',
 './app-rotation-controls.js?v=2.0.28','./supabase-config.js?v=2.0.28','./supabase-bridge.js?v=2.0.28',
 './app-rotation-sync.js?v=2.0.28',
 './styles.css','./styles-inline-legacy.css','./styles-base.css','./styles-layout.css','./styles-theme.css','./styles-responsive.css','./styles-modal.css',
-'./styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-calc-panels.css','./styles-calculators-mid.css',
+'./styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-admin-cleanup.css','./styles-calc-panels.css','./styles-calculators-mid.css',
 './brusy.js?v=2.0.28','./soustruhy.js?v=2.0.28','./admin-fhb-calibration.js?v=2.0.28',
 './brusy-fhb-correction.js?v=2.0.28','./brusy-fhb-v157.js?v=2.0.28','./brusy-fhb-v158.js?v=2.0.28',
 './changelog.js?v=2.0.28','./app-menu.js?v=2.0.28','./app-menu-admin-shell.js?v=2.0.28','./app-menu-admin-renderer.js?v=2.0.28','./app-menu-pages.js?v=2.0.28',
