@@ -1,3 +1,10 @@
+## RaK 2.0.30 (development)
+
+- Administrace → Úklid: při otevření se interní seznam týdnů automaticky posune na aktuální kalendářní týden (např. 43 KT) a umístí ho přibližně doprostřed viditelné oblasti.
+- Uložení nebo opětovné načtení nastavení zachová uživatelem ručně posunutou pozici v seznamu. Přepnutí na jiný rok začne od prvního týdne; návrat na aktuální rok vybere aktuální týden.
+- Posun se týká pouze seznamu týdnů, nikoliv celé stránky, takže funguje i na iPhonu. Přidaný cílený regresní test. Údaje o úklidu, výpočty statistik, přihlášení i Supabase se nemění.
+- Pouze TEST; MAIN a produkce beze změn.
+
 ## RaK 2.0.29 (development)
 
 - Oprava mobilního přihlášení a stavu „Supabase není připojena“ na TESTu. Nasazení 2.0.28 chybně vracelo HTTP 404 pro lokální Supabase SDK (`supabase-vendor-2.110.7.js`), přestože soubor vznikal při canonical buildu; nasazený HTTP stav se lišil od výsledků build testů.
