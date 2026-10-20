@@ -85,6 +85,7 @@ function renderAdminRootMenuBody(body) {
       { action: 'open-correction-settings', label: 'Nastavení korekcí' },
       { action: 'open-food', label: 'Kantýna / jídelna' },
       { action: 'open-overtime', label: 'Přesčasy' },
+      { action: 'open-cleanup', label: 'Úklid' },
       { action: 'open-vacation', label: 'Dovolená / odstávky' },
       { action: 'open-special-days', label: 'Mimořádné volné dny' }
     ], { open: false }),
