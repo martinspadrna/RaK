@@ -117,3 +117,32 @@ test('Admin, statistics, fairness generator, secure storage, offline and release
   assert(sw.includes('styles-admin-polish.css'));
   assert(read('rak-release-metadata.js').includes("displayVersion: '2.0.29'"));
 });
+
+
+test('opening Úklid centers current KT inside its own scroller, not page; rerender preserves manual scroll', () => {
+  const c=setup();
+  const row={getBoundingClientRect:()=>({top:1400,height:48})};
+  const list={
+    scrollTop:0,
+    scrollHeight:3200,
+    clientHeight:600,
+    getAttribute:name => name==='data-cleanup-year'?'2026':'',
+    getBoundingClientRect:()=>({top:100,height:600}),
+    querySelector:selector => selector==='.rakCleanupWeek.isCurrent'?row:null
+  };
+  const root={querySelector:selector => selector==='.rakCleanupWeeks[data-cleanup-year]'?list:null};
+  c.rakCleanupAdminPositionScroll(root,null);
+  assert.equal(list.scrollTop,1024,'current week must be centered in the internal scroll area');
+  list.scrollTop=780;
+  const previous=c.rakCleanupAdminRememberScroll(root);
+  assert.equal(previous.year,2026);
+  list.scrollTop=0;
+  c.rakCleanupAdminPositionScroll(root,previous);
+  assert.equal(list.scrollTop,780,'a save/load rerender must not jump back to current week');
+  const differentYear={...list,scrollTop:250,getAttribute:()=> '2025',querySelector:()=>null};
+  const otherRoot={querySelector:()=>differentYear};
+  c.rakCleanupAdminPositionScroll(otherRoot,previous);
+  assert.equal(differentYear.scrollTop,0,'other years should open from KT 1');
+  assert(read('app-menu-admin-renderer.js').includes('rakCleanupAdminPositionScroll(body, previous)'));
+  assert(read('app-menu.js').includes('rakCleanupAdminResetToCurrentYear()'));
+});
