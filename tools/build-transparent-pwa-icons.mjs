@@ -37,7 +37,32 @@ export async function generateTransparentAppIcons(targetRoot) {
   const ios = await sharp(iosDestination).metadata();
   if (ios.width !== 180 || ios.height !== 180 || ios.hasAlpha)
     throw Error('Invalid opaque Apple touch icon');
-  console.log('[pwa-transparent-icons] PASS: transparent Windows/Android and compatible opaque iOS 180 PNG');
+  // iOS 27.2 can show only the first title letter when the Home Screen icon
+  // is fetched by URL, even when apple-touch-icon.png itself is valid.
+  // Keep the normal fast app shell unchanged and offer a tiny, one-time
+  // installation page with the PNG embedded in the HTML as a data URI.
+  const iconData = 'data:image/png;base64,' + fs.readFileSync(iosDestination).toString('base64');
+  const html = `<!doctype html>
+<html lang="cs"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rotace a Kalkulačky">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="${iconData}">
+<title>Rotace a Kalkulačky</title>
+<style>body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#0b0f0c;color:#eaf4ee;font-family:system-ui,-apple-system,Arial,sans-serif}main{max-width:380px;margin:24px;text-align:center}img{width:120px;height:120px;border-radius:25px}h1{font-size:1.55rem}p{line-height:1.55;color:#cbdad1}a{color:#89e5ba}</style>
+</head><body><main>
+<img width="120" height="120" src="${iconData}" alt="Logo RaK">
+<h1>RaK – instalace na iPhone</h1>
+<p>V Microsoft Edge otevři nabídku Sdílet a zvol Přidat na plochu. Při instalaci se použije přímo vložené logo, nikoli externí obrázek.</p>
+<p><a href="./index.html">Otevřít aplikaci RaK</a></p>
+</main>
+<script>if(window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches)window.location.replace('./index.html?source=pwa');</script>
+</body></html>`;
+  fs.writeFileSync(path.join(root, 'ios-install.html'), html);
+  console.log('[pwa-transparent-icons] PASS: transparent Windows/Android; iOS inline-icon installer created');
 }
 if (process.argv[1] && import.meta.url === new URL('file://' + path.resolve(process.argv[1])).href) {
   await generateTransparentAppIcons(process.argv[2] || process.cwd());
