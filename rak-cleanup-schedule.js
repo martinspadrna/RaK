@@ -137,8 +137,23 @@ function rakCleanupAdminSelectedYear() {
   return Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : new Date().getFullYear();
 }
 
-function rakCleanupAdminChangeYear(delta) {
+function rakCleanupAdminChangeYear(delta, root) {
+  // Do not discard the administrator's unsaved changes when paging years.
+  const overrides = rakCleanupSettings();
+  const scope = root || document;
+  const selects = scope.querySelectorAll('[data-cleanup-week]');
+  for (const input of selects) {
+    const key = String(input.getAttribute('data-cleanup-week') || '');
+    const saved = overrides.get(key);
+    const expected = !saved ? 'default' : saved.disabled ? 'off' : saved.date;
+    if (String(input.value) !== expected) {
+      const status = scope.querySelector('#adminOnlineSaveStatus');
+      if (status) status.textContent = 'Nejprve ulož změny úklidu, potom přepni rok.';
+      return false;
+    }
+  }
   window.rakCleanupAdminYear = Math.max(2000, Math.min(2100, rakCleanupAdminSelectedYear() + delta));
+  return true;
 }
 
 function rakCleanupAdminHtml() {
