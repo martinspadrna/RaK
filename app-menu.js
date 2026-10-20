@@ -1575,8 +1575,9 @@ function bindAppMenuHandlers(body) {
       }
       if (adminAction === 'cleanup-prev-year' || adminAction === 'cleanup-next-year') {
         if (typeof rakCleanupAdminChangeYear === 'function') {
-          rakCleanupAdminChangeYear(adminAction === 'cleanup-prev-year' ? -1 : 1);
-          renderAdminMenuBody(body, 'cleanup');
+          if (rakCleanupAdminChangeYear(adminAction === 'cleanup-prev-year' ? -1 : 1, body)) {
+            renderAdminMenuBody(body, 'cleanup');
+          }
         }
         return;
       }
