@@ -225,7 +225,7 @@ const OFFLINE_REQUIRED = Object.freeze([
 './app-rotation-controls.js?v=2.0.28','./supabase-config.js?v=2.0.28','./supabase-bridge.js?v=2.0.28',
 './app-rotation-sync.js?v=2.0.28',
 './styles.css','./styles-inline-legacy.css','./styles-base.css','./styles-layout.css','./styles-theme.css','./styles-responsive.css','./styles-modal.css',
-'./styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-admin-cleanup.css','./styles-calc-panels.css','./styles-calculators-mid.css',
+'./styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-calc-panels.css','./styles-calculators-mid.css',
 './brusy.js?v=2.0.28','./soustruhy.js?v=2.0.28','./admin-fhb-calibration.js?v=2.0.28',
 './brusy-fhb-correction.js?v=2.0.28','./brusy-fhb-v157.js?v=2.0.28','./brusy-fhb-v158.js?v=2.0.28',
 './changelog.js?v=2.0.28','./app-menu.js?v=2.0.28','./app-menu-admin-shell.js?v=2.0.28','./app-menu-admin-renderer.js?v=2.0.28','./app-menu-pages.js?v=2.0.28',
