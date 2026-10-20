@@ -305,6 +305,9 @@ function readAdminMachineSettingsFromDom() {
   if (Array.isArray(app.machineSettingsRows)) {
     app.machineSettingsRows.filter(adminIsRotationOvertimeSettingsRow).forEach((row) => rows.push(row));
   }
+  if (Array.isArray(app.machineSettingsRows) && typeof rakCleanupIsSettingsRow === 'function') {
+    app.machineSettingsRows.filter(rakCleanupIsSettingsRow).forEach((row) => rows.push(row));
+  }
   if (Array.isArray(app.machineSettingsRows) && typeof adminIsVacationCountdownSettingsRow === 'function') {
     app.machineSettingsRows.filter(adminIsVacationCountdownSettingsRow).forEach((row) => rows.push(row));
   }
