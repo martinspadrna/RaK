@@ -187,8 +187,8 @@ function rakCleanupAdminHtml() {
       const special = overrides.has(info.key);
       const active = current && info.key === current.key;
       return '<label class="rakCleanupWeek' + (special ? ' isChanged' : '') + (active ? ' isCurrent' : '') + '">'
-        + '<span><strong>' + String(info.week) + '. KT</strong>' + (special ? '<small>Výjimka</small>' : '') + '</span>'
-        + '<select class="appMenuSelect" data-cleanup-week="' + info.key + '" aria-label="' + info.week + '. KT">'
+        + '<span><strong>' + String(info.week) + ' KT</strong>' + (special ? '<small>Výjimka</small>' : '') + '</span>'
+        + '<select class="appMenuSelect" data-cleanup-week="' + info.key + '" aria-label="' + info.week + ' KT">'
         + options(info) + '</select></label>';
     }),
     '</div>',
