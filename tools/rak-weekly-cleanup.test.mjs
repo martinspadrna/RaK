@@ -113,7 +113,7 @@ test('Admin, statistics, fairness generator, secure storage, offline and release
   assert(machine.includes('filter(rakCleanupIsSettingsRow)'));
   assert(app.includes('"rak-cleanup-schedule.js"'));
   assert(read('styles-admin-polish.css').includes('.rakCleanupWeek'));
-  assert(sw.includes('rak-cleanup-schedule.js?v=2.0.28'));
+  assert(sw.includes('rak-cleanup-schedule.js?v=2.0.29'));
   assert(sw.includes('styles-admin-polish.css'));
-  assert(read('rak-release-metadata.js').includes("displayVersion: '2.0.28'"));
+  assert(read('rak-release-metadata.js').includes("displayVersion: '2.0.29'"));
 });
