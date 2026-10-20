@@ -354,7 +354,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
-    admin: Object.freeze({ files: adminFeatureFiles, styles: Object.freeze(["styles-admin-cleanup.css"]), dependencies: Object.freeze(["admin-shell", "sync"]) })
+    admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
   });
 
   const modulePromises = new Map();
