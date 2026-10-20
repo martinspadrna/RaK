@@ -54,7 +54,7 @@ export async function generateTransparentAppIcons(targetRoot) {
 <title>Rotace a Kalkulačky</title>
 <style>body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#0b0f0c;color:#eaf4ee;font-family:system-ui,-apple-system,Arial,sans-serif}main{max-width:380px;margin:24px;text-align:center}img{width:120px;height:120px;border-radius:25px}h1{font-size:1.55rem}p{line-height:1.55;color:#cbdad1}a{color:#89e5ba}</style>
 </head><body><main>
-<img width="120" height="120" src="./apple-touch-icon.png?v=2.0.27-ios2" alt="Logo RaK">
+<img width="120" height="120" src="./assets/app-icons/icon-180.png?v=2.0.27-ios3" alt="Logo RaK">
 <h1>RaK – instalace na iPhone</h1>
 <p>V Microsoft Edge otevři nabídku Sdílet a zvol Přidat na plochu. Při instalaci se použije přímo vložené logo, nikoli externí obrázek.</p>
 <p><a href="./index.html">Otevřít aplikaci RaK</a></p>
