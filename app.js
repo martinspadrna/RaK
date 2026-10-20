@@ -116,6 +116,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   ];
 
   const rotationFeatureFiles = [
+    "rak-cleanup-schedule.js",
     "stats.js",
     "rotation-name-index.js",
     "rotace.js",
@@ -158,6 +159,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
+    "rak-cleanup-schedule.js",
     "admin-shift-overview.js",
     "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",
@@ -352,7 +354,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
-    admin: Object.freeze({ files: adminFeatureFiles, dependencies: Object.freeze(["admin-shell", "sync"]) })
+    admin: Object.freeze({ files: adminFeatureFiles, styles: Object.freeze(["styles-admin-cleanup.css"]), dependencies: Object.freeze(["admin-shell", "sync"]) })
   });
 
   const modulePromises = new Map();
