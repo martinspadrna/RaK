@@ -505,7 +505,11 @@ function renderAdminMenuBody(body, section) {
   } else if (mode === 'overtime') {
     body.innerHTML = overtimeHtml;
   } else if (mode === 'cleanup') {
+    const previous = typeof rakCleanupAdminRememberScroll === 'function'
+      ? rakCleanupAdminRememberScroll(body) : null;
     body.innerHTML = cleanupHtml;
+    if (typeof rakCleanupAdminPositionScroll === 'function')
+      rakCleanupAdminPositionScroll(body, previous);
   } else if (mode === 'generator-settings') {
     body.innerHTML = generatorSettingsHtml;
   } else if (mode === 'machine-tasks') {
