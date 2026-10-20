@@ -2229,6 +2229,7 @@ function adminRotationGeneratorSundayCleanupGroup17011(machineName) {
 
 function adminRotationGeneratorIsSundayMorning17011(dateLabel, monthKey) {
  const meta = adminRotationGeneratorParseDayMeta(dateLabel, monthKey);
+ if (typeof rakCleanupIsMorningMeta === 'function') return rakCleanupIsMorningMeta(meta);
  return !!(meta && meta.isSunday && /^R/.test(String(meta.shift || '').toUpperCase()));
 }
 
