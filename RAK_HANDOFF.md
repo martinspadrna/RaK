@@ -2,6 +2,10 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 20. 10. 2026 — fyzická přejímka iOS Edge instalace na TEST potvrzena
+
+Uživatel po opravě HTTP 404 otevřel verzovanou instalační stránku `ios-install.html` v Microsoft Edge na iPhonu a výslovně potvrdil, že správné logo RaK je **na ploše iPhonu po přidání přes Edge**. Původní černá náhradní ikona s R je pro tuto testovanou instalaci vyřešena. Funkční workaround: verzovaná instalační HTML stránka skutečně publikovaná na TESTu, s base64 `data:image/png` v `rel=apple-touch-icon`, se skutečně existujícím původním 180px PNG; Vercel HTTP 200 pro obě cesty. `development` / TEST dpl_8vbGfLzzxjsgyMmLFbbviV13WCge; MAIN/PROD neaktualizováno. Vzor vhodný k adaptaci v projektech Hradník a Domácnost+; netvrdit, že je na jiných telefonech ověřen bez fyzického testu.
+
 ## 20. 10. 2026 — TEST iOS Edge ikona: odstraněna reálná HTTP 404, fyzické ověření čeká
 
 Uživatel hlásil na stabilní testovací adrese /ios-install.html skutečnou Vercel 404 NOT_FOUND. Diagnostika přes Vercel web_fetch_vercel_url ověřila: v předchozím READY sestavení dpl_AyKwHk5oReuP2o5HUqwPf6j3GSEL byly /ios-install.html, /apple-touch-icon.png a /assets/app-icons/icon-any-180.png nedostupné (404), přestože kanonický build vypisoval generované soubory jako úspěšné. Původní v repozitáři verzovaný /assets/app-icons/icon-180.png vracel HTTP 200. Výstup kontrol buildu sám o sobě není důkazem veřejné dostupnosti. Závěry o nasazení hotové iOS ikony před tímto měřením byly předčasné.
