@@ -1205,6 +1205,8 @@ function bindAppMenuHandlers(body) {
         return;
       }
       if (adminAction === 'open-cleanup') {
+        if (typeof rakCleanupAdminResetToCurrentYear === 'function')
+          rakCleanupAdminResetToCurrentYear();
         openAppMenu('admin-cleanup');
         return;
       }
