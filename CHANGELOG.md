@@ -1,3 +1,10 @@
+## RaK 2.0.29 (development)
+
+- Oprava mobilního přihlášení a stavu „Supabase není připojena“ na TESTu. Nasazení 2.0.28 chybně vracelo HTTP 404 pro lokální Supabase SDK (`supabase-vendor-2.110.7.js`), přestože soubor vznikal při canonical buildu; nasazený HTTP stav se lišil od výsledků build testů.
+- Přidána přesná neměnná kopie veřejného Supabase SDK mezi soubory sledované Gitem, s povinným SHA-384/SRI testem v `npm check`. Žádná změna hesel, přihlašovacího RPC, oprávnění, dat ani databázového schématu.
+- Nový build a offline cache verze 2.0.29 mají zajistit obnovení SDK bez mazání lokálních návrhů a nastavení.
+- Pouze development / TEST. MAIN i produkce beze změny.
+
 ## RaK 2.0.28 (development)
 
 - Administrace → Úklid: přehled kalendářních týdnů jako „43 KT“ bez rozsahu dat, výchozí nedělní ranní; možnost změnit den v daném týdnu nebo úklid vypnout.
