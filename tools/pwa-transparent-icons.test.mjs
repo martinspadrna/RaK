@@ -30,9 +30,11 @@ test('Windows and Android keep transparent icons while iOS receives a compatible
    const installerPath=path.join(root,'ios-install.html');
    if(fs.existsSync(installerPath)){
      const installer=fs.readFileSync(installerPath,'utf8');
-     const inline=installer.match(/<link rel="apple-touch-icon" sizes="180x180" href="data:image\\/png;base64,([^"]+)">/);
-     assert(inline,'iOS 27 installer must embed the full PNG directly in the Apple link');
-     const embedded=Buffer.from(inline[1],'base64');
+     const marker='<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,';
+     const start=installer.indexOf(marker);
+     assert(start>=0,'iOS 27 installer must embed the full PNG directly in the Apple link');
+     const from=start+marker.length;
+     const embedded=Buffer.from(installer.slice(from,installer.indexOf('"',from)),'base64');
      assert(embedded.equals(fs.readFileSync(iosPath)),'installer embedded icon matches PNG bytes exactly');
      assert(installer.includes('window.location.replace'), 'standalone install launcher returns to actual RaK app');
      const parsed=await sharp(embedded).metadata();
