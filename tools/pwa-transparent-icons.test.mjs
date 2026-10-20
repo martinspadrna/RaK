@@ -27,6 +27,19 @@ test('Windows and Android keep transparent icons while iOS receives a compatible
    assert.equal(ios.width,180,'Apple icon width');
    assert.equal(ios.height,180,'Apple icon height');
    assert.equal(ios.hasAlpha,false,'Apple icon must be opaque for iOS');
+   const installerPath=path.join(root,'ios-install.html');
+   if(fs.existsSync(installerPath)){
+     const installer=fs.readFileSync(installerPath,'utf8');
+     const inline=installer.match(/<link rel="apple-touch-icon" sizes="180x180" href="data:image\\/png;base64,([^"]+)">/);
+     assert(inline,'iOS 27 installer must embed the full PNG directly in the Apple link');
+     const embedded=Buffer.from(inline[1],'base64');
+     assert(embedded.equals(fs.readFileSync(iosPath)),'installer embedded icon matches PNG bytes exactly');
+     assert(installer.includes('window.location.replace'), 'standalone install launcher returns to actual RaK app');
+     const parsed=await sharp(embedded).metadata();
+     assert.equal(parsed.width,180);
+     assert.equal(parsed.height,180);
+     assert.equal(parsed.hasAlpha,false);
+   }
  }
  assert(worker.includes('icon-any-180.png'),'iOS icon precached for offline use');
  assert(worker.includes('icon-any-512.png'),'new PWA icon precached');
