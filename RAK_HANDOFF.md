@@ -2,6 +2,16 @@
 
 Toto je jediný živý řídicí dokument projektu RaK.
 
+## 20. 10. 2026 — TEST 2.0.28: správa úklidu podle kalendářních týdnů
+
+Požadavek vlastníka: Administrace → Úklid, seznam ISO kalendářních týdnů (např. „43 KT“ místo rozsahu dnů), výchozí nedělní ranní úklid, jednotlivý týden lze změnit na jiný den nebo vypnout. Konkrétní příklad: 43. týden 2026, sobota 24. 10. namísto neděle 25. 10. Výjimku musí správce vybrat a uložit; bez jeho zásahu se přednastavená neděle nemění.
+
+Změny pouze TEST/development: nový sdílený modul rak-cleanup-schedule.js se načítá před stats.js a do Administrace, ISO týdny včetně přelomů let a roku s 53 týdny, přehled roků a ochrana neuložených změn při změně roku. Výjimky se ukládají do nového řádku ROTATION_CLEANUP_SETTINGS / rotation_cleanup_settings v existující správě machine_settings přes zabezpečený CAS RPC; žádná SQL migrace ani backend úprava. Při uložení jiných strojových nastavení se řádek úklidu zachová. Statistiky lidí/strojů a export „Nýtování a úklid“ nově započítávají pouze zvolený den ranní; při přesunu na sobotu se neděle nepočítá. Generátor ročního vyrovnávání úklidu MSK/TBK používá identický výběr. Samotné rozpisy směn a jiné generátorové podmínky se nemění. PWA načítá helper local-first/offline; původní Admin lazy-load struktura i tvrdé startup/performance limity zachovány.
+
+TEST verze 2.0.28 sjednocena v core, metadata, SW, index, package/lock, výkonových měřeních a CHANGELOG. Nová testovací sada tools/rak-weekly-cleanup.test.mjs je v npm check (sobotní 43 KT, nedělní default, vypnutí, přelom roku, přesná data, zachování ostatních let a bezpečné ukládání). Build Vercel dpl_DaBpePapUYPkY7PFxjbeWRMytoyJ READY, exact runtime SHA 9cce9c3b002f90f2a05aa36bdd20be4ad1d21066. Canonical build PASS 175 souborů, dvojí sestavení deterministicky shodné (digest a0142b3cd72da36d06a639a2ad236b2b667bbee8e43fee13024d9b16cf5447bf), npm check i postcheck PASS. Veřejné HTTP200 pro metadata, helper, admin shell, statistiky, generátor, CSS a index; HTTP200 ověřeno také přes stabilní TEST alias skoda-spada-git-development-martinspadrnas-projects.vercel.app, který na tento deployment ukazuje. Předchozí TEST rollback dpl_8vbGfLzzxjsgyMmLFbbviV13WCge.
+
+Produkce a main bez změny; produkční alias skoda-spada.vercel.app zůstává na dpl_EYxcV96PAVnC9M6gd1VA5o544yL2, RaK 2.0.27. Žádné produkční databázové změny. Fyzické ověření otevření panelu a synchronizace na druhém zařízení čeká na vlastníka.
+
 ## 20. 10. 2026 — fyzická přejímka iOS Edge instalace na TEST potvrzena
 
 Uživatel po opravě HTTP 404 otevřel verzovanou instalační stránku `ios-install.html` v Microsoft Edge na iPhonu a výslovně potvrdil, že správné logo RaK je **na ploše iPhonu po přidání přes Edge**. Původní černá náhradní ikona s R je pro tuto testovanou instalaci vyřešena. Funkční workaround: verzovaná instalační HTML stránka skutečně publikovaná na TESTu, s base64 `data:image/png` v `rel=apple-touch-icon`, se skutečně existujícím původním 180px PNG; Vercel HTTP 200 pro obě cesty. `development` / TEST dpl_8vbGfLzzxjsgyMmLFbbviV13WCge; MAIN/PROD neaktualizováno. Vzor vhodný k adaptaci v projektech Hradník a Domácnost+; netvrdit, že je na jiných telefonech ověřen bez fyzického testu.
