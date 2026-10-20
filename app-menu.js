@@ -55,6 +55,7 @@ function appMenuAdminModeSet() {
     'special-days',
     'rotation',
     'overtime',
+    'cleanup',
     'generator-settings',
     'machine-tasks',
     'workers',
@@ -1203,6 +1204,10 @@ function bindAppMenuHandlers(body) {
         openAppMenu('admin-overtime');
         return;
       }
+      if (adminAction === 'open-cleanup') {
+        openAppMenu('admin-cleanup');
+        return;
+      }
       if (adminAction === 'open-generator-settings') {
         openAppMenu('admin-generator-settings');
         return;
@@ -1566,6 +1571,36 @@ function bindAppMenuHandlers(body) {
       }
       if (adminAction === 'overtime-row-clear') {
         if (typeof adminRotationClearOvertimeRow === 'function') adminRotationClearOvertimeRow(target);
+        return;
+      }
+      if (adminAction === 'cleanup-prev-year' || adminAction === 'cleanup-next-year') {
+        if (typeof rakCleanupAdminChangeYear === 'function') {
+          rakCleanupAdminChangeYear(adminAction === 'cleanup-prev-year' ? -1 : 1);
+          renderAdminMenuBody(body, 'cleanup');
+        }
+        return;
+      }
+      if (adminAction === 'load-cleanup-settings') {
+        await loadAdminMachineSettingsFromSupabase();
+        renderAdminMenuBody(body, 'cleanup');
+        return;
+      }
+      if (adminAction === 'save-cleanup-settings') {
+        if (!(typeof rakCleanupAdminReadFromDom === 'function'
+          && typeof rakCleanupMergeRows === 'function'
+          && window.RotationSupabaseBridge
+          && typeof window.RotationSupabaseBridge.saveMachineSettings === 'function'))
+          throw new Error('Uložení úklidu není dostupné.');
+        const entries = rakCleanupAdminReadFromDom(body);
+        const rows = rakCleanupMergeRows(entries);
+        const result = await window.RotationSupabaseBridge.saveMachineSettings(rows);
+        if (!result || result.ok !== true) throw (result && result.error) || new Error('Úklid se nepodařilo uložit online.');
+        app.machineSettingsRows = rows;
+        try { await rakAdminLogChange('Úklid', 'Uloženo ' + entries.length + ' týdenních výjimek'); } catch (_) {}
+        try { if (typeof renderStatsPanel === 'function') renderStatsPanel(); } catch (_) {}
+        renderAdminMenuBody(body, 'cleanup');
+        const status = document.getElementById('adminOnlineSaveStatus');
+        if (status) status.textContent = 'Úklid uložen online ✓ · statistiky používají nové termíny';
         return;
       }
       if (adminAction === 'load-overtime-settings') {
@@ -2238,7 +2273,7 @@ function openAppMenu(view) {
   page.classList.add('active');
   const body = page.querySelector('#appMenuBody');
   const v = view || 'menu';
-  const adminViews = new Set(['admin', 'admin-shift-overview', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-calendars', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
+  const adminViews = new Set(['admin', 'admin-shift-overview', 'admin-machines', 'admin-food', 'admin-vacation', 'admin-special-days', 'admin-rotation', 'admin-overtime', 'admin-cleanup', 'admin-generator-settings', 'admin-machine-tasks', 'admin-correction-settings', 'admin-workers', 'admin-change-log', 'admin-monthly-workflow', 'admin-handover', 'admin-manual', 'admin-settings-map', 'admin-accounts', 'admin-calendars', 'admin-external-links', 'admin-app-contact', 'admin-payroll-settings', 'admin-backups', 'admin-settings-backups', 'admin-announcement', 'admin-export', 'admin-reports', 'admin-service']);
 
   const versionText = getRakCurrentAppVersion();
   const contact = typeof getRakAppContactSettings === 'function'
@@ -2371,6 +2406,16 @@ function openAppMenu(view) {
         } catch (err) {
           console.warn('Admin overtime preload failed', err);
           renderAdminMenuBody(body, 'overtime');
+        }
+      })();
+    } else if (v === 'admin-cleanup') {
+      void (async () => {
+        try {
+          await loadAdminMachineSettingsFromSupabase();
+          renderAdminMenuBody(body, 'cleanup');
+        } catch (err) {
+          console.warn('Admin cleanup preload failed', err);
+          renderAdminMenuBody(body, 'cleanup');
         }
       })();
     } else if (v === 'admin-generator-settings') {
