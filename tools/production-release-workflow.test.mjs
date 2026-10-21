@@ -23,9 +23,20 @@ test('candidate is isolated, production-bound and aliased only after HTTP proof'
   assert(workflow.includes('rak-production-release-evidence-${{ inputs.expected_sha }}'));
   assert(workflow.includes('retention-days: 90'));
   assert(!workflow.includes('supabase migration'),'release workflow must not hide database mutation');
+  for(const asset of ['apple-touch-icon.png','icon-any-32.png','icon-any-192.png','icon-any-512.png']){
+    assert(workflow.includes(asset),'missing required production PWA asset: '+asset);
+  }
+  assert(workflow.includes('cp ".rak-dist/$asset" ".vercel/output/static/$asset"'),'production must stage generated icons');
+  assert(workflow.includes('vercel curl "/$asset" --deployment "$DEPLOYMENT_ID"'),'verify staged icon availability before alias');
+  assert(workflow.includes('"https://$PRODUCTION_ALIAS/$asset"'),'verify published icons after alias');
 });
 
 test('both Git-integrated protected branches have automatic Vercel deployments disabled',()=>{
   const config=JSON.parse(read('vercel.json'));
-  assert.deepEqual(config.git?.deploymentEnabled,{development:false,main:false});
+  const flags=config.git?.deploymentEnabled;
+  assert.equal(flags?.development,false);
+  assert.equal(flags?.main,false);
+  for(const [name,value] of Object.entries(flags||{})){
+    assert.equal(value,false,'production promotion must never enable branch autodeploy: '+name);
+  }
 });
