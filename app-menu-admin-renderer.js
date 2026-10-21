@@ -136,6 +136,20 @@ function renderAdminMenuBody(body, section) {
     '</div>'
   ].join('');
 
+  const cleanupHtml = mode === 'cleanup' ? [
+    '<div class="appMenuCard appMenuAdminCard adminCleanupCard">',
+    '  <div class="appMenuCardTitle">Úklid</div>',
+    '  <div class="appMenuText"><div>Výchozí úklid je nedělní ranní. Pro každý kalendářní týden můžeš vybrat jiný den nebo úklid vypnout.</div>',
+    '    <div class="smallText" id="adminOnlineSaveStatus">Změny se započtou do statistik a generátoru po uložení nastavení.</div></div>',
+    typeof rakCleanupAdminHtml === 'function' ? rakCleanupAdminHtml() : '<p>Úklid se nepodařilo načíst.</p>',
+    '  <div class="appMenuActionRow">',
+    '    <button type="button" class="appMenuAction" data-admin-action="load-cleanup-settings">Načíst online</button>',
+    '    <button type="button" class="appMenuAction isActive" data-admin-action="save-cleanup-settings">Uložit úklid</button>',
+    '    <button type="button" class="appMenuAction" data-admin-action="back-admin">Zpět</button>',
+    '  </div>',
+    '</div>'
+  ].join('') : '';
+
   const generatorSettingsHtml = [
     '<div class="appMenuCard appMenuAdminCard adminGeneratorSettingsCard adminOpsUnifiedCard">',
     '  <div class="appMenuCardTitle">Pravidla generátoru</div>',
@@ -490,6 +504,12 @@ function renderAdminMenuBody(body, section) {
     body.innerHTML = rotationHtml;
   } else if (mode === 'overtime') {
     body.innerHTML = overtimeHtml;
+  } else if (mode === 'cleanup') {
+    const previous = typeof rakCleanupAdminRememberScroll === 'function'
+      ? rakCleanupAdminRememberScroll(body) : null;
+    body.innerHTML = cleanupHtml;
+    if (typeof rakCleanupAdminPositionScroll === 'function')
+      rakCleanupAdminPositionScroll(body, previous);
   } else if (mode === 'generator-settings') {
     body.innerHTML = generatorSettingsHtml;
   } else if (mode === 'machine-tasks') {

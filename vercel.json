@@ -69,7 +69,8 @@
   "git": {
     "deploymentEnabled": {
       "development": false,
-      "main": false
+      "main": false,
+      "release/rak-2.0.31-prep": false
     }
   },
   "outputDirectory": ".rak-dist"

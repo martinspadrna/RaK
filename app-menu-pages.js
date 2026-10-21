@@ -14,7 +14,8 @@ function buildAppMenuAboutHistoryHtml() {
         'Přehlednější rozpisy a neplánované absence s Neschopenkou. Kantýna a jídelna mají okna vedle sebe a výrazné časy.',
         'Generátor rozpisů přesněji střídá stroje a vyrovnává MO/TO i samostatné frézky; jeho pravidla platí také při úpravě části měsíce.',
         'Jednotná průhledná ikona aplikace na Windows i mobilu.',
-        'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
+        'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.',
+        'Nový Úklid po kalendářních týdnech: volitelný den, aktuální KT po otevření a správné započítání do statistik.'
       ]
     },
     // RAK_190_ABOUT_START
@@ -122,7 +123,7 @@ function buildAppMenuAboutHistoryHtml() {
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
       const releaseMetadata = window.RAK_RELEASE_METADATA || {};
-      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.27').trim();
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.31').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',
