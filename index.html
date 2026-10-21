@@ -63,20 +63,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
   } catch (err) {}
 };
 </script>
-<style id="rak-critical-shell-fallback">
-  html{background:#050816;color:#eef7ff;min-height:var(--rak-start-viewport-h,100vh);}
-  body{margin:0;min-height:var(--rak-start-viewport-h,100vh);background:#050816;color:#eef7ff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
-  .page:not(.active){display:none;}
-  .bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:center;background:rgba(7,17,28,.82);}
-  .bottomNavScroll{display:flex;gap:6px;max-width:720px;width:100%;overflow-x:auto;padding:6px 8px calc(6px + env(safe-area-inset-bottom));}
-  .bottomNavBtn{appearance:none;border:0;background:transparent;color:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;max-width:72px;padding:5px 4px;font:600 10px/1.1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
-  .bottomNavIcon,.bottomNavIcon svg,.bottomNavIcon img,.bottomNavIconImg{width:26px!important;height:26px!important;max-width:26px!important;max-height:26px!important;object-fit:contain;}
-  .bottomNavIcon{position:relative;display:block;flex:0 0 26px;overflow:hidden;}
-  .bottomNavIconImg{position:absolute;inset:0;}
-  .bottomNavIconImg--on{opacity:0;}
-  .bottomNavBtn.active .bottomNavIconImg--on{opacity:1;}
-  .bottomNavBtn.active .bottomNavIconImg--off{opacity:0;}
-</style>
+<style id="rak-critical-shell-fallback">html{background:#050816;color:#eef7ff;min-height:var(--rak-start-viewport-h,100vh)}body{margin:0;min-height:var(--rak-start-viewport-h,100vh);background:#050816;color:#eef7ff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page:not(.active){display:none}.bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:center;background:rgba(7,17,28,.82)}.bottomNavScroll{display:flex;gap:6px;max-width:720px;width:100%;overflow-x:auto;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}.bottomNavBtn{appearance:none;border:0;background:transparent;color:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;max-width:72px;padding:5px 4px;font:600 10px/1.1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.bottomNavIcon,.bottomNavIcon svg,.bottomNavIcon img,.bottomNavIconImg{width:26px!important;height:26px!important;max-width:26px!important;max-height:26px!important;object-fit:contain}.bottomNavIcon{position:relative;display:block;flex:0 0 26px;overflow:hidden}.bottomNavIconImg{position:absolute;inset:0}.bottomNavIconImg--on{opacity:0}.bottomNavBtn.active .bottomNavIconImg--on{opacity:1}.bottomNavBtn.active .bottomNavIconImg--off{opacity:0}</style>
 
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&amp;display=swap" rel="stylesheet" onload="rakNoteExternalDependency('googleFonts','loaded',this.href)" onerror="rakNoteExternalDependency('googleFonts','failed',this.href)">
 <script src="data.js"></script>
@@ -84,8 +71,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 <script src="rak-namespace.js"></script>
 <script src="rak-dom-security-hardening.js"></script>
 
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="styles-inline-legacy.css">
+<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="styles-inline-legacy.css">
 
 
 </head>
@@ -882,30 +868,6 @@ window.rakNoteExternalDependency = function(name, status, src) {
 
 <link rel="stylesheet" href="styles-calc-panels.css">
 
-<link rel="stylesheet" href="styles-overrides-legacy-early.css">
-<link rel="stylesheet" href="styles-shift-report.css">
-<link rel="stylesheet" href="styles-admin-reports.css">
-<link rel="stylesheet" href="styles-interaction-guard.css">
-<link rel="stylesheet" href="styles-admin-rotation-fold.css">
-<link rel="stylesheet" href="styles-rotation-month.css">
-<link rel="stylesheet" href="styles-low-end-performance.css">
-<link rel="stylesheet" href="styles-dashboard-sync.css">
-<link rel="stylesheet" href="styles-admin-service.css">
-<link rel="stylesheet" href="styles-settings-runtime.css">
-<link rel="stylesheet" href="styles-calculators-mid.css">
-<link rel="stylesheet" href="styles-admin-rotation-editor.css">
-<link rel="stylesheet" href="styles-bottom-nav-runtime.css">
-<link rel="stylesheet" href="styles-overrides-legacy-late.css">
-<link rel="stylesheet" href="styles-dashboard-fit.css">
-<link rel="stylesheet" href="styles-admin-polish.css">
-<link rel="stylesheet" href="styles-menu-polish.css">
-<link rel="stylesheet" href="styles-stats-polish.css">
-<link rel="stylesheet" href="styles-viewport-polish.css">
-<link rel="stylesheet" href="styles-theme-polish.css">
-<link rel="stylesheet" href="styles-release-polish.css">
-<link rel="stylesheet" href="styles-dashboard-polish.css">
-<link rel="stylesheet" href="styles-daymods.css">
-<link rel="stylesheet" href="styles-theme-propagation.css">
-<link rel="stylesheet" href="styles-rotation-tasks.css">
+<link rel="stylesheet" href="styles-overrides-legacy-early.css"><link rel="stylesheet" href="styles-shift-report.css"><link rel="stylesheet" href="styles-admin-reports.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-interaction-guard.css"><link rel="stylesheet" href="styles-admin-rotation-fold.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-rotation-month.css"><link rel="stylesheet" href="styles-low-end-performance.css"><link rel="stylesheet" href="styles-dashboard-sync.css"><link rel="stylesheet" href="styles-admin-service.css"><link rel="stylesheet" href="styles-settings-runtime.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-calculators-mid.css"><link rel="stylesheet" href="styles-admin-rotation-editor.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-bottom-nav-runtime.css"><link rel="stylesheet" href="styles-overrides-legacy-late.css"><link rel="stylesheet" href="styles-dashboard-fit.css"><link rel="stylesheet" href="styles-admin-polish.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-menu-polish.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-stats-polish.css" media=print onload="this.media='all'"><link rel="stylesheet" href="styles-viewport-polish.css"><link rel="stylesheet" href="styles-theme-polish.css"><link rel="stylesheet" href="styles-release-polish.css"><link rel="stylesheet" href="styles-dashboard-polish.css"><link rel="stylesheet" href="styles-daymods.css"><link rel="stylesheet" href="styles-theme-propagation.css"><link rel="stylesheet" href="styles-rotation-tasks.css">
 </body></html>
 
