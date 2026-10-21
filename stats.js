@@ -481,6 +481,7 @@ function buildStatsForYear(year, options = {}) {
   const knownStatNames = getKnownStatNames();
   // RAK_STATS_ACTIVE_ROSTER_17007
   knownStatNames.forEach((name) => { if (name) ensurePerson(name); });
+  const cleanupOverrides = typeof rakCleanupSettings === 'function' ? rakCleanupSettings() : null;
   const annualWorkAbsenceTarget = getAnnualWorkAbsenceTarget(year);
   const includedMonthSet = new Set();
 
@@ -507,7 +508,9 @@ function buildStatsForYear(year, options = {}) {
         const parsedDate = typeof parseDateToken === 'function' ? parseDateToken(row.date) : null;
         if (!parsedDate) return;
         const isSunday = isSundayForMonthKey(monthKey, parsedDate.day);
-        const isSundayMorning = isSunday && /^R/.test(parsedDate.shift || "");
+        const isCleanupMorning = typeof rakCleanupIsMorningRow === 'function'
+          ? rakCleanupIsMorningRow(monthKey, row.date, cleanupOverrides)
+          : isSunday && /^R/.test(parsedDate.shift || "");
         const shouldSplitPress = shouldStatsSplitPressMachines(monthKey, parsedDate);
 
         const rowNames = new Set();
@@ -577,7 +580,7 @@ function buildStatsForYear(year, options = {}) {
             stats.machineTotals[column] = (stats.machineTotals[column] || 0) + 1;
           }
 
-          if (isSundayMorning) {
+          if (isCleanupMorning) {
             const cleanColumn = ensureColumn(getStatsMachineLabel(machine));
             if (cleanColumn) {
               person.clean[cleanColumn] = (person.clean[cleanColumn] || 0) + 1;

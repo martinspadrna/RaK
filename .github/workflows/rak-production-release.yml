@@ -98,6 +98,20 @@ jobs:
           mkdir -p ".vercel/output/static"
           cp ".rak-dist/supabase-vendor-2.110.7.js" ".vercel/output/static/supabase-vendor-2.110.7.js"
           test -s ".vercel/output/static/supabase-vendor-2.110.7.js"
+          # The canonical build generates PNG files under .rak-dist, but Vercel's
+          # prebuilt output must explicitly include them. Missing PWA icons were
+          # observed as HTTP 404 on both MAIN 2.0.27 and TEST 2.0.30.
+          for asset in apple-touch-icon.png \
+            assets/app-icons/icon-any-16.png \
+            assets/app-icons/icon-any-32.png \
+            assets/app-icons/icon-any-180.png \
+            assets/app-icons/icon-any-192.png \
+            assets/app-icons/icon-any-512.png; do
+            test -s ".rak-dist/$asset"
+            mkdir -p ".vercel/output/static/$(dirname "$asset")"
+            cp ".rak-dist/$asset" ".vercel/output/static/$asset"
+            test -s ".vercel/output/static/$asset"
+          done
       - name: Create one unaliased production candidate after green CI
         run: |
           test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$EXPECTED_SHA"
@@ -125,6 +139,13 @@ jobs:
             vercel curl "$path" --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --dump-header ".rak-production-evidence/http/immutable/$name.headers" --output ".rak-production-evidence/http/immutable/$name.body"
           done
           node tools/release-evidence.mjs http-check immutable-production .rak-production-evidence/http/immutable .rak-production-evidence/http-immutable.json production
+          # Fail closed if the staged deployment still lacks installed-app artwork.
+          for asset in apple-touch-icon.png \
+            assets/app-icons/icon-any-32.png \
+            assets/app-icons/icon-any-192.png \
+            assets/app-icons/icon-any-512.png; do
+            vercel curl "/$asset" --deployment "$DEPLOYMENT_ID" -- --fail --silent --show-error --output /dev/null
+          done
       - name: Move the production alias only after immutable verification
         id: alias
         run: |
@@ -143,6 +164,12 @@ jobs:
             test "$code" = "200"
           done
           node tools/release-evidence.mjs http-check production-alias .rak-production-evidence/http/production .rak-production-evidence/http-production.json production
+          for asset in apple-touch-icon.png \
+            assets/app-icons/icon-any-32.png \
+            assets/app-icons/icon-any-192.png \
+            assets/app-icons/icon-any-512.png; do
+            curl --fail --silent --show-error --location --output /dev/null "https://$PRODUCTION_ALIAS/$asset"
+          done
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import RELEASE_METADATA from './rak-release-metadata.js';

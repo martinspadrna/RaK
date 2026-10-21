@@ -1,3 +1,7 @@
+## 21. 10. 2026 — produkční kandidát RaK 2.0.31 (příprava, ne MAIN)
+
+Pouze větev `release/rak-2.0.31-prep` vytvořená z MAIN `dd90d3078bf3c7d38877c430fa8329635623132a`. Do větve jsou selektivně přeneseny jen moduly týdenního Úklidu včetně statistik, administrace, vazby generátoru, aktualizace PWA, instalační iOS stránky a lokalizované knihovny Supabase, příslušné testy a synchronizované verzování. Produkční konfigurace Supabase, releasovací workflow, role/RPC ani generátorová pravidla nebyla upravena. Automatický preview deploy větve je vypnut. MAIN/produkce se NESMĚJÍ změnit před explicitním potvrzením vlastníka a všemi kontrolami. Případné testování UI kandidáta jen na izolované testovací databázi, nikdy neprovádět zápisy přes produkční preview. Kontrola ikon: na MAIN i TEST existovaly 404 pro generované icon-any-192/512 a apple-touch-icon.png, je nutné vyřešit před převodem. Rollback produkce: dosavadní deployment `dpl_EYxcV96PAVnC9M6gd1VA5o544yL2` / verze 2.0.27.
+
 # RaK – kanonický handoff
 
 Toto je jediný živý řídicí dokument projektu RaK.

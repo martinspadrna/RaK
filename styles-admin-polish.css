@@ -2863,3 +2863,18 @@
   #appMenuBody .adminAccountsCard > .appMenuActionRow{display:flex !important;flex-wrap:nowrap !important;}
   #appMenuBody .adminAccountsCard > .appMenuActionRow > .appMenuAction{flex:1 1 0 !important;min-width:0 !important;min-height:34px !important;padding:6px 3px !important;font-size:10px !important;}
 }
+
+/* RaK TEST 2.0.28: compact weekly cleanup rows */
+.rakCleanupYearNav{display:flex;align-items:center;justify-content:center;gap:18px;margin:14px 0}
+.rakCleanupYearNav b{font-size:1.2rem}
+.rakCleanupYearNav .appMenuAction{min-width:44px}
+.rakCleanupHeader,.rakCleanupWeek{display:grid;grid-template-columns:minmax(90px,.8fr) minmax(148px,1.2fr);align-items:center;gap:12px}
+.rakCleanupHeader{font-size:.78rem;opacity:.75;padding:7px 12px}
+.rakCleanupWeeks{display:grid;gap:7px;max-height:min(64vh,610px);overflow-y:auto;overscroll-behavior:contain;padding:3px 5px 8px}
+.rakCleanupWeek{border-radius:12px;padding:9px 12px;border:1px solid rgba(150,169,160,.22);background:rgba(130,155,145,.07)}
+.rakCleanupWeek.isCurrent{border-color:rgba(51,200,129,.65)}
+.rakCleanupWeek.isChanged{background:rgba(51,200,129,.1)}
+.rakCleanupWeek strong{display:block;font-size:.95rem}
+.rakCleanupWeek small{display:block;font-size:.7rem;color:#36bd86}
+.rakCleanupWeek select{width:100%;min-width:0;min-height:40px;margin:0}
+@media(max-width:350px){.rakCleanupHeader,.rakCleanupWeek{grid-template-columns:minmax(60px,.7fr) minmax(130px,1.3fr);gap:6px}.rakCleanupWeek{padding:6px}}

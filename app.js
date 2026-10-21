@@ -116,6 +116,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   ];
 
   const rotationFeatureFiles = [
+    "rak-cleanup-schedule.js",
     "stats.js",
     "rotation-name-index.js",
     "rotace.js",
@@ -158,6 +159,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
+    "rak-cleanup-schedule.js",
     "admin-shift-overview.js",
     "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",

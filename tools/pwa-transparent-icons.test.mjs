@@ -8,7 +8,7 @@ import {GENERATED_ICON_NAMES} from './build-transparent-pwa-icons.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=(relative)=>fs.readFileSync(path.join(root,relative),'utf8');
-test('Windows, Android and iOS use the same transparent symbol without old opaque icon entries',async()=>{
+test('Windows and Android keep transparent icons while iOS receives a compatible legacy-logo fallback',async()=>{
  const manifest=JSON.parse(read('manifest.webmanifest'));
  const icons=manifest.icons;
  for(const size of [192,512]){
@@ -18,7 +18,39 @@ test('Windows, Android and iOS use the same transparent symbol without old opaqu
  }
  const index=read('index.html'),worker=read('sw.js');
  assert(index.includes('icon-any-32.png'),'transparent favicon');
- assert(index.includes('apple-touch-icon') && index.includes('icon-any-180.png'),'iOS icon uses the same transparent logo');
+ assert(index.includes('apple-touch-icon') && index.includes('assets/app-icons/icon-180.png?v=2.0.27-ios3'),'iOS points to compatible cache-busted icon');
+ const iosManifestIcon=icons.find(x=>x.sizes==='180x180'&&x.purpose==='any');
+ assert(iosManifestIcon?.src==='assets/app-icons/icon-180.png?v=2.0.27-ios3','Edge manifest has an explicit iOS fallback');
+ const trackedInstaller=read('ios-install.html');
+ assert(trackedInstaller.includes('<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,'),'tracked installer embeds inline touch icon');
+ assert(trackedInstaller.includes('assets/app-icons/icon-180.png?v=2.0.27-ios3'),'tracked installer preview references served 180px PNG');
+ const legacyIcon=path.join(root,'assets','app-icons','icon-180.png');
+ const legacyMeta=await sharp(legacyIcon).metadata();
+ assert.equal(legacyMeta.width,180);
+ assert.equal(legacyMeta.height,180);
+ assert(!legacyMeta.hasAlpha,'the reachable legacy launcher icon must have no alpha');
+ const iosPath=path.join(root,'apple-touch-icon.png');
+ if(fs.existsSync(iosPath)){
+   const ios=await sharp(iosPath).metadata();
+   assert.equal(ios.width,180,'Apple icon width');
+   assert.equal(ios.height,180,'Apple icon height');
+   assert.equal(ios.hasAlpha,false,'Apple icon must be opaque for iOS');
+   const installerPath=path.join(root,'ios-install.html');
+   if(fs.existsSync(installerPath)){
+     const installer=fs.readFileSync(installerPath,'utf8');
+     const marker='<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,';
+     const start=installer.indexOf(marker);
+     assert(start>=0,'iOS 27 installer must embed the full PNG directly in the Apple link');
+     const from=start+marker.length;
+     const embedded=Buffer.from(installer.slice(from,installer.indexOf('"',from)),'base64');
+     assert(embedded.equals(fs.readFileSync(iosPath)),'installer embedded icon matches PNG bytes exactly');
+     assert(installer.includes('window.location.replace'), 'standalone install launcher returns to actual RaK app');
+     const parsed=await sharp(embedded).metadata();
+     assert.equal(parsed.width,180);
+     assert.equal(parsed.height,180);
+     assert.equal(parsed.hasAlpha,false);
+   }
+ }
  assert(worker.includes('icon-any-180.png'),'iOS icon precached for offline use');
  assert(worker.includes('icon-any-512.png'),'new PWA icon precached');
  const source=await sharp(path.join(root,'assets/app-icons/icon-any-source-128.png')).metadata();

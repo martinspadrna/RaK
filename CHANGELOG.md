@@ -1,3 +1,11 @@
+## RaK 2.0.31 (development)
+
+**Produkční kandidát – pouze příprava, ZATÍM NENASAZOVAT.**
+
+- Kandidát vychází pouze z produkčního MAIN dd90d3078bf3c7d38877c430fa8329635623132a, nikoliv z merge development. Nový týdenní Úklid ve správě, statistice a ročním vyrovnání generátoru; pravidla stroje a ostatní logika generátoru se nemění.
+- Přenesena ověřená iOS instalační stránka a lokální Supabase SDK s integrity testem. Záměrně zachována produkční Supabase konfigurace a produkční GitHub Actions releasovací ochrana.
+- Větev release/rak-2.0.31-prep má vypnutý automatický Vercel deploy. Před povolením MAIN vyžaduje zelený build, statické soubory ikon HTTP 200 a fyzický test.
+
 ## RaK 2.0.27 (development)
 
 - Windows, Android a iPhone nyní používají **stejné transparentní logo RaK bez černého čtvercového pozadí**. Mobilní ikony v manifestu jsou jen purpose:any; původní neprůhledné maskable ikony nejsou pro instalaci nabízené.
