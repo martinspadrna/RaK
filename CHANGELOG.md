@@ -1,4 +1,6 @@
-## RaK 2.0.31 (produkční kandidát, ZATÍM NENASAZOVAT)
+## RaK 2.0.31 (development)
+
+**Produkční kandidát – pouze příprava, ZATÍM NENASAZOVAT.**
 
 - Kandidát vychází pouze z produkčního MAIN dd90d3078bf3c7d38877c430fa8329635623132a, nikoliv z merge development. Nový týdenní Úklid ve správě, statistice a ročním vyrovnání generátoru; pravidla stroje a ostatní logika generátoru se nemění.
 - Přenesena ověřená iOS instalační stránka a lokální Supabase SDK s integrity testem. Záměrně zachována produkční Supabase konfigurace a produkční GitHub Actions releasovací ochrana.
