@@ -142,7 +142,7 @@ export function compactPublishedCss(source){
     const c=input[i];
     if(quote){
       out+=c; i++;
-      if(c==='\\\\' && i<input.length){out+=input[i++];continue;}
+      if(c==='\\' && i<input.length){out+=input[i++];continue;}
       if(c===quote)quote=null;
       continue;
     }
@@ -155,7 +155,7 @@ export function compactPublishedCss(source){
     out+=c;i++;
   }
   // Keep every nonempty line break and every interior selector/value space.
-  return out.replace(/^[ \\t]+/gm,'').replace(/^[ \\t]*\\r?\\n/gm,'');
+  return out.replace(/^[ \t]+/gm,'').replace(/^[ \t]*\r?\n/gm,'');
 }
 function optimizePublishedCss(){
   for(const relative of ['styles-overrides-legacy-early.css','styles-admin-polish.css']){
