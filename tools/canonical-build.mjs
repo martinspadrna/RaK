@@ -132,6 +132,41 @@ function prepareBackup(){
   assert(Buffer.isBuffer(archive)&&archive.length>100000,'source archive incomplete');
   fs.writeFileSync(path.join(WORK,'rak-complete-backup-source.zip'),archive);
 }
+// This optimization touches only published CSS bytes, never tracked source or the
+// backup archive. Preserve all CSS tokens and string literals: comments are lexical
+// whitespace, and leading indentation is not a selector or declaration token.
+export function compactPublishedCss(source){
+  const input=String(source||'');
+  let out='',quote=null;
+  for(let i=0;i<input.length;){
+    const c=input[i];
+    if(quote){
+      out+=c; i++;
+      if(c==='\\\\' && i<input.length){out+=input[i++];continue;}
+      if(c===quote)quote=null;
+      continue;
+    }
+    if(c==='"'||c==="'"){quote=c;out+=c;i++;continue;}
+    if(c==='/'&&input[i+1]==='*'){
+      const end=input.indexOf('*/',i+2);
+      assert(end>=0,'unterminated CSS comment');
+      out+=' ';i=end+2;continue;
+    }
+    out+=c;i++;
+  }
+  // Keep every nonempty line break and every interior selector/value space.
+  return out.replace(/^[ \\t]+/gm,'').replace(/^[ \\t]*\\r?\\n/gm,'');
+}
+function optimizePublishedCss(){
+  for(const relative of ['styles-overrides-legacy-early.css','styles-admin-polish.css']){
+    const file=path.join(OUTPUT,relative);
+    const original=fs.readFileSync(file,'utf8');
+    const compact=compactPublishedCss(original);
+    assert(compact.length<original.length-3000,'no meaningful CSS optimization: '+relative);
+    fs.writeFileSync(file,compact,'utf8');
+  }
+}
+
 function publish(){
   fs.rmSync(OUTPUT,{recursive:true,force:true});fs.mkdirSync(OUTPUT,{recursive:true});
   const candidates=trackedFiles().filter(isStatic);
@@ -141,6 +176,7 @@ function publish(){
   if(!candidates.includes(SUPABASE_VENDOR_RELATIVE))candidates.push(SUPABASE_VENDOR_RELATIVE);
   if(!candidates.includes('rak-complete-backup-source.zip'))candidates.push('rak-complete-backup-source.zip');
   for(const relative of candidates.sort())if(fs.existsSync(path.join(WORK,relative)))copy(relative,WORK,OUTPUT);
+  optimizePublishedCss();
   for(const required of REQUIRED)assert(fs.existsSync(path.join(OUTPUT,required)),'missing output '+required);
 }
 function manifest(){
