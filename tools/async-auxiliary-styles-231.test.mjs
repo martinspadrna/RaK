@@ -8,7 +8,7 @@ const deferred=['styles-admin-reports.css','styles-admin-rotation-fold.css','sty
 test('auxiliary styles load without blocking first paint and become active on load',()=>{
   const html=read('index.html');
   for(const name of deferred){
-    const exact='<link rel="stylesheet" href="'+name+'" media=print onload="this.media=\\'all\\'">';
+    const exact=`<link rel="stylesheet" href="${name}" media=print onload="this.media='all'">`;
     assert(html.includes(exact),'auxiliary CSS must load and activate before admin click: '+name);
     assert(read(name).length>300,'do not remove or replace styles: '+name);
   }
