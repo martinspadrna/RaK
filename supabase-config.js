@@ -1,4 +1,4 @@
-// RaK 2.0.31 TEST – stejný runtime jako MAIN, pouze izolovaná testovací Supabase.
+// RaK TEST – stejný runtime jako MAIN, pouze izolovaná testovací Supabase.
 const rakReleaseMetadata = window.RAK_RELEASE_METADATA;
 if (!rakReleaseMetadata || !rakReleaseMetadata.displayVersion || !rakReleaseMetadata.buildId) {
   throw new Error('Chybí metadata vydání aplikace.');
