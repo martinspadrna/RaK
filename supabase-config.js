@@ -1,4 +1,4 @@
-// RaK 1.6 – development používá oddělenou testovací Supabase.
+// RaK 2.0.31 TEST – stejný runtime jako MAIN, pouze izolovaná testovací Supabase.
 const rakReleaseMetadata = window.RAK_RELEASE_METADATA;
 if (!rakReleaseMetadata || !rakReleaseMetadata.displayVersion || !rakReleaseMetadata.buildId) {
   throw new Error('Chybí metadata vydání aplikace.');
@@ -8,9 +8,8 @@ window.SUPABASE_CONFIG = {
   publishableKey: "sb_publishable_v7jeuZC-MNUEO5nfE5xcUQ_Pu9pT-X_"
 };
 
-// Development-only viditelná testovací verze. Produkční main dál zobrazuje
-// veřejnou verzi RaK 1.6; každý další testovací balík budeme číslovat
-// 1.6.01, 1.6.02, 1.6.03… aby bylo v O aplikaci hned vidět, co běží.
+// Jednotná metadata vydání pro TEST runtime; viditelná i technická
+// verze se načítají z kanonického souboru rak-release-metadata.js.
 window.RAK_RELEASE_VERSION = rakReleaseMetadata.displayVersion;
 window.RAK_TEST_DISPLAY_VERSION = rakReleaseMetadata.displayVersion;
 // Legacy smoke compatibility: window.RAK_RELEASE_VERSION = "1.6.03";
@@ -94,45 +93,8 @@ window.RAK_PWA_BUILD = rakReleaseMetadata.buildId;
   tryPaint();
 })();
 
-// Development-only ochrana proti přenesení starého admin odemčení v běžícím
-// PWA runtime při přepnutí z produkční Supabase na testovací. Maže pouze
-// autorizační příznaky administrace; běžné přihlášení uživatele zůstává.
-(function rakTestResetStaleAdminRuntime() {
-  const staleSessionKeys = [
-    "adminUnlockedSession",
-    "adminPinSession",
-    "adminAuthPinSession",
-    "adminAccountIdSession",
-    "adminOwnerSession",
-    "adminPromptedAccountSession"
-  ];
-
-  try {
-    staleSessionKeys.forEach((key) => sessionStorage.removeItem(key));
-    localStorage.removeItem("adminUnlocked");
-  } catch (err) {}
-
-  let attempts = 0;
-  const resetRuntimeOnce = function () {
-    attempts += 1;
-    try {
-      if (typeof app !== "undefined" && app) {
-        app.adminUnlocked = false;
-        app.adminPin = "";
-        app.adminAccountId = "";
-        app.adminIsOwner = false;
-        app.adminAuthVersion = 0;
-        window.__rakTestAdminRuntimeReset = true;
-        return;
-      }
-    } catch (err) {}
-    if (attempts < 120) setTimeout(resetRuntimeOnce, 25);
-  };
-  resetRuntimeOnce();
-})();
-
-// Development-only rychlá vrstva pro denní výjimku „kalírna“.
-// Je v samostatném souboru, aby produkční main zůstal beze změny.
+// Společná rychlá vrstva pro denní výjimku „kalírna“.
+// Je v samostatném souboru kvůli řízenému načtení a cache invalidaci.
 (function loadRakKalirnaDayModOverride() {
   const src = "kalirna-daymod-override.js?v=20260912-1";
   try {
@@ -145,7 +107,7 @@ window.RAK_PWA_BUILD = rakReleaseMetadata.buildId;
   } catch (err) {}
 })();
 
-// Development-only statistická vrstva: kalírna se odečte z původního stroje,
+// Společná statistická vrstva: kalírna se odečte z původního stroje,
 // ale „Práce celkem“ zůstane podle původního rozpisu beze změny.
 (function loadRakKalirnaStatsOverride() {
   const src = "kalirna-stats-override.js?v=20260913-1";

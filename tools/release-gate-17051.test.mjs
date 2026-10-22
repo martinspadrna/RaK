@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('final development version, test DB, OS-only login and technical version',(
   ['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`],
   ['sw.js',"const SW_APP_VERSION = '1.7.0';"]])assert(read(path).includes(marker),`[17051] ${path} missing ${marker}`);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'));
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
 });
 test('source archive is rebuilt from precisely the safe, embedded client inventory',()=>{

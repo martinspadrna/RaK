@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -5,7 +6,7 @@ import {assertCurrentReleaseIdentity} from './release-metadata-test-helper.mjs';
 
 const read=file=>fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
 
-test('current TEST has one release identity across runtime, PWA and package metadata',()=>{
+test('production has one release identity across runtime, PWA and package metadata',()=>{
   const version=JSON.parse(read('package.json')).version;
   const metadata=assertCurrentReleaseIdentity(read,version);
   assert.equal(metadata.displayVersion,version);
@@ -35,8 +36,7 @@ test('1.9 About summary covers performance, parity, isolation and cross-shift na
 
 test('1.9 remains TEST-only and preserves the explicit cross-shift order',()=>{
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
   const core=read('core.js');
   assert(core.includes("['home','kalkulacky','menu'].forEach((action,index)=>"));
   assert(core.includes("button.style.setProperty('grid-column',String(index+1),'important')"));

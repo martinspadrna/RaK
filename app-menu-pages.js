@@ -6,13 +6,16 @@ function buildAppMenuAboutHistoryHtml() {
   const sections = [
     {
       range: 'RaK 2',
-      published: '11. 10. 2026 · TEST',
+      published: '',
       title: 'Přehled směny a jednodušší ovládání',
       lines: [
         'Nový Přehled směny: počítadla vsázek, výpočty, celková tabulka a online záloha k účtu.',
         'Rozepsaný přehled se průběžně ukládá v zařízení; lze jej vymazat, online záloha se ukládá tlačítkem Uložit.',
         'Přehlednější rozpisy a neplánované absence s Neschopenkou. Kantýna a jídelna mají okna vedle sebe a výrazné časy.',
-        'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.'
+        'Generátor rozpisů přesněji střídá stroje a vyrovnává MO/TO i samostatné frézky; jeho pravidla platí také při úpravě části měsíce.',
+        'Jednotná průhledná ikona aplikace na Windows i mobilu.',
+        'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.',
+        'Nový Úklid po kalendářních týdnech: volitelný den, aktuální KT po otevření a správné započítání do statistik.'
       ]
     },
     // RAK_190_ABOUT_START
@@ -23,7 +26,7 @@ function buildAppMenuAboutHistoryHtml() {
       lines: [
         'První načtení je lehčí: dashboard, přihlášení, dnešní směna a údaj „kam jdu“ zůstávají v rychlém jádru, zatímco nepoužívané části se načtou až při otevření.',
         'Rotace, Kalkulačky, Více a Administrace si zachovávají oddělené moduly a vlastní zachycení chyb, takže porucha jedné volitelné části nezastaví celý RaK.',
-        'Vzhled TESTu byl vrácen 1:1 k ověřené hlavní verzi včetně tabulek, formulářů, statistik, kalkulaček a administrace.',
+        'Vzhled aplikace byl sjednocen 1:1 s ověřenou hlavní verzí včetně tabulek, formulářů, statistik, kalkulaček a administrace.',
         'Účty jiných směn nevidí Rotaci a mají dole tři stejně široké položky ve správném pořadí Home – Kalkulačky – Více.',
         'PWA cache a automatické kontroly hlídají úplnou výměnu verze, rychlost prvního načtení, offline start a vizuální regresi.'
       ]
@@ -40,7 +43,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Rozpisy, absence a neplánované změny mají přesnější staffing a práci s Kalírnou; Administrace je rychlejší a na iPhonu přehlednější a kompaktnější.',
         'Dashboardový kalendář podporuje Obrábění i Kalírnu A–D, uložený výběr a legendu; bez aktivního zdroje zobrazí lokální prázdný měsíc bez Google cookie brány.',
         'Korekce Frézek a Brusů mají sjednocené mobilní ovládání. Offline/PWA, konflikty a zálohy mají přísnější diagnostiku, CAS ochranu a obnovu.',
-        'Release pipeline hlídá reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a oddělení TESTu od produkce; opravy míří do skutečných vlastníků funkcí.'
+        'Release pipeline hlídá reprodukovatelný build, mobilní Chromium, výkon proti pevné baseline a oddělení testování od produkce; opravy míří do skutečných vlastníků funkcí.'
       ]
     },
     // RAK_180_ABOUT_END
@@ -120,7 +123,7 @@ function buildAppMenuAboutHistoryHtml() {
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
       const releaseMetadata = window.RAK_RELEASE_METADATA || {};
-      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.30').trim();
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.31').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',

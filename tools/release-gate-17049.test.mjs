@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,7 +19,7 @@ test('exact preview version, TEST Supabase, PWA cache and unchanged technical ve
   ['sw.js',"const SW_APP_VERSION = '1.7.0';"]])
   assert(read(path).includes(marker),`${path}: ${marker}`);
  const config=read('supabase-config.js');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(config);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
 });
 test('public report metadata is allowlisted in DB trigger, not only filtered in client',()=>{

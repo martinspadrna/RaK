@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,6 +25,5 @@ test('1.8.5 food-dismiss and release gates are mandatory locally and in CI',()=>
 
 test('1.8.5 remains TEST-only',()=>{
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
 });

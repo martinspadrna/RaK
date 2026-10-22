@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -20,7 +21,7 @@ test('RaK 1.7.48 all release markers, test DB, OS-only employees and technical v
   assert(read(path).includes(marker),`${path}: ${marker}`);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
  const config=read('supabase-config.js');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(config);
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
  assert(read('rak-account-access.js').includes('Zadej 4 číslice.'));
  assert(read('rak-complete-backup.js').includes('RAK_PRIVATE_IMPORT_BACKUP_17042'));

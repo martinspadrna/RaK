@@ -6,6 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import RELEASE_METADATA from '../rak-release-metadata.js';
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import {assessPerformanceBudget,loadPerformanceBudget,writePerformanceBudgetEvidence} from './performance-budget-17104.mjs';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -46,7 +47,7 @@ function benchmark(){
  assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8')).version,RELEASE_METADATA.technicalVersion,'built technical version required');
  assert.equal(RELEASE_METADATA.technicalVersion,RELEASE_METADATA.displayVersion,'release version must be unified');
  const config=fs.readFileSync(path.join(ROOT,'supabase-config.js'),'utf8');
- assert(config.includes('cgshssdjgzzuprlwnabl')&&!config.includes('bkqamcbkiwumsvelahxr'),'TEST configuration required');
+ assertSupabaseTarget(config,'PWA benchmark runtime');
  const samples=[];
  for(let round=1;round<=ROUNDS;round++){
   const run=spawnSync(process.execPath,[path.join(ROOT,'tools/browser-offline-17052.mjs')],{

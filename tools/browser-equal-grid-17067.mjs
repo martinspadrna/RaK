@@ -101,4 +101,18 @@ try{
  }
  console.log('[17067-browser] PASS Chromium Android touch emulation: dragging over MO/TO names scrolls the parent menu down and up');
 }catch(err){console.error('[17067-browser] TOUCH FAIL '+err.stack);process.exitCode=1;}
-finally{try{touchWs?.close();}catch{}touchChrome?.kill();await pause(150);fs.rmSync(touchDir,{recursive:true,force:true});}
+finally{
+ try{touchWs?.close();}catch{}
+ if(touchChrome?.exitCode===null&&!touchChrome.killed)touchChrome.kill();
+ // Chromium can still write to the profile for a short time after SIGTERM.
+ // Retry only transient filesystem cleanup races; never skip failed UI assertions.
+ let removed=false;
+ for(let attempt=0;attempt<10;attempt++){
+  try{fs.rmSync(touchDir,{recursive:true,force:true,maxRetries:4,retryDelay:100});removed=true;break;}
+  catch(error){
+   if(!['ENOTEMPTY','EBUSY','EPERM'].includes(error?.code))throw error;
+   await pause(250);
+  }
+ }
+ if(!removed)throw Error('Chromium touch profile cleanup did not finish');
+}

@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,7 +19,7 @@ test('1.7.47 PWA, app, test Supabase and 1.7.0 technical version are aligned',()
     ['sw.js',"const SW_APP_VERSION = '1.7.0';"]])
     assert(read(path).includes(marker),`${path}: ${marker}`);
   assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
-  assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl'));
+  assertSupabaseTarget(read('supabase-config.js'));
   assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
 test('public-field guard, machine settings trigger and deep backup validation remain separate and testable',()=>{

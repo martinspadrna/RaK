@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -32,7 +33,7 @@ function fixture(result,options={}){
 test('1.7.65 release, TEST DB and technical package',()=>{
  for(const [p,marker] of [['index.html',`var build='${BUILD}';`],['supabase-config.js','window.RAK_RELEASE_VERSION = "1.7.65";'],['supabase-config.js',`window.RAK_PWA_BUILD = "${BUILD}";`],['app.js',`const RAK_DEV_UPDATE_BUILD = "${BUILD}";`],['sw.js',"const CACHE_VERSION = 'v1.7.65';"],['sw.js',`const DEVELOPMENT_BUILD_ID = '${BUILD}';`]])assert(read(p).includes(marker),p);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'));
 });
 test('real Save Rozpis button creates durable draft BEFORE network and retains conflict',async()=>{
  const f=fixture({ok:false,reason:'revision-conflict'}),out=await f.save();
