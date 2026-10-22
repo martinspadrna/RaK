@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {resolveRakBuildTarget} from './build-target.mjs';
 
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
@@ -39,4 +40,19 @@ test('both Git-integrated protected branches have automatic Vercel deployments d
   for(const [name,value] of Object.entries(flags||{})){
     assert.equal(value,false,'production promotion must never enable branch autodeploy: '+name);
   }
+});
+
+test('native Vercel production builds select production isolation without Actions env',()=>{
+  const build=read('tools/canonical-build.mjs');
+  assert(build.includes('process.env.RAK_BUILD_TARGET=resolveRakBuildTarget(process.env);'),'canonical build must set target before smoke checks');
+  assert.equal(resolveRakBuildTarget({VERCEL:'1',VERCEL_ENV:'production'}),'production');
+  assert.equal(resolveRakBuildTarget({VERCEL:'1',VERCEL_ENV:'production',VERCEL_GIT_COMMIT_REF:'main'}),'production');
+  assert.equal(resolveRakBuildTarget({VERCEL:'1',VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'main'}),'production');
+  assert.equal(resolveRakBuildTarget({VERCEL:'1',VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'development'}),'test');
+  assert.equal(resolveRakBuildTarget({VERCEL:'1',VERCEL_ENV:'preview'}),'test');
+  assert.equal(resolveRakBuildTarget({}),'test');
+  assert.equal(resolveRakBuildTarget({RAK_BUILD_TARGET:'production'}),'production');
+  // An explicit contradictory override is preserved so security smoke will reject it.
+  assert.equal(resolveRakBuildTarget({VERCEL:'1',VERCEL_ENV:'production',RAK_BUILD_TARGET:'test'}),'test');
+  assert.throws(()=>resolveRakBuildTarget({RAK_BUILD_TARGET:'unknown'}),/Unsupported RAK_BUILD_TARGET/);
 });
