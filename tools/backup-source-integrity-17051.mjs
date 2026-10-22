@@ -14,7 +14,10 @@ const expectedBranch=BUILD_TARGET==='production'?'main':'development';
 for(const [name,value] of [['GitHub',process.env.GITHUB_REF_NAME],['Vercel',process.env.VERCEL_GIT_COMMIT_REF]]){
  if(!value)continue;
  if(name==='GitHub'&&process.env.GITHUB_EVENT_NAME==='pull_request'){
-   assert(BUILD_TARGET==='production'&&String(process.env.GITHUB_HEAD_REF||'').startsWith('release/'),`[17051] production candidate PR must originate release/*`);
+   assert.equal(String(process.env.GITHUB_BASE_REF||''),expectedBranch,'[17051] PR target must match build isolation');
+   const head=String(process.env.GITHUB_HEAD_REF||'');
+   if(BUILD_TARGET==='production') assert(head.startsWith('release/'),'[17051] production candidate PR must originate release/*');
+   else assert(head&&!head.startsWith('release/')&&head!=='main','[17051] TEST PR must not use main or a production release branch');
  }else assert.equal(value,expectedBranch,`[17051] ${name} branch must match ${BUILD_TARGET} target`);
 }
 if(process.env.GITHUB_SHA)assert.equal(process.env.GITHUB_SHA,sha,'[17051] workflow SHA mismatch');
