@@ -5,6 +5,11 @@ import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import RELEASE_METADATA from '../rak-release-metadata.js';
+import {resolveRakBuildTarget} from './build-target.mjs';
+
+// Native Vercel Git builds do not inherit the GitHub Actions target variable.
+// Infer the target before child checks run, preserving production/TEST isolation.
+process.env.RAK_BUILD_TARGET=resolveRakBuildTarget(process.env);
 
 export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export const STATE=path.join(ROOT,'.rak-canonical-build');
