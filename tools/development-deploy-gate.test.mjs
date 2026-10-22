@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8').replace(/\r\n?/g,'\n');
+const buildTarget=String(process.env.RAK_BUILD_TARGET||'test').trim();
 
-test('development waits for an explicit post-CI preview while main policy is untouched',()=>{
+test('both protected branches require explicit CI-gated deployments in TEST and production',()=>{
   const config=JSON.parse(read('vercel.json'));
-  assert.deepEqual(config.git?.deploymentEnabled,{development:false},'only development automatic Git deployments may be disabled');
-  assert.equal(Object.hasOwn(config.git.deploymentEnabled,'main'),false,'development must not change the main deployment policy');
+  assert(['test','production'].includes(buildTarget),'unexpected RAK_BUILD_TARGET');
+  assert.deepEqual(config.git?.deploymentEnabled,{development:false,main:false},'never enable automatic deployment of protected branches');
   assert.equal(config.ignoreCommand,'node tools/vercel-ignore-build.mjs','fail-closed non-runtime skip policy remains active');
 });
 

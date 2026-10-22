@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -83,7 +84,7 @@ test('1.7.69 and verified canonical successors keep TEST-only release and histor
  assertCurrentReleaseIdentity(read,'1.7.69');
  assert.equal(JSON.parse(read('package.json')).version,RELEASE_METADATA.technicalVersion);
  assert.equal(RELEASE_METADATA.technicalVersion,RELEASE_METADATA.displayVersion);
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'));
  const chain=read('tools/development-version-17048.mjs');
  assert(chain.includes("await import('./development-version-17069.mjs');"));
  const pkg=JSON.parse(read('package.json'));

@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -42,8 +43,7 @@ test('version, isolated test DB, backup and OS-only login preserve contracts', (
     ['sw.js', `const DEVELOPMENT_BUILD_ID = '${build}';`],
     ['sw.js', "const SW_APP_VERSION = '1.7.0';"]]) assert(read(file).includes(marker), `${file}: ${marker}`);
   assert.equal(JSON.parse(read('package.json')).version, '1.7.0');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
   const stage = read('tools/development-version-17044.mjs');
   assert(!stage.includes("change('rak-account-access.js'"));
   assert(!stage.includes("change('supabase-bridge.js'"));

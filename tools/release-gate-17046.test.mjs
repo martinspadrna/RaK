@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ test('exact release, test Supabase, and technical version',()=>{
   ['sw.js',"const SW_APP_VERSION = '1.7.0';"]])
   assert(read(file).includes(marker),`${file}: missing ${marker}`);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl'));
+ assertSupabaseTarget(read('supabase-config.js'));
  assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
 test('bounded public telemetry and structural backup constraint recorded',()=>{

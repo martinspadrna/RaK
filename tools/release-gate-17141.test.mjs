@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,6 +25,5 @@ test('1.7.141 keeps the point-1 UI regression gate mandatory',()=>{
 
 test('successor releases remain isolated to TEST Supabase',()=>{
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
 });

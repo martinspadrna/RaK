@@ -1,0 +1,75 @@
+name: RaK v2 authorized rollout coordinator
+
+# Martin authorized transfer of tested RaK 2.0.27 to main and production on 2026-10-19.
+# One-time trigger: only the commit introducing/changing this coordinator on main.
+# 2026-10-19 re-armed for bounded full-gate retry on observed Chromium P90/profile-cleanup flakiness only.
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/rak-v2-authorized-rollout.yml]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: rak-v2-authorized-rollout
+  cancel-in-progress: false
+
+jobs:
+  coordinate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_DEVELOPMENT_SHA: 8606effab4a5150be1b542bded4613bc12c0861d
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require exact approved v2 main and unchanged TEST
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          node -e 'if(require("./package.json").version!=="2.0.27")process.exit(1)'
+      - name: Dispatch full exact-main validation and await green result
+        run: |
+          gh workflow run rak-development-validation.yml --repo "${{ github.repository }}" --ref main
+          parity_retries=0
+          for attempt in $(seq 1 130); do
+            runs="$(gh api "repos/${{ github.repository }}/actions/workflows/rak-development-validation.yml/runs?branch=main&event=workflow_dispatch&per_page=20")"
+            id="$(printf '%s' "$runs" | jq -r --arg sha "$GITHUB_SHA" '[.workflow_runs[] | select(.head_sha==$sha)] | sort_by(.id) | last | .id // empty')"
+            if test -n "$id"; then
+              status="$(gh api repos/${{ github.repository }}/actions/runs/$id --jq .status)"
+              if test "$status" = completed; then
+                result="$(gh api repos/${{ github.repository }}/actions/runs/$id --jq .conclusion)"
+                if test "$result" = success; then
+                  echo "EXACT_MAIN_VALIDATION=$id" >> "$GITHUB_ENV"
+                  break
+                fi
+                # Retry ONLY the intermittent Chromium FCP parity step, max twice.
+                # Every retry must independently pass ALL existing gates unchanged.
+                failed="$(gh api "repos/${{ github.repository }}/actions/runs/$id/jobs?filter=latest&per_page=100" | jq -r '[.jobs[].steps[]? | select(.conclusion=="failure") | .name] | unique | join("|")')"
+                # Chromium may also race while closing its temporary test profile.
+                case "$failed" in
+                  'Compare current startup and first paint with immutable 1.7.69'|'Real Chromium mobile offline, slow network and service-worker update recovery') ;;
+                  *) echo "Non-retriable failure: $failed" >&2; exit 1 ;;
+                esac
+                test "$parity_retries" -lt 2
+                parity_retries=$((parity_retries+1))
+                gh run rerun "$id" --failed --repo "${{ github.repository }}"
+                sleep 15
+              fi
+            fi
+            sleep 15
+          done
+          test -n "$EXACT_MAIN_VALIDATION" || test -n "$(sed -n 's/^EXACT_MAIN_VALIDATION=//p' "$GITHUB_ENV")"
+      - name: Dispatch existing audited production release
+        run: |
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
+          test "$(gh api repos/${{ github.repository }}/git/ref/heads/development --jq .object.sha)" = "$EXPECTED_DEVELOPMENT_SHA"
+          gh workflow run rak-production-release.yml --repo "${{ github.repository }}" --ref main -f expected_sha="$GITHUB_SHA" -f expected_development_sha="$EXPECTED_DEVELOPMENT_SHA"
+
+# Start the already-authorized exact-main verification after backend acceptance passed.

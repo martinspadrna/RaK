@@ -1,23 +1,10 @@
-## RaK 2.0.30 (development)
+## RaK 2.0.31 (development)
 
-- Administrace → Úklid: při otevření se interní seznam týdnů automaticky posune na aktuální kalendářní týden (např. 43 KT) a umístí ho přibližně doprostřed viditelné oblasti.
-- Uložení nebo opětovné načtení nastavení zachová uživatelem ručně posunutou pozici v seznamu. Přepnutí na jiný rok začne od prvního týdne; návrat na aktuální rok vybere aktuální týden.
-- Posun se týká pouze seznamu týdnů, nikoliv celé stránky, takže funguje i na iPhonu. Přidaný cílený regresní test. Údaje o úklidu, výpočty statistik, přihlášení i Supabase se nemění.
-- Pouze TEST; MAIN a produkce beze změn.
+**Produkční kandidát – pouze příprava, ZATÍM NENASAZOVAT.**
 
-## RaK 2.0.29 (development)
-
-- Oprava mobilního přihlášení a stavu „Supabase není připojena“ na TESTu. Nasazení 2.0.28 chybně vracelo HTTP 404 pro lokální Supabase SDK (`supabase-vendor-2.110.7.js`), přestože soubor vznikal při canonical buildu; nasazený HTTP stav se lišil od výsledků build testů.
-- Přidána přesná neměnná kopie veřejného Supabase SDK mezi soubory sledované Gitem, s povinným SHA-384/SRI testem v `npm check`. Žádná změna hesel, přihlašovacího RPC, oprávnění, dat ani databázového schématu.
-- Nový build a offline cache verze 2.0.29 mají zajistit obnovení SDK bez mazání lokálních návrhů a nastavení.
-- Pouze development / TEST. MAIN i produkce beze změny.
-
-## RaK 2.0.28 (development)
-
-- Administrace → Úklid: přehled kalendářních týdnů jako „43 KT“ bez rozsahu dat, výchozí nedělní ranní; možnost změnit den v daném týdnu nebo úklid vypnout.
-- Ukládají se pouze týdenní výjimky do stávajícího zabezpečeného nastavení strojů (bez migrace). Při načtení na dalším zařízení se zobrazuje stejný výběr.
-- Statistika úklidu po pracovnících/strojích a roční dorovnání MSK/TBK v generátoru používají totožný zvolený den. Při přesunu ze 25.10. na 24.10. se neděle nezapočítává.
-- Zachované hlídání neuložených změn při přepínání roků, stejné ověřování oprávnění, záloh a rozpisů. Pouze TEST; main a produkce beze změn.
+- Kandidát vychází pouze z produkčního MAIN dd90d3078bf3c7d38877c430fa8329635623132a, nikoliv z merge development. Nový týdenní Úklid ve správě, statistice a ročním vyrovnání generátoru; pravidla stroje a ostatní logika generátoru se nemění.
+- Přenesena ověřená iOS instalační stránka a lokální Supabase SDK s integrity testem. Záměrně zachována produkční Supabase konfigurace a produkční GitHub Actions releasovací ochrana.
+- Větev release/rak-2.0.31-prep má vypnutý automatický Vercel deploy. Před povolením MAIN vyžaduje zelený build, statické soubory ikon HTTP 200 a fyzický test.
 
 ## RaK 2.0.27 (development)
 

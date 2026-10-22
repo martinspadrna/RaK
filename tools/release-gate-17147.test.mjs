@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -23,6 +24,5 @@ test('1.7.147 gates remain mandatory locally and in CI',()=>{
 
 test('successor releases remain isolated to TEST Supabase',()=>{
   const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+  assertSupabaseTarget(config);
 });

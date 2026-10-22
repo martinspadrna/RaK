@@ -1,3 +1,4 @@
+import {assertSupabaseTarget} from './release-metadata-test-helper.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ test('final version, PWA, test Supabase and OS-only employee login stay aligned'
   ['sw.js',"const SW_APP_VERSION = '1.7.0';"]])
   assert(read(file).includes(marker),`[17050] mismatched ${file}: ${marker}`);
  assert.equal(JSON.parse(read('package.json')).version,'1.7.0');
- assert(read('supabase-config.js').includes('cgshssdjgzzuprlwnabl')&&!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+ assertSupabaseTarget(read('supabase-config.js'));
  assert(read('rak-user-profile.js').includes("client.rpc('rak_lookup_account_for_login_v2'"));
  assert(read('rak-account-access.js').includes('Zadej 4 číslice.'));
 });
