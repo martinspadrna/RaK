@@ -1,3 +1,9 @@
+## RaK 2.0.32 (development)
+
+- TEST pouze: při opětovném otevření ukáže Home ihned poslední známý pracovní stroj z nedávného lokálního snapshotu pouze pro stejný účet a stejný den; údaj je výslovně označen jako poslední známý do dokončení načtení rozpisu.
+- Po zpřístupnění Rotace se nejdříve vykreslí informace „kam jdu“ na Home a až potom úplná tabulka rozpisu. Obsah rozpisu ani synchronizace se nemění.
+- Regresní testy pro oddělení účtů, zastaralé údaje a pořadí vykreslování; MAIN a produkce zůstávají na 2.0.31.
+
 ## RaK 2.0.31 (development)
 
 **Produkční kandidát – pouze příprava, ZATÍM NENASAZOVAT.**
