@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const root=new URL('../',import.meta.url);
 const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 const html=read('index.html');
-const warm=html.match(/<script id="rak-home-warm-snapshot">([\\s\\S]*?)<\\/script>/)?.[1];
+const warm=html.split('<script id="rak-home-warm-snapshot">')[1]?.split('</script>')[0];
 
 function render(snapshot,profile){
   assert(warm,'preboot warm snapshot is required');
