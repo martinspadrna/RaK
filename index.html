@@ -167,6 +167,39 @@ window.rakNoteExternalDependency = function(name, status, src) {
 (function(){
   var KEY='rak_home_warm_snapshot_v1';
   var MAX_AGE=6*60*60*1000;
+  // Personal assignment is restored only for the same account and day.
+  // It is visibly labelled as cached until real Rotation hydration finishes.
+  var HERO_MAX_AGE=30*60*1000;
+  var PROFILE_KEY='rotace_kalkulacky:user_profile_v1';
+  function readAccount(){
+    try{
+      var p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');
+      return String(p&&p.accountNumber||'').trim();
+    }catch(_){return '';}
+  }
+  function dayKey(date){
+    return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+  }
+  function validAssignment(title){
+    return /^(?:Dnes jsi na |Příští směnu jdeš na )/.test(String(title||'').trim());
+  }
+  function restoreHero(snap){
+    var hero=snap&&snap.hero;
+    var account=readAccount();
+    if(!hero||!account||String(hero.accountNumber||'')!==account)return false;
+    var age=Date.now()-Number(hero.savedAt||0);
+    if(age<0||age>HERO_MAX_AGE||hero.day!==dayKey(new Date())||!validAssignment(hero.title))return false;
+    var host=document.getElementById('dashHero');
+    if(!host)return false;
+    var line=host.querySelector('.dashboardHeroLine1Text');
+    var meta=host.querySelector('.dashboardHeroLine2');
+    if(!line||!meta)return false;
+    line.textContent=String(hero.title);
+    meta.textContent='Poslední známý rozpis · ověřuji aktuální údaje';
+    host.dataset.rakWarmAssignment='1';
+    window.__rakWarmAssignmentRestored={restored:true,ageMs:age,at:Date.now()};
+    return true;
+  }
   var selectors=[
     '.dashboardHeroLine1Text',
     '.dashboardHeroLine2',
@@ -203,6 +236,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
         el.textContent=String(value);
         count++;
       });
+      restoreHero(snap);
       window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:Math.max(0,Date.now()-Number(snap.at)),at:Date.now()};
       return count>0;
     }catch(err){return false;}
@@ -220,7 +254,10 @@ window.rakNoteExternalDependency = function(name, status, src) {
         count++;
       });
       if(count<4)return false;
-      localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values}));
+      var account=readAccount();
+      var title=String(document.querySelector('#dashHero .dashboardPersonalTitle')?.textContent||'').trim();
+      var hero=account&&validAssignment(title)?{accountNumber:account,title:title,day:dayKey(new Date()),savedAt:Date.now()}:null;
+      localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values,hero:hero}));
       window.__rak1603HomeWarmSnapshot=Object.assign({},window.__rak1603HomeWarmSnapshot||{},{saved:true,savedCount:count,savedAt:Date.now()});
       return true;
     }catch(err){return false;}
