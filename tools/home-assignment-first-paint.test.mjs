@@ -31,7 +31,7 @@ function render(snapshot,profile){
 }
 function cached(account='100101',savedAt=Date.now(),day=null){
   const today=new Date();
-  const date=day??[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+  const date=day??today.toDateString();
   return {at:Date.now(),values:{'#dashCalendar .dashboardValue':'24. 10.'},
     hero:{accountNumber:account,title:'Příští směnu jdeš na TBKR07.',day:date,savedAt}};
 }
@@ -51,7 +51,7 @@ test('another or logged-out account cannot see the previous worker machine',()=>
 });
 test('do not present old assignments or last-day shift placements as current',()=>{
   const y=new Date();y.setDate(y.getDate()-1);
-  for(const snap of [cached('100101',Date.now()-31*60*1000),cached('100101',Date.now(),[y.getFullYear(),String(y.getMonth()+1).padStart(2,'0'),String(y.getDate()).padStart(2,'0')].join('-'))]){
+  for(const snap of [cached('100101',Date.now()-31*60*1000),cached('100101',Date.now(),y.toDateString())]){
     const r=render(snap,{accountNumber:'100101'});
     assert.equal(r.line.textContent,'Načítám směnu…');
   }

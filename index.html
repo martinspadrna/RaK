@@ -163,110 +163,32 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </div>
 </div>
 
-<script id="rak-home-warm-snapshot">
-(function(){
-  var KEY='rak_home_warm_snapshot_v1';
-  var MAX_AGE=6*60*60*1000;
-  // Personal assignment is restored only for the same account and day.
-  // It is visibly labelled as cached until real Rotation hydration finishes.
-  var HERO_MAX_AGE=30*60*1000;
-  var PROFILE_KEY='rotace_kalkulacky:user_profile_v1';
-  function readAccount(){
-    try{
-      var p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');
-      return String(p&&p.accountNumber||'').trim();
-    }catch(_){return '';}
-  }
-  function dayKey(date){
-    return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
-  }
-  function validAssignment(title){
-    return /^(?:Dnes jsi na |Příští směnu jdeš na )/.test(String(title||'').trim());
-  }
-  function restoreHero(snap){
-    var hero=snap&&snap.hero;
-    var account=readAccount();
-    if(!hero||!account||String(hero.accountNumber||'')!==account)return false;
-    var age=Date.now()-Number(hero.savedAt||0);
-    if(age<0||age>HERO_MAX_AGE||hero.day!==dayKey(new Date())||!validAssignment(hero.title))return false;
-    var host=document.getElementById('dashHero');
-    if(!host)return false;
-    var line=host.querySelector('.dashboardHeroLine1Text');
-    var meta=host.querySelector('.dashboardHeroLine2');
-    if(!line||!meta)return false;
-    line.textContent=String(hero.title);
-    meta.textContent='Poslední známý rozpis · ověřuji aktuální údaje';
-    host.dataset.rakWarmAssignment='1';
-    window.__rakWarmAssignmentRestored={restored:true,ageMs:age,at:Date.now()};
-    return true;
-  }
-  var selectors=[
-    '.dashboardHeroLine1Text',
-    '.dashboardHeroLine2',
-    '.dashboardHeroLine3Pill',
-    '#dashCalendar .dashboardValue',
-    '#dashCalendar .dashboardMeta',
-    '#dashCountdown .dashboardValue',
-    '#dashCountdown .dashboardMeta',
-    '#dashKantyna .dashboardValue',
-    '#dashKantyna .dashboardMeta',
-    '#dashJidelna .dashboardValue',
-    '#dashJidelna .dashboardMeta',
-    '#dashVyplata .dashboardValue',
-    '#dashVyplata .dashboardMeta',
-    '#dashCzd .dashboardValue',
-    '#dashCzd .dashboardMeta'
-  ];
-  function validText(text){
-    text=String(text||'').trim();
-    return !!text && text!=='--' && text.indexOf('Načítám')<0;
-  }
-  function restore(){
-    try{
-      var raw=localStorage.getItem(KEY);
-      if(!raw)return false;
-      var snap=JSON.parse(raw);
-      if(!snap||!snap.values||!snap.at||Date.now()-Number(snap.at)>MAX_AGE)return false;
-      var count=0;
-      selectors.forEach(function(sel){
-        var value=snap.values[sel];
-        if(!validText(value))return;
-        var el=document.querySelector(sel);
-        if(!el)return;
-        el.textContent=String(value);
-        count++;
-      });
-      restoreHero(snap);
-      window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:Math.max(0,Date.now()-Number(snap.at)),at:Date.now()};
-      return count>0;
-    }catch(err){return false;}
-  }
-  function save(){
-    try{
-      var values={};
-      var count=0;
-      selectors.forEach(function(sel){
-        var el=document.querySelector(sel);
-        if(!el)return;
-        var text=String(el.textContent||'').trim();
-        if(!validText(text))return;
-        values[sel]=text;
-        count++;
-      });
-      if(count<4)return false;
-      var account=readAccount();
-      var title=String(document.querySelector('#dashHero .dashboardPersonalTitle')?.textContent||'').trim();
-      var hero=account&&validAssignment(title)?{accountNumber:account,title:title,day:dayKey(new Date()),savedAt:Date.now()}:null;
-      localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values,hero:hero}));
-      window.__rak1603HomeWarmSnapshot=Object.assign({},window.__rak1603HomeWarmSnapshot||{},{saved:true,savedCount:count,savedAt:Date.now()});
-      return true;
-    }catch(err){return false;}
-  }
-  restore();
-  window.addEventListener('pagehide',save,{capture:true});
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save();});
-})();
-</script>
+<script id="rak-home-warm-snapshot">(function(){
+var K='rak_home_warm_snapshot_v1',P='rotace_kalkulacky:user_profile_v1',S=['dashCalendar','dashCountdown','dashKantyna','dashJidelna','dashVyplata','dashCzd'].flatMap(i=>['#'+i+' .dashboardValue','#'+i+' .dashboardMeta']);
+function ok(t){t=String(t||'').trim();return !!t&&t!=='--'&&!t.includes('Načítám')}
+function who(){try{return String(JSON.parse(localStorage.getItem(P)||'null')?.accountNumber||'').trim()}catch(_){return ''}}
+function restore(){try{
+var a=who(),x=JSON.parse(localStorage.getItem(K)||'null'),n=Date.now(),age=n-Number(x?.at||0);
+if(!a||!x?.values||age<0||age>21600000||x.account&&x.account!==a)return;
+var count=0;S.forEach(s=>{var e=document.querySelector(s),v=x.values[s];if(e&&ok(v)){e.textContent=String(v);count++}});
+var h=x.hero,hage=n-Number(h?.savedAt||0);
+if(h&&h.accountNumber===a&&hage>=0&&hage<=1800000&&h.day===new Date().toDateString()&&/^(Dnes jsi na |Příští směnu jdeš na )/.test(h.title)){
+var host=document.getElementById('dashHero'),line=host?.querySelector('.dashboardHeroLine1Text'),meta=host?.querySelector('.dashboardHeroLine2');
+if(line&&meta){line.textContent=String(h.title);meta.textContent='Poslední známý rozpis · ověřuji…';host.dataset.rakWarmAssignment='1';count++;window.__rakWarmAssignmentRestored={restored:true,ageMs:hage}}
+}
+window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:age,at:n};
+}catch(_){}}
+function save(){try{
+var a=who(),values={},count=0;
+S.forEach(s=>{var e=document.querySelector(s),v=e?.textContent?.trim();if(e&&ok(v)){values[s]=v;count++}});
+var title=document.querySelector('#dashHero .dashboardPersonalTitle')?.textContent?.trim()||'';
+var hero=a&&/^(Dnes jsi na |Příští směnu jdeš na )/.test(title)?{accountNumber:a,title,day:new Date().toDateString(),savedAt:Date.now()}:null;
+if(count<4&&!hero)return;
+localStorage.setItem(K,JSON.stringify({at:Date.now(),account:a,values,hero}));
+window.__rak1603HomeWarmSnapshot={saved:true,savedCount:count,savedAt:Date.now()};
+}catch(_){}}
+restore();window.addEventListener('pagehide',save,{capture:true});document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save()});
+})();</script>
 
 <div id="kalkulacky" class="page">
   <div class="headerBar">
