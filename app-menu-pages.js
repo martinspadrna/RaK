@@ -16,7 +16,7 @@ function buildAppMenuAboutHistoryHtml() {
         'Jednotná průhledná ikona aplikace na Windows i mobilu.',
         'Spolehlivější přihlášení na novém zařízení a aktualizace aplikace bez ztráty rozepsaných dat.',
         'Nový Úklid po kalendářních týdnech: volitelný den, aktuální KT po otevření a správné započítání do statistik.',
-        'TEST 2.0.32: rychlejší zobrazení „kam jdu“ po otevření aplikace, s bezpečně označeným posledním známým rozpisem.'
+        'Rychlejší zobrazení „kam jdu“ po otevření aplikace, s označeným posledním známým rozpisem.'
       ]
     },
     // RAK_190_ABOUT_START
