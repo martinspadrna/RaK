@@ -5,7 +5,7 @@
     technicalVersion: '2.0.32',
     moduleCacheVersion: '2.0.32',
     cacheVersion: 'v2.0.32',
-    buildId: 'v2.0.32-home-first-paint1'
+    buildId: 'v2.0.32-release1'
   });
   if (root) root.RAK_RELEASE_METADATA = metadata;
   if (typeof module !== 'undefined' && module.exports) module.exports = metadata;
