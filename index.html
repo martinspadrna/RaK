@@ -169,22 +169,19 @@ function ok(t){t=String(t||'').trim();return !!t&&t!=='--'&&!t.includes('Načít
 function who(){try{return String(JSON.parse(localStorage.getItem(P)||'null')?.accountNumber||'').trim()}catch(_){return ''}}
 function restore(){try{
 var a=who(),x=JSON.parse(localStorage.getItem(K)||'null'),n=Date.now(),age=n-Number(x?.at||0);
-if(!a||!x?.values||age<0||age>21600000||x.account&&x.account!==a)return;
+if(!a)return;
+var q=JSON.parse(localStorage.getItem('rak_home_fast_assignments_v1')||'null'),fresh=q&&q.accountNumber===a&&n>=q.savedAt&&n-q.savedAt<=604800000;
+var rows=fresh&&Array.isArray(q.entries)?q.entries:[],active=rows.find(r=>r.start<=n&&n<r.end),next=active||rows.find(r=>r.start>n),machine=next&&String(next.target||'');
+if(machine){var host=document.getElementById('dashHero'),line=host?.querySelector('.dashboardHeroLine1Text'),meta=host?.querySelector('.dashboardHeroLine2');if(line&&meta){line.textContent=(active?'Dnes jsi na ':'Příští směnu jdeš na ')+machine+'.';meta.textContent='Poslední uložený rozpis · ověřuji…';host.dataset.rakWarmAssignment='1';window.__rakWarmAssignmentRestored={restored:true,ageMs:n-q.savedAt};window.__rakAssignmentFirstShownMs=performance.now();}}
+if(!x?.values||age<0||age>21600000||x.account&&x.account!==a)return;
 var count=0;S.forEach(s=>{var e=document.querySelector(s),v=x.values[s];if(e&&ok(v)){e.textContent=String(v);count++}});
-var h=x.hero,hage=n-Number(h?.savedAt||0);
-if(h&&h.accountNumber===a&&hage>=0&&hage<=1800000&&h.day===new Date().toDateString()&&/^(Dnes jsi na |Příští směnu jdeš na )/.test(h.title)){
-var host=document.getElementById('dashHero'),line=host?.querySelector('.dashboardHeroLine1Text'),meta=host?.querySelector('.dashboardHeroLine2');
-if(line&&meta){line.textContent=String(h.title);meta.textContent='Poslední známý rozpis · ověřuji…';host.dataset.rakWarmAssignment='1';count++;window.__rakWarmAssignmentRestored={restored:true,ageMs:hage}}
-}
 window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:age,at:n};
 }catch(_){}}
 function save(){try{
 var a=who(),values={},count=0;
 S.forEach(s=>{var e=document.querySelector(s),v=e?.textContent?.trim();if(e&&ok(v)){values[s]=v;count++}});
-var title=document.querySelector('#dashHero .dashboardPersonalTitle')?.textContent?.trim()||'';
-var hero=a&&/^(Dnes jsi na |Příští směnu jdeš na )/.test(title)?{accountNumber:a,title,day:new Date().toDateString(),savedAt:Date.now()}:null;
-if(count<4&&!hero)return;
-localStorage.setItem(K,JSON.stringify({at:Date.now(),account:a,values,hero}));
+if(count<4)return;
+localStorage.setItem(K,JSON.stringify({at:Date.now(),account:a,values}));
 window.__rak1603HomeWarmSnapshot={saved:true,savedCount:count,savedAt:Date.now()};
 }catch(_){}}
 restore();window.addEventListener('pagehide',save,{capture:true});document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save()});
