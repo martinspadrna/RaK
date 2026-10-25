@@ -4,74 +4,106 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const root=new URL('../',import.meta.url);
-const read=path=>fs.readFileSync(new URL(path,root),'utf8');
+const read=file=>fs.readFileSync(new URL(file,root),'utf8');
 const html=read('index.html');
-const warm=html.split('<script id="rak-home-warm-snapshot">')[1]?.split('</script>')[0];
+const preboot=html.split('<script id="rak-home-warm-snapshot">')[1]?.split('</script>')[0];
 
-function render(snapshot,profile){
-  assert(warm,'preboot warm snapshot is required');
-  const memory=new Map();
-  const KEY='rak_home_warm_snapshot_v1',PROFILE='rotace_kalkulacky:user_profile_v1';
-  if(snapshot)memory.set(KEY,JSON.stringify(snapshot));
-  if(profile)memory.set(PROFILE,JSON.stringify(profile));
+function boot({account='100101',fast=null,warm=null}={}){
+  assert(preboot,'preboot snapshot script missing');
+  const map=new Map();
+  if(account)map.set('rotace_kalkulacky:user_profile_v1',JSON.stringify({accountNumber:account,fullName:'Worker'}));
+  if(fast)map.set('rak_home_fast_assignments_v1',JSON.stringify(fast));
+  if(warm)map.set('rak_home_warm_snapshot_v1',JSON.stringify(warm));
   const line={textContent:'Načítám směnu…'},meta={textContent:'Směna D začne za: --'};
-  const hero={dataset:{},querySelector(selector){return selector==='.dashboardHeroLine1Text'?line:selector==='.dashboardHeroLine2'?meta:null}};
-  const elements={'#dashCalendar .dashboardValue':{textContent:'24. 10.'},'#dashCountdown .dashboardValue':{textContent:'Za 2 dny'},'#dashKantyna .dashboardValue':{textContent:'Zavřeno'},'#dashJidelna .dashboardValue':{textContent:'Zavřeno'},'#dashHero .dashboardPersonalTitle':{textContent:'Příští směnu jdeš na TBKR07.'}};
+  const hero={dataset:{},querySelector:s=>s==='.dashboardHeroLine1Text'?line:s==='.dashboardHeroLine2'?meta:null};
+  const tile={
+    '#dashCalendar .dashboardValue':{textContent:'24. 10.'},
+    '#dashCountdown .dashboardValue':{textContent:'Za 2 dny'},
+    '#dashKantyna .dashboardValue':{textContent:'Zavřeno'},
+    '#dashJidelna .dashboardValue':{textContent:'Zavřeno'},
+    '#dashVyplata .dashboardValue':{textContent:'28. 10.'},
+    '#dashCzd .dashboardValue':{textContent:'52 dní'}
+  };
   const events={};
   const document={
+    querySelector:s=>tile[s]||null,
     getElementById:id=>id==='dashHero'?hero:null,
-    querySelector:sel=>elements[sel]||null,
-    addEventListener:(name,callback)=>{events[name]=callback;},
-    visibilityState:'visible'
+    visibilityState:'visible',
+    addEventListener:(name,fn)=>events[name]=fn
   };
-  const window={addEventListener:(name,callback)=>{events[name]=callback;}};
-  const storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v))};
-  vm.runInNewContext(warm,{window,document,localStorage:storage,Date,console});
-  return {window,events,memory,line,meta,hero};
+  const window={addEventListener:(name,fn)=>events[name]=fn};
+  const localStorage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v))};
+  vm.runInNewContext(preboot,{window,document,localStorage,performance:{now:()=>42},Date,console});
+  return {map,events,window,hero,line,meta};
 }
-function cached(account='100101',savedAt=Date.now(),day=null){
-  const today=new Date();
-  const date=day??today.toDateString();
-  return {at:Date.now(),values:{'#dashCalendar .dashboardValue':'24. 10.'},
-    hero:{accountNumber:account,title:'Příští směnu jdeš na TBKR07.',day:date,savedAt}};
+function fast(rows,accountNumber='100101',ageMs=60000){
+  return {accountNumber,savedAt:Date.now()-ageMs,entries:rows};
 }
-test('cached HOME assignment appears before lazy modules but is labelled last known',()=>{
-  const r=render(cached(),{accountNumber:'100101',fullName:'Colleague'});
-  assert.equal(r.line.textContent,'Příští směnu jdeš na TBKR07.');
-  assert.match(r.meta.textContent,/Poslední známý rozpis.*ověřuji/);
+const now=Date.now();
+test('assignment is visible at preboot without any prior warm dashboard cache',()=>{
+  const r=boot({fast:fast([{start:now+3600000,end:now+13*3600000,target:'TNKS01'}])});
+  assert.equal(r.line.textContent,'Příští směnu jdeš na TNKS01.');
+  assert.match(r.meta.textContent,/Poslední uložený rozpis/);
   assert.equal(r.hero.dataset.rakWarmAssignment,'1');
-  assert.equal(r.window.__rakWarmAssignmentRestored.restored,true);
+  assert.equal(r.window.__rakAssignmentFirstShownMs,42);
 });
-test('another or logged-out account cannot see the previous worker machine',()=>{
-  for(const profile of [{accountNumber:'200202',fullName:'Other'},null]){
-    const r=render(cached(),profile);
+test('preboot automatically transitions from next shift to currently active shift',()=>{
+  const r=boot({fast:fast([{start:now-3600000,end:now+3600000,target:'TBKR07'},{start:now+12*3600000,end:now+24*3600000,target:'MSKC03'}])});
+  assert.equal(r.line.textContent,'Dnes jsi na TBKR07.');
+});
+test('account isolation and expiry never show another worker or a stale shift',()=>{
+  const rows=[{start:now-2000,end:now+2000000,target:'W01'}];
+  for(const options of [
+    {account:'111222',fast:fast(rows)},
+    {account:null,fast:fast(rows)},
+    {fast:fast(rows,'100101',8*86400000)},
+    {fast:fast([{start:now-100000,end:now-50000,target:'TBKR01'}])}
+  ]) {
+    const r=boot(options);
     assert.equal(r.line.textContent,'Načítám směnu…');
-    assert.equal(r.hero.dataset.rakWarmAssignment,undefined);
   }
 });
-test('do not present old assignments or last-day shift placements as current',()=>{
-  const y=new Date();y.setDate(y.getDate()-1);
-  for(const snap of [cached('100101',Date.now()-31*60*1000),cached('100101',Date.now(),y.toDateString())]){
-    const r=render(snap,{accountNumber:'100101'});
-    assert.equal(r.line.textContent,'Načítám směnu…');
-  }
-});
-test('warm cache saves only from an actual personalized machine assignment and current account',()=>{
-  const r=render(null,{accountNumber:'100101',fullName:'Colleague'});
+test('preboot cache remains local and manual UI save does not invent a machine',()=>{
+  const r=boot({});
   r.events.pagehide();
-  const saved=JSON.parse(r.memory.get('rak_home_warm_snapshot_v1'));
-  assert.equal(saved.hero.accountNumber,'100101');
-  assert.equal(saved.hero.title,'Příští směnu jdeš na TBKR07.');
-  assert.equal(saved.values['#dashCalendar .dashboardValue'],'24. 10.');
+  const snap=JSON.parse(r.map.get('rak_home_warm_snapshot_v1'));
+  assert.equal(snap.account,'100101');
+  assert(!snap.hero,'unverified HTML machine title must not become authoritative cache');
 });
-test('HOME priority is enforced in feature initialization and local hydration',()=>{
-  const app=read('app.js');
-  const ready=app.slice(app.indexOf("if (name === 'rotation')"),app.indexOf("} else if (name === 'calculators')"));
-  assert(ready.indexOf("updateDashboard()")>=0&&ready.indexOf("updateDashboard()")<ready.indexOf("renderRotace()"));
-  const boot=app.slice(app.indexOf('await hydrateRakRotationLocalFirst();'),app.indexOf('window.__rakBootV2LocalReady = true'));
-  assert(boot.indexOf("updateDashboard()")>=0&&boot.indexOf("updateDashboard()")<boot.indexOf("renderRotace()"));
-  assert(app.includes("await ensureFeature('rotation')"));
-  const config=read('supabase-config.js');
-  assert(config.includes('cgshssdjgzzuprlwnabl.supabase.co'));
-  assert(!config.includes('bkqamcbkiwumsvelahxr'));
+test('runtime persists real Rotation assignments on render and avoids repetitive writes',()=>{
+  const src=read('rotace.js');
+  const a=src.indexOf('function cacheDashboardNextAssignments(');
+  const b=src.indexOf('function getPersonScheduleEntries(',a);
+  assert(a>=0 && b>a);
+  const store=new Map();
+  const localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v))};
+  const start=Date.now()+3600000;
+  const context={
+    getDashboardActiveProfile:()=>({accountNumber:'100101'}),
+    getRakActiveAccountShiftInfo:()=>({outside:false}),
+    getPersonScheduleEntryWindow:entry=>({start:new Date(entry.start),end:new Date(entry.end)}),
+    localStorage, Date, JSON, String, Number
+  };
+  vm.runInNewContext(src.slice(a,b)+';this.saveFast=cacheDashboardNextAssignments;',context);
+  context.saveFast({name:'Worker',upcoming:[{start,end:start+43200000,target:'TNKS01'}]},new Date());
+  const snap=JSON.parse(store.get('rak_home_fast_assignments_v1'));
+  assert.equal(snap.accountNumber,'100101');
+  assert.equal(snap.entries[0].target,'TNKS01');
+  assert(snap.savedAt>0);
+  const first=store.get('rak_home_fast_assignments_v1');
+  context.saveFast({name:'Worker',upcoming:[{start,end:start+43200000,target:'TNKS01'}]},new Date());
+  assert.equal(store.get('rak_home_fast_assignments_v1'),first);
+  context.getRakActiveAccountShiftInfo=()=>({outside:true});
+  context.saveFast({name:'Worker',upcoming:[{start,end:start+43200000,target:'MSKC01'}]},new Date());
+  assert.equal(store.get('rak_home_fast_assignments_v1'),first);
+});
+test('cached machine remains visible until authoritative Rotation is loaded',()=>{
+ const src=read('dashboard.js');
+ assert(src.includes("hero.dataset.rakWarmAssignment !== '1' || typeof getPersonScheduleEntries === 'function'"));
+ assert(src.includes("window.__rakAssignmentConfirmedMs = paintedAt"));
+ const app=read('app.js');
+ assert(app.includes("await ensureFeature('rotation')"));
+ const config=read('supabase-config.js');
+ assert(config.includes('cgshssdjgzzuprlwnabl.supabase.co'));
+ assert(!config.includes('bkqamcbkiwumsvelahxr'));
 });

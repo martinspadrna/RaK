@@ -696,7 +696,8 @@ function getDashboardPersonalShiftStatus(now) {
     }) || null;
     const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     const absence = entries.find((entry) => entry && entry.absence && String(entry.sortDate || '').slice(0, 10) === todayKey) || null;
-    return { name, active, next, absence };
+    const upcoming = entries.filter(entry => !entry.absence && getPersonScheduleEntryWindow(entry)?.end.getTime() > nowMs).slice(0, 12);
+    return { name, active, next, absence, upcoming };
   } catch (err) {
     return { name, active: null, next: null, absence: null };
   }
@@ -771,6 +772,7 @@ function formatDashboardPersonalShiftLabel(value) {
 
 function buildDashboardPersonalHeroHtml(now, esc) {
   const state = getDashboardPersonalShiftStatus(now);
+  if (typeof cacheDashboardNextAssignments === 'function') cacheDashboardNextAssignments(state, now);
   const friendlyName = getDashboardFriendlyName(state.name);
   const greeting = getDashboardGreeting(now) + (friendlyName ? ', ' + friendlyName : '');
   const entry = state.active || state.next;
@@ -873,8 +875,21 @@ function updateDashboard() {
 
   const hero = document.getElementById('dashHero');
   if (hero) {
-    hero.classList.add('dashboardHeroCard--personal');
-    setDashboardHtmlIfChanged(hero, buildDashboardPersonalHeroHtml(now, esc), 'dashboardPersonalHero');
+    // Preserve the immediate preboot placement until real Rotation helpers can confirm it.
+    // Earlier shell/dashboard refreshes must not replace the cached machine with a blank hero.
+    if (hero.dataset.rakWarmAssignment !== '1' || typeof getPersonScheduleEntries === 'function') {
+      hero.classList.add('dashboardHeroCard--personal');
+      setDashboardHtmlIfChanged(hero, buildDashboardPersonalHeroHtml(now, esc), 'dashboardPersonalHero');
+      if (typeof getPersonScheduleEntries === 'function') {
+        delete hero.dataset.rakWarmAssignment;
+        const value = String(hero.querySelector('.dashboardPersonalTitle')?.textContent || '');
+        if (/^(Dnes jsi na |Příští směnu jdeš na )/.test(value)) {
+          const paintedAt = performance.now();
+          window.__rakAssignmentFirstShownMs ||= paintedAt;
+          window.__rakAssignmentConfirmedMs = paintedAt;
+        }
+      }
+    }
   }
 
   const setCard = (id, title, value, meta, dotClass, clickable, iconHtml) => {
