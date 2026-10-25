@@ -25,7 +25,7 @@ for(const [label,ref] of Object.entries(refs)){
 }
 const freePort=()=>new Promise((resolve,reject)=>{const s=net.createServer();s.on('error',reject);s.listen(0,'127.0.0.1',()=>{const port=s.address().port;s.close(e=>e?reject(e):resolve(port))})});
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rak-assignment-ab-'));
-const port=await freePort();const chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port='+port,'--user-data-dir='+dir,'about:blank'],{stdio:'ignore'});
+const port=await freePort();const chrome=spawn(CHROME,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port='+port,'--user-data-dir='+dir,'about:blank'],{stdio:'ignore',detached:process.platform!=='win32'});
 let ws,id=0;const pending=new Map();
 const send=(method,params={})=>new Promise((resolve,reject)=>{
  const key=++id,timer=setTimeout(()=>{pending.delete(key);reject(Error('CDP '+method+' timeout'))},15000);
@@ -105,7 +105,11 @@ try{
  console.log('[rak-home-assignment-ab] PASS '+JSON.stringify({kind:'real-public-mobile-Chromium-readonly-synthetic-account',...report}));
 }finally{
  try{ws?.close()}catch{}
- chrome.kill('SIGTERM');
  for(const value of pending.values()){clearTimeout(value.timer);value.reject(Error('closing'));}
- fs.rmSync(dir,{recursive:true,force:true,maxRetries:5});
+ if(chrome.exitCode===null&&chrome.pid){
+   try{if(process.platform!=='win32')process.kill(-chrome.pid,'SIGTERM');else chrome.kill('SIGTERM');}catch(e){if(e.code!=='ESRCH')throw e;}
+ }
+ if(chrome.exitCode===null)await Promise.race([new Promise(resolve=>chrome.once('exit',resolve)),pause(4000)]);
+ await pause(350);
+ fs.rmSync(dir,{recursive:true,force:true,maxRetries:20,retryDelay:200});
 }
