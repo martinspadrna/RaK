@@ -216,6 +216,32 @@ function getPersonScheduleEntryEnd(entry) {
   return win ? win.end : null;
 }
 
+// Compact local HOME assignment is refreshed on actual schedule renders (not only pagehide).
+// Showing a last-saved value before full app boot is intentionally labelled as unverified.
+function cacheDashboardNextAssignments(state, now) {
+  try {
+    if (!Array.isArray(state?.upcoming) || !state.upcoming.length) return;
+    const accountNumber = String(getDashboardActiveProfile()?.accountNumber || '').trim();
+    if (!accountNumber || !state.name || typeof getPersonScheduleEntryWindow !== 'function') return;
+    if (typeof getRakActiveAccountShiftInfo === 'function' && getRakActiveAccountShiftInfo().outside) return;
+    const nowMs = now.getTime(), entries = [];
+    for (const entry of state.upcoming) {
+      if (!entry?.target || entry.absence) continue;
+      const range = getPersonScheduleEntryWindow(entry);
+      if (!range) continue;
+      const start = range.start.getTime(), end = range.end.getTime();
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= nowMs || start > nowMs + 21 * 86400000) continue;
+      entries.push({start, end, target: String(entry.target).slice(0, 85)});
+    }
+    if (!entries.length) return;
+    const key = 'rak_home_fast_assignments_v1';
+    const old = JSON.parse(localStorage.getItem(key) || 'null');
+    if (old?.accountNumber === accountNumber && nowMs - old.savedAt < 900000 &&
+        JSON.stringify(old.entries) === JSON.stringify(entries)) return;
+    localStorage.setItem(key, JSON.stringify({accountNumber, savedAt: nowMs, entries}));
+  } catch (_) {}
+}
+
 function getPersonScheduleEntries(name) {
   const rawEntries = (buildNameIndex(app.rotation)[name] || []).slice();
   if (!rawEntries.length) {

@@ -9,14 +9,14 @@
 <meta name="apple-mobile-web-app-title" content="Rotace a Kalkulačky">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/app-icons/icon-180.png?v=2.0.27-ios3">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/app-icons/icon-any-32.png?v=2.0.31">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/app-icons/icon-any-192.png?v=2.0.31">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/app-icons/icon-any-32.png?v=2.0.33">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/app-icons/icon-any-192.png?v=2.0.33">
 
 <title>Rotace a Kalkulačky</title>
 <!-- RAK_DEV_17001_UPDATE_PROMPT_RESET -->
 <script src="rak-release-metadata.js"></script>
-<script src="rak-runtime-diagnostics.js?v=2.0.31"></script>
-<script id="rak-dev-17001-update-unblock">(function(){try{var metadata=window.RAK_RELEASE_METADATA;if(!metadata?.buildId)return;var build=metadata.buildId;var e='v231',k='rak_ue';if(localStorage.getItem(k)===e)return;sessionStorage.removeItem('rotace_sw_update_notice_v1');sessionStorage.removeItem('rotace_sw_update_pending_v1');localStorage.removeItem('rotace_sw_update_suppress_v1');localStorage.setItem(k,e);localStorage.setItem('rak_dev_update_unblock_build',build)}catch(_){}})();</script>
+<script src="rak-runtime-diagnostics.js?v=2.0.33"></script>
+<script id="rak-dev-17001-update-unblock">(function(){try{var metadata=window.RAK_RELEASE_METADATA;if(!metadata?.buildId)return;var build=metadata.buildId;var e='v233',k='rak_ue';if(localStorage.getItem(k)===e)return;sessionStorage.removeItem('rotace_sw_update_notice_v1');sessionStorage.removeItem('rotace_sw_update_pending_v1');localStorage.removeItem('rotace_sw_update_suppress_v1');localStorage.setItem(k,e);localStorage.setItem('rak_dev_update_unblock_build',build)}catch(_){}})();</script>
 
 <link rel="icon" type="image/png" href="assets/app-icons/icon-any-192.png">
 <script>
@@ -163,73 +163,29 @@ window.rakNoteExternalDependency = function(name, status, src) {
   </div>
 </div>
 
-<script id="rak-home-warm-snapshot">
-(function(){
-  var KEY='rak_home_warm_snapshot_v1';
-  var MAX_AGE=6*60*60*1000;
-  var selectors=[
-    '.dashboardHeroLine1Text',
-    '.dashboardHeroLine2',
-    '.dashboardHeroLine3Pill',
-    '#dashCalendar .dashboardValue',
-    '#dashCalendar .dashboardMeta',
-    '#dashCountdown .dashboardValue',
-    '#dashCountdown .dashboardMeta',
-    '#dashKantyna .dashboardValue',
-    '#dashKantyna .dashboardMeta',
-    '#dashJidelna .dashboardValue',
-    '#dashJidelna .dashboardMeta',
-    '#dashVyplata .dashboardValue',
-    '#dashVyplata .dashboardMeta',
-    '#dashCzd .dashboardValue',
-    '#dashCzd .dashboardMeta'
-  ];
-  function validText(text){
-    text=String(text||'').trim();
-    return !!text && text!=='--' && text.indexOf('Načítám')<0;
-  }
-  function restore(){
-    try{
-      var raw=localStorage.getItem(KEY);
-      if(!raw)return false;
-      var snap=JSON.parse(raw);
-      if(!snap||!snap.values||!snap.at||Date.now()-Number(snap.at)>MAX_AGE)return false;
-      var count=0;
-      selectors.forEach(function(sel){
-        var value=snap.values[sel];
-        if(!validText(value))return;
-        var el=document.querySelector(sel);
-        if(!el)return;
-        el.textContent=String(value);
-        count++;
-      });
-      window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:Math.max(0,Date.now()-Number(snap.at)),at:Date.now()};
-      return count>0;
-    }catch(err){return false;}
-  }
-  function save(){
-    try{
-      var values={};
-      var count=0;
-      selectors.forEach(function(sel){
-        var el=document.querySelector(sel);
-        if(!el)return;
-        var text=String(el.textContent||'').trim();
-        if(!validText(text))return;
-        values[sel]=text;
-        count++;
-      });
-      if(count<4)return false;
-      localStorage.setItem(KEY,JSON.stringify({at:Date.now(),values:values}));
-      window.__rak1603HomeWarmSnapshot=Object.assign({},window.__rak1603HomeWarmSnapshot||{},{saved:true,savedCount:count,savedAt:Date.now()});
-      return true;
-    }catch(err){return false;}
-  }
-  restore();
-  window.addEventListener('pagehide',save,{capture:true});
-  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save();});
-})();
-</script>
+<script id="rak-home-warm-snapshot">(function(){
+var K='rak_home_warm_snapshot_v1',P='rotace_kalkulacky:user_profile_v1',S=['dashCalendar','dashCountdown','dashKantyna','dashJidelna','dashVyplata','dashCzd'].flatMap(i=>['#'+i+' .dashboardValue','#'+i+' .dashboardMeta']);
+function ok(t){t=String(t||'').trim();return !!t&&t!=='--'&&!t.includes('Načítám')}
+function who(){try{return String(JSON.parse(localStorage.getItem(P)||'null')?.accountNumber||'').trim()}catch(_){return ''}}
+function restore(){try{
+var a=who(),x=JSON.parse(localStorage.getItem(K)||'null'),n=Date.now(),age=n-Number(x?.at||0);
+if(!a)return;
+var q=JSON.parse(localStorage.getItem('rak_home_fast_assignments_v1')||'null'),fresh=q&&q.accountNumber===a&&n>=q.savedAt&&n-q.savedAt<=604800000;
+var rows=fresh&&Array.isArray(q.entries)?q.entries:[],active=rows.find(r=>r.start<=n&&n<r.end),next=active||rows.find(r=>r.start>n),machine=next&&String(next.target||'');
+if(machine){var host=document.getElementById('dashHero'),line=host?.querySelector('.dashboardHeroLine1Text'),meta=host?.querySelector('.dashboardHeroLine2');if(line&&meta){line.textContent=(active?'Dnes jsi na ':'Příští směnu jdeš na ')+machine+'.';meta.textContent='Poslední uložený rozpis · ověřuji…';host.dataset.rakWarmAssignment='1';window.__rakWarmAssignmentRestored={restored:true,ageMs:n-q.savedAt};window.__rakAssignmentFirstShownMs=performance.now();}}
+if(!x?.values||age<0||age>21600000||x.account&&x.account!==a)return;
+var count=0;S.forEach(s=>{var e=document.querySelector(s),v=x.values[s];if(e&&ok(v)){e.textContent=String(v);count++}});
+window.__rak1603HomeWarmSnapshot={restored:count>0,restoredCount:count,ageMs:age,at:n};
+}catch(_){}}
+function save(){try{
+var a=who(),values={},count=0;
+S.forEach(s=>{var e=document.querySelector(s),v=e?.textContent?.trim();if(e&&ok(v)){values[s]=v;count++}});
+if(count<4)return;
+localStorage.setItem(K,JSON.stringify({at:Date.now(),account:a,values}));
+window.__rak1603HomeWarmSnapshot={saved:true,savedCount:count,savedAt:Date.now()};
+}catch(_){}}
+restore();window.addEventListener('pagehide',save,{capture:true});document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')save()});
+})();</script>
 
 <div id="kalkulacky" class="page">
   <div class="headerBar">
@@ -864,7 +820,7 @@ window.rakNoteExternalDependency = function(name, status, src) {
 <script>
 (function installRakPrebootNavigation(){'use strict';var nav=document.querySelector('nav.bottomNav');if(!nav||nav.dataset.rakPrebootBound==='1')return;nav.dataset.rakPrebootBound='1';window.__rakPrebootNavBound=true;function authUnlocked(){return document.documentElement.dataset.rakAuthState==='unlocked'}function setActive(p){document.querySelectorAll('.bottomNavBtn').forEach(function(b){b.classList.toggle('active',String(b.dataset.page||'')===p)})}function activatePage(p){var e=document.getElementById(p);if(!e)return false;document.querySelectorAll('.page').forEach(function(n){n.classList.remove('active')});e.classList.add('active');setActive(p);window.__rakUserNavigated=true;return true}function earlyMenuHtml(){return '<div class="appMenuGrid"><button class="appMenuAction" data-rak-preboot-menu-view="settings">Nastavení</button><button class="appMenuAction" data-rak-preboot-menu-view="about">O aplikaci</button><button class="appMenuAction" data-rak-preboot-menu-view="contact">Kontakt</button><button class="appMenuAction" data-rak-preboot-menu-view="bug-report">Pošli mi chybu</button></div>'}function ensureEarlyMenu(){var p=document.getElementById('menu');if(!p){p=document.createElement('div');p.id='menu';p.className='page appMenuPage';p.innerHTML='<div class="headerBar appMenuPageTitleBar"><div></div><h3>Více</h3><div class="appMenuTitleSpacer"></div></div><div class="card appMenuPageCard"><div class="appMenuBody" id="appMenuBody"></div></div>';document.body.insertBefore(p,nav)}var d=p.querySelector('#appMenuBody,.appMenuBody');if(d){if(!d.id)d.id='appMenuBody';d.dataset.adminView='';d.innerHTML=earlyMenuHtml()}activatePage('menu');return p}function remember(a,v){window.__rakPrebootPendingNav={action:String(a||''),view:String(v||''),at:Date.now()}}window.__rakConsumePrebootNav=function(){var p=window.__rakPrebootPendingNav;if(!p||!authUnlocked()||typeof window.rakEnsureFeature!=='function')return false;window.__rakPrebootPendingNav=null;var a=String(p.action||'');if(a==='menu'){window.rakEnsureFeature('menu').then(function(){if(typeof window.openAppMenu==='function')window.openAppMenu(p.view||'menu')}).catch(function(e){if(typeof window.rakHandleFeatureLoadError==='function')window.rakHandleFeatureLoadError(e,'menu')});return true}var f=a==='kalkulacky'?'calculators':a==='rotace'?'rotation':'';if(f){window.rakEnsureFeature(f).then(function(){if(a==='kalkulacky'&&typeof window.openKalkulacky==='function')window.openKalkulacky();else if(a==='rotace'&&typeof window.openRotaceNames==='function')window.openRotaceNames()}).catch(function(e){if(typeof window.rakHandleFeatureLoadError==='function')window.rakHandleFeatureLoadError(e,f)});return true}return false};nav.addEventListener('click',function(e){if(nav.__rotaceBound===true)return;var b=e.target&&e.target.closest?e.target.closest('button[data-action]'):null;if(!b||!nav.contains(b)||!authUnlocked())return;e.preventDefault();var a=String(b.dataset.action||'');if(a==='menu'){ensureEarlyMenu();remember('menu','menu');return}if(a==='home'){window.__rakPrebootPendingNav=null;activatePage('home');return}if(a==='kalkulacky'){if(activatePage('kalkulacky'))remember('kalkulacky','');return}if(a==='rotace'&&activatePage('rotace'))remember('rotace','')},false);document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('[data-rak-preboot-menu-view]'):null;if(!b||!authUnlocked())return;e.preventDefault();var v=String(b.getAttribute('data-rak-preboot-menu-view')||'menu');remember('menu',v);if(typeof window.openAppMenu==='function'){window.__rakPrebootPendingNav=null;window.openAppMenu(v)}else if(typeof window.__rakConsumePrebootNav==='function')window.__rakConsumePrebootNav()},false)})();
 </script>
-<script defer src="app.js?v=2.0.31"></script>
+<script defer src="app.js?v=2.0.33"></script>
 
 <link rel="stylesheet" href="styles-calc-panels.css">
 
