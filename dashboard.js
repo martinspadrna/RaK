@@ -901,8 +901,21 @@ function updateDashboard() {
 
   const hero = document.getElementById('dashHero');
   if (hero) {
-    hero.classList.add('dashboardHeroCard--personal');
-    setDashboardHtmlIfChanged(hero, buildDashboardPersonalHeroHtml(now, esc), 'dashboardPersonalHero');
+    // Preserve the immediate preboot placement until real Rotation helpers can confirm it.
+    // Earlier shell/dashboard refreshes must not replace the cached machine with a blank hero.
+    if (hero.dataset.rakWarmAssignment !== '1' || typeof getPersonScheduleEntries === 'function') {
+      hero.classList.add('dashboardHeroCard--personal');
+      setDashboardHtmlIfChanged(hero, buildDashboardPersonalHeroHtml(now, esc), 'dashboardPersonalHero');
+      if (typeof getPersonScheduleEntries === 'function') {
+        delete hero.dataset.rakWarmAssignment;
+        const value = String(hero.querySelector('.dashboardPersonalTitle')?.textContent || '');
+        if (/^(Dnes jsi na |Příští směnu jdeš na )/.test(value)) {
+          const paintedAt = performance.now();
+          window.__rakAssignmentFirstShownMs ||= paintedAt;
+          window.__rakAssignmentConfirmedMs = paintedAt;
+        }
+      }
+    }
   }
 
   const setCard = (id, title, value, meta, dotClass, clickable, iconHtml) => {
