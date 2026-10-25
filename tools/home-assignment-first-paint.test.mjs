@@ -71,9 +71,9 @@ test('preboot cache remains local and manual UI save does not invent a machine',
   assert(!snap.hero,'unverified HTML machine title must not become authoritative cache');
 });
 test('runtime persists real Rotation assignments on render and avoids repetitive writes',()=>{
-  const src=read('dashboard.js');
+  const src=read('rotace.js');
   const a=src.indexOf('function cacheDashboardNextAssignments(');
-  const b=src.indexOf('function buildDashboardPersonalHeroHtml(',a);
+  const b=src.indexOf('function getPersonScheduleEntries(',a);
   assert(a>=0 && b>a);
   const store=new Map();
   const localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v))};
