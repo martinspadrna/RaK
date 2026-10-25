@@ -1,3 +1,15 @@
+## RaK 2.0.33 (development)
+
+- TEST: okamžité zobrazení posledního uloženého zařazení „kam jdu“ na hlavní obrazovce ještě před načtením modulů rozpisu, včetně přechodu mezi směnami. Platí jen pro aktuální účet a je označeno jako poslední uložený údaj do načtení aktuálního rozpisu.
+- Stručný seznam nejbližších 12 směn se ukládá průběžně při vykreslení hlavní obrazovky, bez čekání na zavření aplikace. Samotný generátor, offline i online synchronizace a databáze zůstávají beze změny.
+- Oddělené měření prvního zobrazení stroje a konečného potvrzení z rozpisu. MAIN dál na 2.0.31.
+
+## RaK 2.0.32 (development)
+
+- TEST pouze: při opětovném otevření ukáže Home ihned poslední známý pracovní stroj z nedávného lokálního snapshotu pouze pro stejný účet a stejný den; údaj je výslovně označen jako poslední známý do dokončení načtení rozpisu.
+- Po zpřístupnění Rotace se nejdříve vykreslí informace „kam jdu“ na Home a až potom úplná tabulka rozpisu. Obsah rozpisu ani synchronizace se nemění.
+- Regresní testy pro oddělení účtů, zastaralé údaje a pořadí vykreslování; MAIN a produkce zůstávají na 2.0.31.
+
 ## RaK 2.0.31 (development)
 
 **Produkční kandidát – pouze příprava, ZATÍM NENASAZOVAT.**

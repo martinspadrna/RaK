@@ -630,8 +630,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       // A snapshot may already be in app.rotation before this lazy group becomes
       // available. Rehydrate all Rotation-driven UI immediately; do not wait for
       // a page reopen or a full application restart.
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      // On HOME, the personal "kam jdu" status must paint before the larger Rotation grid.
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
+      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
       try { if (typeof renderRakDashboardAnnouncement === 'function') renderRakDashboardAnnouncement(); } catch (err) {}
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
@@ -860,8 +861,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       // RAK_17132_LOCAL_STORAGE_SPLIT: local snapshot/cache is already provided
       // by rak-rotation-local-store.js. Do not load syncFeatureFiles here.
       // Supabase bridge and app-rotation-sync remain strictly post-startup.
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
+      // The personal HOME assignment has priority over rebuilding the full Rotation table.
       try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) {}
+      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) {}
     } catch (err) {
       console.warn('Local-first UI restore during boot failed', err);
     } finally {
