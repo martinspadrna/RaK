@@ -103,6 +103,9 @@ jobs:
         run: |
           node tools/pwa-start-bench-17068.mjs
           test -s "$RAK_PERFORMANCE_EVIDENCE"
+      - name: Compare first visible personal machine on public MAIN vs TEST with one Chromium
+        working-directory: .rak-canonical-build/work
+        run: node tools/benchmark-home-assignments-233.mjs
       - name: Compare current startup and first paint with immutable 1.7.69
         working-directory: .rak-canonical-build/work
         run: |
