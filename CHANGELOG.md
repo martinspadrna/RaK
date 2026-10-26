@@ -1,7 +1,7 @@
 ## RaK 2.0.34 (development)
 
-- TEST: načtení 47kB modulu PWA aktualizací a online připojení je přesunuto z povinného lokálního startu až za potvrzení, že je Home/Rotace připravena. Registrace a upozornění PWA se nadále spouštějí bez čekání na další kliknutí.
-- Žádné změny v generátoru, rozpisu, datech, synchronizační logice ani produkční MAIN; změřit první vykreslení, startupReady, offline obnovení a PWA aktualizační scénáře.
+- TEST: odstranění dvojitého vykreslení celé Rotace a Home během počátečního local-first načítání; aktualizace „kam jdu“ nadále předchází kreslení tabulky a další obnovení dat mimo start vykresluje jako dříve.
+- První pokus odložit PWA modul nepřinesl měřitelné zlepšení, proto byl vrácen. Bez změn generátoru, dat, online synchronizace nebo produkční MAIN.
 
 ## RaK 2.0.33 (development)
 

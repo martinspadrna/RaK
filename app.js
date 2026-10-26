@@ -110,6 +110,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "payroll.js",
     "dashboard.js",
     "appearance-theme.js",
+    "app-pwa-connectivity.js",
     "app-home-boot.js",
     "rak-runtime-stability.js"
   ];
@@ -630,8 +631,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       // available. Rehydrate all Rotation-driven UI immediately; do not wait for
       // a page reopen or a full application restart.
       // On HOME, the personal "kam jdu" status must paint before the larger Rotation grid.
-      try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      // During initial local-first hydration the boot path below owns this render.
+      // Avoid a second full Rotation grid and Home render inside the same startup.
+      if (!rakBootLocalHydrationInProgress) {
+        try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
+        try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      }
       try { if (typeof renderRakDashboardAnnouncement === 'function') renderRakDashboardAnnouncement(); } catch (err) {}
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
@@ -888,11 +893,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }
   } catch (err) {}
 
-  // PWA update/install wiring is intentionally started only after local startupReady.
-  // The shell, personal machine and offline Rotation must not await parsing 47 kB of update UI.
-  void loadScript('app-pwa-connectivity.js').then(() => {
-    if (typeof installPwaAndConnectivityHooks === 'function') installPwaAndConnectivityHooks();
-  }).catch((err) => console.warn('Post-ready PWA connectivity setup failed', err));
+  if (typeof installPwaAndConnectivityHooks === 'function') installPwaAndConnectivityHooks();
   if (typeof installBottomNavBindings === 'function') installBottomNavBindings();
   try { if (typeof applyBottomNavMoreHardFix === 'function') applyBottomNavMoreHardFix(); } catch (err) { console.warn('Bottom nav Více hard-fix failed', err); }
   try { if (typeof applyRakFixedBottomNavMetrics === 'function') applyRakFixedBottomNavMetrics(); } catch (err) { console.warn('Bottom nav fixed metrics failed', err); }
