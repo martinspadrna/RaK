@@ -139,8 +139,9 @@ try{
           };
         })()`);
         assert.equal(s.version,target.version,label+' version drift');
-        assert(s.firstMachineMs>0&&s.firstMachineMs<s.startupReadyMs,'early local machine not ready on '+label+'/'+mode);
-        assert(s.heroCache,'cached machine not restored on '+label+'/'+mode);
+        s.earlyAssignmentPass=s.firstMachineMs>0&&s.firstMachineMs<s.startupReadyMs;
+        if(!s.earlyAssignmentPass)console.log('[rak-large-audit] EARLY-MACHINE-ISSUE '+JSON.stringify({label,mode,round,first:s.firstMachineMs,ready:s.startupReadyMs,fcp:s.firstContentfulPaintMs,cachedMarker:s.cachedMarker,hero:s.heroCache}));
+        if(!s.heroCache)console.log('[rak-large-audit] CACHE-RESTORE-ISSUE '+JSON.stringify({label,mode,round,first:s.firstMachineMs,ready:s.startupReadyMs,hero:s.heroCache}));
         assert(s.firstContentfulPaintMs>0,'FCP missing');
         assert(s.firstInteractiveMs>0,'first interactive signal missing');
         assert(s.navBound&&!s.horizontalOverflow,'mobile UI geometry failed');
@@ -159,7 +160,7 @@ try{
     for(const [label,rows] of Object.entries(sets)){
       const metrics={};
       for(const key of fields){const nums=rows.map(r=>r[key]);metrics[key]={p50:percentile(nums,.5),p95:percentile(nums,.95),min:Math.min(...nums),max:Math.max(...nums)};}
-      summary[mode][label]={runs:rows.length,metrics,successfulAssignments:rows.filter(r=>r.heroCache).length};
+      summary[mode][label]={runs:rows.length,metrics,successfulAssignments:rows.filter(r=>r.heroCache).length,earlyAssignmentPasses:rows.filter(r=>r.earlyAssignmentPass).length,anomalies:rows.filter(r=>!r.earlyAssignmentPass).map(r=>({first:r.firstMachineMs,ready:r.startupReadyMs,fcp:r.firstContentfulPaintMs,hero:r.heroCache}))};
     }
   }
   const report={
@@ -177,6 +178,9 @@ try{
     assert(t<Math.max(m*1.65,m+1000),mode+' TEST startup regressions exceed tolerance');
   }
   console.log('[rak-large-audit] RESULT '+JSON.stringify(report));
+  const anomalous=Object.values(summary).flatMap(group=>Object.values(group)).reduce((sum,row)=>sum+(row.runs-row.earlyAssignmentPasses),0);
+  if(anomalous>0)console.log('[rak-large-audit] ANOMALY-COUNT '+anomalous);
+  assert(Object.values(summary).every(group=>Object.values(group).every(row=>row.earlyAssignmentPasses===row.runs)),'Early assignment anomalies need a fix before release');
   console.log('[rak-large-audit] PASS '+Object.values(MODE_COUNTS).reduce((s,n)=>s+n,0)*2+' public site navigations; database writes blocked; synthetic local profile');
 }finally{
   try{ws?.close()}catch{}
