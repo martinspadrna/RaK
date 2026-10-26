@@ -788,17 +788,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   });
   window.__rakBootV2FirstPaintYielded = true;
 
-  // RAK_17127_PARALLEL_FOUNDATION: critical auth/security loading begins
-  // immediately and runs in parallel with the local interaction foundation.
-  // This keeps the shell clickable early without pushing startupReady backwards.
-  const criticalLoadPromise = (async () => {
-    for (const file of criticalFiles) await loadScript(file);
-  })();
-
-  // Core/UI are ordered because ui.js reads core constants. The rest of the
-  // interaction shell can load in parallel and is fully local/cacheable.
-  for (const file of interactionCoreFiles) await loadScript(file);
-  await loadFiles(interactionShellFiles);
+  // RAK_17127_PARALLEL_FOUNDATION: queue the interaction shell before auth.
+  // Ordered dynamic scripts (async=false) download together but execute in
+  // dependency order: core, UI, navigation, then secure authentication.
+  const interactionShellPromise = loadFiles(interactionCoreFiles.concat(interactionShellFiles));
+  const criticalLoadPromise = loadFiles(criticalFiles);
+  await interactionShellPromise;
   try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Earliest bottom nav binding failed', err); }
   // RAK_17131_PREBOOT_NAV_HANDOFF: if the user tapped the already-visible
   // navigation before the dynamic interaction shell arrived, continue that same
