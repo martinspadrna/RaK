@@ -631,8 +631,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       // available. Rehydrate all Rotation-driven UI immediately; do not wait for
       // a page reopen or a full application restart.
       // On HOME, the personal "kam jdu" status must paint before the larger Rotation grid.
-      try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      // During initial local-first hydration the boot path below owns this render.
+      // Avoid a second full Rotation grid and Home render inside the same startup.
+      if (!rakBootLocalHydrationInProgress) {
+        try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
+        try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      }
       try { if (typeof renderRakDashboardAnnouncement === 'function') renderRakDashboardAnnouncement(); } catch (err) {}
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}

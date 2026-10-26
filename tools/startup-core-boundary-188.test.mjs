@@ -40,3 +40,16 @@ test('deferred local features remain guaranteed by the offline cache',()=>{
     assert(offline.includes(asset),asset+' missing from offline-required cache');
   }
 });
+
+test('initial Rotation local-first hydration renders Home and grid exactly once',()=>{
+  const app=read('app.js');
+  const onReady=app.slice(app.indexOf("if (name === 'rotation')"),app.indexOf("} else if (name === 'calculators')"));
+  assert(onReady.includes('if (!rakBootLocalHydrationInProgress) {'));
+  assert(onReady.indexOf('if (!rakBootLocalHydrationInProgress)')<onReady.indexOf('updateDashboard()'));
+  const startup=app.slice(app.indexOf('const rakMustHydrateRotationBeforeReady = true'),app.indexOf('window.__rakBootV2LocalReady = true'));
+  assert(startup.includes('rakBootLocalHydrationInProgress = true'));
+  assert(startup.includes("await ensureFeature('rotation')"));
+  assert(startup.includes('updateDashboard()'));
+  assert(startup.includes('renderRotace()'));
+  assert(startup.includes('rakBootLocalHydrationInProgress = false'));
+});

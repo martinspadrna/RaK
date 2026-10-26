@@ -1,3 +1,8 @@
+## RaK 2.0.34 (development)
+
+- TEST: odstranění dvojitého vykreslení celé Rotace a Home během počátečního local-first načítání; aktualizace „kam jdu“ nadále předchází kreslení tabulky a další obnovení dat mimo start vykresluje jako dříve.
+- První pokus odložit PWA modul nepřinesl měřitelné zlepšení, proto byl vrácen. Bez změn generátoru, dat, online synchronizace nebo produkční MAIN.
+
 ## RaK 2.0.33 (development)
 
 - TEST: okamžité zobrazení posledního uloženého zařazení „kam jdu“ na hlavní obrazovce ještě před načtením modulů rozpisu, včetně přechodu mezi směnami. Platí jen pro aktuální účet a je označeno jako poslední uložený údaj do načtení aktuálního rozpisu.
