@@ -110,7 +110,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "payroll.js",
     "dashboard.js",
     "appearance-theme.js",
-    "app-pwa-connectivity.js",
     "app-home-boot.js",
     "rak-runtime-stability.js"
   ];
@@ -889,7 +888,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     }
   } catch (err) {}
 
-  if (typeof installPwaAndConnectivityHooks === 'function') installPwaAndConnectivityHooks();
+  // PWA update/install wiring is intentionally started only after local startupReady.
+  // The shell, personal machine and offline Rotation must not await parsing 47 kB of update UI.
+  void loadScript('app-pwa-connectivity.js').then(() => {
+    if (typeof installPwaAndConnectivityHooks === 'function') installPwaAndConnectivityHooks();
+  }).catch((err) => console.warn('Post-ready PWA connectivity setup failed', err));
   if (typeof installBottomNavBindings === 'function') installBottomNavBindings();
   try { if (typeof applyBottomNavMoreHardFix === 'function') applyBottomNavMoreHardFix(); } catch (err) { console.warn('Bottom nav Více hard-fix failed', err); }
   try { if (typeof applyRakFixedBottomNavMetrics === 'function') applyRakFixedBottomNavMetrics(); } catch (err) { console.warn('Bottom nav fixed metrics failed', err); }

@@ -40,3 +40,16 @@ test('deferred local features remain guaranteed by the offline cache',()=>{
     assert(offline.includes(asset),asset+' missing from offline-required cache');
   }
 });
+
+test('PWA update module loads asynchronously only after Home/Rotation local readiness',()=>{
+  const app=read('app.js');
+  const first=app.slice(app.indexOf('const startupFiles = ['),app.indexOf('const rotationFeatureFiles'));
+  assert(!first.includes('"app-pwa-connectivity.js"'));
+  const ready=app.indexOf('window.__rakBootV2StartupReady = true');
+  const pwa=app.indexOf("void loadScript('app-pwa-connectivity.js')");
+  assert(ready>0&&pwa>ready);
+  const install=app.slice(pwa,pwa+280);
+  assert(install.includes("typeof installPwaAndConnectivityHooks === 'function'"));
+  assert(install.includes('installPwaAndConnectivityHooks()'));
+  assert(install.includes('.catch('));
+});
