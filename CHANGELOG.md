@@ -1,4 +1,4 @@
-## RaK 2.0.35 (development – TEST)
+## RaK 2.0.35 (development)
 
 - Zrychlení přihlášení při startu: moduly navigace a sedm bezpečnostních/přihlašovacích modulů se stahují souběžně, ale vykonávají se ve stejném pořadí (dynamické skripty async=false). Počáteční navigace má přednost před přihlašovacími moduly.
 - Beze změn generátoru, rozpisových dat, oprávnění, Supabase synchronizace a produkčního MAIN. Testy přihlášení, local-first, offline a rychlosti musí projít před nasazením.
