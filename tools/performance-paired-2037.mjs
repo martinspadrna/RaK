@@ -206,8 +206,8 @@ try{
     VERCEL_GIT_COMMIT_REF:'development'
   };
   for(let i=1;i<=CONFIG.baseline.buildPasses;i++){run('npm',['run','vercel-build'],{cwd:baselineRoot,timeout:300000,env:historicalEnv});}
-  const builtPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(builtPackage.version,'2.0.36','[perf-parity] historical build did not reach technical 1.7.0');
-  const builtConfig=fs.readFileSync(path.join(baselineRoot,'supabase-config.js'),'utf8');assert(builtConfig.includes('cgshssdjgzzuprlwnabl'),'[perf-parity] historical build is not 1.7.69');
+  const builtPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(builtPackage.version,'2.0.36','[perf-parity] expected 2.0.36 canonical build did not match');
+  const builtConfig=fs.readFileSync(path.join(baselineRoot,'supabase-config.js'),'utf8');assert(builtConfig.includes('cgshssdjgzzuprlwnabl'),'[perf-parity] expected TEST 2.0.36 baseline build absent');
   const currentMetadata=fs.readFileSync(path.join(ROOT,'rak-release-metadata.js'),'utf8');
   const currentPackage=JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8'));
   const currentVersion=String(CONFIG.current&&CONFIG.current.version||'').trim();
@@ -227,7 +227,7 @@ try{
       current.push(await measureRoot(ROOT,currentLabel,round));
     }else{
       current.push(await measureRoot(ROOT,currentLabel,round));
-      baseline.push(await measureRoot(baselineRoot,'baseline-1.7.69',round));
+      baseline.push(await measureRoot(path.join(baselineRoot,'.rak-canonical-build','work'),'baseline-2.0.36',round));
     }
   }
   const b=summarize(baseline),c=summarize(current),comparisons={},failures=[];
