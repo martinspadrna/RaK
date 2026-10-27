@@ -124,7 +124,7 @@ function buildAppMenuAboutHistoryHtml() {
 // Legacy smoke marker: Testovací build: intentionally not rendered in O aplikaci.
 function renderAppMenuAboutPage(body, versionText) {
       const releaseMetadata = window.RAK_RELEASE_METADATA || {};
-      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.36').trim();
+      const displayVersion = String(releaseMetadata.visibleTestVersion || window.RAK_RELEASE_VERSION || versionText || '2.0.37').trim();
       body.innerHTML = [
         '<div class="appMenuCard">',
         '  <div class="appMenuCardTitle">O aplikaci</div>',

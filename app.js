@@ -329,18 +329,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return Promise.all(list.map((style) => loadPostReadyStyle(style)));
   }
 
-  function warmPostReadyStyles() {
-    try {
-      const slots = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'));
-      for (const slot of slots) {
-        const href = String(slot.getAttribute('data-rak-post-ready-style') || '').trim();
-        void loadPostReadyStyle(href).catch((err) => console.warn('Post-ready style warmup failed', href, err));
-      }
-    } catch (err) {
-      console.warn('Post-ready styles warmup failed', err);
-    }
-  }
-
   // await Promise.all(deferredFiles.map(loadScript))
 
   // Route-only polish retains its original cascade slot, but feature readiness
@@ -876,7 +864,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   window.__rakBootV2StartupReady = true;
   window.__rakBootV2StartupReadyMs = Math.max(0, Math.round(startupReadyAt - bootStartedAt));
   if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('boot-loader', 'ready', { source: 'boot-v2', startupReadyMs: window.__rakBootV2StartupReadyMs });
-  setTimeout(warmPostReadyStyles, 0);
 
   try {
     const DEV_RESET_KEY = 'rak_dev_pwa_prompt_reset_build';
@@ -919,8 +906,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       console.warn('Idle audit moduly se nepodařilo načíst', err);
     });
   };
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(runIdleAudits, { timeout: 5000 });
-  else setTimeout(runIdleAudits, 3200);
+  // No diagnostic module may compete with Home's initial authenticated sync.
+  // Retain the full offline-safe audit group, but schedule it only after the
+  // initial 12-second interaction/network grace period, then at browser idle.
+  setTimeout(() => {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(runIdleAudits, { timeout: 5000 });
+    else runIdleAudits();
+  }, 12000);
 })().catch(err => {
   console.error(err);
   alert("Nepodařilo se načíst aplikační skripty: " + (err && err.message ? err.message : String(err)));
