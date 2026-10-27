@@ -205,6 +205,8 @@ try{
     VERCEL_GIT_COMMIT_SHA:CONFIG.baseline.sha,
     VERCEL_GIT_COMMIT_REF:'development'
   };
+  // Canonical v2.0.36 build validates the SDK vendored from this worktree's local node_modules.
+  run('npm',['ci','--no-audit','--no-fund'],{cwd:baselineRoot,timeout:240000,env:historicalEnv});
   for(let i=1;i<=CONFIG.baseline.buildPasses;i++){run('npm',['run','vercel-build'],{cwd:baselineRoot,timeout:300000,env:historicalEnv});}
   const builtPackage=JSON.parse(fs.readFileSync(path.join(baselineRoot,'package.json'),'utf8'));assert.equal(builtPackage.version,'2.0.36','[perf-parity] expected 2.0.36 canonical build did not match');
   const builtConfig=fs.readFileSync(path.join(baselineRoot,'supabase-config.js'),'utf8');assert(builtConfig.includes('cgshssdjgzzuprlwnabl'),'[perf-parity] expected TEST 2.0.36 baseline build absent');
