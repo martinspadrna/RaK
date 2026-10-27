@@ -3,6 +3,7 @@
 - TEST: Auditní a diagnostické moduly se spustí až po 12 sekundách a následném idle okně, aby při otevření aplikace nekonkurovaly síti pro přihlášení, rozpis a synchronizaci. Auditní nástroje a jejich offline dostupnost zůstávají zachované.
 - Odstraněn zbytečný průchod načítače odložených CSS: aktuální vzhled využívá styly přímo z HTML a žádné odložené CSS sloty, takže tato práce nepřinášela žádný užitek.
 - Bez zásahu do generátoru, údajů směn, uživatelských účtů, Supabase konfigurace, lokálního rozpisu nebo produkce. Pevné limity velikosti a výkonu zůstávají nezměněné.
+- Odložená diagnostika je součástí lokální PWA cache; při pozdějším otevření administrace či diagnostiky se její obsah neztrácí.
 
 ## RaK 2.0.36 (development)
 
