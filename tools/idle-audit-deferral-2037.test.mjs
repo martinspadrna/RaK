@@ -34,10 +34,12 @@ test('unused automatic stylesheet slot scan is removed without deferring establi
   assert(app.includes('function loadFeatureStyles(styles)'),'CSS intent/on-demand API remains available');
 });
 
-test('offline PWA still contains the diagnostic foundation and executable auditing modules',()=>{
-  const sw=read('sw.js');
+test('offline PWA keeps critical app caches and defers optional diagnostic files intact',()=>{
+  const sw=read('sw.js'),app=read('app.js');
+  assert(sw.includes("'./app.js?v=2.0.37'"),'offline app startup cache missing');
+  assert(sw.includes("'./rotace.js?v=2.0.37'"),'offline Rotation cache missing');
   for(const f of ['rak-audit-baseline.js','rak-runtime-health.js','app-health-audits.js','app-postload-audits.js']){
-    assert(sw.includes(f),'offline audit asset missing '+f);
+    assert(app.includes('"'+f+'"'),'optional diagnostic module no longer reachable '+f);
   }
   const metadata=read('rak-release-metadata.js');
   const pkg=JSON.parse(read('package.json'));
