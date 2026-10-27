@@ -1,3 +1,8 @@
+## RaK 2.0.36 (development)
+
+- TEST: Volitelný externí font Kalam se načítá bez blokování prvního vykreslení Home. Po načtení se automaticky aktivuje původní font a zachovává se diagnostika Google Fonts. Pokud je font nedostupný, aplikace zůstává plně použitelná se systémovým písmem.
+- Generátor rozpisů, oprávnění, databáze, synchronizace, PWA offline cache a MAIN beze změn. Výkonové limity zůstávají stejné.
+
 ## RaK 2.0.35 (development)
 
 - Zrychlení přihlášení při startu: moduly navigace a sedm bezpečnostních/přihlašovacích modulů se stahují souběžně, ale vykonávají se ve stejném pořadí (dynamické skripty async=false). Počáteční navigace má přednost před přihlašovacími moduly.
