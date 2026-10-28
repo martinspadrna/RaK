@@ -90,5 +90,7 @@ test('fresh-device auth still loads modules on demand and never grants role from
   assert(core.includes("window.rakAdminHasVerifiedRole()")&&core.includes("window.rakAdminCanManageAdmins()"));
   const ready=boot.indexOf('window.__rakBootV2StartupReady = true;');
   const restore=boot.indexOf('RAK_2039:');
-  assert(ready>0&&restore>ready,'background owner restore never blocks Home');
+  const launch=boot.indexOf("const startSync = () => ensureFeature('sync')",ready);
+  assert(ready>0&&restore>0&&launch>ready,'remote sync invoking owner restore starts after Home ready');
+  assert(boot.slice(launch).includes(".then(() => activateRemoteSync())"));
 });
