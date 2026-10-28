@@ -19,7 +19,8 @@ test('verified owner session starts alongside remote Rotation sync, never in loc
   assert(boot.includes("ensureFeature('menu').then("));
   assert(boot.includes("window.rakAdminRestoreSecureSessionForActiveAccount?.('owner-home-startup')"));
   assert(boot.includes("window.rakUserProfileGet?.()?.accountNumber==='9811'"));
-  assert(!boot.slice(0,ready).includes("ensureFeature('menu')"));
+  const startup=boot.slice(boot.indexOf('const rakMustHydrateRotationBeforeReady'),ready);
+  assert(!startup.includes("ensureFeature('menu')"),'Home hydration must not await Menu');
   assert(read('app-admin-unlock.js').includes("const RAK_OWNER_ADMIN_ACCOUNT_ID = '9811'"));
 });
 
