@@ -929,24 +929,19 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // RAK_17132_BACKGROUND_REMOTE_REFRESH: local UI is complete at this point.
   // Network work is intentionally fire-and-forget and cannot own the route.
   const startSync = () => ensureFeature('sync')
+    .then(() => activateRemoteSync())
     .then(() => {
-      const remoteRun = activateRemoteSync();
       let returningOwner = false;
       try {
         const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
         returningOwner = String(profile && profile.accountNumber || '').trim() === '9811';
       } catch (err) {}
       if (returningOwner && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
-        // Prefetch only for the returning owner, concurrently with network sync.
-        // A fresh device with no profile still uses the intact password login gate.
-        const ownerMenuReady = ensureFeature('menu');
-        void Promise.all([remoteRun, ownerMenuReady])
-          .then(() => restoreOwnerRotationAccessAfterSync())
+        // Start only after the first remote sync, never before local Home is ready.
+        // The ordinary fresh-device password login path is unchanged.
+        void restoreOwnerRotationAccessAfterSync()
           .catch((err) => console.warn('Owner Rotation role restore failed', err));
       }
-      return remoteRun;
-    })
-    .then(() => {
       if (typeof window.__rakSyncActiveAppearance === 'function') return window.__rakSyncActiveAppearance('startup-ready');
       return true;
     })
