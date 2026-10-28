@@ -1,3 +1,10 @@
+## RaK 2.0.39 (development)
+
+- Rotace vlastníka přiřazeného ke směně A se obnovuje paralelně se stahováním rozpisů – ověřená role už nečeká na dokončení celé synchronizace.
+- Spuštění Home zůstává local-first; samotné ověření běží až po inicializaci Supabase a stále vyžaduje skutečnou podepsanou relaci. U běžných účtů A/B/C zůstává Rotace skrytá.
+- Regresní test ověřuje souběh obnovy role a synchronizace, přepnutí účtu, offline start a zachování přihlášení heslem na čistém zařízení.
+- Bez zásahu do databáze, rozpisů, generátoru nebo MAIN.
+
 ## RaK 2.0.38 (development)
 
 - Oprava Rotace u vlastníka na směně A: po startu Home se bez otevírání Více tiše obnoví ověřená relace a po změně ověřené role se aktualizuje spodní navigace. Ostatním účtům A/B/C se přístup nerozšiřuje.
