@@ -18,6 +18,8 @@ let rakAdminSecureRestoreAccountId = '';
 
 function rakAdminNotifyAccessChanged(reason) {
   void reason;
+  // RAK_2038: let verified role changes update Rotace without opening Více.
+  try { if (typeof window.rakApplyShiftAccess === 'function') window.rakApplyShiftAccess(); } catch (err) {}
   try {
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new Event('rak-admin-access-changed'));

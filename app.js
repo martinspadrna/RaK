@@ -892,6 +892,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const startSync = () => ensureFeature('sync')
     .then(() => activateRemoteSync())
     .then(() => {
+      // RAK_2038: restore signed owner role after Home, without opening More.
+      if(window.rakUserProfileGet?.()?.accountNumber==='9811'&&navigator.onLine!==false)
+        void ensureFeature('menu').then(()=>window.rakUserProfileGet?.()?.accountNumber==='9811'
+          &&window.rakAdminRestoreSecureSessionForActiveAccount?.('owner-home-startup'))
+          .catch(e=>console.warn('Owner role restore',e));
       if (typeof window.__rakSyncActiveAppearance === 'function') return window.__rakSyncActiveAppearance('startup-ready');
       return true;
     })
