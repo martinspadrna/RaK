@@ -1,3 +1,9 @@
+## RaK 2.0.38 (development)
+
+- Oprava Rotace u vlastníka na směně A: po startu Home se bez otevírání Více tiše obnoví ověřená relace a po změně ověřené role se aktualizuje spodní navigace. Ostatním účtům A/B/C se přístup nerozšiřuje.
+- Viditelnost Rotace stále závisí na zabezpečeném ověření vlastníka, ne na lokálně uloženém osobním čísle. Heslo, synchronizace a přihlášení na novém zařízení zůstávají zachované.
+- Doplněn regresní test přístupu ke směně D, automatického obnovení role a zachování zabezpečeného přihlášení. MAIN a produkční data beze změny.
+
 ## RaK 2.0.37 (development)
 
 - TEST: Auditní a diagnostické moduly se spustí až po 12 sekundách a následném idle okně, aby při otevření aplikace nekonkurovaly síti pro přihlášení, rozpis a synchronizaci. Auditní nástroje zůstávají dostupné; první offline spuštění nepotřebuje jejich načtení.
