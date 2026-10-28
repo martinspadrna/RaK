@@ -27,8 +27,8 @@ function ownerRestoreFixture(initialAccount, verified) {
 test('owner restoration runs after startup and Menu is not a critical dependency',()=>{
   assert(boot.indexOf('function restoreOwnerRotationAccessAfterSync()')>boot.indexOf('window.__rakBootV2StartupReady = true;'));
   assert(boot.includes("const startSync = () => ensureFeature('sync')"));
-  assert(boot.includes('Promise.all([remoteRun, ownerMenuReady])'));
-  assert(boot.includes("const ownerMenuReady = ensureFeature('menu')"));
+  assert(boot.includes(".then(() => activateRemoteSync())"),'remote sync must stay post-local');
+  assert(boot.includes('void restoreOwnerRotationAccessAfterSync()'),'only returning owner may trigger background role restoration');
   assert(boot.includes("window.addEventListener('rak-admin-access-changed'"));
   assert(boot.includes('window.rakApplyShiftAccess()'));
   assert(boot.includes('window.__rakApplyFixedBottomNavMetricsNow()'));
