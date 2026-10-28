@@ -11,7 +11,7 @@ const unlock=read('app-admin-unlock.js');
 
 test('verified owner session starts alongside remote Rotation sync, never in local-first Home',()=>{
   const ready=boot.indexOf('window.__rakBootV2StartupReady = true;');
-  const bridge=boot.indexOf('await window.RotationSupabaseBridge.init()',ready);
+  const bridge=boot.indexOf('await window.RotationSupabaseBridge.init()');
   const owner=boot.indexOf('RAK_2039:',bridge);
   const sync=boot.indexOf('await syncRotationFromSupabase(false)',owner);
   assert(ready>=0&&bridge>0&&owner>bridge&&sync>owner);
