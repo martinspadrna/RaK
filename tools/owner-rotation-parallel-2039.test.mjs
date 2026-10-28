@@ -7,7 +7,7 @@ import {extractNamedDeclaration} from './runtime-vm-fixture.mjs';
 const boot=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
 
 function fixture(account='9811',online=true) {
-  let active=account,finishSync,menuFinish;
+  let active=account,finishSync;
   const calls=[];
   const window={
     rakUserProfileGet:()=>({accountNumber:active}),
@@ -20,6 +20,7 @@ function fixture(account='9811',online=true) {
     window,navigator:{onLine:online},Promise,console:{warn:()=>{}},
     ensureRakSupabaseSdk:async()=>{calls.push('sdk-ready');},
     ensureFeature:async(name)=>{calls.push('feature:'+name);},
+    loadScript:async(path)=>{calls.push('script:'+path);},
     syncRotationFromSupabase:()=>new Promise(resolve=>{
       calls.push('rotation-sync-start');
       finishSync=()=>{calls.push('rotation-sync-finish');resolve();};
@@ -37,7 +38,7 @@ test('signed owner role begins during remote rotation fetch, without waiting for
   assert(f.calls.includes('rotation-sync-start'),'large rotation download must start');
   assert(f.calls.includes('verified-role'),'owner restore must start while download is pending');
   assert(!f.calls.includes('rotation-sync-finish'),'restore must not wait for download');
-  assert(f.calls.indexOf('bridge-ready')<f.calls.indexOf('feature:menu'),'bridge must initialize before secure role restore');
+  assert(f.calls.indexOf('bridge-ready')<f.calls.indexOf('script:app-admin-unlock.js'),'bridge must initialize before secure role restore');
   f.syncDone();
   await pending;
   assert(f.calls.includes('home-refresh'));
@@ -47,14 +48,14 @@ test('nonowner and offline starts never prewarm owner auth',async()=>{
   for(const [account,online] of [['1234',true],['9811',false]]) {
     const f=fixture(account,online),pending=f.run();
     await settle();
-    assert(!f.calls.includes('feature:menu'));
+    assert(!f.calls.includes('script:app-admin-unlock.js'));
     assert(!f.calls.includes('verified-role'));
     f.syncDone();await pending;
   }
 });
 
-test('account switching while Menu loads cannot restore previous owner',async()=>{
-  let menuResolve;
+test('account switching while auth module loads cannot restore previous owner',async()=>{
+  let authResolve;
   const source=extractNamedDeclaration(boot,'activateRemoteSync');
   const calls=[];
   let active='9811';
@@ -66,14 +67,15 @@ test('account switching while Menu loads cannot restore previous owner',async()=
   let finishSync;
   const context=vm.createContext({window,navigator:{onLine:true},Promise,console:{warn:()=>{}},
     ensureRakSupabaseSdk:async()=>{},
-    ensureFeature:name=>name==='menu'?new Promise(resolve=>{menuResolve=resolve;}):Promise.resolve(),
+    ensureFeature:async()=>{},
+    loadScript:()=>new Promise(resolve=>{authResolve=resolve;}),
     syncRotationFromSupabase:()=>new Promise(resolve=>{finishSync=resolve;})
   });
   vm.runInContext('let remoteSyncActivationPromise=null;\n'+source+'\nthis.activate=activateRemoteSync;',context);
   const pending=context.activate();
   await settle();
-  assert.equal(typeof menuResolve,'function');
-  active='1234';menuResolve();
+  assert.equal(typeof authResolve,'function');
+  active='1234';authResolve();
   await settle();
   assert.equal(calls.length,0,'after switching accounts, no owner restore can run');
   finishSync();await pending;
@@ -89,7 +91,7 @@ test('fresh-device auth still loads modules on demand and never grants role from
   assert(profile.includes('await window.rakEnsureSupabaseSdk({ force: true })'));
   assert(core.includes("window.rakAdminHasVerifiedRole()")&&core.includes("window.rakAdminCanManageAdmins()"));
   const ready=boot.indexOf('window.__rakBootV2StartupReady = true;');
-  const restore=boot.indexOf('RAK_2039:');
+  const restore=boot.indexOf('RAK_2040:');
   const launch=boot.indexOf("const startSync = () => ensureFeature('sync')",ready);
   assert(ready>0&&restore>0&&launch>ready,'remote sync invoking owner restore starts after Home ready');
   assert(boot.slice(launch).includes(".then(() => activateRemoteSync())"));
