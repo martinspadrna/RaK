@@ -9,11 +9,12 @@ const boot=read('app.js');
 const core=read('core.js');
 const unlock=read('app-admin-unlock.js');
 
-test('owner-only secure restoration starts after Home and original sync, not in the critical path',()=>{
+test('verified owner session starts alongside remote Rotation sync, never in local-first Home',()=>{
   const ready=boot.indexOf('window.__rakBootV2StartupReady = true;');
-  const sync=boot.indexOf("const startSync = () => ensureFeature('sync')",ready);
-  const owner=boot.indexOf('RAK_2038:',sync);
-  assert(ready>=0&&sync>ready&&owner>sync);
+  const bridge=boot.indexOf('await window.RotationSupabaseBridge.init()',ready);
+  const owner=boot.indexOf('RAK_2039:',bridge);
+  const sync=boot.indexOf('await syncRotationFromSupabase(false)',owner);
+  assert(ready>=0&&bridge>0&&owner>bridge&&sync>owner);
   assert(boot.includes(".then(() => activateRemoteSync())"));
   assert(boot.includes("ensureFeature('menu').then("));
   assert(boot.includes("window.rakAdminRestoreSecureSessionForActiveAccount?.('owner-home-startup')"));
@@ -67,5 +68,5 @@ test('clean-device password login still self-loads Menu, sync and Supabase SDK',
   assert(access.includes("void window.rakEnsureFeature('sync')"));
   assert(profile.includes("await window.rakEnsureSupabaseSdk({ force: true })"));
   assert(boot.includes('await criticalLoadPromise;'));
-  assert(read('sw.js').includes("'./app-admin-unlock.js?v=2.0.38'"));
+  assert(read('sw.js').includes("'./app-admin-unlock.js?v=2.0.39'"));
 });
