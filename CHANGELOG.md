@@ -1,3 +1,9 @@
+## RaK 2.0.40 (development)
+
+- Přístup vlastníka k Rotaci při přiřazení na směnu A se obnovuje rychleji: načítá se pouze nezbytný bezpečnostní modul namísto celé sekce „Více“.
+- Synchronizace se pro přihlášeného vlastníka spouští krátce po lokálním vykreslení Home (90 ms), zatímco ostatní účty zachovávají původní odložený režim. Obnova stále vyžaduje platnou zabezpečenou relaci.
+- Zachován bezpečný login na novém zařízení, offline režim, oddělení TEST/MAIN, generátor a rozpisy. Přidán regresní test načasování, odhlášení a oprávnění.
+
 ## RaK 2.0.39 (development)
 
 - Rotace vlastníka přiřazeného ke směně A se obnovuje paralelně se stahováním rozpisů – ověřená role už nečeká na dokončení celé synchronizace.

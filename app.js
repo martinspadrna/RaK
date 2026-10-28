@@ -590,10 +590,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       } catch (err) {
         console.warn('Supabase bridge init failed', err);
       }
-      // RAK_2039: verify returning owner while the larger Rotation sync runs.
-      // Home is already interactive; access still requires signed Supabase role.
+      // RAK_2040: signed owner role needs only the auth module, not full Více.
       if(window.rakUserProfileGet?.()?.accountNumber==='9811'&&navigator.onLine!==false)
-        void ensureFeature('menu').then(()=>window.rakUserProfileGet?.()?.accountNumber==='9811'
+        void loadScript('app-admin-unlock.js').then(()=>window.rakUserProfileGet?.()?.accountNumber==='9811'
           &&window.rakAdminRestoreSecureSessionForActiveAccount?.('owner-home-startup'))
           .catch(e=>console.warn('Owner role restore',e));
       try {
@@ -902,7 +901,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       return true;
     })
     .catch((err) => console.warn('Boot v2 background sync failed', err));
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(startSync, { timeout: 1200 });
+  // Returning owner starts sync shortly after Home paint; others keep idle startup.
+  if(window.rakUserProfileGet?.()?.accountNumber==='9811'&&navigator.onLine!==false) setTimeout(startSync, 90);
+  else if (typeof requestIdleCallback === 'function') requestIdleCallback(startSync, { timeout: 1200 });
   else setTimeout(startSync, 450);
 
   const runIdleAudits = () => {

@@ -36,15 +36,15 @@ test('unused automatic stylesheet slot scan is removed without deferring establi
 
 test('offline PWA keeps critical app caches and defers optional diagnostic files intact',()=>{
   const sw=read('sw.js'),app=read('app.js');
-  assert(sw.includes("'./app.js?v=2.0.39'"),'offline app startup cache missing');
-  assert(sw.includes("'./rotace.js?v=2.0.39'"),'offline Rotation cache missing');
+  assert(sw.includes("'./app.js?v=2.0.40'"),'offline app startup cache missing');
+  assert(sw.includes("'./rotace.js?v=2.0.40'"),'offline Rotation cache missing');
   for(const f of ['rak-audit-baseline.js','rak-runtime-health.js','app-health-audits.js','app-postload-audits.js']){
     assert(app.includes('"'+f+'"'),'optional diagnostic module no longer reachable '+f);
   }
   const metadata=read('rak-release-metadata.js');
   const pkg=JSON.parse(read('package.json'));
-  assert.equal(pkg.version,'2.0.39');
-  assert(metadata.includes("displayVersion: '2.0.39'"));
-  assert(read('tools/performance-parity-17069.json').includes('"version": "2.0.39"'));
+  assert.equal(pkg.version,'2.0.40');
+  assert(metadata.includes("displayVersion: '2.0.40'"));
+  assert(read('tools/performance-parity-17069.json').includes('"version": "2.0.40"'));
   assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
 });
