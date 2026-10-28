@@ -887,10 +887,65 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     else if (typeof bootHomeRefresh === 'function') bootHomeRefresh();
   } catch (err) { console.warn('Post-load Home boot failed', err); }
 
+  // RAK_2038_OWNER_ROTATION_NAV: a verified owner on another shift must not
+  // have to open More to restore their Rotation tab. Keep all permission gates
+  // server-verified and do not add Menu or Supabase to the awaited startup path.
+  if (!window.__rakOwnerRotationNavRoleListenerInstalled) {
+    window.__rakOwnerRotationNavRoleListenerInstalled = true;
+    window.addEventListener('rak-admin-access-changed', () => {
+      try {
+        if (typeof window.rakApplyShiftAccess === 'function') window.rakApplyShiftAccess();
+        if (typeof window.__rakApplyFixedBottomNavMetricsNow === 'function') window.__rakApplyFixedBottomNavMetricsNow();
+      } catch (err) { console.warn('Owner Rotation nav refresh failed', err); }
+    });
+  }
+
+  function restoreOwnerRotationAccessAfterSync() {
+    let accountId = '';
+    try {
+      const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+      accountId = String(profile && profile.accountNumber || '').trim();
+    } catch (err) {}
+    // This is only a performance hint. Never grant Rotation from an account ID.
+    // The existing signed Supabase session must still verify the owner role.
+    if (accountId !== '9811') return Promise.resolve(false);
+    return ensureFeature('menu')
+      .then(() => {
+        let currentId = '';
+        try {
+          const current = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+          currentId = String(current && current.accountNumber || '').trim();
+        } catch (err) {}
+        if (currentId !== accountId) return false;
+        if (typeof window.rakAdminRestoreSecureSessionForActiveAccount !== 'function') return false;
+        return window.rakAdminRestoreSecureSessionForActiveAccount('owner-home-startup');
+      })
+      .then((restored) => {
+        if (restored && typeof window.rakApplyShiftAccess === 'function') window.rakApplyShiftAccess();
+        return !!restored;
+      });
+  }
+
   // RAK_17132_BACKGROUND_REMOTE_REFRESH: local UI is complete at this point.
   // Network work is intentionally fire-and-forget and cannot own the route.
   const startSync = () => ensureFeature('sync')
-    .then(() => activateRemoteSync())
+    .then(() => {
+      const remoteRun = activateRemoteSync();
+      let returningOwner = false;
+      try {
+        const profile = typeof window.rakUserProfileGet === 'function' ? window.rakUserProfileGet() : null;
+        returningOwner = String(profile && profile.accountNumber || '').trim() === '9811';
+      } catch (err) {}
+      if (returningOwner && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+        // Prefetch only for the returning owner, concurrently with network sync.
+        // A fresh device with no profile still uses the intact password login gate.
+        const ownerMenuReady = ensureFeature('menu');
+        void Promise.all([remoteRun, ownerMenuReady])
+          .then(() => restoreOwnerRotationAccessAfterSync())
+          .catch((err) => console.warn('Owner Rotation role restore failed', err));
+      }
+      return remoteRun;
+    })
     .then(() => {
       if (typeof window.__rakSyncActiveAppearance === 'function') return window.__rakSyncActiveAppearance('startup-ready');
       return true;
