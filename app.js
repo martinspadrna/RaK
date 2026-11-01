@@ -161,6 +161,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const adminFeatureFiles = [
     "rak-cleanup-schedule.js",
     "admin-shift-overview.js",
+    "features/shift-overview-image.js",
     "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",
     "admin-rotation-overtime.js",
