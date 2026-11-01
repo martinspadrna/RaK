@@ -1,3 +1,10 @@
+## RaK 2.0.41 (development)
+
+- **Přehled směny – vyplňování:** výrazněji oddělené sekce s kontrastním obrysem, barevným levým pruhem a většími rozestupy. „Před 145“ a „Po 145“ jsou samostatné karty také v nerozlišeném zobrazení. Pořadí a uložené hodnoty zůstávají zachovány.
+- **Grafický celkový přehled:** nový údaj **BK v provozu (ALD1 + ALD2, z 20)** a přesné počty i názvy vypnutých BK u každého ALD. ALD3 má ST, proto není počítán mezi BK. Grafika se aktualizuje i okamžitě po vypnutí/zapnutí BK.
+- **Obrázek ke stažení:** vytvoření PNG z aktuálního SVG přehledu (dvojnásobné rozlišení, omezená velikost kvůli iPhonu), tlačítka **Stáhnout PNG** a **Sdílet obrázek** pod náhledem i v režimu zvětšení. Při podpoře systému se využije sdílení souboru, jinak stažení.
+- Bez změn databáze, zabezpečených oprávnění, uložených účetních záznamů, rozpisů nebo generátoru; nasazení pouze TEST. Regresní ověření VM a mobilní Chromium.
+
 ## RaK 2.0.40 (development)
 
 - Přístup vlastníka k Rotaci při přiřazení na směnu A se obnovuje rychleji: načítá se pouze nezbytný bezpečnostní modul namísto celé sekce „Více“.
