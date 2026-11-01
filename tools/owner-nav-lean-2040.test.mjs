@@ -48,7 +48,7 @@ test('early owner branch never performs authorization; only verified Supabase re
  assert(access.includes("void window.rakEnsureFeature('menu')"));
  assert(access.includes("void window.rakEnsureFeature('sync')"));
  const sw=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
- assert(sw.includes("'./app-admin-unlock.js?v=2.0.41'"));
+ assert(sw.includes("'./app-admin-unlock.js?v=2.0.42'"));
 });
 
 test('non-owner idle schedule preserves Home-first behavior and sync is still remote-only',()=>{
