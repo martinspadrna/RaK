@@ -30,7 +30,14 @@ test('date bounds include the chosen day, retain R/N shifts, reject invalid date
  assert.equal(f.evaluate("adminRotationGeneratorResolveWizardDays({mode:'amend',monthKey:'10/26',startDate:'2026-10-31',days:[]}).length"),0);
 });
 test('current-month mode falls back to the stored month when no live editor snapshot exists',()=>{
- const f=setup();f.evaluate("adminRotationGeneratorSetWizardState({editorMonthKey:'10/26',editorMonth:null});adminRotationGeneratorStartAmend(adminRotationGeneratorGetWizardState())");
+ const f=setup();
+ // This archived October 2026 scenario must not depend on the CI runner clock.
+ // Freeze time in this single VM fixture; production generator code is untouched.
+ f.context.Date=class October2026Date extends Date {
+  constructor(...args){super(...(args.length?args:[2026,9,15,12,0,0]));}
+  static now(){return new Date(2026,9,15,12,0,0).getTime();}
+ };
+ f.evaluate("adminRotationGeneratorSetWizardState({editorMonthKey:'10/26',editorMonth:null});adminRotationGeneratorStartAmend(adminRotationGeneratorGetWizardState())");
  const state=f.evaluate('adminRotationGeneratorGetWizardState()');assert.equal(state.monthKey,'10/26');assert.equal(state.mode,'amend');assert(state.sourceMonth.hard.rows.length>0);
 });
 test('all actual balancing and repair passes see frozen rows in counts but cannot mutate them',()=>{
