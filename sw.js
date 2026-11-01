@@ -239,7 +239,9 @@ const OFFLINE_REQUIRED = Object.freeze([
 './assets/dashboard-icons/calendar.png','./assets/dashboard-icons/dovolena.png',
 './assets/dashboard-icons/eportal.png','./assets/dashboard-icons/hourglass.png',
 './assets/dashboard-icons/jidelna.png','./assets/dashboard-icons/jidelnilistek.png',
-'./assets/dashboard-icons/kantyna.png','./assets/dashboard-icons/vyplata.png'
+'./assets/dashboard-icons/kantyna.png','./assets/dashboard-icons/vyplata.png',
+'./features/shift-overview-image.js?v=2.0.41',
+'./features/shift-overview-extra.css?v=2.0.41'
 ]);
 
 const STATIC_EXT = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|webmanifest)$/i;
