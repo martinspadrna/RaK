@@ -241,7 +241,8 @@ const OFFLINE_REQUIRED = Object.freeze([
 './assets/dashboard-icons/jidelna.png','./assets/dashboard-icons/jidelnilistek.png',
 './assets/dashboard-icons/kantyna.png','./assets/dashboard-icons/vyplata.png',
 './features/shift-overview-image.js?v=2.0.42',
-'./features/shift-overview-extra.css?v=2.0.42'
+'./features/shift-overview-extra.css?v=2.0.42',
+'./features/shift-report-sections.css?v=2.0.42'
 ]);
 
 const STATIC_EXT = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|webmanifest)$/i;
