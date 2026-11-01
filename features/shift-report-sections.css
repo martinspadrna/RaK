@@ -1,0 +1,32 @@
+/* TEST 2.0.42 – přehledné hranice pracovních oddílů Reportu pro mistra. */
+#rakShiftReport.rakShiftReportPolished{gap:20px}
+#rakShiftReport .rakShiftSection{
+  --rak-report-divider:#d5dfec;
+  border:2px solid rgba(255,255,255,.52);
+  border-left:6px solid var(--rak-report-divider);
+  border-radius:18px;
+  padding:15px;
+  background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.035));
+  box-shadow:0 8px 24px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,255,255,.08);
+}
+#rakShiftReport [data-section-block="mo"]{--rak-report-divider:#c9edac}
+#rakShiftReport [data-section-block="to"]{--rak-report-divider:#9fdcfb}
+#rakShiftReport [data-section-block="r01"]{--rak-report-divider:#f0c88f}
+#rakShiftReport [data-section-block="r07"]{--rak-report-divider:#d9c2f8}
+#rakShiftReport .rakShiftProblemsSection{--rak-report-divider:#f3b6a8}
+#rakShiftReport .rakShiftPreviewSection{--rak-report-divider:#cbd1e6}
+#rakShiftReport .rakShiftSectionHead{
+  padding-bottom:11px;
+  margin-bottom:13px;
+  border-bottom:2px solid var(--rak-report-divider);
+}
+#rakShiftReport .rakShiftSectionHead h4{font-size:18px;line-height:1.25}
+#rakShiftReport .rakShiftPreviewSection .appMenuSubTitle{
+  margin-bottom:12px;
+  padding-bottom:10px;
+  border-bottom:2px solid var(--rak-report-divider);
+}
+@media(max-width:390px){
+  #rakShiftReport .rakShiftSection{padding:12px;border-left-width:6px}
+  #rakShiftReport.rakShiftReportPolished{gap:17px}
+}
