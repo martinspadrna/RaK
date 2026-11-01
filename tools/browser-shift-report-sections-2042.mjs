@@ -48,7 +48,7 @@ try{
   const file=path.join(dir,'index.html');fs.writeFileSync(file,html);
   const result=spawnSync(chrome,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--allow-file-access-from-files','--disable-background-networking','--virtual-time-budget=3500','--window-size='+Math.max(500,width)+',900','--dump-dom',pathToFileURL(file).href],{encoding:'utf8',timeout:45000,maxBuffer:5e6});
   assert.equal(result.status,0,'Chromium failed');
-  const match=result.stdout.match(/<pre id="probe">([^<]+)<\\/pre>/);
+  const match=result.stdout.match(/<pre id="probe">([^<]+)<\/pre>/);
   assert(match&&match[1]!=='WAIT','Missing real browser result');
   const data=JSON.parse(match[1].replaceAll('&quot;','"').replaceAll('&amp;','&'));
   assert.equal(data.result,'PASS',JSON.stringify(data));
