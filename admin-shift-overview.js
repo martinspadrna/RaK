@@ -651,6 +651,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Měkké obrábění', OAM_LEFT_COLUMNS.slice(0,2)],
       ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
       ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
+      ['Před 145', [OAM_LEFT_COLUMNS[6]]],
       ['Po 145', [OAM_LEFT_COLUMNS[7]]],
       ['Po broušení (op 212)', [{key:'hard',label:'212'}]],
       ['Sklad', [{key:'stock',label:'Sklad'}]],
@@ -660,9 +661,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     function stationRows(cols, title) {
       return '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) + '</div><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(cols.length === 1 ? '' : col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{indexRow:true,inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>';
     }
-    return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) => panel(title,
-      stationRows(cols,title) + (title === 'Sklad po kalení' ? '<section class="rakShiftOverviewBefore145" aria-label="Před 145"><h4 class="rakShiftOverviewSubsectionTitle">Před 145</h4>' + stationRows([OAM_LEFT_COLUMNS[6]],title) + '</section>' : '')
-    )).join('') + '</div>';
+    return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) =>
+      panel(title,stationRows(cols,title),'rakShiftOverviewFlowSection')
+    ).join('') + '</div>';
   }
 
   function shiftStation(record, title, columns, cls) {
@@ -872,9 +873,25 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     cell(724,1276,152,52,aldTotals[0]+aldTotals[1]+total3,'#fff',true,26);
     cell(458,1356,266,52,'Dusík',header,true,24);
     cell(724,1356,152,52,summaryValue(record.nitrogen),'#fff',true,26);
+    // BK counts use the exact ALD1/ALD2 on/off state recorded in this shift.
+    // ALD3 has ST units, not BK, and is intentionally excluded.
+    const bkOff=[1,2].map(id=>inactiveUnits(record,id));
+    const bkOnline=bkOff.reduce((total,off)=>total+10-off.length,0);
+    parts.push('<g data-summary-bk="ald1-ald2">');
+    parts.push('<text x="458" y="1450" font-size="25" font-weight="700">BK v provozu · '+bkOnline+'/20</text>');
+    bkOff.forEach((off,index)=>{
+      const y=1470+index*54,ids=off.map(number=>'BK'+number);
+      const detail=ids.length ? 'Vypnuté: '+ids.slice(0,5).join(', ')+(ids.length>5?'\\n'+ids.slice(5).join(', '):'') : 'Vypnuté: žádné';
+      parts.push('<g data-summary-bk-ald="'+(index+1)+'">');
+      cell(458,y,80,54,'ALD'+(index+1),header,true,19);
+      cell(538,y,100,54,(10-off.length)+'/10','#fff',true,24);
+      cell(638,y,238,54,detail,'#fff',true,18);
+      parts.push('</g>');
+    });
+    parts.push('</g>');
     const activeRows = keys => OAM_ROWS.map((row,index)=>({row,index})).filter(({row})=>keys.some(key=>summaryNumber(record.oam.rows[row.key][key])!==0));
     const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
-    let reportY=1454;
+    let reportY=1610;
     if(machines.length){
       parts.push('<g data-summary-grinding="by-machine">');
       parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Nabroušeno · brusy</text>');
@@ -936,6 +953,65 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+(y+24-480)+'" viewBox="0 0 '+width+' '+(y+24-480)+'"><rect width="100%" height="100%" fill="#fff"/><g font-family="Arial,sans-serif" fill="#172433">'+parts.join('')+'</g></svg>';
   }
 
+  // Rasterize the same current SVG used in the preview; never mutate the saved record.
+  // Bound canvas area for Safari/iPhone memory safety even with long notes.
+  function summaryPngBlob(record) {
+    const svg=summarySvg(record);
+    const dimensions=svg.match(/^<svg[^>]*width="(\\d+)" height="(\\d+)"/);
+    if(!dimensions) return Promise.reject(new Error('Neplatná velikost přehledu.'));
+    const width=Number(dimensions[1]),height=Number(dimensions[2]);
+    if(!(width>0&&height>0)) return Promise.reject(new Error('Neplatná velikost přehledu.'));
+    const scale=Math.min(2,Math.sqrt(12000000/(width*height)),16384/Math.max(width,height));
+    if(scale<0.35) return Promise.reject(new Error('Přehled je pro export příliš dlouhý.'));
+    return new Promise((resolve,reject)=>{
+      const svgUrl=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+      const picture=new Image();
+      picture.onload=()=>{
+        URL.revokeObjectURL(svgUrl);
+        try {
+          const canvas=document.createElement('canvas');
+          canvas.width=Math.max(1,Math.floor(width*scale));
+          canvas.height=Math.max(1,Math.floor(height*scale));
+          const context=canvas.getContext('2d');
+          if(!context) throw new Error('Export obrázku není v tomto zařízení dostupný.');
+          context.fillStyle='#fff';
+          context.fillRect(0,0,canvas.width,canvas.height);
+          context.drawImage(picture,0,0,canvas.width,canvas.height);
+          canvas.toBlob(blob=>blob ? resolve(blob) : reject(new Error('Převod na PNG se nezdařil.')),'image/png');
+        } catch(error) { reject(error); }
+      };
+      picture.onerror=()=>{ URL.revokeObjectURL(svgUrl); reject(new Error('Nepodařilo se vykreslit PNG.')); };
+      picture.src=svgUrl;
+    });
+  }
+
+  async function exportSummaryPng(rootEl,share) {
+    if(!rootEl?.isConnected||!ownerAllowed()) return;
+    const identity=currentIdentity(),record=readDom(rootEl);
+    const fileName='prehled-smeny-'+record.date+'-'+String(record.shift||'bez-smeny').replace(/[^a-zA-Z0-9-]/g,'-')+'.png';
+    const buttons=Array.from(rootEl.querySelectorAll('[data-shift-overview-export]'));
+    const info=rootEl.querySelector('[data-shift-overview-export-status]');
+    buttons.forEach(button=>{button.disabled=true;});
+    if(info) info.textContent='Připravuji obrázek PNG…';
+    try {
+      const blob=await summaryPngBlob(record);
+      // Ignore a pending export if the user logged out or changed accounts.
+      if(!ownerAllowed()||!rootEl.isConnected||(identity&&!sameIdentity(identity))) return;
+      const file=new File([blob],fileName,{type:'image/png'});
+      if(share && navigator.share && navigator.canShare?.({files:[file]})) {
+        try { await navigator.share({files:[file],title:'Přehled směny'}); if(info) info.textContent='Obrázek připraven ke sdílení.'; return; }
+        catch(error) { if(error?.name==='AbortError') {if(info) info.textContent='Sdílení zrušeno.';return;} }
+      }
+      const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+      anchor.href=url;anchor.download=fileName;
+      document.body.appendChild(anchor);anchor.click();anchor.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),15000);
+      if(info) info.textContent='PNG připraveno ke stažení.';
+    } catch(error) {
+      if(info) info.textContent='PNG se nepodařilo vytvořit: '+String(error?.message||error);
+    } finally { buttons.forEach(button=>{if(button.isConnected)button.disabled=false;}); }
+  }
+
   function refreshSummary(rootEl) {
     if (!ownerAllowed()) return;
     const img = rootEl.querySelector('[data-shift-overview-summary-image]');
@@ -952,7 +1028,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const dialog = document.createElement('dialog');
     dialog.className = 'rakShiftOverviewViewer';
     dialog.setAttribute('aria-label','Celkový přehled směny');
-    dialog.innerHTML = '<div class="rakShiftOverviewViewerToolbar"><strong>Celkový přehled</strong><button type="button" data-summary-close aria-label="Zavřít náhled">×</button></div><div class="rakShiftOverviewViewerViewport"><img alt="Souhrnná tabulka směny" draggable="false"></div>';
+    dialog.innerHTML = '<div class="rakShiftOverviewViewerToolbar"><strong>Celkový přehled</strong><button type="button" data-summary-save-png>Uložit PNG</button><button type="button" data-summary-share-png>Sdílet</button><button type="button" data-summary-close aria-label="Zavřít náhled">×</button></div><div class="rakShiftOverviewViewerViewport"><img alt="Souhrnná tabulka směny" draggable="false"></div>';
     const viewport=dialog.querySelector('.rakShiftOverviewViewerViewport'),img=dialog.querySelector('img');
     img.src=rootEl.querySelector('[data-shift-overview-summary-image]').src;
     document.body.appendChild(dialog);
@@ -964,6 +1040,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       viewport.scrollTop=(viewport.scrollTop+y)*scale/previous-y;
     }
     dialog.addEventListener('click',event=>{
+      if(event.target.closest('[data-summary-save-png]')){void exportSummaryPng(rootEl,false);return;}
+      if(event.target.closest('[data-summary-share-png]')){void exportSummaryPng(rootEl,true);return;}
       if(event.target.closest('[data-summary-close]')){dialog.close();return;}
     });
     const pointers=new Map();let gesture=null;
@@ -1005,7 +1083,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
       '<div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit přehled</button><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>',
-      panel('Celkový přehled','<button type="button" class="rakShiftOverviewPreview" data-shift-overview-summary-open aria-label="Zvětšit celkový přehled směny"><img data-shift-overview-summary-image alt="Barevná souhrnná tabulka směny"><span>Klepnutím zvětšíš přehled</span></button>'),
+      panel('Celkový přehled',
+        '<div class="rakShiftOverviewPreviewActions"><button type="button" class="appMenuAction isActive" data-shift-overview-export="download">Stáhnout PNG</button><button type="button" class="appMenuAction" data-shift-overview-export="share">Sdílet obrázek</button></div>' +
+        '<div class="smallText rakShiftOverviewExportStatus" data-shift-overview-export-status role="status" aria-live="polite"></div>' +
+        '<button type="button" class="rakShiftOverviewPreview" data-shift-overview-summary-open aria-label="Zvětšit celkový přehled směny"><img data-shift-overview-summary-image alt="Barevná souhrnná tabulka směny"><span>Klepnutím zvětšíš přehled</span></button>'),
       '</div>'
     ].join('');
   }
@@ -1253,6 +1334,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         return;
       }
 
+      const exportButton=event.target.closest?.('[data-shift-overview-export]');
+      if(exportButton && rootEl.contains(exportButton)) {event.preventDefault();void exportSummaryPng(rootEl,exportButton.getAttribute('data-shift-overview-export')==='share');return;}
       if (event.target.closest?.('[data-shift-overview-summary-open]')) { event.preventDefault(); openSummaryViewer(rootEl); return; }
       const restore = event.target?.closest?.('[data-quantity-restore]');
       if (restore && rootEl.contains(restore)) {
@@ -1417,10 +1500,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewInput,.rakShiftOverviewArea,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{width:100%;max-width:100%;min-width:0;margin:0;}.rakShiftOverviewInput,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{min-height:44px;font-size:16px;}',
       '#rakShiftOverviewRoot .rakShiftOverviewDate{display:block!important;position:relative!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;font-size:16px!important;line-height:40px!important;text-align:center!important;color:var(--text,#fff)!important;color-scheme:dark;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-calendar-picker-indicator{cursor:pointer;opacity:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-datetime-edit{padding:0;text-align:center;line-height:40px;flex:1;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-date-and-time-value{display:flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;line-height:40px!important;padding:0!important;margin:0!important;text-align:center!important;width:100%;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
       '.rakShiftOverviewArea{resize:vertical;min-height:76px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;}',
-      '.rakShiftOverviewPanel{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.025);}',
-      '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',
+      '.rakShiftOverviewPanel{border:2px solid rgba(255,255,255,.38);border-radius:16px;padding:14px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.055);box-shadow:0 5px 16px rgba(0,0,0,.12);}',
+      '.rakShiftOverviewPanel h3{font-size:16px;margin:0;padding-bottom:10px;border-bottom:2px solid rgba(255,255,255,.42);letter-spacing:.01em;}',
       '.rakShiftOverviewPanel.isGreen{border-top:5px solid #87ac3a;}.rakShiftOverviewPanel.isBlue{border-top:5px solid #1472c2;}.rakShiftOverviewPanel.isOrange{border-top:5px solid #ce552f;}',
-      '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:12px;}',
+      '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:16px;}',
       '.rakShiftOverviewAldTotal{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);font-weight:700;}.rakShiftOverviewAldTotal output{min-width:44px;text-align:center;} .rakShiftOverviewBefore145{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);}.rakShiftOverviewSubsectionTitle{margin:0 0 10px;font-size:13px;} .rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
       '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label{grid-template-rows:32px 44px;align-content:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label>span{height:32px;display:grid;place-items:center;line-height:1.2;}.rakShiftOverviewIndexRow .rakShiftOverviewInput{height:44px;min-height:44px;align-self:start;}',
@@ -1433,13 +1516,14 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewPanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;}',
       '.rakShiftOverviewUnits{margin:10px 0;}.rakShiftOverviewUnits>span{display:block;margin-bottom:8px;}.rakShiftOverviewUnitGrid{display:grid;grid-template-columns:repeat(5,44px);gap:8px;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit{width:44px!important;height:44px!important;min-height:44px;padding:0!important;margin:0!important;border-radius:6px;display:grid;place-items:center;background:#666b73!important;color:#fff!important;border:2px solid #a1a6ae!important;font-size:16px;font-weight:700;opacity:1!important;box-shadow:none!important;filter:none!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit.isActive{background:#167a35!important;border-color:#72f29a!important;color:#fff!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit:focus-visible{outline:3px solid #fff;outline-offset:2px;}',
       '.rakShiftOverviewLower{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;align-items:start;}',
-      '.rakShiftOverviewShiftLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel{background:transparent;padding:0;border:0;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel>h3{display:none;}',
+      '.rakShiftOverviewShiftLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;}#rakShiftOverviewRoot [data-shift-overview-section]{--shift-section-accent:#f7d96c;position:relative;border:2px solid rgba(255,255,255,.52);border-left:6px solid var(--shift-section-accent);border-radius:18px;padding:14px;background:linear-gradient(130deg,rgba(255,255,255,.12),rgba(255,255,255,.035));box-shadow:0 8px 22px rgba(0,0,0,.16);}#rakShiftOverviewRoot [data-shift-overview-section="before-145"],#rakShiftOverviewRoot [data-shift-overview-section="before-kiln"]{--shift-section-accent:#f2c567;}#rakShiftOverviewRoot [data-shift-overview-section="after-145"],#rakShiftOverviewRoot [data-shift-overview-section="after-kiln"]{--shift-section-accent:#7be2bc;}#rakShiftOverviewRoot [data-shift-overview-section="stock"],#rakShiftOverviewRoot [data-shift-overview-section="ground"]{--shift-section-accent:#80c8ff;}#rakShiftOverviewRoot [data-shift-overview-section="machining"],#rakShiftOverviewRoot [data-shift-overview-section="soft"]{--shift-section-accent:#d5acff;}#rakShiftOverviewRoot [data-shift-overview-section="ald1"],#rakShiftOverviewRoot [data-shift-overview-section="ald2"],#rakShiftOverviewRoot [data-shift-overview-section="ald3"]{--shift-section-accent:#f69d8d;}#rakShiftOverviewRoot [data-shift-overview-section]>.rakShiftOverviewPanel{padding:0;border:0;box-shadow:none;background:transparent;}#rakShiftOverviewRoot [data-shift-overview-section]>.rakShiftOverviewPanel>h3{border-bottom:2px solid var(--shift-section-accent);padding-bottom:12px;font-size:17px;}#rakShiftOverviewRoot .rakShiftOverviewFlow>.rakShiftOverviewPanel{border-left:6px solid #f7d96c;padding:16px;}#rakShiftOverviewRoot .rakShiftOverviewFlow>.rakShiftOverviewPanel:nth-child(2n){border-left-color:#7be2bc;}#rakShiftOverviewRoot .rakShiftOverviewFlow>.rakShiftOverviewPanel:nth-child(3n){border-left-color:#80c8ff;}#rakShiftOverviewRoot [data-shift-overview-section="machining"] .rakShiftOverviewSubsectionTitle{padding:9px 10px;background:rgba(255,255,255,.1);border-left:4px solid var(--shift-section-accent);border-radius:7px;font-size:14px;}#rakShiftOverviewRoot .rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel{background:transparent;padding:0;border:0;box-shadow:none;}#rakShiftOverviewRoot .rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel>h3{display:none;}',
       '.rakShiftOverviewBatchColumns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;align-items:start;}',
       '.rakShiftOverviewUtilities{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));}',
       '.rakShiftOverviewInputRows{display:grid;gap:6px;}.rakShiftOverviewInputRows label{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}',
       '.rakShiftOverviewInputRows input{padding:8px;text-align:center;}',
       '.rakShiftOverviewCounter{display:grid;grid-template-columns:minmax(40px,.65fr) minmax(44px,.85fr) minmax(54px,1fr) minmax(44px,1fr);gap:8px;align-items:center;padding:8px 0;}.rakShiftOverviewCounter+.rakShiftOverviewCounter{border-top:1px solid rgba(255,255,255,.12);}.rakShiftOverviewCounter>span{font-size:16px;font-weight:800;overflow-wrap:anywhere;}.rakShiftOverviewCounter .appMenuAction{width:100%;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;line-height:1;font-size:24px;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountValue{display:grid;place-items:center;height:44px;min-height:44px;margin:0;text-align:center;font-weight:900;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);padding:0;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountMinus{width:calc(100% - 8px);justify-self:start;opacity:.75;}',
 
+      '.rakShiftOverviewPreviewActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}#rakShiftOverviewRoot .rakShiftOverviewPreviewActions>.appMenuAction{margin:0;width:100%;min-height:44px;}#rakShiftOverviewRoot .rakShiftOverviewExportStatus{font-size:12px;min-height:0;overflow-wrap:anywhere;}#rakShiftOverviewRoot .rakShiftOverviewExportStatus:empty{display:none;}',
       '.rakShiftOverviewStatus,.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{padding:10px;border-radius:12px;background:rgba(124,255,124,.06);overflow-wrap:anywhere;}',
       '.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{display:flex;justify-content:space-between;gap:10px;}',
       '.rakShiftOverviewDetails{border:1px solid rgba(124,255,124,.16);border-radius:12px;padding:10px;}.rakShiftOverviewDetails summary{cursor:pointer;font-weight:800;}',
