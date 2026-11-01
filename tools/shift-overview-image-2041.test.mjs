@@ -32,11 +32,33 @@ test('new overview with no disabled BK reports 20/20; invalid and repeated masks
   const api=fixture();
   const empty=api.summarySvg(api.normalizeRecord({shift:'D:ranni12'}));
   assert(empty.includes('BK v provozu · 20/20'));
-  assert.equal((empty.match(/Vypnuté: žádné/g)||[]).length,2);
+  assert.equal((empty.match(/Vypnuté: žádné/g)||[]).length,3);
   const rec=api.normalizeRecord({ald:[{inactiveUnits:[2,2,0,11,-1]},{inactiveUnits:[1,10,11]},{inactiveUnits:[1,2,3,4,5]}]});
   const svg=api.summarySvg(rec);
   assert(svg.includes('BK v provozu · 17/20'),'ALD3 has ST, not BK');
+  assert(svg.includes('ST v provozu · 0/5'));
   assert(svg.includes('>9/10</text>')&&svg.includes('>8/10</text>'));
+});
+
+test('ALD3 ST are independent from ALD1/2 BK, count five units and show exact disabled identities',()=>{
+  const api=fixture();
+  const record=api.normalizeRecord({shift:'A:nocni12',ald:[
+    {inactiveUnits:[2,10]}, {inactiveUnits:[1,5]}, {inactiveUnits:[1,3,5]}
+  ]});
+  const before=JSON.stringify(record),svg=api.summarySvg(record);
+  assert(svg.includes('BK v provozu · 16/20'));
+  assert(svg.includes('data-summary-st="ald3"'));
+  assert(svg.includes('ST v provozu · 2/5'));
+  const st=svg.split('data-summary-st="ald3"')[1].split('</g>')[0];
+  assert(st.includes('>ALD3</text>')&&st.includes('>2/5</text>'));
+  assert(st.includes('Vypnuté: ST1, ST3, ST5'));
+  assert(!st.includes('BK')&& !st.includes('ST2, ST4'));
+  assert.equal(JSON.stringify(record),before,'rendering must not change stored units');
+  const all=api.summarySvg(api.normalizeRecord({ald:[{inactiveUnits:[]},{inactiveUnits:[]},{inactiveUnits:[1,2,3,4,5]}]}));
+  assert(all.includes('BK v provozu · 20/20')&&all.includes('ST v provozu · 0/5'));
+  assert(all.includes('ST1, ST2, ST3')&&all.includes('ST4, ST5'));
+  const invalid=api.summarySvg(api.normalizeRecord({ald:[{},{},{inactiveUnits:[1,1,6,0,2]}]}));
+  assert(invalid.includes('ST v provozu · 3/5'),'invalid/duplicate mask values cannot skew ST counts');
 });
 
 test('each production stage has its own bordered card and before-145 is no longer nested',()=>{
@@ -79,6 +101,6 @@ test('PNG export actually rasterizes the current vector graphic without uploadin
   const boot=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
   const sw=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   assert(boot.includes('"features/shift-overview-image.js"'),'image export module loads with admin feature');
-  assert(sw.includes("'./features/shift-overview-image.js?v=2.0.41'")&&sw.includes("'./features/shift-overview-extra.css?v=2.0.41'"),'both optional assets stay offline');
+  assert(sw.includes("'./features/shift-overview-image.js?v=2.0.42'")&&sw.includes("'./features/shift-overview-extra.css?v=2.0.42'"),'both optional assets stay offline');
 
 });

@@ -1,3 +1,10 @@
+## RaK 2.0.42 (development)
+
+- **Přehled směny – grafika:** vedle BK v provozu (ALD1 + ALD2, z 20) se nyní zobrazuje také **ST v provozu (ALD3, z 5)** v samostatné části. Ukazuje přesný počet běžících a jmenovitě vypnuté ST1–ST5.
+- Stav ST pochází z již používaných tlačítek ALD3; změna se okamžitě propíše do náhledu a do PNG. Původní data, oprávnění, cloud i údaje BK zůstávají beze změny.
+- **Report pro mistra:** stejné výrazné oddělení všech pracovních oddílů při vyplňování (MO, TO, TBKR01, TRBR07, problémy a náhled) – silnější ohraničení, barevné pruhy, výraznější nadpisy a větší rozestupy. Beze změn obsahu reportu a odesílání.
+- Aktualizované regresní a mobilní testy včetně prázdného, částečného a zcela vypnutého ALD3 a reálného mobilního zobrazení Reportu pro mistra. Pouze TEST, nikoli MAIN.
+
 ## RaK 2.0.41 (development)
 
 - **Přehled směny – vyplňování:** výrazněji oddělené sekce s kontrastním obrysem, barevným levým pruhem a většími rozestupy. „Před 145“ a „Po 145“ jsou samostatné karty také v nerozlišeném zobrazení. Pořadí a uložené hodnoty zůstávají zachovány.

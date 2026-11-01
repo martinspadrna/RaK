@@ -873,8 +873,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     cell(724,1276,152,52,aldTotals[0]+aldTotals[1]+total3,'#fff',true,26);
     cell(458,1356,266,52,'Dusík',header,true,24);
     cell(724,1356,152,52,summaryValue(record.nitrogen),'#fff',true,26);
-    // BK counts use the exact ALD1/ALD2 on/off state recorded in this shift.
-    // ALD3 has ST units, not BK, and is intentionally excluded.
+    // ALD1/2 count BK; ALD3 counts ST independently.
     const bkOff=[1,2].map(id=>inactiveUnits(record,id));
     const bkOnline=bkOff.reduce((total,off)=>total+10-off.length,0);
     parts.push('<g data-summary-bk="ald1-ald2">');
@@ -889,9 +888,17 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       parts.push('</g>');
     });
     parts.push('</g>');
+    const stOff=inactiveUnits(record,3);
+    parts.push('<g data-summary-st="ald3">');
+    parts.push('<text x="458" y="1607" font-size="25" font-weight="700">ST v provozu · '+(5-stOff.length)+'/5</text>');
+    cell(458,1627,80,54,'ALD3',header,true,19);
+    cell(538,1627,100,54,(5-stOff.length)+'/5','#fff',true,24);
+    const stList=stOff.map(number=>'ST'+number);
+    cell(638,1627,238,54,stList.length?'Vypnuté: '+stList.slice(0,3).join(', ')+(stList.length>3?'\n'+stList.slice(3).join(', '):''):'Vypnuté: žádné','#fff',true,18);
+    parts.push('</g>');
     const activeRows = keys => OAM_ROWS.map((row,index)=>({row,index})).filter(({row})=>keys.some(key=>summaryNumber(record.oam.rows[row.key][key])!==0));
     const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
-    let reportY=1610;
+    let reportY=1730;
     if(machines.length){
       parts.push('<g data-summary-grinding="by-machine">');
       parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Nabroušeno · brusy</text>');

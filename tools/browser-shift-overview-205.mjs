@@ -69,6 +69,8 @@ function probe(width){
   const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
   check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
   check(summary.includes('BK v provozu · 18/20')&&summary.includes('data-summary-bk-ald="1"')&&summary.includes('data-summary-bk-ald="2"'),'live ALD1/2 BK status in image');
+  check(summary.includes('ST v provozu · 4/5')&&summary.includes('data-summary-st="ald3"'),'live ALD3 ST operating count');
+  check(summary.includes('Vypnuté: ST2'),'individual disabled ST in picture');
   check((summary.match(/Vypnuté: BK2/g)||[]).length===2,'exact switched-off BK identities in graphic overview');
   check(body.querySelectorAll('[data-shift-overview-export]').length===2,'PNG download and sharing offered under the graphic');
   check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Obrábění · závěr'),'conclusion summary');
