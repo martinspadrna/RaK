@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync(new URL('../admin-shift-overview.js',import.meta.url),'utf8');
+const extra=fs.readFileSync(new URL('../features/shift-overview-image.js',import.meta.url),'utf8');
+const styles=fs.readFileSync(new URL('../features/shift-overview-extra.css',import.meta.url),'utf8');
 function fixture(exports='normalizeRecord,summarySvg,shiftLayout,oamTable,buildHtml') {
   const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
   vm.runInContext(source.replace('  installStyle();','  root.fixture={'+exports+'};'),context);
@@ -47,8 +49,8 @@ test('each production stage has its own bordered card and before-145 is no longe
   const layout=api.shiftLayout(api.normalizeRecord({shift:'A:nocni12'}));
   for(const key of ['before-kiln','after-kiln','before-145','after-145','ground','stock','assembly','soft','machining','ald1','ald2','ald3'])
     assert(layout.includes('data-shift-overview-section="'+key+'"'),'missing standalone '+key);
-  assert(source.includes('border-left:6px solid var(--shift-section-accent)'));
-  assert(source.includes('gap:20px;'));
+  assert(styles.includes('border-left:6px solid var(--shift-section-accent)'));
+  assert(styles.includes('gap:20px;'));
 });
 
 test('PNG export actually rasterizes the current vector graphic without uploading anything',async()=>{
@@ -59,9 +61,10 @@ test('PNG export actually rasterizes the current vector graphic without uploadin
   canvas.toBlob=(done,type)=>{format=type;done(new Blob([new Uint8Array([137,80,78,71])],{type}));};
   class Picture {set src(value){assert.equal(value,'blob:mock-svg');queueMicrotask(()=>this.onload());}}
   const context=vm.createContext({window:{},document:{getElementById:()=>({}),createElement:tag=>tag==='canvas'?canvas:null},URL:url,Blob,Image:Picture,Promise});
-  vm.runInContext(source.replace('  installStyle();','  root.fixture={normalizeRecord,summaryPngBlob,buildHtml};'),context);
+  vm.runInContext(extra,context);
+  vm.runInContext(source.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg,buildHtml};'),context);
   const api=context.window.fixture,record=api.normalizeRecord({shift:'B:nocni12',ald:[{inactiveUnits:[1]},{inactiveUnits:[9]}]});
-  const result=await api.summaryPngBlob(record);
+  const result=await context.window.RakShiftOverviewPngExporter.raster(api.summarySvg(record));
   assert(created&&released&&drawn,'load SVG into canvas and release temporary SVG object URL');
   assert.equal(format,'image/png');assert.equal(result.type,'image/png');
   assert(canvas.width>=900&&canvas.height>=900,'high-resolution PNG canvas');
@@ -70,7 +73,12 @@ test('PNG export actually rasterizes the current vector graphic without uploadin
   assert(html.includes('data-shift-overview-export="download"'));
   assert(html.includes('data-shift-overview-export="share"'));
   assert(source.includes('data-summary-save-png')&&source.includes('data-summary-share-png'),'full-screen viewer also supports export');
-  assert(source.includes("navigator.canShare?.({files:[file]})"),'iOS share sheet is available when supported');
-  assert(source.includes('anchor.download=fileName'),'standalone download stays available');
+  assert(extra.includes("navigator.canShare?.({files:[file]})"),'iOS share sheet is available when supported');
+  assert(extra.includes('anchor.download=name'),'standalone download stays available');
   assert(source.includes('clearQuantityUndo(rootEl);refreshSummary(rootEl);persistDraft(rootEl);'),'BK toggle instantly updates graphic preview');
+  const boot=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+  const sw=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
+  assert(boot.includes('"features/shift-overview-image.js"'),'image export module loads with admin feature');
+  assert(sw.includes("'./features/shift-overview-image.js?v=2.0.41'")&&sw.includes("'./features/shift-overview-extra.css?v=2.0.41'"),'both optional assets stay offline');
+
 });
