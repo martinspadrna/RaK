@@ -651,6 +651,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       ['Měkké obrábění', OAM_LEFT_COLUMNS.slice(0,2)],
       ['Sklad před kalením', OAM_LEFT_COLUMNS.slice(2,4)],
       ['Sklad po kalení', OAM_LEFT_COLUMNS.slice(4,6)],
+      ['Před 145', [OAM_LEFT_COLUMNS[6]]],
       ['Po 145', [OAM_LEFT_COLUMNS[7]]],
       ['Po broušení (op 212)', [{key:'hard',label:'212'}]],
       ['Sklad', [{key:'stock',label:'Sklad'}]],
@@ -660,9 +661,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     function stationRows(cols, title) {
       return '<div class="rakShiftOverviewStationRows">' + OAM_ROWS.map((row,index) => '<div class="rakShiftOverviewIndexRow ' + row.cls + '"><div class="rakShiftOverviewIndexIdentity"><h4>' + esc(AAR_COLUMNS[index].label) + '</h4>' + quantityUndoControl(AAR_COLUMNS[index].label + ' · ' + title) + '</div><div class="rakShiftOverviewFieldGrid">' + cols.map(col => labeledField(cols.length === 1 ? '' : col.label + (col.sub ? ' · ' + col.sub : ''), 'oam.rows.' + row.key + '.' + col.key,record,{indexRow:true,inputmode:'numeric',multiplier:quantityMultiplier(col.key),label:AAR_COLUMNS[index].label + ' · ' + title + ' · ' + col.label + (col.sub ? ' · ' + col.sub : '')})).join('') + '</div></div>').join('') + '</div>';
     }
-    return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) => panel(title,
-      stationRows(cols,title) + (title === 'Sklad po kalení' ? '<section class="rakShiftOverviewBefore145" aria-label="Před 145"><h4 class="rakShiftOverviewSubsectionTitle">Před 145</h4>' + stationRows([OAM_LEFT_COLUMNS[6]],title) + '</section>' : '')
-    )).join('') + '</div>';
+    return '<div class="rakShiftOverviewFlow">' + groups.map(([title,cols]) =>
+      panel(title,stationRows(cols,title),'rakShiftOverviewFlowSection')
+    ).join('') + '</div>';
   }
 
   function shiftStation(record, title, columns, cls) {
@@ -872,9 +873,25 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     cell(724,1276,152,52,aldTotals[0]+aldTotals[1]+total3,'#fff',true,26);
     cell(458,1356,266,52,'Dusík',header,true,24);
     cell(724,1356,152,52,summaryValue(record.nitrogen),'#fff',true,26);
+    // BK counts use the exact ALD1/ALD2 on/off state recorded in this shift.
+    // ALD3 has ST units, not BK, and is intentionally excluded.
+    const bkOff=[1,2].map(id=>inactiveUnits(record,id));
+    const bkOnline=bkOff.reduce((total,off)=>total+10-off.length,0);
+    parts.push('<g data-summary-bk="ald1-ald2">');
+    parts.push('<text x="458" y="1450" font-size="25" font-weight="700">BK v provozu · '+bkOnline+'/20</text>');
+    bkOff.forEach((off,index)=>{
+      const y=1470+index*54,ids=off.map(number=>'BK'+number);
+      const detail=ids.length ? 'Vypnuté: '+ids.slice(0,5).join(', ')+(ids.length>5?'\n'+ids.slice(5).join(', '):'') : 'Vypnuté: žádné';
+      parts.push('<g data-summary-bk-ald="'+(index+1)+'">');
+      cell(458,y,80,54,'ALD'+(index+1),header,true,19);
+      cell(538,y,100,54,(10-off.length)+'/10','#fff',true,24);
+      cell(638,y,238,54,detail,'#fff',true,18);
+      parts.push('</g>');
+    });
+    parts.push('</g>');
     const activeRows = keys => OAM_ROWS.map((row,index)=>({row,index})).filter(({row})=>keys.some(key=>summaryNumber(record.oam.rows[row.key][key])!==0));
     const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
-    let reportY=1454;
+    let reportY=1610;
     if(machines.length){
       parts.push('<g data-summary-grinding="by-machine">');
       parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Nabroušeno · brusy</text>');
@@ -936,6 +953,16 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+(y+24-480)+'" viewBox="0 0 '+width+' '+(y+24-480)+'"><rect width="100%" height="100%" fill="#fff"/><g font-family="Arial,sans-serif" fill="#172433">'+parts.join('')+'</g></svg>';
   }
 
+  function exportSummaryPng(rootEl,share) {
+    if(!rootEl?.isConnected||!ownerAllowed()) return;
+    const identity=currentIdentity(),record=readDom(rootEl);
+    const exporter=root.RakShiftOverviewPngExporter;
+    const statusEl=rootEl.querySelector('[data-shift-overview-export-status]');
+    if(!exporter?.save) {if(statusEl)statusEl.textContent='Export PNG se nenačetl.';return;}
+    void exporter.save({rootEl,record,svg:summarySvg(record),share,
+      authorized:()=>rootEl.isConnected&&ownerAllowed()&&(!identity||sameIdentity(identity))});
+  }
+
   function refreshSummary(rootEl) {
     if (!ownerAllowed()) return;
     const img = rootEl.querySelector('[data-shift-overview-summary-image]');
@@ -952,7 +979,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const dialog = document.createElement('dialog');
     dialog.className = 'rakShiftOverviewViewer';
     dialog.setAttribute('aria-label','Celkový přehled směny');
-    dialog.innerHTML = '<div class="rakShiftOverviewViewerToolbar"><strong>Celkový přehled</strong><button type="button" data-summary-close aria-label="Zavřít náhled">×</button></div><div class="rakShiftOverviewViewerViewport"><img alt="Souhrnná tabulka směny" draggable="false"></div>';
+    dialog.innerHTML = '<div class="rakShiftOverviewViewerToolbar"><strong>Celkový přehled</strong><button type="button" data-summary-save-png>Uložit PNG</button><button type="button" data-summary-share-png>Sdílet</button><button type="button" data-summary-close aria-label="Zavřít náhled">×</button></div><div class="rakShiftOverviewViewerViewport"><img alt="Souhrnná tabulka směny" draggable="false"></div>';
     const viewport=dialog.querySelector('.rakShiftOverviewViewerViewport'),img=dialog.querySelector('img');
     img.src=rootEl.querySelector('[data-shift-overview-summary-image]').src;
     document.body.appendChild(dialog);
@@ -964,6 +991,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       viewport.scrollTop=(viewport.scrollTop+y)*scale/previous-y;
     }
     dialog.addEventListener('click',event=>{
+      if(event.target.closest('[data-summary-save-png]')){void exportSummaryPng(rootEl,false);return;}
+      if(event.target.closest('[data-summary-share-png]')){void exportSummaryPng(rootEl,true);return;}
       if(event.target.closest('[data-summary-close]')){dialog.close();return;}
     });
     const pointers=new Map();let gesture=null;
@@ -1005,7 +1034,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '<div class="appMenuSubTitle">Celkové poznámky ke směně</div>',
       field('notes', record, { area: true, rows: 4, placeholder: 'Další důležité informace ze směny…' }),
       '<div class="appMenuActionRow"><button type="button" class="appMenuAction isActive" data-shift-overview-action="save">Uložit přehled</button><button type="button" class="appMenuAction appMenuBack" data-menu-back="1">Zpět</button></div>',
-      panel('Celkový přehled','<button type="button" class="rakShiftOverviewPreview" data-shift-overview-summary-open aria-label="Zvětšit celkový přehled směny"><img data-shift-overview-summary-image alt="Barevná souhrnná tabulka směny"><span>Klepnutím zvětšíš přehled</span></button>'),
+      panel('Celkový přehled',
+        '<div class="rakShiftOverviewPreviewActions"><button type="button" class="appMenuAction isActive" data-shift-overview-export="download">Stáhnout PNG</button><button type="button" class="appMenuAction" data-shift-overview-export="share">Sdílet obrázek</button></div>' +
+        '<div class="smallText rakShiftOverviewExportStatus" data-shift-overview-export-status role="status" aria-live="polite"></div>' +
+        '<button type="button" class="rakShiftOverviewPreview" data-shift-overview-summary-open aria-label="Zvětšit celkový přehled směny"><img data-shift-overview-summary-image alt="Barevná souhrnná tabulka směny"><span>Klepnutím zvětšíš přehled</span></button>'),
       '</div>'
     ].join('');
   }
@@ -1249,10 +1281,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         rootEl.dataset.edited='1';
         const active=!record.ald[id-1].inactiveUnits.includes(number);
         unit.classList.toggle('isActive',active);unit.setAttribute('aria-pressed',String(active));
-        clearQuantityUndo(rootEl);persistDraft(rootEl);
+        clearQuantityUndo(rootEl);refreshSummary(rootEl);persistDraft(rootEl);
         return;
       }
 
+      const exportButton=event.target.closest?.('[data-shift-overview-export]');
+      if(exportButton && rootEl.contains(exportButton)) {event.preventDefault();void exportSummaryPng(rootEl,exportButton.getAttribute('data-shift-overview-export')==='share');return;}
       if (event.target.closest?.('[data-shift-overview-summary-open]')) { event.preventDefault(); openSummaryViewer(rootEl); return; }
       const restore = event.target?.closest?.('[data-quantity-restore]');
       if (restore && rootEl.contains(restore)) {
@@ -1405,8 +1439,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     const style = document.createElement('style');
     style.id = 'rakShiftOverviewStyle';
     style.textContent = [
-      '#rakShiftOverviewRoot .rakShiftOverviewPreview{display:grid;gap:8px;width:100%;margin:0;padding:0;background:transparent;border:0;color:var(--text);font:inherit;cursor:pointer;}.rakShiftOverviewPreview img{display:block;width:100%;height:auto;border:1px solid #ffffff44;border-radius:8px;background:white;}.rakShiftOverviewPreview span{font-size:12px;opacity:.7;}',
-      'dialog.rakShiftOverviewViewer{position:fixed;inset:0;margin:0;padding:0;border:0;border-radius:0;width:100vw;max-width:none;height:100dvh;max-height:none;background:#161827;color:#fff;overflow:hidden;}dialog.rakShiftOverviewViewer[open]{display:flex;flex-direction:column;}dialog.rakShiftOverviewViewer::backdrop{background:#111d;}.rakShiftOverviewViewerToolbar{display:flex;align-items:center;gap:6px;flex:none;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;}.rakShiftOverviewViewerToolbar strong{flex:1;min-width:0;font:700 14px Arial,sans-serif;}.rakShiftOverviewViewerToolbar button{width:auto;min-width:38px;min-height:44px;margin:0;padding:4px 8px;border:1px solid #ffffff55;border-radius:8px;background:#ffffff15;color:inherit;font:700 16px Arial,sans-serif;}.rakShiftOverviewViewerViewport{flex:1;min-height:0;overflow:auto;touch-action:none;padding-bottom:env(safe-area-inset-bottom);}.rakShiftOverviewViewerViewport img{display:block;width:100%;max-width:none;height:auto;user-select:none;}',
       '.rakShiftOverviewHistory{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;font-weight:400;color:var(--text);opacity:.72;overflow-wrap:anywhere;}.rakShiftOverviewHistory[hidden]{display:none}.rakShiftOverviewHistory>span{flex:1;}#rakShiftOverviewRoot .rakShiftOverviewHistory button{display:inline-block;width:auto;max-width:100%;font:inherit;color:inherit;background:transparent;border:0;border-radius:0;box-shadow:none;text-decoration:underline;min-height:32px;padding:4px 0;margin:0;cursor:pointer;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel>span{text-align:left;font-size:13px;}#rakShiftOverviewRoot .rakShiftOverviewSideLabel .rakShiftOverviewHistory{grid-column:1/-1;}.rakShiftOverviewIndexIdentity{display:grid;gap:4px;}.rakShiftOverviewIndexIdentity .rakShiftOverviewHistory{display:grid;gap:0;font-size:10px;}.rakShiftOverviewIndexIdentity .rakShiftOverviewHistory[hidden]{display:none;}#rakShiftOverviewRoot .rakShiftOverviewIndexIdentity .rakShiftOverviewHistory button{justify-self:start;min-height:24px;padding:2px 0;}',
       '.rakShiftOverviewKeyboard{position:fixed;z-index:2147483646;transform:translateX(-50%);display:flex;gap:8px;padding:6px;background:#30235d;color:#fff68a;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 2px 12px #0006;max-width:calc(100% - 16px);box-sizing:border-box}',
       '.rakShiftOverviewKeyboard[hidden]{display:none}.rakShiftOverviewKeyboard button{font:inherit;font-weight:700;color:inherit;background:#ffffff18;border:1px solid #ffffff44;border-radius:10px;min-width:56px;height:44px;margin:0;padding:0 14px;touch-action:manipulation}',
@@ -1417,10 +1449,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewInput,.rakShiftOverviewArea,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{width:100%;max-width:100%;min-width:0;margin:0;}.rakShiftOverviewInput,.rakShiftOverviewHeader input,.rakShiftOverviewHeader select{min-height:44px;font-size:16px;}',
       '#rakShiftOverviewRoot .rakShiftOverviewDate{display:block!important;position:relative!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:44px!important;min-height:44px!important;margin:0!important;padding:0 6px!important;box-sizing:border-box!important;font-size:16px!important;line-height:40px!important;text-align:center!important;color:var(--text,#fff)!important;color-scheme:dark;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-calendar-picker-indicator{cursor:pointer;opacity:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-datetime-edit{padding:0;text-align:center;line-height:40px;flex:1;}#rakShiftOverviewRoot .rakShiftOverviewDate::-webkit-date-and-time-value{display:flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;line-height:40px!important;padding:0!important;margin:0!important;text-align:center!important;width:100%;}.rakShiftOverviewHeader select{height:44px;min-height:44px;padding:0 6px;overflow:hidden;}',
       '.rakShiftOverviewArea{resize:vertical;min-height:76px;border:1px solid rgba(124,255,124,.18);border-radius:12px;background:rgba(255,255,255,.045);color:var(--text);padding:10px;font:inherit;}',
-      '.rakShiftOverviewPanel{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.025);}',
-      '.rakShiftOverviewPanel h3{font-size:14px;margin:0;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);}',
+      '.rakShiftOverviewPanel{border:2px solid rgba(255,255,255,.38);border-radius:16px;padding:14px;display:grid;gap:12px;align-content:start;background:rgba(255,255,255,.055);box-shadow:0 5px 16px rgba(0,0,0,.12);}',
+      '.rakShiftOverviewPanel h3{font-size:16px;margin:0;padding-bottom:10px;border-bottom:2px solid rgba(255,255,255,.42);letter-spacing:.01em;}',
       '.rakShiftOverviewPanel.isGreen{border-top:5px solid #87ac3a;}.rakShiftOverviewPanel.isBlue{border-top:5px solid #1472c2;}.rakShiftOverviewPanel.isOrange{border-top:5px solid #ce552f;}',
-      '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:12px;}',
+      '.rakShiftOverviewFlow,.rakShiftOverviewUtilities{display:grid;gap:16px;}',
       '.rakShiftOverviewAldTotal{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);font-weight:700;}.rakShiftOverviewAldTotal output{min-width:44px;text-align:center;} .rakShiftOverviewBefore145{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);}.rakShiftOverviewSubsectionTitle{margin:0 0 10px;font-size:13px;} .rakShiftOverviewStationRows{display:grid;gap:8px;}.rakShiftOverviewIndexRow{border-left:4px solid transparent;padding:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:10px;align-items:center;}.rakShiftOverviewIndexRow h4{margin:0;font-size:12px;}.rakShiftOverviewIndexRow label>span{display:block;width:100%;text-align:center;}.rakShiftOverviewIndexRow label:has(.rakShiftOverviewMultiply:not([hidden]))>span{width:calc(100% - 42px);}.rakShiftOverviewIndexRow{border-radius:10px;}.rakShiftOverviewIndexRow.isGreen{border-color:#87ac3a;background:rgba(135,172,58,.24);}.rakShiftOverviewIndexRow.isBlue{border-color:#1472c2;background:rgba(20,114,194,.27);}.rakShiftOverviewIndexRow.isOrange{border-color:#ce552f;background:rgba(206,85,47,.25);}',
       '.rakShiftOverviewStage{display:grid;align-content:start;gap:8px;}.rakShiftOverviewStage h4{font-size:12px;margin:0;overflow-wrap:anywhere;}',
       '.rakShiftOverviewFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label{grid-template-rows:32px 44px;align-content:start;}.rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label>span{height:32px;display:grid;place-items:center;line-height:1.2;}.rakShiftOverviewIndexRow .rakShiftOverviewInput{height:44px;min-height:44px;align-self:start;}',
@@ -1433,12 +1465,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '.rakShiftOverviewPanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;}',
       '.rakShiftOverviewUnits{margin:10px 0;}.rakShiftOverviewUnits>span{display:block;margin-bottom:8px;}.rakShiftOverviewUnitGrid{display:grid;grid-template-columns:repeat(5,44px);gap:8px;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit{width:44px!important;height:44px!important;min-height:44px;padding:0!important;margin:0!important;border-radius:6px;display:grid;place-items:center;background:#666b73!important;color:#fff!important;border:2px solid #a1a6ae!important;font-size:16px;font-weight:700;opacity:1!important;box-shadow:none!important;filter:none!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit.isActive{background:#167a35!important;border-color:#72f29a!important;color:#fff!important;}#rakShiftOverviewRoot .rakShiftOverviewUnitGrid button.rakShiftOverviewUnit:focus-visible{outline:3px solid #fff;outline-offset:2px;}',
       '.rakShiftOverviewLower{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;align-items:start;}',
-      '.rakShiftOverviewShiftLayout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel{background:transparent;padding:0;border:0;}.rakShiftOverviewShiftLayout .rakShiftOverviewPanel .rakShiftOverviewPanel>h3{display:none;}',
       '.rakShiftOverviewBatchColumns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;align-items:start;}',
       '.rakShiftOverviewUtilities{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));}',
       '.rakShiftOverviewInputRows{display:grid;gap:6px;}.rakShiftOverviewInputRows label{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}',
       '.rakShiftOverviewInputRows input{padding:8px;text-align:center;}',
-      '.rakShiftOverviewCounter{display:grid;grid-template-columns:minmax(40px,.65fr) minmax(44px,.85fr) minmax(54px,1fr) minmax(44px,1fr);gap:8px;align-items:center;padding:8px 0;}.rakShiftOverviewCounter+.rakShiftOverviewCounter{border-top:1px solid rgba(255,255,255,.12);}.rakShiftOverviewCounter>span{font-size:16px;font-weight:800;overflow-wrap:anywhere;}.rakShiftOverviewCounter .appMenuAction{width:100%;min-width:0;height:44px;min-height:44px;margin:0;padding:0;display:grid;place-items:center;line-height:1;font-size:24px;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountValue{display:grid;place-items:center;height:44px;min-height:44px;margin:0;text-align:center;font-weight:900;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.035);color:var(--text);padding:0;align-self:center;}.rakShiftOverviewCounter .rakShiftOverviewCountMinus{width:calc(100% - 8px);justify-self:start;opacity:.75;}',
 
       '.rakShiftOverviewStatus,.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{padding:10px;border-radius:12px;background:rgba(124,255,124,.06);overflow-wrap:anywhere;}',
       '.rakShiftOverviewSummary,.rakShiftOverviewBatchSummary{display:flex;justify-content:space-between;gap:10px;}',
@@ -1451,6 +1481,10 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       '@media(max-width:430px){.rakShiftOverviewCard{padding:12px!important;}.rakShiftOverviewUtilities{grid-template-columns:minmax(0,1fr);}}'
     ].join('');
     document.head.appendChild(style);
+    const extra=document.createElement('link');
+    extra.rel='stylesheet';
+    extra.href='features/shift-overview-extra.css?v='+encodeURIComponent(root.RAK_RELEASE_METADATA?.moduleCacheVersion||'2.0.41');
+    document.head.appendChild(extra);
   }
 
   installStyle();
