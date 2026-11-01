@@ -957,7 +957,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // Bound canvas area for Safari/iPhone memory safety even with long notes.
   function summaryPngBlob(record) {
     const svg=summarySvg(record);
-    const dimensions=svg.match(/^<svg[^>]*width="(\\d+)" height="(\\d+)"/);
+    const dimensions=svg.match(/^<svg[^>]*width="(\d+)" height="(\d+)"/);
     if(!dimensions) return Promise.reject(new Error('Neplatná velikost přehledu.'));
     const width=Number(dimensions[1]),height=Number(dimensions[2]);
     if(!(width>0&&height>0)) return Promise.reject(new Error('Neplatná velikost přehledu.'));
