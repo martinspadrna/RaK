@@ -89,8 +89,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-login-life.js"
   ];
 
-  // RAK_17127_INTERACTION_FOUNDATION: the returning PWA must bind real navigation
-  // before auth helpers, dashboard work, local Rotation hydration or any network SDK.
+  // RAK_17127_INTERACTION_FOUNDATION: bind navigation before auth/network.
   const interactionCoreFiles = [
     "core.js",
     "ui.js"
@@ -153,9 +152,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-shift-report-share.js"
   ];
 
-  // RAK_17134_ADMIN_SHELL_SPLIT: keep Admin-only markup outside the ordinary
-  // menu/startup parse path. The tiny shell is cached locally and loaded only
-  // after a verified admin role or an explicit Admin entry.
+  // RAK_17134_ADMIN_SHELL_SPLIT: Admin markup is lazy-loaded after role verification.
   const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
@@ -337,9 +334,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const featureSpecs = Object.freeze({
     rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-rotation-month.css", "styles-stats-polish.css", "styles-rotation-tasks.css"]), dependencies: Object.freeze([]) }),
     calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"]), dependencies: Object.freeze([]) }),
-    // RAK_17082_SYNC_REQUIRES_ROTATION_UI: dashboard "kam jdu" and the first
-    // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
-    // before those consumers exist, especially on a cold offline iOS start.
+    // RAK_17082_SYNC_REQUIRES_ROTATION_UI: hydrate Rotation before sync (iOS/offline).
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
