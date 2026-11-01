@@ -11,11 +11,13 @@ const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','ch
 assert(chrome,'Real Chromium is required');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rak-overview-205-'));
 const feature=fs.readFileSync(path.join(root,'admin-shift-overview.js'),'utf8').replaceAll('</script','<\\/script');
-const css=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1]).map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('');
+const imageExport=fs.readFileSync(path.join(root,'features/shift-overview-image.js'),'utf8').replaceAll('</script','<\\/script');
+const css=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1]).map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('')+'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,'features/shift-overview-extra.css')).href+'">';
 function probe(width){
  const check=(ok,label)=>{if(!ok)throw Error(label);};
  const body=document.querySelector('#appMenuBody');
  const api=window.RakAdminShiftOverview;
+ check(typeof window.RakShiftOverviewPngExporter?.raster==='function','PNG rasterization module is loaded');
  const edit=(path,value)=>{const el=body.querySelector('[data-shift-overview-field="'+path+'"]');check(el,'missing '+path);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return el;};
  const choose=shift=>{const el=body.querySelector('[data-shift-overview-shift]');el.value=shift;el.dispatchEvent(new Event('change',{bubbles:true}));};
  const value=path=>body.querySelector('[data-shift-overview-field="'+path+'"]')?.value;
@@ -120,7 +122,7 @@ function probe(width){
 }
 try{
  for(const width of [320,390,768,1366]){
-  const html='<!doctype html><html><head><meta charset="utf-8">'+css+'<style>html,body{margin:0;padding:0;}#appMenuBody{width:'+width+'px;max-width:100vw;box-sizing:border-box;padding:12px;}</style></head><body><div id="appMenuBody"></div><pre id="probe">WAIT</pre><script>window.rakAdminCanManageAdmins=()=>true;</script><script>'+feature+'</script><script>addEventListener("load",()=>{document.querySelector("#probe").textContent=JSON.stringify(('+probe.toString()+')('+width+'));});</script></body></html>';
+  const html='<!doctype html><html><head><meta charset="utf-8">'+css+'<style>html,body{margin:0;padding:0;}#appMenuBody{width:'+width+'px;max-width:100vw;box-sizing:border-box;padding:12px;}</style></head><body><div id="appMenuBody"></div><pre id="probe">WAIT</pre><script>window.rakAdminCanManageAdmins=()=>true;</script><script>'+feature+'</script><script>'+imageExport+'</script><script>addEventListener("load",()=>{document.querySelector("#probe").textContent=JSON.stringify(('+probe.toString()+')('+width+'));});</script></body></html>';
   const file=path.join(dir,'index.html');fs.writeFileSync(file,html);
   const r=spawnSync(chrome,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--allow-file-access-from-files','--disable-background-networking','--virtual-time-budget=3500','--window-size='+Math.max(500,width)+',900','--dump-dom',pathToFileURL(file).href],{encoding:'utf8',timeout:45000,maxBuffer:5e6});
   assert.equal(r.status,0,'Chromium failed');
