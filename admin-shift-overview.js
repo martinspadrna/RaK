@@ -881,7 +881,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     parts.push('<text x="458" y="1450" font-size="25" font-weight="700">BK v provozu · '+bkOnline+'/20</text>');
     bkOff.forEach((off,index)=>{
       const y=1470+index*54,ids=off.map(number=>'BK'+number);
-      const detail=ids.length ? 'Vypnuté: '+ids.slice(0,5).join(', ')+(ids.length>5?'\\n'+ids.slice(5).join(', '):'') : 'Vypnuté: žádné';
+      const detail=ids.length ? 'Vypnuté: '+ids.slice(0,5).join(', ')+(ids.length>5?'\n'+ids.slice(5).join(', '):'') : 'Vypnuté: žádné';
       parts.push('<g data-summary-bk-ald="'+(index+1)+'">');
       cell(458,y,80,54,'ALD'+(index+1),header,true,19);
       cell(538,y,100,54,(10-off.length)+'/10','#fff',true,24);
@@ -1330,7 +1330,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         rootEl.dataset.edited='1';
         const active=!record.ald[id-1].inactiveUnits.includes(number);
         unit.classList.toggle('isActive',active);unit.setAttribute('aria-pressed',String(active));
-        clearQuantityUndo(rootEl);persistDraft(rootEl);
+        clearQuantityUndo(rootEl);refreshSummary(rootEl);persistDraft(rootEl);
         return;
       }
 
