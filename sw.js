@@ -213,7 +213,8 @@ const WARM_START = [
 './supabase-bridge.js?v=2.0.42',
 './app-rotation-sync.js?v=2.0.42',
 './features/shift-overview-image.js?v=2.0.42',
-'./features/shift-overview-extra.css?v=2.0.42'
+'./features/shift-overview-extra.css?v=2.0.42',
+'./features/shift-report-sections.css?v=2.0.42'
 ];
 
 const OFFLINE_REQUIRED = Object.freeze([
