@@ -211,7 +211,9 @@ const WARM_START = [
 './rak-shift-report.js?v=2.0.41',
 './rak-shift-report-share.js?v=2.0.41',
 './supabase-bridge.js?v=2.0.41',
-'./app-rotation-sync.js?v=2.0.41'
+'./app-rotation-sync.js?v=2.0.41',
+'./features/shift-overview-image.js?v=2.0.41',
+'./features/shift-overview-extra.css?v=2.0.41'
 ];
 
 const OFFLINE_REQUIRED = Object.freeze([
