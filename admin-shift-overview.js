@@ -897,8 +897,30 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     cell(638,1627,238,54,stList.length?'Vypnuté: '+stList.slice(0,3).join(', ')+(stList.length>3?'\n'+stList.slice(3).join(', '):''):'Vypnuté: žádné','#fff',true,18);
     parts.push('</g>');
     const activeRows = keys => OAM_ROWS.map((row,index)=>({row,index})).filter(({row})=>keys.some(key=>summaryNumber(record.oam.rows[row.key][key])!==0));
-    const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
+    const conclusionKeys=['producedMOFree','producedMOPress','producedTO'];
+    const conclusionFilled=key=>OAM_ROWS.some(row=>String(record.oam.rows[row.key][key]??'').trim()!=='');
+    const conclusionTotal=key=>OAM_ROWS.reduce((sum,row)=>sum+summaryNumber(record.oam.rows[row.key][key]),0);
+    const moFree=conclusionTotal('producedMOFree'),moPress=conclusionTotal('producedMOPress'),toTotal=conclusionTotal('producedTO');
+    const filledMO=conclusionFilled('producedMOFree')||conclusionFilled('producedMOPress');
     let reportY=1730;
+    parts.push('<g data-summary-machining="conclusion">');
+    parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Závěr směny · MO / TO</text>');reportY+=20;
+    const totalsX=[458,560,662,764,876];
+    ['MO volné','MO pod lisem','MO celkem','TO celkem'].forEach((label,i)=>cell(totalsX[i],reportY,totalsX[i+1]-totalsX[i],44,label,header,true,17));
+    reportY+=44;
+    [conclusionFilled('producedMOFree')?moFree:'—',conclusionFilled('producedMOPress')?moPress:'—',filledMO?moFree+moPress:'—',conclusionFilled('producedTO')?toTotal:'—'].forEach((value,i)=>
+      cell(totalsX[i],reportY,totalsX[i+1]-totalsX[i],48,value,'#fff',true,24));
+    reportY+=68;
+    const conclusionX=[458,576,676,776,876];
+    ['Index','MO\nVolné','MO\nPod lisem','TO'].forEach((label,i)=>cell(conclusionX[i],reportY,conclusionX[i+1]-conclusionX[i],48,label,header,true,18));reportY+=48;
+    OAM_ROWS.forEach((row,index)=>{
+      parts.push('<g data-summary-conclusion-index="'+row.key+'">');
+      cell(conclusionX[0],reportY,conclusionX[1]-conclusionX[0],36,AAR_COLUMNS[index].label,colors[index],true,18);
+      conclusionKeys.forEach((key,i)=>cell(conclusionX[i+1],reportY,conclusionX[i+2]-conclusionX[i+1],36,summaryValue(record.oam.rows[row.key][key]),colors[index],true,21));
+      reportY+=36;parts.push('</g>');
+    });
+    parts.push('</g>');reportY+=38;
+    const machines=['TBKR01','TBKR07'].map(machine=>({machine,rows:activeRows(['ground'+machine+'Free','ground'+machine+'Press'])})).filter(item=>item.rows.length);
     if(machines.length){
       parts.push('<g data-summary-grinding="by-machine">');
       parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Nabroušeno · brusy</text>');
@@ -925,21 +947,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
         reportY+=36;parts.push('</g>');
       });
       parts.push('</g>');reportY+=40;
-    }
-    const conclusionKeys=['producedMOFree','producedMOPress','producedTO'];
-    const conclusionRows=activeRows(conclusionKeys);
-    if(conclusionRows.length){
-      parts.push('<g data-summary-machining="conclusion">');
-      parts.push('<text x="458" y="'+reportY+'" font-size="25" font-weight="700">Obrábění · závěr</text>');reportY+=20;
-      const conclusionX=[458,576,676,776,876];
-      ['Index','MO\nVolné','MO\nPod lisem','TO'].forEach((label,i)=>cell(conclusionX[i],reportY,conclusionX[i+1]-conclusionX[i],48,label,header,true,18));reportY+=48;
-      conclusionRows.forEach(({row,index})=>{
-        parts.push('<g data-summary-conclusion-index="'+row.key+'">');
-        cell(conclusionX[0],reportY,conclusionX[1]-conclusionX[0],36,AAR_COLUMNS[index].label,colors[index],true,18);
-        conclusionKeys.forEach((key,i)=>cell(conclusionX[i+1],reportY,conclusionX[i+2]-conclusionX[i+1],36,summaryValue(record.oam.rows[row.key][key]),colors[index],true,21));
-        reportY+=36;parts.push('</g>');
-      });
-      parts.push('</g>');reportY+=16;
     }
     let y=Math.max(partsBottom+78,reportY+20);
     const notes=[['Obrábění',record.machiningFaults],...record.ald.map((row,i)=>['ALD'+(i+1),row.faults]),['Poznámky',record.notes]].filter(([,value])=>String(value??'').trim());
