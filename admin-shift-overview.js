@@ -1497,7 +1497,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     document.head.appendChild(style);
     const extra=document.createElement('link');
     extra.rel='stylesheet';
-    extra.href='features/shift-overview-extra.css?v='+encodeURIComponent(root.RAK_RELEASE_METADATA?.moduleCacheVersion||'2.0.41');
+    extra.href='features/shift-overview-extra.css?v='+encodeURIComponent(root.RAK_RELEASE_METADATA?.moduleCacheVersion||'2.0.43');
     document.head.appendChild(extra);
   }
 
