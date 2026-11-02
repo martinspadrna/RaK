@@ -22,9 +22,9 @@ test('all real foreman report sections receive visual separation, with untouched
   assert(!report.includes('shift-report-sections.css'),'no change to report form/data code');
 });
 test('decorative stylesheet is loaded on demand with foreman report and cached offline',()=>{
-  assert(polish.includes("dividers.href='features/shift-report-sections.css?v=2.0.42'"));
+  assert(polish.includes("dividers.href='features/shift-report-sections.css?v=2.0.43'"));
   assert(polish.includes("dividers.rel='stylesheet'"));
-  const asset="'./features/shift-report-sections.css?v=2.0.42'";
+  const asset="'./features/shift-report-sections.css?v=2.0.43'";
   assert(sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED =')).includes(asset),'CSS must be prewarmed');
   assert(sw.slice(sw.indexOf('const OFFLINE_REQUIRED =')).includes(asset),'CSS must be required for offline completeness');
   assert(!read('app.js').includes('shift-report-sections.css'),'startup core must not load decorative CSS');
