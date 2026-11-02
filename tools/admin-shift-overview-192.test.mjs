@@ -620,7 +620,7 @@ test('grinding summary reports exact machine/index/type quantities and keeps inv
 });
 
 
-test('compact grinding and conclusion reports omit idle machines and zero or empty indices without mutating data',()=>{
+test('grinding omits idle machines while conclusion always shows all index fields and MO/TO totals',()=>{
  const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
  vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,summarySvg,shiftLayout};'),context);
  const api=context.window.fixture;
@@ -628,13 +628,13 @@ test('compact grinding and conclusion reports omit idle machines and zero or emp
  const before=JSON.stringify(record),svg=api.summarySvg(record);
  assert.ok(svg.includes('data-summary-grinder="TBKR01"'));assert.ok(!svg.includes('data-summary-grinder="TBKR07"'));
  assert.deepEqual([...svg.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]),['ag']);
- assert.deepEqual([...svg.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]),['ag']);
- assert.ok(svg.indexOf('data-summary-machining="conclusion"')>svg.indexOf('data-summary-grinding="by-machine"'));
- const conclusion=svg.split('data-summary-machining="conclusion"')[1];assert.ok(conclusion.includes('>16</text>'));assert.ok(conclusion.includes('>64</text>'));
+ assert.deepEqual([...svg.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]),['ag','af','ah']);
+ assert.ok(svg.indexOf('data-summary-machining="conclusion"')<svg.indexOf('data-summary-grinding="by-machine"'));
+ const conclusion=svg.split('data-summary-machining="conclusion"')[1];assert.ok(conclusion.includes('Závěr směny · MO / TO'));assert.ok(conclusion.includes('>16</text>'));assert.ok(conclusion.includes('>64</text>'));assert.ok(conclusion.includes('MO celkem')&&conclusion.includes('TO celkem'));
  assert.equal(JSON.stringify(record),before);assert.ok(api.shiftLayout(record).includes('>Závěr</h4>'));
  const layout=api.shiftLayout(record);
  assert.ok(layout.includes('rakShiftOverviewStation--compactConclusion'),'conclusion must use the compact editor');
  assert.ok(layout.indexOf('aria-label="Závěr · MO"')<layout.indexOf('aria-label="Závěr · TO"'),'MO and TO conclusion blocks must stack vertically');
  assert.deepEqual([...layout.matchAll(/rakShiftOverviewConclusionIndex (?:isGreen|isBlue|isOrange)[^>]*><strong>(.*?)<\/strong>/g)].map(match=>match[1]),['AG / AE','AF / AD','AH','AG / AE','AF / AD','AH']);
- const empty=api.summarySvg(api.normalizeRecord({}));assert.ok(!empty.includes('data-summary-grinding='));assert.ok(!empty.includes('data-summary-machining='));
+ const empty=api.summarySvg(api.normalizeRecord({}));assert.ok(!empty.includes('data-summary-grinding='));assert.ok(empty.includes('data-summary-machining="conclusion"'));assert.ok(empty.includes('>—</text>'),'missing closeout values must not look like recorded zeros');
 });
