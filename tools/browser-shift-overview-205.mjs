@@ -73,9 +73,13 @@ function probe(width){
   check(summary.includes('Vypnuté: ST2'),'individual disabled ST in picture');
   check((summary.match(/Vypnuté: BK2/g)||[]).length===2,'exact switched-off BK identities in graphic overview');
   check(body.querySelectorAll('[data-shift-overview-export]').length===2,'PNG download and sharing offered under the graphic');
-  check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Obrábění · závěr'),'conclusion summary');
+  check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Závěr směny · MO / TO'),'conclusion summary');
+  const conclusion=summary.split('<g data-summary-machining="conclusion">')[1]?.split('<g data-summary-conclusion-index=')[0]||'';
+  check(conclusion.includes('MO volné')&&conclusion.includes('MO pod lisem')&&conclusion.includes('MO celkem')&&conclusion.includes('TO celkem'),'all closeout totals labeled');
+  check(conclusion.includes('>32</text>')&&conclusion.includes('>64</text>')&&conclusion.includes('>96</text>'),'MO free/press/combined and TO from saved conclusion');
+  check(summary.indexOf('data-summary-machining="conclusion"')<summary.indexOf('data-summary-grinding="by-machine"'),'closeout appears before grinding details');
   check([...summary.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='af','only entered grinding indices');
-  check([...summary.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag','only entered conclusion index');
+  check([...summary.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag,af,ah','all colored conclusion index rows remain visible');
   check(!summary.includes('data-summary-grinder="TBKR01"')&&summary.includes('data-summary-grinder="TBKR07"')&&summary.includes('Nabroušeno · brusy'),'grinding summary');
   check(summary.includes('Čísla posledních vsázek')&&summary.includes('data-summary-last-batches="ald1-ald2-ald3"')&&['100','200','300'].every(n=>summary.includes('>'+n+'</text>')),'last batch numbers in final summary');
   const draft=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
