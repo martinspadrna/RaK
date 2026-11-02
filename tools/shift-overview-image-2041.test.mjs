@@ -133,6 +133,6 @@ test('PNG export actually rasterizes the current vector graphic without uploadin
   const boot=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
   const sw=fs.readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   assert(boot.includes('"features/shift-overview-image.js"'),'image export module loads with admin feature');
-  assert(sw.includes("'./features/shift-overview-image.js?v=2.0.42'")&&sw.includes("'./features/shift-overview-extra.css?v=2.0.42'"),'both optional assets stay offline');
+  assert(sw.includes("'./features/shift-overview-image.js?v=2.0.43'")&&sw.includes("'./features/shift-overview-extra.css?v=2.0.43'"),'both optional assets stay offline');
 
 });
