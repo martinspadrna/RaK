@@ -1,3 +1,9 @@
+## RaK 2.0.43 (development)
+
+- **Přehled směny – grafický celkový přehled a PNG:** údaje ze Závěru směny pro MO a TO jsou nově výrazně viditelné přímo v obrázku před podrobnostmi brusů. Samostatné součty **MO volné**, **MO pod lisem**, **MO celkem** a **TO celkem**, včetně rozpisu podle AG/AE, AF/AD a AH.
+- Sekce zůstává zobrazena i před vyplněním; prázdná hodnota je odlišená od skutečně zadané nuly. Počty se počítají výhradně z aktuálních polí Závěr, nic se nepřičítá do stávajících zásob/skladů ani nezapisuje jinak než dosud.
+- Náhled, stažené PNG a sdílený obrázek využívají stejnou grafiku. Bez zásahu do databáze, zabezpečení, rozpisů nebo MAIN; pouze TEST.
+
 ## RaK 2.0.42 (development)
 
 - **Přehled směny – grafika:** vedle BK v provozu (ALD1 + ALD2, z 20) se nyní zobrazuje také **ST v provozu (ALD3, z 5)** v samostatné části. Ukazuje přesný počet běžících a jmenovitě vypnuté ST1–ST5.
