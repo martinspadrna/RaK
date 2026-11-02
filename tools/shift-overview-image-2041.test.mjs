@@ -61,6 +61,38 @@ test('ALD3 ST are independent from ALD1/2 BK, count five units and show exact di
   assert(invalid.includes('ST v provozu · 3/5'),'invalid/duplicate mask values cannot skew ST counts');
 });
 
+test('graphic image displays real closeout MO free/press/combined and TO totals with all three indices',()=>{
+  const api=fixture();
+  const record=api.normalizeRecord({shift:'D:nocni12',oam:{rows:{
+    ag:{producedMOFree:'32',producedMOPress:'64',producedTO:'608',groundTBKR07Free:'32'},
+    af:{producedMOFree:'16',producedTO:'1216'},
+    ah:{producedMOPress:'0',producedTO:'0'}
+  }}});
+  const unchanged=JSON.stringify(record),svg=api.summarySvg(record);
+  const start=svg.indexOf('<g data-summary-machining="conclusion">');
+  const grinder=svg.indexOf('data-summary-grinding="by-machine"');
+  assert(start>0&&grinder>start,'MO/TO closeout must be visible above the grinding detail');
+  const totals=svg.slice(start,svg.indexOf('<g data-summary-conclusion-index=',start));
+  for(const title of ['Závěr směny · MO / TO','MO volné','MO pod lisem','MO celkem','TO celkem'])
+    assert(totals.includes(title),'closeout label missing: '+title);
+  for(const amount of [48,64,112,1824])
+    assert(totals.includes('>'+amount+'</text>'),'closeout total missing: '+amount);
+  const rows=[...svg.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]);
+  assert.deepEqual(rows,['ag','af','ah']);
+  assert.equal(JSON.stringify(record),unchanged,'summary cannot modify saved record');
+});
+test('empty closeout stays visible but shows dashes rather than invented zeroes; entered zero is real',()=>{
+  const api=fixture();
+  const empty=api.summarySvg(api.normalizeRecord({}));
+  const block=empty.slice(empty.indexOf('data-summary-machining="conclusion"'),empty.indexOf('data-summary-conclusion-index='));
+  assert(block.includes('Závěr směny · MO / TO'));
+  assert.equal((block.match(/>—<\/text>/g)||[]).length,4);
+  assert.equal((empty.match(/data-summary-conclusion-index=/g)||[]).length,3);
+  const zero=api.summarySvg(api.normalizeRecord({oam:{rows:{ag:{producedMOFree:'0',producedTO:'0'}}}}));
+  const zeroBlock=zero.slice(zero.indexOf('data-summary-machining="conclusion"'),zero.indexOf('data-summary-conclusion-index='));
+  assert(zeroBlock.includes('>0</text>'),'explicitly entered zero must be shown');
+  assert(zeroBlock.includes('>—</text>'),'unfilled MO press must stay unfilled');
+});
 test('each production stage has its own bordered card and before-145 is no longer nested',()=>{
   const api=fixture();
   const empty=api.normalizeRecord({});
