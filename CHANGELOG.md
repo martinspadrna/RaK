@@ -1,3 +1,10 @@
+## RaK 2.0.44 (development)
+
+- **Kalírna k nám (K→):** opravena skutečná příčina chybějící značky i v rozkliknutém rozpisu. Editor zapisuje datum např. `8.11.R`, uložený řádek používá `8.11. R`; dosavadní přesná textová shoda nerozpoznala stejnou směnu.
+- Datum výjimky se nyní porovnává podle dne, měsíce a typu směny (R/N/R8/N8). Značky `K→` i `→K` se ukazují ve veřejném rozpisu, administraci i horním přehledu; přesuny mezi směnami se nesměšují.
+- Stejně funguje opětovná úprava a odebrání výjimky. Ochrana před falešným označením pracovníka po změně jména zůstává zachována.
+- Nemění se generátor, počty lidí, data databáze ani produkční MAIN. Doplněné regresní testy a zachovaný přísný výkonový limit.
+
 ## RaK 2.0.43 (development)
 
 - **Kalírna k nám (K→):** značka je nově viditelná také v horním mini přehledu měsíce, a to i na prázdném stroji.

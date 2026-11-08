@@ -68,3 +68,32 @@ test('editor, public grid and narrow screen styles keep the incoming badge visib
   assert(css.includes('color:#fff !important;'), 'mini marker is visible over transparent empty cell');
   assert(daymods.includes("type === 'kalirnaOut' || type === 'kalirnaIn'"), 'saving both directions unchanged');
 });
+
+test('full rotation finds the incoming badge with compact editor date while keeping distinct shifts', () => {
+  const month = {
+    soft: { rows: [
+      { date: '8.11. R', cells: ['', 'Novotný'] },
+      { date: '8.11. N', cells: ['', 'Novotný'] }
+    ] },
+    dayMods: [
+      { section: 'soft', date: '8.11.R', cellIndex: 0, type: 'kalirnaIn' },
+      { section: 'soft', date: '8.11.R', cellIndex: 1, type: 'kalirnaOut', person: 'Novotný' }
+    ]
+  };
+  assert.equal(mod(month, 'soft', '8.11. R', 0)?.type, 'kalirnaIn');
+  assert.equal(badge(mod(month, 'soft', '8.11. R', 0)), 'K→');
+  assert.equal(mod(month, 'soft', '8.11. R', 1)?.type, 'kalirnaOut');
+  assert.equal(mod(month, 'soft', '8.11. N', 0), null);
+  assert.equal(mod(month, 'soft', '8.11. N', 1), null);
+  assert.equal(mod(month, 'soft', '09.11.R', 0), null);
+  assert.equal(mod(month, 'soft', '8.11.R8', 0), null);
+  assert(daymods.includes('sameDayModDate(m.date, record.date)'), 'saving a compact-date exception replaces its canonical shift');
+});
+
+test('outgoing helper badge never follows a replaced worker on a date variant', () => {
+  const month = {
+    soft: { rows: [{ date: '8.11. R', cells: ['Pech'] }] },
+    dayMods: [{ section: 'soft', date: '8.11.R', cellIndex: 0, person: 'Novotný', type: 'kalirnaOut' }]
+  };
+  assert.equal(mod(month, 'soft', '8.11. R', 0), null);
+});

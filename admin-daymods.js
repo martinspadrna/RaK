@@ -1,5 +1,4 @@
 // RaK 1.2 (1.157) – denní výjimky v rozpisu (odchod dřív / půl směny / kalírna) + žluté zvýraznění buněk.
-// Část A: zadávání oknem na klik do buňky a vizuální upozornění. Statistika navazuje v části B.
 try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('admin-daymods.js', 'loaded', { source: 'dynamic-loader' }); } catch (err) {}
 
 (function () {
@@ -42,7 +41,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return [];
   }
 
-  // ---- datová vrstva ----------------------------------------------------
   function getMonth(monthKey) {
     try {
       if (window.app && app.rotation && app.rotation.months) return app.rotation.months[monthKey] || null;
@@ -54,17 +52,26 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return month && Array.isArray(month.dayMods) ? month.dayMods : [];
   }
 
+  function dayModDateKey(value) {
+    var raw = String(value || '').trim();
+    var m = /^(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(R8|N8|R|N)?\s*$/i.exec(raw);
+    return m ? Number(m[1]) + '.' + Number(m[2]) + '.' + String(m[3] || '').toUpperCase() : raw.replace(/\s+/g, ' ').toUpperCase();
+  }
+  function sameDayModDate(a, b) {
+    return dayModDateKey(a) === dayModDateKey(b);
+  }
+
   function findMod(month, section, dateRaw, cellIndex) {
     var list = listMods(month);
     var date = String(dateRaw || '').trim();
     var idx = Number(cellIndex);
     for (var i = 0; i < list.length; i += 1) {
       var m = list[i];
-      if (!m || m.section !== section || String(m.date || '').trim() !== date || Number(m.cellIndex) !== idx) continue;
+      if (!m || m.section !== section || !sameDayModDate(m.date, date) || Number(m.cellIndex) !== idx) continue;
       if (m.type === 'kalirnaOut' && String(m.person || '').trim()) {
         var sec = month && month[section];
         var rows = sec && Array.isArray(sec.rows) ? sec.rows : [];
-        var row = rows.find(function (item) { return String(item && item.date || '').trim() === date; });
+        var row = rows.find(function (item) { return sameDayModDate(item && item.date, date); });
         var currentPerson = row && Array.isArray(row.cells) ? String(row.cells[idx] || '').trim() : '';
         if (currentPerson !== String(m.person || '').trim()) continue;
       }
@@ -73,7 +80,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return null;
   }
 
-  // Veřejné API pro vykreslení (admin i veřejný rozpis).
   window.rakDayModForCell = function rakDayModForCell(month, section, dateRaw, cellIndex) {
     if (!month) return null;
     return findMod(month, section === 'soft' ? 'soft' : 'hard', dateRaw, cellIndex);
@@ -85,9 +91,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   };
 
   // RaK 1.7.148: Kalírna se znovu vykresluje jen z reálné buňky + stejného kalirnaOut záznamu.
-  // Neplánovaná změna ukládá člověka do chráněné prázdné MO buňky a daymod na ni přesměruje.
 
-  // Krátká značka do buňky (vizuální upozornění i bez barvy).
   window.rakDayModBadge = function rakDayModBadge(mod) {
     if (!mod) return '';
     if (mod.type === 'noOvertime') return '22h';
@@ -111,7 +115,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   }
   window.rakDayModTooltip = modTooltip;
 
-  // Odvozené absenční řádky (dovolená/NV/§/lékař od/do času) pro tabulku Absence.
   window.rakDayModAbsenceRows = function rakDayModAbsenceRows(month) {
     var rows = [];
     var list = listMods(month);
@@ -138,14 +141,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     var list = month.dayMods;
     for (var i = list.length - 1; i >= 0; i -= 1) {
       var m = list[i];
-      if (m && m.section === record.section && String(m.date || '').trim() === record.date && Number(m.cellIndex) === Number(record.cellIndex)) {
+      if (m && m.section === record.section && sameDayModDate(m.date, record.date) && Number(m.cellIndex) === Number(record.cellIndex)) {
         list.splice(i, 1);
       }
     }
     if (record.type) list.push(record);
   }
 
-  // ---- okno -------------------------------------------------------------
   function closeModal() {
     var overlay = document.getElementById('rakDayModOverlay');
     if (overlay) overlay.classList.remove('isVisible');
@@ -226,11 +228,8 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return false;
   }
 
-  // Pevné přestávky (30 min): 10:00, 14:00, 02:00, 22:00.
   var DM_BREAKS = [[10, 0], [14, 0], [2, 0], [22, 0]];
 
-  // Odpracované hodiny v okně [start, end] po odečtení přestávek, které do okna spadají.
-  // exclude = pole [h,m] přestávek, které se nemají počítat (např. úvodní pauza u příchodu na 22 h).
   function workedBetween(start, end, exclude) {
     if (!start || !end || end.getTime() <= start.getTime()) return 0;
     var grossMs = end.getTime() - start.getTime();
@@ -254,7 +253,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return !!(win && win.start && win.start.getHours() >= 18);
   }
 
-  // Efektivní okno směny (zohlední přesčas / příchod na 22 h) + případná pevná hodnota (běžná neděle = 7,5 h).
   function effectiveWindow(ctx, overtime) {
     var base = (typeof getRotationRowShiftWindow === 'function') ? getRotationRowShiftWindow(ctx.monthKey, ctx.date) : null;
     if (!base || !base.start || !base.end) return null;
@@ -263,7 +261,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     var forceValue = null;
     var excludeBreaks = null;
     if (ctx.isSunday && ctx.appOvertime) {
-      // přesčasová neděle: zaškrtnutý = dlouhá (18 h start), odškrtnutý = od 22 h
       if (isNightWindow(base)) {
         start.setHours(overtime ? 18 : 22, 0, 0, 0);
         if (!overtime) excludeBreaks = [[22, 0]]; // od 22 h se počítá až druhá pauza (02:00)
