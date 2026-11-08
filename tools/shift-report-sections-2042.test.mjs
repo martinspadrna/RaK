@@ -22,9 +22,9 @@ test('all real foreman report sections receive visual separation, with untouched
   assert(!report.includes('shift-report-sections.css'),'no change to report form/data code');
 });
 test('decorative stylesheet is loaded on demand with foreman report and cached offline',()=>{
-  assert(polish.includes("dividers.href='features/shift-report-sections.css?v=2.0.47'"));
+  assert(polish.includes("dividers.href='features/shift-report-sections.css?v=2.0.48'"));
   assert(polish.includes("dividers.rel='stylesheet'"));
-  const asset="'./features/shift-report-sections.css?v=2.0.47'";
+  const asset="'./features/shift-report-sections.css?v=2.0.48'";
   assert(sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED =')).includes(asset),'CSS must be prewarmed');
   assert(sw.slice(sw.indexOf('const OFFLINE_REQUIRED =')).includes(asset),'CSS must be required for offline completeness');
   assert(!read('app.js').includes('shift-report-sections.css'),'startup core must not load decorative CSS');
@@ -45,4 +45,15 @@ test('report rows reuse the exact green, blue and orange tint of the shift overv
   assert(report.includes('background:var(--rak-index-fill,transparent)!important'),'index selector uses identical tint');
   assert(!report.includes('linear-gradient(145deg,#00b966,#00ee87)'),'old neon remains');
   assert(report.includes("if(row)row.dataset.indexColor=color"),'changing index must update the row');
+});
+
+test('every editable production quantity, free and NOK field uses its selected index palette',()=>{
+  assert(css.includes('input.rakShiftQty,input.rakShiftFree,input.rakShiftNok'), 'missing colored numeric inputs');
+  assert(css.includes('select.rakShiftIndex'), 'selected index itself must be colored');
+  for (const [color,rgb] of [['green','135,172,58'],['blue','20,114,194'],['orange','206,85,47']]){
+    assert(css.includes('[data-index-color="'+color+'"]{'), 'missing '+color+' rules');
+    assert(css.includes('--rak-index-control:rgba('+rgb+',.38)'), 'input color missing '+color);
+  }
+  assert(css.includes('background:var(--rak-index-control)!important'), 'generic report gradient must be overridden');
+  assert(css.includes('background-image:none!important'), 'report gradients must not darken or override input colors');
 });

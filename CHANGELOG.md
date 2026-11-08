@@ -1,3 +1,10 @@
+## RaK 2.0.48 (development)
+
+- **Report směny:** vstupní pole `ks`, `volné`, `NOK` a volba indexu v oddílech MO, TO, TBKR01 a TRBR07 dostávají skutečné barevné podbarvení odpovídající indexům Přehledu směny.
+- Přepsány konfliktní univerzální šedofialové přechody. Barvy zůstávají zelená AG/AE, modrá AF/AD a oranžová AH; mírně sytější na vstupních polích kvůli čitelnosti na tmavším pozadí Reportu.
+- Kontrola všech 12 kombinací oddíl/index, jejich polí a přepínání indexu v Chromium na mobilních i PC šířkách.
+- Pouze TEST/development, bez změn MAIN a databází.
+
 ## RaK 2.0.47 (development)
 
 - **Rozpisy – výpomoc kalírny:** značky `K→` a `→K` nyní sdílejí stejné žluté písmo a stejnou barevnost buněk. Odstraněno modré podbarvení příchozí výpomoci.

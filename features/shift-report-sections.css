@@ -1,4 +1,4 @@
-/* TEST 2.0.42 – přehledné hranice pracovních oddílů Reportu pro mistra. */
+/* RaK 2.0.48 – barevné oddíly a skutečně barevná vstupní pole reportu. */
 #rakShiftReport.rakShiftReportPolished{gap:20px}
 #rakShiftReport .rakShiftSection{
   --rak-report-divider:#d5dfec;
@@ -30,3 +30,10 @@
   #rakShiftReport .rakShiftSection{padding:12px;border-left-width:6px}
   #rakShiftReport.rakShiftReportPolished{gap:17px}
 }
+
+/* 2.0.48: Přehled směny palette also colors every editable report field. */
+#rakShiftReport .rakShiftProdRow[data-index-color="green"]{--rak-index-stroke:#87ac3a;--rak-index-fill:rgba(135,172,58,.24);--rak-index-control:rgba(135,172,58,.38)}
+#rakShiftReport .rakShiftProdRow[data-index-color="blue"]{--rak-index-stroke:#1472c2;--rak-index-fill:rgba(20,114,194,.27);--rak-index-control:rgba(20,114,194,.38)}
+#rakShiftReport .rakShiftProdRow[data-index-color="orange"]{--rak-index-stroke:#ce552f;--rak-index-fill:rgba(206,85,47,.25);--rak-index-control:rgba(206,85,47,.38)}
+#rakShiftReport .rakShiftProdRow[data-index-color]{background:var(--rak-index-fill)!important;background-image:none!important;border-left:4px solid var(--rak-index-stroke)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.10)!important}
+#rakShiftReport .rakShiftProdRow[data-index-color]>:is(select.rakShiftIndex,input.rakShiftQty,input.rakShiftFree,input.rakShiftNok){background:var(--rak-index-control)!important;background-image:none!important;border:2px solid var(--rak-index-stroke)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important}
