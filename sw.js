@@ -352,8 +352,7 @@ try {
 } catch (_) {}
 }
 
-// Changed deferred admin modules keep the same runtime URL in TEST releases.
-// Stage all verified replacements before removing older copies; leave unrelated caches intact.
+// Stage replacement assets before clearing older caches.
 async function prewarmRotationToolbarUpdate() {
 const assets = ['./admin-rotation-editor.js?v=2.0.49', './admin-daymods.js?v=2.0.49', './app-menu-admin-renderer.js?v=2.0.49', './rak-shift-report.js?v=2.0.49', './rak-shift-report-share.js?v=2.0.49'];
 const replacements = await Promise.all(assets.map(async url => {

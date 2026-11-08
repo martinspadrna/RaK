@@ -1423,12 +1423,7 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     });
   });
 
-  // Kalírna se nejdřív řeší nejmenším možným zásahem. Pokud pracovník
-  // odchází z MO a stávající TO je stále platné, zůstanou všichni ostatní
-  // pokud možno na svém stroji. Typický případ 5 -> 4 na MO tak znamená:
-  // člověk z MFKF06 nahradí odcházejícího na soustruhu a MFKF10 zůstane sám.
-  // Teprve když kvalifikace nebo staffing lokální řešení nedovolí, použije
-  // se stávající scoped generátor jen pro konkrétní nevyřešené dny.
+  // Kalírna: nejdřív lokální MO→TO přesun; scoped generátor až pro nevyřešené dny.
   let regenerated = JSON.parse(JSON.stringify(candidate));
   const fallbackDateLabels = [];
   allowedDateLabels.forEach((date) => {
@@ -1443,8 +1438,7 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     regenerated = adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels);
   }
 
-  // Fyzický staffing je hotový. Teď vlož pouze evidenční buňku Kalírny do
-  // chráněného prázdného MO slotu a přesměruj na ni tentýž kalirnaOut daymod.
+  // Evidenční Kalírna do chráněného prázdného MO slotu.
   allowedDateLabels.forEach((date) => {
     adminRotationUnplannedPlaceKalirnaDisplayCell(regenerated, date, person, knownNames);
   });
@@ -1664,7 +1658,6 @@ function adminHandleRotationGeneratorWizardAction(action, target) {
     return true;
   }
   if (action === 'generator-full-month') {
-    // The whole current month still uses this same amendment wizard and generator.
     if (state.mode === 'amend') {
       state.startDate = adminRotationGeneratorAmendBounds(state.monthKey).min;
       state.days = adminRotationCollectMonthWorkDatesFromMonth(state.sourceMonth);
