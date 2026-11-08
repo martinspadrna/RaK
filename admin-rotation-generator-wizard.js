@@ -459,6 +459,21 @@ function adminRotationGeneratorMergeAbsences(existing, imported) {
   });
 }
 
+async function adminRotationGeneratorFetchCalendarIcs() {
+  const context=adminRotationGeneratorActiveShiftCalendarSources();
+  const team=String(context && context.team || 'D').trim().toUpperCase() || 'D';
+  const sources=Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
+  if(!sources.length)throw new Error('calendar-not-configured-for-shift-'+team);
+  const settled=await Promise.allSettled(sources.map(async source=>{
+    const response=await fetch(ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API+encodeURIComponent(source),{cache:'no-store',credentials:'same-origin'});
+    if(!response||!response.ok)throw new Error('HTTP '+String(response && response.status || ''));
+    return response.text();
+  }));
+  const texts=settled.filter(item=>item.status==='fulfilled').map(item=>item.value);
+  if(!texts.length)throw new Error('calendar-unavailable-for-shift-'+team);
+  return {team,texts,partial:settled.some(item=>item.status==='rejected')};
+}
+
 async function adminRotationGeneratorLoadCalendarAbsences() {
   const state = adminRotationGeneratorGetWizardState();
   state.days = adminRotationGeneratorResolveWizardDays(state);
@@ -466,21 +481,7 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
   const status = document.getElementById('adminOnlineSaveStatus');
   if (status) status.textContent = 'Načítám absence z kalendáře přiřazené směny...';
   try {
-    const context = adminRotationGeneratorActiveShiftCalendarSources();
-    const team = String(context && context.team || 'D').trim().toUpperCase() || 'D';
-    const sources = Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
-    if (!sources.length) throw new Error('calendar-not-configured-for-shift-' + team);
-
-    const settled = await Promise.allSettled(sources.map(async (source) => {
-      const response = await fetch(ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API + encodeURIComponent(source), {
-        cache: 'no-store',
-        credentials: 'same-origin'
-      });
-      if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
-      return response.text();
-    }));
-    const texts = settled.filter((item) => item.status === 'fulfilled').map((item) => item.value);
-    if (!texts.length) throw new Error('calendar-unavailable-for-shift-' + team);
+    const {team,texts,partial}=await adminRotationGeneratorFetchCalendarIcs();
 
     let imported = state.days.map((date) => ({ date, rows: [] }));
     texts.forEach((text) => {
@@ -494,12 +495,10 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
     adminRotationGeneratorRenderWizard('absences');
     const nextStatus = document.getElementById('adminOnlineSaveStatus');
     if (nextStatus) {
-      const partial = settled.some((item) => item.status === 'rejected')
-        ? ' Část kalendářů směny se nepodařilo načíst.'
-        : '';
+      const partialText = partial ? ' Část kalendářů směny se nepodařilo načíst.' : '';
       nextStatus.textContent = importedCount
-        ? ('Načteno z kalendáře směny ' + team + ': ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.' + partial)
-        : ('V kalendáři směny ' + team + ' jsem pro vybraný měsíc nenašel žádné známé absence.' + partial);
+        ? ('Načteno z kalendáře směny ' + team + ': ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.' + partialText)
+        : ('V kalendáři směny ' + team + ' jsem pro vybraný měsíc nenašel žádné známé absence.' + partialText);
     }
     return { ok: true, importedCount, team, sourceCount: texts.length };
   } catch (err) {
@@ -1424,12 +1423,7 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     });
   });
 
-  // Kalírna se nejdřív řeší nejmenším možným zásahem. Pokud pracovník
-  // odchází z MO a stávající TO je stále platné, zůstanou všichni ostatní
-  // pokud možno na svém stroji. Typický případ 5 -> 4 na MO tak znamená:
-  // člověk z MFKF06 nahradí odcházejícího na soustruhu a MFKF10 zůstane sám.
-  // Teprve když kvalifikace nebo staffing lokální řešení nedovolí, použije
-  // se stávající scoped generátor jen pro konkrétní nevyřešené dny.
+  // Kalírna: nejdřív lokální MO→TO přesun; scoped generátor až pro nevyřešené dny.
   let regenerated = JSON.parse(JSON.stringify(candidate));
   const fallbackDateLabels = [];
   allowedDateLabels.forEach((date) => {
@@ -1444,8 +1438,7 @@ function adminRotationBuildUnplannedDayModCandidate(monthKey, sourceMonth, input
     regenerated = adminRotationUnplannedSpliceGeneratedDays(regenerated, generated.normalized, fallbackDateLabels);
   }
 
-  // Fyzický staffing je hotový. Teď vlož pouze evidenční buňku Kalírny do
-  // chráněného prázdného MO slotu a přesměruj na ni tentýž kalirnaOut daymod.
+  // Evidenční Kalírna do chráněného prázdného MO slotu.
   allowedDateLabels.forEach((date) => {
     adminRotationUnplannedPlaceKalirnaDisplayCell(regenerated, date, person, knownNames);
   });
@@ -1665,7 +1658,6 @@ function adminHandleRotationGeneratorWizardAction(action, target) {
     return true;
   }
   if (action === 'generator-full-month') {
-    // The whole current month still uses this same amendment wizard and generator.
     if (state.mode === 'amend') {
       state.startDate = adminRotationGeneratorAmendBounds(state.monthKey).min;
       state.days = adminRotationCollectMonthWorkDatesFromMonth(state.sourceMonth);

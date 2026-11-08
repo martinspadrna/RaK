@@ -1,3 +1,12 @@
+## RaK 2.0.49 (development)
+
+- **Administrace → Rozpisy → Absence:** nové tlačítko „Aktualizovat absence z Google Kalendáře“ u právě otevřeného měsíce.
+- Používá přesně stejný výběr přiřazeného směnového kalendáře, Google ICS proxy a parser známých jmen a kódů jako průvodce generováním nového rozpisu.
+- Doplní pouze chybějící absence; ručně zadané nebo rozepsané položky, ostatní měsíce i aktuální obsazení strojů ponechá beze změny. Opakované načtení nepřidává duplicitní záznamy.
+- Viditelný průběh a souhrn „nalezeno / doplněno“ včetně chyb kalendáře; při výpadku sítě nebo změně měsíce se rozepsaná data nepřepisují.
+- Import se ukládá pouze jako místní návrh se zálohou; online zápis výhradně přes stávající tlačítko „Uložit rozpis“. Nová funkce je lazy-load a připravená do offline cache.
+- Regresní testy přidávání, deduplikace, opakovaného načtení, výpadku a přepnutí měsíce; MAIN a produkční databáze beze změny.
+
 ## RaK 2.0.48 (development)
 
 - **Report směny:** vstupní pole `ks`, `volné`, `NOK` a volba indexu v oddílech MO, TO, TBKR01 a TRBR07 dostávají skutečné barevné podbarvení odpovídající indexům Přehledu směny.

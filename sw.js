@@ -1,11 +1,11 @@
 // RaK PWA service worker.
-importScripts('./rak-release-metadata.js?sw=2.0.48');
+importScripts('./rak-release-metadata.js?sw=2.0.49');
 const RELEASE_METADATA = self.RAK_RELEASE_METADATA;
 if (!RELEASE_METADATA || !RELEASE_METADATA.displayVersion || !RELEASE_METADATA.buildId) {
 throw new Error('Missing RaK release metadata');
 }
 const CACHE_VERSION = RELEASE_METADATA.cacheVersion;
-const SW_RELEASE_CACHE_MARKER = 'v2.0.48';
+const SW_RELEASE_CACHE_MARKER = 'v2.0.49';
 if (CACHE_VERSION !== SW_RELEASE_CACHE_MARKER) {
 throw new Error('Service worker release marker does not match release metadata');
 }
@@ -27,11 +27,11 @@ const DEVELOPMENT_FULL_APP_AUDIT_POLICY = 'export-manifest-current;diagnostics-n
 const DEVELOPMENT_EXPORT_PREFLIGHT_POLICY = 'stale-usage-css-sql-removed;runtime-cleanup;same-version-cache-refresh';
 const DEVELOPMENT_COMPLETE_BACKUP_POLICY = 'owner-only-rpc;repo-sha-snapshot;deployed-runtime;sanitized-auth;schema-rls-rpc;storage-bytes';
 const DEVELOPMENT_COMPLETE_BACKUP_IOS_POLICY = 'single-same-origin-source-archive;no-raw-github-fetch;expanded-repository-folder';
-const RAK_RELEASE_170_POLICY = 'display-1.9;technical-2.0.48;cache-v2.0.48;startup-auth-restore-only;about-performance-parity;complete-backup-preserved';
-const RAK_170_STARTUP_AUTH_HOTFIX_ASSETS = ['./core.js?v=2.0.48', './app-admin-unlock.js?v=2.0.48', './app-menu-pages.js?v=2.0.48'];
-const RAK_170_SHIFT_REPORT_HOTFIX_ASSETS = ['./rak-shift-report.js?v=2.0.48'];
-const RAK_170_REPORT_APPEARANCE_ASSETS = ['./app.js?v=2.0.48', './appearance-theme.js?v=2.0.48', './rak-shift-report.js?v=2.0.48'];
-const RAK_170_GENERATOR_STAFFING_ASSETS = ['./admin-rotation-generator.js?v=2.0.48', './admin-rotation.js?v=2.0.48', './rotation-tasks.js?v=2.0.48'];
+const RAK_RELEASE_170_POLICY = 'display-1.9;technical-2.0.49;cache-v2.0.49;startup-auth-restore-only;about-performance-parity;complete-backup-preserved';
+const RAK_170_STARTUP_AUTH_HOTFIX_ASSETS = ['./core.js?v=2.0.49', './app-admin-unlock.js?v=2.0.49', './app-menu-pages.js?v=2.0.49'];
+const RAK_170_SHIFT_REPORT_HOTFIX_ASSETS = ['./rak-shift-report.js?v=2.0.49'];
+const RAK_170_REPORT_APPEARANCE_ASSETS = ['./app.js?v=2.0.49', './appearance-theme.js?v=2.0.49', './rak-shift-report.js?v=2.0.49'];
+const RAK_170_GENERATOR_STAFFING_ASSETS = ['./admin-rotation-generator.js?v=2.0.49', './admin-rotation.js?v=2.0.49', './rotation-tasks.js?v=2.0.49'];
 const RAK_SHIFT_REPORT_MO_POLICY = 'separate-normal-free-lines;restore-free-draft';
 const DEVELOPMENT_COMPLETE_BACKUP_INVENTORY_POLICY = 'git-tracked-only;archive-inventory-aligned';
 const RAK_17100_BACKUP_SOURCE_POLICY = 'same-origin-build-verified-zip;embedded-exactly;no-client-reparse';
@@ -41,23 +41,23 @@ const RAK_17100_BACKUP_SOURCE_POLICY = 'same-origin-build-verified-zip;embedded-
 const STATIC_CACHE = `rotace-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rotace-runtime-${CACHE_VERSION}`;
 const PREWARM_CACHE = `rotace-prewarm-${CACHE_VERSION}`;
-const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=2.0.48', './admin-shift-overview.js?v=2.0.48', './rak-release-metadata.js'];
-const DEVELOPMENT_EXPORT_HOTFIX_ASSETS = ['./export.js?v=2.0.48', './rak-lazy-external-libs.js?v=2.0.48'];
-const DEVELOPMENT_COMPLETE_BACKUP_HOTFIX_ASSETS = ['./app.js?v=2.0.48', './app-menu-admin-renderer.js?v=2.0.48', './rak-complete-backup.js?v=2.0.48'];
+const SAME_VERSION_HOTFIX_ASSETS = ['./app-menu-pages.js?v=2.0.49', './admin-shift-overview.js?v=2.0.49', './rak-release-metadata.js'];
+const DEVELOPMENT_EXPORT_HOTFIX_ASSETS = ['./export.js?v=2.0.49', './rak-lazy-external-libs.js?v=2.0.49'];
+const DEVELOPMENT_COMPLETE_BACKUP_HOTFIX_ASSETS = ['./app.js?v=2.0.49', './app-menu-admin-renderer.js?v=2.0.49', './rak-complete-backup.js?v=2.0.49'];
 // Development-only invalidace starých admin/Supabase assetů po oddělení test DB.
 const DEVELOPMENT_ADMIN_HOTFIX_ASSETS = [
-'./app.js?v=2.0.48',
-'./supabase-config.js?v=2.0.48',
-'./supabase-bridge.js?v=2.0.48',
-'./app-rotation-sync.js?v=2.0.48',
-'./app-admin-unlock.js?v=2.0.48',
-'./app-menu.js?v=2.0.48',
-'./app-menu-admin-shell.js?v=2.0.48',
-'./app-menu-shift-report.js?v=2.0.48',
-'./app-home-boot.js?v=2.0.48',
+'./app.js?v=2.0.49',
+'./supabase-config.js?v=2.0.49',
+'./supabase-bridge.js?v=2.0.49',
+'./app-rotation-sync.js?v=2.0.49',
+'./app-admin-unlock.js?v=2.0.49',
+'./app-menu.js?v=2.0.49',
+'./app-menu-admin-shell.js?v=2.0.49',
+'./app-menu-shift-report.js?v=2.0.49',
+'./app-home-boot.js?v=2.0.49',
 './kalirna-daymod-override.js?v=20260912-1',
 './kalirna-stats-override.js?v=20260913-1',
-'./rotation-tasks.js?v=2.0.48'
+'./rotation-tasks.js?v=2.0.49'
 ];
 
 const DEVELOPMENT_ASSET_HOTFIX_ASSETS = [
@@ -100,23 +100,23 @@ const CORE = [
 './',
 './index.html',
 './rak-release-metadata.js',
-'./rak-runtime-diagnostics.js?v=2.0.48',
+'./rak-runtime-diagnostics.js?v=2.0.49',
 './manifest.webmanifest',
-'./assets/app-icons/icon-any-180.png?v=2.0.48',
-'./assets/app-icons/icon-any-32.png?v=2.0.48',
-'./assets/app-icons/icon-any-192.png?v=2.0.48',
-'./assets/app-icons/icon-any-512.png?v=2.0.48',
-'./assets/app-icons/icon-32.png?v=2.0.48',
-'./assets/app-icons/icon-192.png?v=2.0.48',
-'./assets/app-icons/icon-512.png?v=2.0.48',
+'./assets/app-icons/icon-any-180.png?v=2.0.49',
+'./assets/app-icons/icon-any-32.png?v=2.0.49',
+'./assets/app-icons/icon-any-192.png?v=2.0.49',
+'./assets/app-icons/icon-any-512.png?v=2.0.49',
+'./assets/app-icons/icon-32.png?v=2.0.49',
+'./assets/app-icons/icon-192.png?v=2.0.49',
+'./assets/app-icons/icon-512.png?v=2.0.49',
 './assets/rak-login-crab.png'
 ];
 
 const WARM_START = [
 './supabase-vendor-2.110.7.js',
-'./rak-runtime-diagnostics.js?v=2.0.48',
-'./app.js?v=2.0.48',
-'./rak-rotation-local-store.js?v=2.0.48',
+'./rak-runtime-diagnostics.js?v=2.0.49',
+'./app.js?v=2.0.49',
+'./rak-rotation-local-store.js?v=2.0.49',
 './data.js',
 './module-readiness.js',
 './rak-namespace.js',
@@ -159,81 +159,82 @@ const WARM_START = [
 './assets/dashboard-icons/jidelnilistek.png',
 './assets/dashboard-icons/kantyna.png',
 './assets/dashboard-icons/vyplata.png',
-'./supabase-config.js?v=2.0.48',
-'./rak-user-profile.js?v=2.0.48',
-'./rak-auth-gate.js?v=2.0.48',
-'./rak-account-access.js?v=2.0.48',
-'./rak-login-splash.js?v=2.0.48',
-'./rak-login-fix.js?v=2.0.48',
-'./rak-login-life.js?v=2.0.48',
-'./core.js?v=2.0.48',
-'./lifecycle.js?v=2.0.48',
-'./app-runtime-guards.js?v=2.0.48',
-'./qr.js?v=2.0.48',
+'./supabase-config.js?v=2.0.49',
+'./rak-user-profile.js?v=2.0.49',
+'./rak-auth-gate.js?v=2.0.49',
+'./rak-account-access.js?v=2.0.49',
+'./rak-login-splash.js?v=2.0.49',
+'./rak-login-fix.js?v=2.0.49',
+'./rak-login-life.js?v=2.0.49',
+'./core.js?v=2.0.49',
+'./lifecycle.js?v=2.0.49',
+'./app-runtime-guards.js?v=2.0.49',
+'./qr.js?v=2.0.49',
 './rak-qr-data.js',
-'./payroll.js?v=2.0.48',
-'./dashboard.js?v=2.0.48',
-'./appearance-theme.js?v=2.0.48',
-'./ui.js?v=2.0.48',
-'./app-navigation.js?v=2.0.48',
-'./app-bottom-nav.js?v=2.0.48',
-'./app-actions.js?v=2.0.48',
-'./app-pwa-connectivity.js?v=2.0.48',
-'./app-home-boot.js?v=2.0.48',
-'./rak-runtime-stability.js?v=2.0.48',
-'./rak-mobile-layout-guard.js?v=2.0.48',
-'./rak-feature-routing.js?v=2.0.48',
-'./rak-cleanup-schedule.js?v=2.0.48',
-'./stats.js?v=2.0.48',
-'./rotation-name-index.js?v=2.0.48',
-'./rotace.js?v=2.0.48',
-'./rotation-tasks.js?v=2.0.48',
-'./admin-daymods.js?v=2.0.48',
-'./app-rotation-controls.js?v=2.0.48',
+'./payroll.js?v=2.0.49',
+'./dashboard.js?v=2.0.49',
+'./appearance-theme.js?v=2.0.49',
+'./ui.js?v=2.0.49',
+'./app-navigation.js?v=2.0.49',
+'./app-bottom-nav.js?v=2.0.49',
+'./app-actions.js?v=2.0.49',
+'./app-pwa-connectivity.js?v=2.0.49',
+'./app-home-boot.js?v=2.0.49',
+'./rak-runtime-stability.js?v=2.0.49',
+'./rak-mobile-layout-guard.js?v=2.0.49',
+'./rak-feature-routing.js?v=2.0.49',
+'./rak-cleanup-schedule.js?v=2.0.49',
+'./stats.js?v=2.0.49',
+'./rotation-name-index.js?v=2.0.49',
+'./rotace.js?v=2.0.49',
+'./rotation-tasks.js?v=2.0.49',
+'./admin-daymods.js?v=2.0.49',
+'./app-rotation-controls.js?v=2.0.49',
 './styles-calc-panels.css',
 './styles-calculators-mid.css',
-'./brusy.js?v=2.0.48',
-'./soustruhy.js?v=2.0.48',
-'./admin-fhb-calibration.js?v=2.0.48',
-'./brusy-fhb-correction.js?v=2.0.48',
-'./brusy-fhb-v157.js?v=2.0.48',
-'./brusy-fhb-v158.js?v=2.0.48',
-'./changelog.js?v=2.0.48',
-'./app-menu.js?v=2.0.48',
-'./app-menu-admin-shell.js?v=2.0.48',
-'./app-menu-admin-renderer.js?v=2.0.48',
-'./app-menu-pages.js?v=2.0.48',
-'./app-menu-bug-report.js?v=2.0.48',
-'./app-menu-profile.js?v=2.0.48',
-'./app-menu-shift-report.js?v=2.0.48',
-'./app-admin-unlock.js?v=2.0.48',
-'./rak-vacation-report.js?v=2.0.48',
-'./rak-shift-report.js?v=2.0.48',
-'./rak-shift-report-share.js?v=2.0.48',
-'./supabase-bridge.js?v=2.0.48',
-'./app-rotation-sync.js?v=2.0.48',
-'./features/shift-overview-image.js?v=2.0.48',
-'./features/shift-overview-extra.css?v=2.0.48',
-'./features/shift-report-sections.css?v=2.0.48'
+'./brusy.js?v=2.0.49',
+'./soustruhy.js?v=2.0.49',
+'./admin-fhb-calibration.js?v=2.0.49',
+'./brusy-fhb-correction.js?v=2.0.49',
+'./brusy-fhb-v157.js?v=2.0.49',
+'./brusy-fhb-v158.js?v=2.0.49',
+'./changelog.js?v=2.0.49',
+'./app-menu.js?v=2.0.49',
+'./app-menu-admin-shell.js?v=2.0.49',
+'./app-menu-admin-renderer.js?v=2.0.49',
+'./app-menu-pages.js?v=2.0.49',
+'./app-menu-bug-report.js?v=2.0.49',
+'./app-menu-profile.js?v=2.0.49',
+'./app-menu-shift-report.js?v=2.0.49',
+'./app-admin-unlock.js?v=2.0.49',
+'./rak-vacation-report.js?v=2.0.49',
+'./rak-shift-report.js?v=2.0.49',
+'./rak-shift-report-share.js?v=2.0.49',
+'./supabase-bridge.js?v=2.0.49',
+'./app-rotation-sync.js?v=2.0.49',
+'./features/shift-overview-image.js?v=2.0.49',
+'./features/shift-overview-extra.css?v=2.0.49',
+'./features/shift-report-sections.css?v=2.0.49',
+'./features/rotation-calendar-refresh.js?v=2.0.49'
 ];
 
 const OFFLINE_REQUIRED = Object.freeze([
 './supabase-vendor-2.110.7.js',
-'./rak-runtime-diagnostics.js?v=2.0.48','./app.js?v=2.0.48','./rak-rotation-local-store.js?v=2.0.48','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
-'./core.js?v=2.0.48','./lifecycle.js?v=2.0.48','./app-runtime-guards.js?v=2.0.48','./ui.js?v=2.0.48',
-'./app-navigation.js?v=2.0.48','./app-bottom-nav.js?v=2.0.48','./app-actions.js?v=2.0.48',
-'./app-pwa-connectivity.js?v=2.0.48','./app-home-boot.js?v=2.0.48','./rak-runtime-stability.js?v=2.0.48',
-'./rak-mobile-layout-guard.js?v=2.0.48','./rak-feature-routing.js?v=2.0.48','./rak-cleanup-schedule.js?v=2.0.48','./stats.js?v=2.0.48',
-'./rotation-name-index.js?v=2.0.48','./rotace.js?v=2.0.48','./rotation-tasks.js?v=2.0.48','./admin-daymods.js?v=2.0.48',
-'./app-rotation-controls.js?v=2.0.48','./supabase-config.js?v=2.0.48','./supabase-bridge.js?v=2.0.48',
-'./app-rotation-sync.js?v=2.0.48',
+'./rak-runtime-diagnostics.js?v=2.0.49','./app.js?v=2.0.49','./rak-rotation-local-store.js?v=2.0.49','./data.js','./module-readiness.js','./rak-namespace.js','./rak-dom-security-hardening.js',
+'./core.js?v=2.0.49','./lifecycle.js?v=2.0.49','./app-runtime-guards.js?v=2.0.49','./ui.js?v=2.0.49',
+'./app-navigation.js?v=2.0.49','./app-bottom-nav.js?v=2.0.49','./app-actions.js?v=2.0.49',
+'./app-pwa-connectivity.js?v=2.0.49','./app-home-boot.js?v=2.0.49','./rak-runtime-stability.js?v=2.0.49',
+'./rak-mobile-layout-guard.js?v=2.0.49','./rak-feature-routing.js?v=2.0.49','./rak-cleanup-schedule.js?v=2.0.49','./stats.js?v=2.0.49',
+'./rotation-name-index.js?v=2.0.49','./rotace.js?v=2.0.49','./rotation-tasks.js?v=2.0.49','./admin-daymods.js?v=2.0.49',
+'./app-rotation-controls.js?v=2.0.49','./supabase-config.js?v=2.0.49','./supabase-bridge.js?v=2.0.49',
+'./app-rotation-sync.js?v=2.0.49',
 './styles.css','./styles-inline-legacy.css','./styles-base.css','./styles-layout.css','./styles-theme.css','./styles-responsive.css','./styles-modal.css',
 './styles-bottom-nav-runtime.css','./styles-overrides-legacy-late.css','./styles-menu-polish.css','./styles-calc-panels.css','./styles-calculators-mid.css',
-'./brusy.js?v=2.0.48','./soustruhy.js?v=2.0.48','./admin-fhb-calibration.js?v=2.0.48',
-'./brusy-fhb-correction.js?v=2.0.48','./brusy-fhb-v157.js?v=2.0.48','./brusy-fhb-v158.js?v=2.0.48',
-'./changelog.js?v=2.0.48','./app-menu.js?v=2.0.48','./app-menu-admin-shell.js?v=2.0.48','./app-menu-admin-renderer.js?v=2.0.48','./app-menu-pages.js?v=2.0.48',
-'./app-menu-bug-report.js?v=2.0.48','./app-menu-profile.js?v=2.0.48','./app-menu-shift-report.js?v=2.0.48',
-'./app-admin-unlock.js?v=2.0.48','./rak-vacation-report.js?v=2.0.48','./rak-shift-report.js?v=2.0.48','./rak-shift-report-share.js?v=2.0.48',
+'./brusy.js?v=2.0.49','./soustruhy.js?v=2.0.49','./admin-fhb-calibration.js?v=2.0.49',
+'./brusy-fhb-correction.js?v=2.0.49','./brusy-fhb-v157.js?v=2.0.49','./brusy-fhb-v158.js?v=2.0.49',
+'./changelog.js?v=2.0.49','./app-menu.js?v=2.0.49','./app-menu-admin-shell.js?v=2.0.49','./app-menu-admin-renderer.js?v=2.0.49','./app-menu-pages.js?v=2.0.49',
+'./app-menu-bug-report.js?v=2.0.49','./app-menu-profile.js?v=2.0.49','./app-menu-shift-report.js?v=2.0.49',
+'./app-admin-unlock.js?v=2.0.49','./rak-vacation-report.js?v=2.0.49','./rak-shift-report.js?v=2.0.49','./rak-shift-report-share.js?v=2.0.49',
 './assets/nav-icons/home-gray.png','./assets/nav-icons/home-green.png',
 './assets/nav-icons/rotace-gray.png','./assets/nav-icons/rotace-green.png',
 './assets/nav-icons/kalkulacky-gray.png','./assets/nav-icons/kalkulacky-green.png',
@@ -241,9 +242,10 @@ const OFFLINE_REQUIRED = Object.freeze([
 './assets/dashboard-icons/eportal.png','./assets/dashboard-icons/hourglass.png',
 './assets/dashboard-icons/jidelna.png','./assets/dashboard-icons/jidelnilistek.png',
 './assets/dashboard-icons/kantyna.png','./assets/dashboard-icons/vyplata.png',
-'./features/shift-overview-image.js?v=2.0.48',
-'./features/shift-overview-extra.css?v=2.0.48',
-'./features/shift-report-sections.css?v=2.0.48'
+'./features/shift-overview-image.js?v=2.0.49',
+'./features/shift-overview-extra.css?v=2.0.49',
+'./features/shift-report-sections.css?v=2.0.49',
+'./features/rotation-calendar-refresh.js?v=2.0.49'
 ]);
 
 const STATIC_EXT = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|webmanifest)$/i;
@@ -350,10 +352,9 @@ try {
 } catch (_) {}
 }
 
-// Changed deferred admin modules keep the same runtime URL in TEST releases.
-// Stage all verified replacements before removing older copies; leave unrelated caches intact.
+// Stage replacement assets before clearing older caches.
 async function prewarmRotationToolbarUpdate() {
-const assets = ['./admin-rotation-editor.js?v=2.0.48', './admin-daymods.js?v=2.0.48', './app-menu-admin-renderer.js?v=2.0.48', './rak-shift-report.js?v=2.0.48', './rak-shift-report-share.js?v=2.0.48'];
+const assets = ['./admin-rotation-editor.js?v=2.0.49', './admin-daymods.js?v=2.0.49', './app-menu-admin-renderer.js?v=2.0.49', './rak-shift-report.js?v=2.0.49', './rak-shift-report-share.js?v=2.0.49'];
 const replacements = await Promise.all(assets.map(async url => {
   const response = await fetchBuildAsset(url);
   if (!cacheable(response)) throw new Error('[RaK] missing rotation toolbar update');

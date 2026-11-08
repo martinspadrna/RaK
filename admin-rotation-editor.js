@@ -38,7 +38,6 @@ function renderAdminInlineFieldHtml(fieldAttr, fieldName, value, placeholder, ti
 
 
 // RAK_17064_CONFLICT_DRAFT_GUARD: snapshot ONLY the edited month, not Auth/tokens.
-// Preserve drafts before a network attempt and retain on every failed/uncertain response.
 function rakPreserveAdminMonthDraft(monthKey, month) {
   const result={stored:false,key:'',content:'',reason:'unavailable'};
   try {
@@ -78,7 +77,6 @@ function rakShowAdminDraftExport(draft,statusEl){
 }
 
 // RAK_17065_RECOVER_DRAFTS_GUARD: read-only enumeration; no automatic server replay,
-// no personal names, payload, account IDs or token in HTML. Exports need a user tap.
 function rakListPreservedAdminMonthDrafts(monthKey) {
   const prefix='rak_admin_unsynced_month_v1_';
   const found=[];
@@ -191,7 +189,6 @@ async function saveAdminRotationToSupabase(monthKey, rawText) {
   if (app.selectedName && typeof renderPerson === 'function') renderPerson(app.selectedName);
   let saveResult = { ok: false, reason: 'admin-required', months: 0, entries: 0 };
   if (app.adminUnlocked) {
-    // Save before network: stale revision, timeout or refresh must never erase this draft.
     const draft = rakPreserveAdminMonthDraft(monthKey, normalized);
     saveResult = await saveRotationToSupabase(app.rotation, { source: 'admin-menu', monthKey })
       || { ok: false, reason: 'no-result' };
@@ -202,7 +199,6 @@ async function saveAdminRotationToSupabase(monthKey, rawText) {
       }
       if (statusEl) statusEl.textContent = 'Uloženo online ✓ · měsíců: ' + String(saveResult.months || 0) + ' · řádků: ' + String(saveResult.entries || 0);
     } else {
-      // Fail closed. No auto-reload, new server revision, blind retry or silent success.
       if (statusEl) {
         statusEl.textContent = (draft.stored
           ? 'Online neuloženo. Místní návrh je zachován; neobnovuj rozpis bez zálohy.'
@@ -336,7 +332,6 @@ function adminRotationSmartAbsenceCode(value) {
 }
 
 // RAK_17066_DIRTY_NAVIGATION_GUARD: verified local draft before rerender or online reload.
-// No server replay, no logging of personal content. Cancellation keeps editor intact.
 function rakGuardAdminRotationDiscard() {
   if (typeof app==='undefined' || !app || app.adminRotationDirty!==true ||
       typeof document==='undefined' || !document.getElementById('adminRotationEditor')) return true;
@@ -947,7 +942,6 @@ function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, har
         const raw = String(cells[idx] || '').trim();
         const shortName = adminShortRotationName(raw);
         const empty = !shortName;
-        // Výjimka dne musí být vidět i v horním mini přehledu a na volné pozici.
         const mod = typeof rakDayModForCell === 'function' ? rakDayModForCell(month, section, row && row.date, idx) : null;
         const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '';
         const tooltip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : '';
@@ -1073,6 +1067,8 @@ function buildAdminRotationTableHtml(monthKey) {
     '  <details class="appMenuFoldSection adminRotationFold" open>',
     '    <summary>Absence</summary>',
     buildAdminRotationActionBarHtml('absence'),
+    '    <div class="adminRotationAbsenceAddRow"><button type="button" class="appMenuAction" data-admin-action="refresh-calendar-absences">↻ Aktualizovat absence z Google Kalendáře</button></div>',
+    '    <div class="smallText" id="adminRotationCalendarStatus" role="status" aria-live="polite">Načtené absence se doplní do editoru. Online až po Uložit rozpis.</div>',
     '    <div class="tableWrap appMenuTableWrap">',
     '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminAbsenceTable" data-rotation-action-section="absence">',
     '        ' + absenceColgroup,
@@ -1084,7 +1080,7 @@ function buildAdminRotationTableHtml(monthKey) {
     '      <button type="button" class="appMenuAction adminRotationAbsenceAddBtn" data-admin-action="add-absence-row">+ Přidat další absenci</button>',
     '    </div>',
     buildAdminAbsenceCodeDatalistHtml(),
-    buildAdminAbsenceSummaryHtml(month),
+    '<div id="adminRotationAbsenceSummary">' + buildAdminAbsenceSummaryHtml(month) + '</div>',
     '  </details>',
     '</div>'
   ].join('');
@@ -1318,7 +1314,6 @@ async function saveAdminRotationFromDom(monthKey, options) {
   candidateRotation.months[monthKey] = normalized;
   const normalizedRotation = normalizeRotationData(candidateRotation);
   // RAK_17065_REAL_ADMIN_SAVE_GUARD: this is the actual button path used by app-menu.js.
-  // Refuse a network attempt if durable draft verification failed. Keep older drafts intact.
   const draft = rakPreserveAdminMonthDraft(monthKey, normalized);
   let saveResult = { ok:false, reason: app.adminUnlocked ? 'draft-storage-failed' : 'admin-required' };
   if (app.adminUnlocked && draft.stored) {
@@ -1641,7 +1636,6 @@ function adminBindRotationNameActionMenuRoute() {
   };
   document.addEventListener('pointerdown', event => {
     if (!actionTarget(event)) return;
-    // Readonly modes select a person; normal editing and exceptions pass through.
     event.preventDefault();
   }, true);
   document.addEventListener('click', event => {
@@ -1667,7 +1661,6 @@ function adminBindRotationNameActionMenuRoute() {
     if (active && active !== document.body && typeof active.blur === 'function') active.blur();
     adminCloseAbsenceCodePicker();
     if (mode === 'unplanned') {
-      // Selecting a person consumes this mode; the dialog's Manual action must remain editable.
       adminSetRotationNameActionMode(target.closest('table').dataset.daymodSection, '');
       if (typeof adminOpenUnplannedChangeDialog === 'function') adminOpenUnplannedChangeDialog(target);
     } else {
