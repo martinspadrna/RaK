@@ -11,11 +11,13 @@ const chrome=process.env.CHROME_BIN||['google-chrome','google-chrome-stable','ch
 assert(chrome,'Real Chromium is required');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rak-overview-205-'));
 const feature=fs.readFileSync(path.join(root,'admin-shift-overview.js'),'utf8').replaceAll('</script','<\\/script');
-const css=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1]).map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('');
+const imageExport=fs.readFileSync(path.join(root,'features/shift-overview-image.js'),'utf8').replaceAll('</script','<\\/script');
+const css=[...fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<link rel="stylesheet" href="(styles[^"]+\.css)"/g)].map(m=>m[1]).map(p=>'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,p)).href+'">').join('')+'<link rel="stylesheet" href="'+pathToFileURL(path.join(root,'features/shift-overview-extra.css')).href+'">';
 function probe(width){
  const check=(ok,label)=>{if(!ok)throw Error(label);};
  const body=document.querySelector('#appMenuBody');
  const api=window.RakAdminShiftOverview;
+ check(typeof window.RakShiftOverviewPngExporter?.raster==='function','PNG rasterization module is loaded');
  const edit=(path,value)=>{const el=body.querySelector('[data-shift-overview-field="'+path+'"]');check(el,'missing '+path);el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return el;};
  const choose=shift=>{const el=body.querySelector('[data-shift-overview-shift]');el.value=shift;el.dispatchEvent(new Event('change',{bubbles:true}));};
  const value=path=>body.querySelector('[data-shift-overview-field="'+path+'"]')?.value;
@@ -42,10 +44,36 @@ function probe(width){
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25,'all units active initially');
   for(const id of [1,2,3])body.querySelector('[data-running-ald="'+id+'"][data-running-unit="2"]').click();
   check(body.querySelectorAll('[data-running-unit][aria-pressed="false"]').length===3,'units toggle');
+  const beforeCard=body.querySelector('[data-shift-overview-section="before-145"]');
+  const afterCard=body.querySelector('[data-shift-overview-section="after-145"]');
+  check(beforeCard&&afterCard,'independent before/after 145 cards');
+  check(parseFloat(getComputedStyle(beforeCard).borderLeftWidth)>=6&&parseFloat(getComputedStyle(afterCard).borderLeftWidth)>=6,'strong section separators');
+  check(beforeCard.getBoundingClientRect().top>afterCard.getBoundingClientRect().bottom,'visible spacing between before/after 145');
   const activeStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="true"]'));
   const inactiveStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="false"]'));
   check(activeStyle.backgroundColor==='rgb(22, 122, 53)'&&inactiveStyle.backgroundColor==='rgb(102, 107, 115)','solid active/inactive backgrounds with full app theme');
   check(activeStyle.backgroundImage==='none'&&inactiveStyle.backgroundImage==='none','theme cannot cover unit colors');
+
+  const lockButton=beforeCard.querySelector('[data-shift-overview-lock="before-145"]');
+  check(lockButton,'before-145 block has its own lock');
+  lockButton.click();
+  const lockedInput=body.querySelector('[data-shift-overview-section="before-145"] [data-shift-overview-field]');
+  check(lockedInput?.readOnly&&lockButton.getAttribute('aria-pressed')==='true','locked block rejects edits');
+  check(!body.querySelector('[data-shift-overview-section="after-145"] [data-shift-overview-field]').readOnly,'other blocks stay editable');
+  check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections['before-145']===true,'lock persists to draft');
+  api.render(body);
+  check(body.querySelector('[data-shift-overview-lock="before-145"]')?.getAttribute('aria-pressed')==='true','lock survives render');
+  body.querySelector('[data-shift-overview-lock="before-145"]').click();
+  check(!body.querySelector('[data-shift-overview-section="before-145"] [data-shift-overview-field]').readOnly,'second click unlocks block');
+  for(const sectionId of ['stock','assembly']){
+    const row=body.querySelector('[data-shift-overview-section="'+sectionId+'"] .rakShiftOverviewIndexRow');
+    check(row,'missing '+sectionId+' index row');
+    const index=row.querySelector('.rakShiftOverviewIndexIdentity'),input=row.querySelector('input[data-shift-overview-field]');
+    check(index&&input,'index and quantity must be paired in '+sectionId);
+    const a=index.getBoundingClientRect(),b=input.getBoundingClientRect();
+    check(Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2)<12,sectionId+' input must be vertically centered');
+  }
+
   edit('lastBatch.ald3','300');
   edit('lastBatch.ald1','100');edit('lastBatch.ald2','200');edit('ald.2.faults','synthetic fixture');
   body.querySelector('[data-shift-overview-count="inputs.rows.TW1.ald1"][data-count-step="1"]').click();
@@ -61,6 +89,11 @@ function probe(width){
   check(value('lastBatch.ald1')==='100'&&value('lastBatch.ald2')==='200','both last batches preserved');
   const summary=decodeURIComponent(body.querySelector('[data-shift-overview-summary-image]').src.split(',')[1]);
   check(summary.includes('data-summary-production="whole"')&&summary.includes('>576</text>'),'original summary');
+  check(summary.includes('BK v provozu · 18/20')&&summary.includes('data-summary-bk-ald="1"')&&summary.includes('data-summary-bk-ald="2"'),'live ALD1/2 BK status in image');
+  check(summary.includes('ST v provozu · 4/5')&&summary.includes('data-summary-st="ald3"'),'live ALD3 ST operating count');
+  check(summary.includes('Vypnuté: ST2'),'individual disabled ST in picture');
+  check((summary.match(/Vypnuté: BK2/g)||[]).length===2,'exact switched-off BK identities in graphic overview');
+  check(body.querySelectorAll('[data-shift-overview-export]').length===2,'PNG download and sharing offered under the graphic');
   check(summary.includes('data-summary-machining="conclusion"')&&summary.includes('Obrábění · závěr'),'conclusion summary');
   check([...summary.matchAll(/data-summary-grinding-index="(.*?)"/g)].map(m=>m[1]).join(',')==='af','only entered grinding indices');
   check([...summary.matchAll(/data-summary-conclusion-index="(.*?)"/g)].map(m=>m[1]).join(',')==='ag','only entered conclusion index');
@@ -97,7 +130,10 @@ function probe(width){
   api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='D:nocni12'&&body.querySelector('[data-shift-overview-date]').value==='2026-10-12','empty morning draft opens current night');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25&&value('lastBatch.ald3')==='','new empty context stays empty and active');
   window.getActiveShiftNow=()=>({team:'B',start:new Date(2026,9,13,6),end:new Date(2026,9,13,18)});
+  body.querySelector('[data-shift-overview-lock="ald3"]').click();
+  check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections.ald3===true,'lock before clearing');
   body.querySelector('[data-shift-overview-action="clear"]').click();
+  check(Object.keys(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections||{}).length===0,'clear removes all locks');
   check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','clear selects current morning and date immediately');
   const cleared=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
   check(Object.values(cleared.record.inputs.rows).every(row=>Object.values(row).every(value=>value==='')),'untouched displayed zeros remain empty draft values');
@@ -107,12 +143,12 @@ function probe(width){
   localStorage.setItem('rak_shift_overview_draft_v1:local',JSON.stringify(cleared));
   api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','legacy zero counters no longer restore old night');
   window.rakAdminCanManageAdmins=()=>false;api.render(body);check(!body.querySelector('[data-shift-overview-field]'),'role gate');
-  return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','draft reopen','summary','roles','overflow']};
+  return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','locks','lock persistence','clear locks','stock alignment','draft reopen','summary','roles','overflow']};
  }catch(error){return {result:'FAIL',containerWidth:width,error:error.message};}
 }
 try{
  for(const width of [320,390,768,1366]){
-  const html='<!doctype html><html><head><meta charset="utf-8">'+css+'<style>html,body{margin:0;padding:0;}#appMenuBody{width:'+width+'px;max-width:100vw;box-sizing:border-box;padding:12px;}</style></head><body><div id="appMenuBody"></div><pre id="probe">WAIT</pre><script>window.rakAdminCanManageAdmins=()=>true;</script><script>'+feature+'</script><script>addEventListener("load",()=>{document.querySelector("#probe").textContent=JSON.stringify(('+probe.toString()+')('+width+'));});</script></body></html>';
+  const html='<!doctype html><html><head><meta charset="utf-8">'+css+'<style>html,body{margin:0;padding:0;}#appMenuBody{width:'+width+'px;max-width:100vw;box-sizing:border-box;padding:12px;}</style></head><body><div id="appMenuBody"></div><pre id="probe">WAIT</pre><script>window.rakAdminCanManageAdmins=()=>true;</script><script>'+feature+'</script><script>'+imageExport+'</script><script>addEventListener("load",()=>{document.querySelector("#probe").textContent=JSON.stringify(('+probe.toString()+')('+width+'));});</script></body></html>';
   const file=path.join(dir,'index.html');fs.writeFileSync(file,html);
   const r=spawnSync(chrome,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--allow-file-access-from-files','--disable-background-networking','--virtual-time-budget=3500','--window-size='+Math.max(500,width)+',900','--dump-dom',pathToFileURL(file).href],{encoding:'utf8',timeout:45000,maxBuffer:5e6});
   assert.equal(r.status,0,'Chromium failed');

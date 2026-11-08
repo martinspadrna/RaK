@@ -23,12 +23,14 @@ test('real interaction foundation binds before auth/dashboard startup',()=>{
   assert(index.includes(appScript),'app bootstrap must not block parser/CSS discovery');
   assert(!index.includes('<script src="supabase-vendor-2.110.7.js"'),'Supabase SDK must not parser-block startup');
   const foundation=app.indexOf('RAK_17127_INTERACTION_FOUNDATION');
-  const criticalStart=app.indexOf('const criticalLoadPromise = (async () => {');
-  const foundationLoad=app.indexOf('for (const file of interactionCoreFiles) await loadScript(file);');
-  const bind=app.indexOf("markRakFirstInteractive('startup-shell-bound')",foundationLoad);
+  const shellQueue=app.indexOf('const interactionShellPromise = loadFiles(interactionCoreFiles.concat(interactionShellFiles));');
+  const criticalStart=app.indexOf('const criticalLoadPromise = loadFiles(criticalFiles);');
+  const shellAwait=app.indexOf('await interactionShellPromise;',criticalStart);
+  const bind=app.indexOf("markRakFirstInteractive('startup-shell-bound')",shellAwait);
   const criticalAwait=app.indexOf('await criticalLoadPromise;',bind);
   const startup=app.indexOf('await loadFiles(startupFiles);',criticalAwait);
-  assert(foundation>=0&&criticalStart>foundation&&foundationLoad>criticalStart&&bind>foundationLoad&&criticalAwait>bind&&startup>criticalAwait);
+  assert(foundation>=0&&shellQueue>foundation&&criticalStart>shellQueue&&shellAwait>criticalStart&&bind>shellAwait&&criticalAwait>bind&&startup>criticalAwait);
+  assert(app.includes('script.async = key === "app-menu-admin-shell.js";'),'every start-critical script must preserve ordered execution');
   assert(!app.includes("void ensureFeature('menu').catch((err) => console.warn('Early menu warmup failed', err))"));
 });
 

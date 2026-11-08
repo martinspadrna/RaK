@@ -248,6 +248,10 @@
 }
 `;
     document.head.appendChild(style);
+    const dividers=document.createElement('link');
+    dividers.rel='stylesheet';
+    dividers.href='features/shift-report-sections.css?v=2.0.48';
+    document.head.appendChild(dividers);
   }
 
   function decorateMeta(root) {

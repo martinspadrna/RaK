@@ -704,11 +704,11 @@ function renderMonth(monthKey) {
         const infoAttr = tip ? " data-daymod-info='" + escapeHtml(tip) + "'" : "";
         const markHtml = badge ? " <span class='rakDayModMark'>" + escapeHtml(badge) + "</span>" : "";
         const dayModClass = mod ? " rakDayModCell" : "";
-        const kalirnaClass = mod && mod.type === 'kalirnaOut' ? " rakKalirnaOutCell" : "";
+        const kalirnaClass = mod && mod.type === 'kalirnaOut' ? " rakKalirnaOutCell" : (mod && mod.type === 'kalirnaIn' ? " rakKalirnaInCell" : "");
         if (val) {
           out += "<td class='" + (dayModClass + kalirnaClass).trim() + "'" + titleAttr + infoAttr + ">" + escapeHtml(val) + markHtml + "</td>";
         } else {
-          out += "<td class='missingCell" + dayModClass + kalirnaClass + "'" + titleAttr + infoAttr + ">" + (badge ? escapeHtml(badge) : "—") + "</td>";
+          out += "<td class='missingCell" + dayModClass + kalirnaClass + "'" + titleAttr + infoAttr + ">" + (badge ? markHtml.trim() : "—") + "</td>";
         }
       });
       out += "</tr>";

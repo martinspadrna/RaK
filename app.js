@@ -89,8 +89,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-login-life.js"
   ];
 
-  // RAK_17127_INTERACTION_FOUNDATION: the returning PWA must bind real navigation
-  // before auth helpers, dashboard work, local Rotation hydration or any network SDK.
+  // RAK_17127_INTERACTION_FOUNDATION: bind navigation before auth/network.
   const interactionCoreFiles = [
     "core.js",
     "ui.js"
@@ -153,14 +152,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     "rak-shift-report-share.js"
   ];
 
-  // RAK_17134_ADMIN_SHELL_SPLIT: keep Admin-only markup outside the ordinary
-  // menu/startup parse path. The tiny shell is cached locally and loaded only
-  // after a verified admin role or an explicit Admin entry.
+  // RAK_17134_ADMIN_SHELL_SPLIT: Admin markup is lazy-loaded after role verification.
   const adminShellFeatureFiles = ["app-menu-admin-shell.js"];
 
   const adminFeatureFiles = [
     "rak-cleanup-schedule.js",
     "admin-shift-overview.js",
+    "features/shift-overview-image.js",
     "app-menu-admin-renderer.js",
     "admin-rotation-editor.js",
     "admin-rotation-overtime.js",
@@ -329,18 +327,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return Promise.all(list.map((style) => loadPostReadyStyle(style)));
   }
 
-  function warmPostReadyStyles() {
-    try {
-      const slots = Array.from(document.querySelectorAll('meta[data-rak-post-ready-style]'));
-      for (const slot of slots) {
-        const href = String(slot.getAttribute('data-rak-post-ready-style') || '').trim();
-        void loadPostReadyStyle(href).catch((err) => console.warn('Post-ready style warmup failed', href, err));
-      }
-    } catch (err) {
-      console.warn('Post-ready styles warmup failed', err);
-    }
-  }
-
   // await Promise.all(deferredFiles.map(loadScript))
 
   // Route-only polish retains its original cascade slot, but feature readiness
@@ -348,9 +334,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   const featureSpecs = Object.freeze({
     rotation: Object.freeze({ files: rotationFeatureFiles, styles: Object.freeze(["styles-rotation-month.css", "styles-stats-polish.css", "styles-rotation-tasks.css"]), dependencies: Object.freeze([]) }),
     calculators: Object.freeze({ files: calculatorFeatureFiles, styles: Object.freeze(["styles-calc-panels.css", "styles-calculators-mid.css"]), dependencies: Object.freeze([]) }),
-    // RAK_17082_SYNC_REQUIRES_ROTATION_UI: dashboard "kam jdu" and the first
-    // Rotace paint use helpers from rotace.js. Sync must never apply a snapshot
-    // before those consumers exist, especially on a cold offline iOS start.
+    // RAK_17082_SYNC_REQUIRES_ROTATION_UI: hydrate Rotation before sync (iOS/offline).
     sync: Object.freeze({ files: syncFeatureFiles, dependencies: Object.freeze(["rotation"]) }),
     menu: Object.freeze({ files: menuFeatureFiles, styles: Object.freeze(["styles-settings-runtime.css", "styles-menu-polish.css"]), dependencies: Object.freeze([]) }),
     "admin-shell": Object.freeze({ files: adminShellFeatureFiles, dependencies: Object.freeze(["menu"]) }),
@@ -602,6 +586,11 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       } catch (err) {
         console.warn('Supabase bridge init failed', err);
       }
+      // RAK_2040: signed owner role needs only the auth module, not full Více.
+      if(window.rakUserProfileGet?.()?.accountNumber==='9811'&&navigator.onLine!==false)
+        void loadScript('app-admin-unlock.js').then(()=>window.rakUserProfileGet?.()?.accountNumber==='9811'
+          &&window.rakAdminRestoreSecureSessionForActiveAccount?.('owner-home-startup'))
+          .catch(e=>console.warn('Owner role restore',e));
       try {
         if (typeof syncRotationFromSupabase === 'function') await syncRotationFromSupabase(false);
       } catch (err) {
@@ -631,8 +620,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       // available. Rehydrate all Rotation-driven UI immediately; do not wait for
       // a page reopen or a full application restart.
       // On HOME, the personal "kam jdu" status must paint before the larger Rotation grid.
-      try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
-      try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      // During initial local-first hydration the boot path below owns this render.
+      // Avoid a second full Rotation grid and Home render inside the same startup.
+      if (!rakBootLocalHydrationInProgress) {
+        try { if (typeof updateDashboard === 'function') updateDashboard(); } catch (err) { console.warn('Dashboard rotation rehydrate failed', err); }
+        try { if (typeof renderRotace === 'function') renderRotace(); } catch (err) { console.warn('Rotace first paint after feature load failed', err); }
+      }
       try { if (typeof renderRakDashboardAnnouncement === 'function') renderRakDashboardAnnouncement(); } catch (err) {}
     } else if (name === 'calculators') {
       try { if (typeof restoreInputs === 'function') restoreInputs(); } catch (err) {}
@@ -784,17 +777,12 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   });
   window.__rakBootV2FirstPaintYielded = true;
 
-  // RAK_17127_PARALLEL_FOUNDATION: critical auth/security loading begins
-  // immediately and runs in parallel with the local interaction foundation.
-  // This keeps the shell clickable early without pushing startupReady backwards.
-  const criticalLoadPromise = (async () => {
-    for (const file of criticalFiles) await loadScript(file);
-  })();
-
-  // Core/UI are ordered because ui.js reads core constants. The rest of the
-  // interaction shell can load in parallel and is fully local/cacheable.
-  for (const file of interactionCoreFiles) await loadScript(file);
-  await loadFiles(interactionShellFiles);
+  // RAK_17127_PARALLEL_FOUNDATION: queue the interaction shell before auth.
+  // Ordered dynamic scripts (async=false) download together but execute in
+  // dependency order: core, UI, navigation, then secure authentication.
+  const interactionShellPromise = loadFiles(interactionCoreFiles.concat(interactionShellFiles));
+  const criticalLoadPromise = loadFiles(criticalFiles);
+  await interactionShellPromise;
   try { if (typeof installBottomNavBindings === 'function') installBottomNavBindings(); } catch (err) { console.warn('Earliest bottom nav binding failed', err); }
   // RAK_17131_PREBOOT_NAV_HANDOFF: if the user tapped the already-visible
   // navigation before the dynamic interaction shell arrived, continue that same
@@ -877,7 +865,6 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   window.__rakBootV2StartupReady = true;
   window.__rakBootV2StartupReadyMs = Math.max(0, Math.round(startupReadyAt - bootStartedAt));
   if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleReady('boot-loader', 'ready', { source: 'boot-v2', startupReadyMs: window.__rakBootV2StartupReadyMs });
-  setTimeout(warmPostReadyStyles, 0);
 
   try {
     const DEV_RESET_KEY = 'rak_dev_pwa_prompt_reset_build';
@@ -910,7 +897,9 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       return true;
     })
     .catch((err) => console.warn('Boot v2 background sync failed', err));
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(startSync, { timeout: 1200 });
+  // Returning owner starts sync shortly after Home paint; others keep idle startup.
+  if(window.rakUserProfileGet?.()?.accountNumber==='9811'&&navigator.onLine!==false) setTimeout(startSync, 90);
+  else if (typeof requestIdleCallback === 'function') requestIdleCallback(startSync, { timeout: 1200 });
   else setTimeout(startSync, 450);
 
   const runIdleAudits = () => {
@@ -920,8 +909,13 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       console.warn('Idle audit moduly se nepodařilo načíst', err);
     });
   };
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(runIdleAudits, { timeout: 5000 });
-  else setTimeout(runIdleAudits, 3200);
+  // No diagnostic module may compete with Home's initial authenticated sync.
+  // Retain the full offline-safe audit group, but schedule it only after the
+  // initial 12-second interaction/network grace period, then at browser idle.
+  setTimeout(() => {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(runIdleAudits, { timeout: 5000 });
+    else runIdleAudits();
+  }, 12000);
 })().catch(err => {
   console.error(err);
   alert("Nepodařilo se načíst aplikační skripty: " + (err && err.message ? err.message : String(err)));

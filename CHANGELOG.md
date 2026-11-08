@@ -1,3 +1,100 @@
+## RaK 2.0.48 (development)
+
+- **Report směny:** vstupní pole `ks`, `volné`, `NOK` a volba indexu v oddílech MO, TO, TBKR01 a TRBR07 dostávají skutečné barevné podbarvení odpovídající indexům Přehledu směny.
+- Přepsány konfliktní univerzální šedofialové přechody. Barvy zůstávají zelená AG/AE, modrá AF/AD a oranžová AH; mírně sytější na vstupních polích kvůli čitelnosti na tmavším pozadí Reportu.
+- Kontrola všech 12 kombinací oddíl/index, jejich polí a přepínání indexu v Chromium na mobilních i PC šířkách.
+- Pouze TEST/development, bez změn MAIN a databází.
+
+## RaK 2.0.47 (development)
+
+- **Rozpisy – výpomoc kalírny:** značky `K→` a `→K` nyní sdílejí stejné žluté písmo a stejnou barevnost buněk. Odstraněno modré podbarvení příchozí výpomoci.
+- Obě značky jsou mírně větší a v prázdných buňkách přesně vodorovně i svisle vystředěné. Je-li v buňce také jméno, značka se centruje na následujícím řádku, aby text nepřekrývala.
+- Sjednoceno v běžném i administrátorském mini rozpisu. Testy chrání obě značky a jejich zarovnání.
+- Pouze TEST/development. MAIN ani data nebyly změněny.
+
+## RaK 2.0.46 (development)
+
+- **Report směny:** podbarvení indexů sjednocené s Přehledem směny. Řádky AG/AE, AF/AD a AH mají stejné tlumené zelené, modré a oranžové pozadí a čtyřpixelový barevný levý okraj.
+- Pryč jsou neonové přechody, světelné záře a přehnané barvy rozbalovacích polí. Rozvržení i hodnoty reportu zůstávají beze změny; barva se dál mění podle zvoleného indexu.
+- Regresní testy barev, přepínání indexů a mobilního/PC zobrazení. Pouze TEST/development, bez zásahu do MAIN.
+
+## RaK 2.0.45 (development)
+
+- **Přehled směny:** jednotlivé oddíly mají vlastní zámek vedle nadpisu. Zamčení chrání proti přepsání bez zašednutí a ukládá se do rozepsaného přehledu i online zálohy. „Vymazat přehled“ obnoví prázdné hodnoty i odemčené bloky.
+- **Počty kusů:** násobení 32 a 64 lze použít pro zadání 1 až 150 místo 1 až 99. Historie výpočtu a vrácení původní hodnoty zůstává.
+- **Sklad a montáž:** vstupní pole jsou srovnaná na stejnou výšku jako výrobní indexy na mobilu i PC.
+- **Report směny:** zelené podbarvení výrobního řádku je sytější (např. MO index AG).
+- **Kalírna:** příchozí i odchozí značka se vykresluje také jako zvýrazněný symbol v prázdné buňce základního rozpisu. Datové párování směn z v2.0.44 zůstává.
+- Vše pouze na TEST/development, bez zásahu do MAIN, generátoru a produkčních dat.
+
+## RaK 2.0.44 (development)
+
+- **Kalírna k nám (K→):** opravena skutečná příčina chybějící značky i v rozkliknutém rozpisu. Editor zapisuje datum např. `8.11.R`, uložený řádek používá `8.11. R`; dosavadní přesná textová shoda nerozpoznala stejnou směnu.
+- Datum výjimky se nyní porovnává podle dne, měsíce a typu směny (R/N/R8/N8). Značky `K→` i `→K` se ukazují ve veřejném rozpisu, administraci i horním přehledu; přesuny mezi směnami se nesměšují.
+- Stejně funguje opětovná úprava a odebrání výjimky. Ochrana před falešným označením pracovníka po změně jména zůstává zachována.
+- Nemění se generátor, počty lidí, data databáze ani produkční MAIN. Doplněné regresní testy a zachovaný přísný výkonový limit.
+
+## RaK 2.0.43 (development)
+
+- **Kalírna k nám (K→):** značka je nově viditelná také v horním mini přehledu měsíce, a to i na prázdném stroji.
+- **Rozpis a editor:** příchozí výpomoc kalírny má odlišenou modrou buňku a čitelně umístěnou značku i při úzké šířce na telefonu. Opačný směr **→K** zůstává beze změny.
+- Opravuje se pouze vykreslení; výjimky, ukládání, generátor, počty vlastních pracovníků, databáze a MAIN se nemění. Regresní test kontroluje zobrazení na obsazené i prázdné pozici.
+
+## RaK 2.0.42 (development)
+
+- **Přehled směny – grafika:** vedle BK v provozu (ALD1 + ALD2, z 20) se nyní zobrazuje také **ST v provozu (ALD3, z 5)** v samostatné části. Ukazuje přesný počet běžících a jmenovitě vypnuté ST1–ST5.
+- Stav ST pochází z již používaných tlačítek ALD3; změna se okamžitě propíše do náhledu a do PNG. Původní data, oprávnění, cloud i údaje BK zůstávají beze změny.
+- **Report pro mistra:** stejné výrazné oddělení všech pracovních oddílů při vyplňování (MO, TO, TBKR01, TRBR07, problémy a náhled) – silnější ohraničení, barevné pruhy, výraznější nadpisy a větší rozestupy. Beze změn obsahu reportu a odesílání.
+- Aktualizované regresní a mobilní testy včetně prázdného, částečného a zcela vypnutého ALD3 a reálného mobilního zobrazení Reportu pro mistra. Pouze TEST, nikoli MAIN.
+
+## RaK 2.0.41 (development)
+
+- **Přehled směny – vyplňování:** výrazněji oddělené sekce s kontrastním obrysem, barevným levým pruhem a většími rozestupy. „Před 145“ a „Po 145“ jsou samostatné karty také v nerozlišeném zobrazení. Pořadí a uložené hodnoty zůstávají zachovány.
+- **Grafický celkový přehled:** nový údaj **BK v provozu (ALD1 + ALD2, z 20)** a přesné počty i názvy vypnutých BK u každého ALD. ALD3 má ST, proto není počítán mezi BK. Grafika se aktualizuje i okamžitě po vypnutí/zapnutí BK.
+- **Obrázek ke stažení:** vytvoření PNG z aktuálního SVG přehledu (dvojnásobné rozlišení, omezená velikost kvůli iPhonu), tlačítka **Stáhnout PNG** a **Sdílet obrázek** pod náhledem i v režimu zvětšení. Při podpoře systému se využije sdílení souboru, jinak stažení.
+- Bez změn databáze, zabezpečených oprávnění, uložených účetních záznamů, rozpisů nebo generátoru; nasazení pouze TEST. Regresní ověření VM a mobilní Chromium.
+
+## RaK 2.0.40 (development)
+
+- Přístup vlastníka k Rotaci při přiřazení na směnu A se obnovuje rychleji: načítá se pouze nezbytný bezpečnostní modul namísto celé sekce „Více“.
+- Synchronizace se pro přihlášeného vlastníka spouští krátce po lokálním vykreslení Home (90 ms), zatímco ostatní účty zachovávají původní odložený režim. Obnova stále vyžaduje platnou zabezpečenou relaci.
+- Zachován bezpečný login na novém zařízení, offline režim, oddělení TEST/MAIN, generátor a rozpisy. Přidán regresní test načasování, odhlášení a oprávnění.
+
+## RaK 2.0.39 (development)
+
+- Rotace vlastníka přiřazeného ke směně A se obnovuje paralelně se stahováním rozpisů – ověřená role už nečeká na dokončení celé synchronizace.
+- Spuštění Home zůstává local-first; samotné ověření běží až po inicializaci Supabase a stále vyžaduje skutečnou podepsanou relaci. U běžných účtů A/B/C zůstává Rotace skrytá.
+- Regresní test ověřuje souběh obnovy role a synchronizace, přepnutí účtu, offline start a zachování přihlášení heslem na čistém zařízení.
+- Bez zásahu do databáze, rozpisů, generátoru nebo MAIN.
+
+## RaK 2.0.38 (development)
+
+- Oprava Rotace u vlastníka na směně A: po startu Home se bez otevírání Více tiše obnoví ověřená relace a po změně ověřené role se aktualizuje spodní navigace. Ostatním účtům A/B/C se přístup nerozšiřuje.
+- Viditelnost Rotace stále závisí na zabezpečeném ověření vlastníka, ne na lokálně uloženém osobním čísle. Heslo, synchronizace a přihlášení na novém zařízení zůstávají zachované.
+- Doplněn regresní test přístupu ke směně D, automatického obnovení role a zachování zabezpečeného přihlášení. MAIN a produkční data beze změny.
+
+## RaK 2.0.37 (development)
+
+- TEST: Auditní a diagnostické moduly se spustí až po 12 sekundách a následném idle okně, aby při otevření aplikace nekonkurovaly síti pro přihlášení, rozpis a synchronizaci. Auditní nástroje zůstávají dostupné; první offline spuštění nepotřebuje jejich načtení.
+- Odstraněn zbytečný průchod načítače odložených CSS: aktuální vzhled využívá styly přímo z HTML a žádné odložené CSS sloty, takže tato práce nepřinášela žádný užitek.
+- Bez zásahu do generátoru, údajů směn, uživatelských účtů, Supabase konfigurace, lokálního rozpisu nebo produkce. Pevné limity velikosti a výkonu zůstávají nezměněné.
+- Offline cache hlavních funkcí Home a Rotace se nemění. Samostatná diagnostika je v offline režimu dostupná jen tehdy, pokud byla dříve stažena.
+
+## RaK 2.0.36 (development)
+
+- TEST: Volitelný externí font Kalam se načítá bez blokování prvního vykreslení Home. Po načtení se automaticky aktivuje původní font a zachovává se diagnostika Google Fonts. Pokud je font nedostupný, aplikace zůstává plně použitelná se systémovým písmem.
+- Generátor rozpisů, oprávnění, databáze, synchronizace, PWA offline cache a MAIN beze změn. Výkonové limity zůstávají stejné.
+
+## RaK 2.0.35 (development)
+
+- Zrychlení přihlášení při startu: moduly navigace a sedm bezpečnostních/přihlašovacích modulů se stahují souběžně, ale vykonávají se ve stejném pořadí (dynamické skripty async=false). Počáteční navigace má přednost před přihlašovacími moduly.
+- Beze změn generátoru, rozpisových dat, oprávnění, Supabase synchronizace a produkčního MAIN. Testy přihlášení, local-first, offline a rychlosti musí projít před nasazením.
+
+## RaK 2.0.34 (development)
+
+- TEST: odstranění dvojitého vykreslení celé Rotace a Home během počátečního local-first načítání; aktualizace „kam jdu“ nadále předchází kreslení tabulky a další obnovení dat mimo start vykresluje jako dříve.
+- První pokus odložit PWA modul nepřinesl měřitelné zlepšení, proto byl vrácen. Bez změn generátoru, dat, online synchronizace nebo produkční MAIN.
+
 ## RaK 2.0.33 (development)
 
 - TEST: okamžité zobrazení posledního uloženého zařazení „kam jdu“ na hlavní obrazovce ještě před načtením modulů rozpisu, včetně přechodu mezi směnami. Platí jen pro aktuální účet a je označeno jako poslední uložený údaj do načtení aktuálního rozpisu.

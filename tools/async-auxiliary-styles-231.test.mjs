@@ -26,3 +26,14 @@ test('index size budget is not relaxed by async stylesheet change',()=>{
   assert.equal(limits.sizeGroups.indexHtml.maxBytes,57414);
   assert(Buffer.byteLength(read('index.html'))<57414);
 });
+
+
+test('optional Google Kalam font never blocks the initial Home paint',()=>{
+  const html=read('index.html');
+  const google=html.match(/<link href="https:\/\/fonts\.googleapis\.com\/css2\?family=Kalam[^>]*>/)?.[0]||'';
+  assert(google,'existing Kalam font must be retained');
+  assert(google.includes('rel="stylesheet" media="print"'),'external Google CSS must not render-block the dashboard');
+  assert(google.includes("onload=\"this.media='all';rakNoteExternalDependency('googleFonts','loaded',this.href)\""),'font must activate only after successful load and preserve diagnostics');
+  assert(google.includes("onerror=\"rakNoteExternalDependency('googleFonts','failed',this.href)\""),'offline font failure must be reported without impacting Home');
+  assert(!html.includes('rel="preload" as="style" href="https://fonts.googleapis.com'),'one request; no duplicate font preload');
+});

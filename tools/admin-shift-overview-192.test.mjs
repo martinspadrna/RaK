@@ -342,12 +342,12 @@ test('batch counters expose minus/count/plus and prohibit typing', () => {
   assert.ok(feature.includes('Math.max(0, numberOrZero(input.value) + step)'));
 });
 
-test('multiplication offers cover only requested stages and integers 1–99', () => {
+test('multiplication offers cover only requested stages and integers 1–150', () => {
   const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
   vm.runInContext(feature.replace('  installStyle();','  root.fixture = {canMultiply,quantityMultiplier};'),context);
   const api=context.window.fixture;
-  for(const value of ['1','9','10','99','01',' 42 '])assert.equal(api.canMultiply(value),true,value);
-  for(const value of ['', '0','00','100','999','-1','1.5','1,5','1e1','abc','001'])assert.equal(api.canMultiply(value),false,value);
+  for(const value of ['1','9','10','99','01',' 42 ','100','149','150'])assert.equal(api.canMultiply(value),true,value);
+  for(const value of ['', '0','00','151','999','-1','1.5','1,5','1e1','abc','001'])assert.equal(api.canMultiply(value),false,value);
   for(const key of ['stock','assembly','op1121','hard','after145'])assert.equal(api.quantityMultiplier(key),32,key);
   for(const key of ['op31','op121','op145'])assert.equal(api.quantityMultiplier(key),64,key);
   for(const key of ['op1020','op30','op120'])assert.equal(api.quantityMultiplier(key),0,key);
@@ -375,26 +375,27 @@ test('riveting keeps historic before-145 values and saves after-145 independentl
 
 
 
-test('Excel flow groups before-145 under hardened stock and preserves archived washer data', () => {
+test('Excel flow separates before-145 as its own card while preserving archived washer data', () => {
  const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
  vm.runInContext(feature.replace('  installStyle();','  root.fixture={normalizeRecord,readDom,oamTable,setRecord:(el,r)=>renderedRecords.set(el,r)};'),context);
  const api=context.window.fixture;
  const old=api.normalizeRecord({oam:{rows:{ag:{hard:'384',beforeWasher:'256',op145:'96',after145:'288'}}}},'2026-10-10','D:nocni12');
  const html=api.oamTable(old);
- assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení'));assert.ok(html.includes('Po broušení (op 212)'));assert.ok(!html.includes('<span>212</span>'));
- assert.ok(!html.includes('v nouz. skl.'));assert.ok(!html.includes('před pračkou'));assert.ok(!html.includes('data-shift-overview-field="oam.rows.ag.beforeWasher"'));
+ assert.ok(html.includes('Po 145'));assert.ok(html.includes('Po broušení (op 212)'));
+ assert.ok(!html.includes('data-shift-overview-field="oam.rows.ag.beforeWasher"'));
  const panels=html.split('<h3>');
  const hardened=panels.find(p=>p.startsWith('Sklad po kalení'));
- const before145=hardened.split('<section class="rakShiftOverviewBefore145"')[1];
- assert.ok(before145,'before 145 has its own section inside hardened stock');
- assert.ok(!hardened.split('<section class="rakShiftOverviewBefore145"')[0].includes('.op145"'));
- for(const key of ['ag','af','ah']){assert.ok(before145.includes('oam.rows.'+key+'.op145'));assert.ok(!before145.includes('oam.rows.'+key+'.op120'));assert.ok(!before145.includes('oam.rows.'+key+'.op121'));}
- const riveting=panels.find(p=>p.startsWith('Po 145'));
+ const before145=panels.find(p=>p.startsWith('Před 145'));
+ const after145=panels.find(p=>p.startsWith('Po 145'));
  const grinding=panels.find(p=>p.startsWith('Po broušení'));
+ assert.ok(hardened&&before145&&after145&&grinding,'each stage must have its own title and panel');
+ assert.ok(!hardened.includes('.op145"'),'Před 145 is not embedded inside hardened stock');
  for(const key of ['ag','af','ah']){
-  assert.ok(hardened.includes('oam.rows.'+key+'.op145'));
-  assert.ok(!riveting.includes('oam.rows.'+key+'.op145'));
-  assert.ok(riveting.includes('oam.rows.'+key+'.after145'));
+  assert.ok(before145.includes('oam.rows.'+key+'.op145'));
+  assert.ok(!before145.includes('oam.rows.'+key+'.op120'));
+  assert.ok(!before145.includes('oam.rows.'+key+'.op121'));
+  assert.ok(!after145.includes('oam.rows.'+key+'.op145'));
+  assert.ok(after145.includes('oam.rows.'+key+'.after145'));
   assert.ok(grinding.includes('oam.rows.'+key+'.hard'));
  }
  const el={querySelector:()=>null,querySelectorAll:()=>[{value:'640',getAttribute:()=> 'oam.rows.ag.hard'}]};

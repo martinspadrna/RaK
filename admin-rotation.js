@@ -132,6 +132,7 @@ function adminRotationRowTemplate(section, row, rowIndex, machineCount, allowBla
    if (!filled) tdClasses.push('adminRotationEditorEmptyCell');
    if (mod) tdClasses.push('rakDayModCell');
    if (mod && mod.type === 'kalirnaOut') tdClasses.push('rakKalirnaOutCell');
+   if (mod && mod.type === 'kalirnaIn') tdClasses.push('rakKalirnaInCell');
    const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '';
    const tip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : '';
    const mark = badge ? '<span class="rakDayModMark" aria-hidden="true">' + escapeHtml(badge) + '</span>' : '';
