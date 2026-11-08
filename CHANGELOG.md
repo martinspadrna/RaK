@@ -1,4 +1,4 @@
-## RaK 2.0.49 (development / TEST)
+## RaK 2.0.49 (development)
 
 - **Administrace → Rozpisy → Absence:** nové tlačítko „Aktualizovat absence z Google Kalendáře“ u právě otevřeného měsíce.
 - Používá přesně stejný výběr přiřazeného směnového kalendáře, Google ICS proxy a parser známých jmen a kódů jako průvodce generováním nového rozpisu.
