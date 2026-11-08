@@ -22,10 +22,27 @@ test('all real foreman report sections receive visual separation, with untouched
   assert(!report.includes('shift-report-sections.css'),'no change to report form/data code');
 });
 test('decorative stylesheet is loaded on demand with foreman report and cached offline',()=>{
-  assert(polish.includes("dividers.href='features/shift-report-sections.css?v=2.0.45'"));
+  assert(polish.includes("dividers.href='features/shift-report-sections.css?v=2.0.46'"));
   assert(polish.includes("dividers.rel='stylesheet'"));
-  const asset="'./features/shift-report-sections.css?v=2.0.45'";
+  const asset="'./features/shift-report-sections.css?v=2.0.46'";
   assert(sw.slice(sw.indexOf('const WARM_START = ['),sw.indexOf('const OFFLINE_REQUIRED =')).includes(asset),'CSS must be prewarmed');
   assert(sw.slice(sw.indexOf('const OFFLINE_REQUIRED =')).includes(asset),'CSS must be required for offline completeness');
   assert(!read('app.js').includes('shift-report-sections.css'),'startup core must not load decorative CSS');
+});
+
+test('report rows reuse the exact green, blue and orange tint of the shift overview, without neon highlights',()=>{
+  const overview=read('admin-shift-overview.js');
+  const palette=[
+    ['Green','#87ac3a','rgba(135,172,58,.24)'],
+    ['Blue','#1472c2','rgba(20,114,194,.27)'],
+    ['Orange','#ce552f','rgba(206,85,47,.25)']
+  ];
+  for(const [name,stroke,tint] of palette){
+    assert(overview.includes('.rakShiftOverviewIndexRow.is'+name+'{border-color:'+stroke+';background:'+tint+';}'),'overview palette changed: '+name);
+    assert(report.includes('--rak-index-stroke:'+stroke+';--rak-index-fill:'+tint),'report not using matching palette: '+name);
+  }
+  assert(report.includes('border-left:4px solid var(--rak-index-stroke,transparent)'),'report rows need overview accent stripe');
+  assert(report.includes('background:var(--rak-index-fill,transparent)!important'),'index selector uses identical tint');
+  assert(!report.includes('linear-gradient(145deg,#00b966,#00ee87)'),'old neon remains');
+  assert(report.includes("if(row)row.dataset.indexColor=color"),'changing index must update the row');
 });

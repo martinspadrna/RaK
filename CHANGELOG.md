@@ -1,3 +1,9 @@
+## RaK 2.0.46 (development)
+
+- **Report směny:** podbarvení indexů sjednocené s Přehledem směny. Řádky AG/AE, AF/AD a AH mají stejné tlumené zelené, modré a oranžové pozadí a čtyřpixelový barevný levý okraj.
+- Pryč jsou neonové přechody, světelné záře a přehnané barvy rozbalovacích polí. Rozvržení i hodnoty reportu zůstávají beze změny; barva se dál mění podle zvoleného indexu.
+- Regresní testy barev, přepínání indexů a mobilního/PC zobrazení. Pouze TEST/development, bez zásahu do MAIN.
+
 ## RaK 2.0.45 (development)
 
 - **Přehled směny:** jednotlivé oddíly mají vlastní zámek vedle nadpisu. Zamčení chrání proti přepsání bez zašednutí a ukládá se do rozepsaného přehledu i online zálohy. „Vymazat přehled“ obnoví prázdné hodnoty i odemčené bloky.

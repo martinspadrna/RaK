@@ -36,10 +36,26 @@ function probe(width){
   const head=cards[0].querySelector('.rakShiftSectionHead');
   if(parseFloat(getComputedStyle(head).borderBottomWidth)<2)fail('heading is not separated');
   if(cards[1].getBoundingClientRect().top<cards[0].getBoundingClientRect().bottom+10)fail('cards lack spacing');
+  const tones=[
+    ['mo','AF','rgb(20, 114, 194)','rgba(20,114,194,0.27)'],['mo','AG','rgb(135, 172, 58)','rgba(135,172,58,0.24)'],
+    ['mo','AH','rgb(206, 85, 47)','rgba(206,85,47,0.25)'],['to','AD','rgb(20, 114, 194)','rgba(20,114,194,0.27)'],
+    ['to','AE','rgb(135, 172, 58)','rgba(135,172,58,0.24)'],['to','AH','rgb(206, 85, 47)','rgba(206,85,47,0.25)']
+  ];
+  const norm=v=>String(v).replaceAll(' ','');
+  for(const [section,index,stroke,fill] of tones){
+    const select=target.querySelector('[data-section="'+section+'"] .rakShiftIndex');
+    if(!Array.from(select.options).some(option=>option.value===index))fail('missing selectable '+section+'/'+index);
+    select.value=index;select.dispatchEvent(new Event('change',{bubbles:true}));
+    const row=select.closest('.rakShiftProdRow'),style=getComputedStyle(row),chip=getComputedStyle(select);
+    if(row.dataset.indexColor!==(index==='AG'||index==='AE'?'green':index==='AH'?'orange':'blue'))fail('index color not synchronized '+index);
+    if(style.borderLeftColor!==stroke||norm(style.backgroundColor)!==norm(fill))fail('overview tint mismatch '+index+': '+style.backgroundColor);
+    if(chip.borderColor!==stroke||norm(chip.backgroundColor)!==norm(fill))fail('index selector tint mismatch '+index);
+    if(style.borderLeftWidth!=='4px'||style.backgroundImage!=='none'||chip.backgroundImage!=='none'||chip.boxShadow!=='none')fail('neon style remains '+index);
+  }
   if(!target.querySelector('[data-section="mo"] .rakShiftQty'))fail('quantity entry lost');
   if(!target.querySelector('.rakShiftProblems .rakShiftProblemRow'))fail('problems entry lost');
   if(!target.querySelector('[data-shift-action="send"]'))fail('send report action lost');
-  return {result:'PASS',width,sections:all.length,checks:['section-borders','accent-headers','spacing','no-overflow','existing-form']};
+  return {result:'PASS',width,sections:all.length,checks:['section-borders','accent-headers','spacing','no-overflow','index-tone-parity','dynamic-index-colors','existing-form']};
  } catch(e) {return {result:'FAIL',width,error:e.message};}
 }
 try{
