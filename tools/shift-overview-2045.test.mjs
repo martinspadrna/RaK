@@ -33,7 +33,7 @@ test('green report and incoming/outgoing kiln badges remain visible in both sche
   const report=read('rak-shift-report.js'), publicRotation=read('rotace.js');
   const editor=read('admin-rotation-editor.js'), daymods=read('admin-daymods.js');
   const css=read('styles-daymods.css');
-  assert(report.includes('rgba(0,237,135,.44)'), 'strong green row background missing');
+  assert(report.includes('--rak-index-stroke:#87ac3a;--rak-index-fill:rgba(135,172,58,.24)'), 'shared overview green tint missing');
   assert(publicRotation.includes('badge ? markHtml.trim()'), 'empty public cell does not render badge marker');
   assert(editor.includes('rakMiniDayModMark'), 'expanded/compact admin marker missing');
   assert(daymods.includes("mod.type === 'kalirnaIn'") && daymods.includes("mod.type === 'kalirnaOut'"));
