@@ -1,3 +1,10 @@
+## RaK 2.0.47 (development)
+
+- **Rozpisy – výpomoc kalírny:** značky `K→` a `→K` nyní sdílejí stejné žluté písmo a stejnou barevnost buněk. Odstraněno modré podbarvení příchozí výpomoci.
+- Obě značky jsou mírně větší a v prázdných buňkách přesně vodorovně i svisle vystředěné. Je-li v buňce také jméno, značka se centruje na následujícím řádku, aby text nepřekrývala.
+- Sjednoceno v běžném i administrátorském mini rozpisu. Testy chrání obě značky a jejich zarovnání.
+- Pouze TEST/development. MAIN ani data nebyly změněny.
+
 ## RaK 2.0.46 (development)
 
 - **Report směny:** podbarvení indexů sjednocené s Přehledem směny. Řádky AG/AE, AF/AD a AH mají stejné tlumené zelené, modré a oranžové pozadí a čtyřpixelový barevný levý okraj.

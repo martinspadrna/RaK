@@ -39,3 +39,21 @@ test('green report and incoming/outgoing kiln badges remain visible in both sche
   assert(daymods.includes("mod.type === 'kalirnaIn'") && daymods.includes("mod.type === 'kalirnaOut'"));
   assert(css.includes('td.missingCell.rakDayModCell .rakDayModMark'));
 });
+
+test('incoming/outgoing kiln indicators match, avoid blue, and center within public and mini cells',()=>{
+  const publicCss=read('styles-daymods.css');
+  const miniEditor=read('admin-rotation-editor.js');
+  const palette='background:linear-gradient(135deg,rgba(255,214,214,.42),rgba(255,126,126,.24))!important';
+  assert(publicCss.includes('.rakDayModCell.rakKalirnaOutCell,.rakDayModCell.rakKalirnaInCell'), 'both public kiln cell types need identical styles');
+  assert(publicCss.includes(palette), 'kiln cell background not shared');
+  assert(publicCss.includes('.rotTable td.rakDayModCell:is(.rakKalirnaInCell,.rakKalirnaOutCell) .rakDayModMark'), 'public marker selector must handle both directions');
+  assert(publicCss.includes('left:50%!important;top:50%!important;right:auto!important;'), 'marker must be centered both ways');
+  assert(publicCss.includes('transform:translate(-50%,-50%)!important'), 'marker center transform missing');
+  assert(publicCss.includes('color:#ffcf3a!important;background:transparent!important;'), 'kiln badges must be the original yellow, without blue');
+  assert(publicCss.includes('font-size:12px!important'), 'public kiln marker must be enlarged');
+  assert(publicCss.includes('font-size:11px!important'), 'mini kiln marker must be enlarged');
+  assert(publicCss.includes('td:is(.adminRotationMiniDayModIn,.adminRotationMiniDayModOut)'), 'mini kiln cell styles must match in both directions');
+  assert(miniEditor.includes("classes.push('adminRotationMiniDayModOut')"), 'mini outgoing marker class missing');
+  assert(publicCss.includes('td:not(.adminRotationMiniEmpty):is(.adminRotationMiniDayModIn,.adminRotationMiniDayModOut)'), 'filled mini cells must not overlap the worker name');
+  assert(publicCss.includes('td.rakDayModCell:not(.missingCell):is(.rakKalirnaInCell,.rakKalirnaOutCell)'), 'filled public cells must not overlap the worker name');
+});

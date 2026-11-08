@@ -954,6 +954,7 @@ function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, har
         const classes = [empty ? 'adminRotationMiniEmpty' : ''];
         if (mod) classes.push('adminRotationMiniHasDayMod');
         if (mod && mod.type === 'kalirnaIn') classes.push('adminRotationMiniDayModIn');
+        if (mod && mod.type === 'kalirnaOut') classes.push('adminRotationMiniDayModOut');
         const mark = badge ? '<span class="rakMiniDayModMark" aria-hidden="true">' + escapeHtml(badge) + '</span>' : '';
         return '<td class="' + classes.filter(Boolean).join(' ') + '" data-full-name="' + escapeHtml(raw) + '"' + (tooltip ? ' title="' + escapeHtml(tooltip) + '"' : '') + '>' + escapeHtml(shortName || '') + mark + '</td>';
       }).join('') + '</tr>';

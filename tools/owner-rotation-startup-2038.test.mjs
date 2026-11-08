@@ -69,5 +69,5 @@ test('clean-device password login still self-loads Menu, sync and Supabase SDK',
   assert(access.includes("void window.rakEnsureFeature('sync')"));
   assert(profile.includes("await window.rakEnsureSupabaseSdk({ force: true })"));
   assert(boot.includes('await criticalLoadPromise;'));
-  assert(read('sw.js').includes("'./app-admin-unlock.js?v=2.0.46'"));
+  assert(read('sw.js').includes("'./app-admin-unlock.js?v=2.0.47'"));
 });
