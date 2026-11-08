@@ -12,7 +12,7 @@ const wizard=read('admin-rotation-generator-wizard.js');
 test('admin Absence button uses the same isolated Google ICS loader and never auto-saves',()=>{
   assert(editor.includes('data-admin-action="refresh-calendar-absences"'));
   assert(editor.includes('id="adminRotationCalendarStatus"'));
-  assert(router.includes("adminAction === 'refresh-calendar-absences'"));
+  assert(/adminAction\s*===\s*'refresh-calendar-absences'/.test(router));
   assert(router.includes("features/rotation-calendar-refresh.js?v="));
   assert(wizard.includes('async function adminRotationGeneratorFetchCalendarIcs()'));
   assert(wizard.includes('const {team,texts,partial}=await adminRotationGeneratorFetchCalendarIcs()'));
