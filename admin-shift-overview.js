@@ -602,7 +602,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function canMultiply(value) {
     const text = String(value == null ? '' : value).trim();
-    return /^\d{1,3}$/.test(text) && Number(text) >= 1 && Number(text) <= 150;
+    return /^(?:\d{1,2}|1[0-4]\d|150)$/.test(text) && Number(text) >= 1 && Number(text) <= 150;
   }
 
   function refreshMultipliers(rootEl) {
@@ -762,7 +762,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   // Individual editing locks are part of the existing saved record and local draft.
   function applySectionLocks(rootEl) {
     const layout = rootEl.querySelector('[data-shift-overview-layout]');
-    if (!layout) return;
+    if (!layout || typeof layout.querySelectorAll !== 'function') return;
     const legacyKeys = ['soft','before-kiln','after-kiln','before-145','after-145','ground','stock','assembly'];
     layout.querySelectorAll('.rakShiftOverviewFlow > .rakShiftOverviewPanel').forEach((panel, index) => {
       panel.setAttribute('data-shift-overview-lock-id', legacyKeys[index] || 'stage-' + index);

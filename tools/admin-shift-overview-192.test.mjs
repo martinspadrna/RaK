@@ -342,12 +342,12 @@ test('batch counters expose minus/count/plus and prohibit typing', () => {
   assert.ok(feature.includes('Math.max(0, numberOrZero(input.value) + step)'));
 });
 
-test('multiplication offers cover only requested stages and integers 1–99', () => {
+test('multiplication offers cover only requested stages and integers 1–150', () => {
   const context=vm.createContext({window:{},document:{getElementById:()=>({})}});
   vm.runInContext(feature.replace('  installStyle();','  root.fixture = {canMultiply,quantityMultiplier};'),context);
   const api=context.window.fixture;
-  for(const value of ['1','9','10','99','01',' 42 '])assert.equal(api.canMultiply(value),true,value);
-  for(const value of ['', '0','00','100','999','-1','1.5','1,5','1e1','abc','001'])assert.equal(api.canMultiply(value),false,value);
+  for(const value of ['1','9','10','99','01',' 42 ','100','149','150'])assert.equal(api.canMultiply(value),true,value);
+  for(const value of ['', '0','00','151','999','-1','1.5','1,5','1e1','abc','001'])assert.equal(api.canMultiply(value),false,value);
   for(const key of ['stock','assembly','op1121','hard','after145'])assert.equal(api.quantityMultiplier(key),32,key);
   for(const key of ['op31','op121','op145'])assert.equal(api.quantityMultiplier(key),64,key);
   for(const key of ['op1020','op30','op120'])assert.equal(api.quantityMultiplier(key),0,key);

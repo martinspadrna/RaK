@@ -1,4 +1,4 @@
-## RaK 2.0.45 (development / TEST)
+## RaK 2.0.45 (development)
 
 - **Přehled směny:** jednotlivé oddíly mají vlastní zámek vedle nadpisu. Zamčení chrání proti přepsání bez zašednutí a ukládá se do rozepsaného přehledu i online zálohy. „Vymazat přehled“ obnoví prázdné hodnoty i odemčené bloky.
 - **Počty kusů:** násobení 32 a 64 lze použít pro zadání 1 až 150 místo 1 až 99. Historie výpočtu a vrácení původní hodnoty zůstává.
