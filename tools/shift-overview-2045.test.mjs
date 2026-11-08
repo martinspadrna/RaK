@@ -17,12 +17,13 @@ test('32/64 quantities accept 1..150 and reject values outside the range', () =>
 
 test('locks are durable per section, do not dim values and clear with the record', () => {
   const css = read('features/shift-overview-extra.css');
+  const locks = read('features/shift-overview-image.js');
   assert(overview.includes('lockedSections: {}'), 'new record has no locked sections');
   assert(overview.includes('base.lockedSections = Object.fromEntries'), 'stored locks are not normalized');
-  assert(overview.includes("data-shift-overview-lock"), 'lock control missing');
-  assert(overview.includes('control.readOnly = locked'), 'input lock missing');
-  assert(overview.includes('control.disabled = locked'), 'button lock missing');
-  assert(overview.includes('persistDraft(rootEl)'), 'lock state must persist with the draft');
+  assert(locks.includes("data-shift-overview-lock"), 'lock control missing');
+  assert(locks.includes('control.readOnly = locked'), 'input lock missing');
+  assert(locks.includes('control.disabled = locked'), 'button lock missing');
+  assert(overview.includes('rakApplyShiftOverviewLocks') && locks.includes('persistDraft(rootEl)'), 'lock state must persist with the draft');
   assert(overview.includes('const empty = defaultRecord(defaults.date, defaults.shift)'), 'clear must reset locked sections');
   assert(css.includes('.isLocked input[readonly]') && css.includes('opacity:1!important'), 'locked values must remain readable');
   assert(css.includes('label:not(:has(>span))'), 'single-value input alignment missing');

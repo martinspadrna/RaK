@@ -55,3 +55,70 @@
   }
   root.RakShiftOverviewPngExporter=Object.freeze({raster,save});
 })(typeof window!=='undefined'?window:globalThis);
+
+/* Optional shift lock manager shares the existing lazy Admin bundle and offline asset. */
+(function(root){
+'use strict';
+  function applySectionLocks(rootEl, readDom, records, clone, persistDraft, clearUndo, ownerAllowed, status) {
+    const layout = rootEl.querySelector('[data-shift-overview-layout]');
+    if (!layout || typeof layout.querySelectorAll !== 'function') return;
+    const legacyKeys = ['soft','before-kiln','after-kiln','before-145','after-145','ground','stock','assembly'];
+    layout.querySelectorAll('.rakShiftOverviewFlow > .rakShiftOverviewPanel').forEach((panel, index) => {
+      panel.setAttribute('data-shift-overview-lock-id', legacyKeys[index] || 'stage-' + index);
+    });
+    const saved = records.get(rootEl) || {};
+    const locks = saved.lockedSections || {};
+    layout.querySelectorAll('[data-shift-overview-section], [data-shift-overview-lock-id]').forEach(section => {
+      const id = section.getAttribute('data-shift-overview-section') || section.getAttribute('data-shift-overview-lock-id');
+      const panel = section.matches('.rakShiftOverviewPanel') ? section : section.querySelector(':scope > .rakShiftOverviewPanel');
+      const heading = panel && panel.querySelector(':scope > h3');
+      if (!heading || !id) return;
+      let button = heading.querySelector('[data-shift-overview-lock]');
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'rakShiftOverviewLock';
+        button.setAttribute('data-shift-overview-lock', id);
+        heading.appendChild(button);
+      }
+      const locked = locks[id] === true;
+      button.textContent = locked ? '🔒' : '🔓';
+      button.setAttribute('aria-pressed', String(locked));
+      button.setAttribute('aria-label', (locked ? 'Odemknout blok ' : 'Zamknout blok ') + heading.firstChild.textContent.trim());
+      button.title = locked ? 'Odemknout pro úpravy' : 'Zamknout proti přepsání';
+      section.classList.toggle('isLocked', locked);
+      section.querySelectorAll('input[data-shift-overview-field], textarea[data-shift-overview-field]').forEach(control => {
+        control.readOnly = locked;
+      });
+      section.querySelectorAll('button:not([data-shift-overview-lock])').forEach(control => {
+        control.disabled = locked;
+      });
+      section.querySelectorAll('select').forEach(control => {
+        control.disabled = locked;
+      });
+    });
+    if (rootEl.dataset.shiftLocksBound === '1') return;
+    rootEl.dataset.shiftLocksBound = '1';
+    rootEl.addEventListener('click', event => {
+      const button = event.target.closest?.('[data-shift-overview-lock]');
+      if (!button || !rootEl.contains(button)) return;
+      event.preventDefault();
+      if (!ownerAllowed()) { status(rootEl, 'Přístup byl zamítnut.'); return; }
+      const id = button.getAttribute('data-shift-overview-lock');
+      if (!/^[a-z][a-z0-9-]{0,40}$/.test(id || '')) return;
+      const record = readDom(rootEl);
+      record.lockedSections = Object.assign({}, record.lockedSections);
+      if (record.lockedSections[id]) delete record.lockedSections[id];
+      else record.lockedSections[id] = true;
+      records.set(rootEl, clone(record));
+      rootEl.dataset.edited = '1';
+      clearUndo(rootEl);
+      applySectionLocks(rootEl, readDom, records, clone, persistDraft, clearUndo, ownerAllowed, status);
+      persistDraft(rootEl);
+    });
+
+  }
+
+
+root.rakApplyShiftOverviewLocks=applySectionLocks;
+})(typeof window!=='undefined'?window:globalThis);

@@ -53,6 +53,27 @@ function probe(width){
   const inactiveStyle=getComputedStyle(body.querySelector('[data-running-unit][aria-pressed="false"]'));
   check(activeStyle.backgroundColor==='rgb(22, 122, 53)'&&inactiveStyle.backgroundColor==='rgb(102, 107, 115)','solid active/inactive backgrounds with full app theme');
   check(activeStyle.backgroundImage==='none'&&inactiveStyle.backgroundImage==='none','theme cannot cover unit colors');
+
+  const lockButton=beforeCard.querySelector('[data-shift-overview-lock="before-145"]');
+  check(lockButton,'before-145 block has its own lock');
+  lockButton.click();
+  const lockedInput=body.querySelector('[data-shift-overview-section="before-145"] [data-shift-overview-field]');
+  check(lockedInput?.readOnly&&lockButton.getAttribute('aria-pressed')==='true','locked block rejects edits');
+  check(!body.querySelector('[data-shift-overview-section="after-145"] [data-shift-overview-field]').readOnly,'other blocks stay editable');
+  check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections['before-145']===true,'lock persists to draft');
+  api.render(body);
+  check(body.querySelector('[data-shift-overview-lock="before-145"]')?.getAttribute('aria-pressed')==='true','lock survives render');
+  body.querySelector('[data-shift-overview-lock="before-145"]').click();
+  check(!body.querySelector('[data-shift-overview-section="before-145"] [data-shift-overview-field]').readOnly,'second click unlocks block');
+  for(const sectionId of ['stock','assembly']){
+    const row=body.querySelector('[data-shift-overview-section="'+sectionId+'"] .rakShiftOverviewIndexRow');
+    check(row,'missing '+sectionId+' index row');
+    const index=row.querySelector('.rakShiftOverviewIndexIdentity'),input=row.querySelector('input[data-shift-overview-field]');
+    check(index&&input,'index and quantity must be paired in '+sectionId);
+    const a=index.getBoundingClientRect(),b=input.getBoundingClientRect();
+    check(Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2)<12,sectionId+' input must be vertically centered');
+  }
+
   edit('lastBatch.ald3','300');
   edit('lastBatch.ald1','100');edit('lastBatch.ald2','200');edit('ald.2.faults','synthetic fixture');
   body.querySelector('[data-shift-overview-count="inputs.rows.TW1.ald1"][data-count-step="1"]').click();
@@ -109,7 +130,10 @@ function probe(width){
   api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='D:nocni12'&&body.querySelector('[data-shift-overview-date]').value==='2026-10-12','empty morning draft opens current night');
   check(body.querySelectorAll('[data-running-unit][aria-pressed="true"]').length===25&&value('lastBatch.ald3')==='','new empty context stays empty and active');
   window.getActiveShiftNow=()=>({team:'B',start:new Date(2026,9,13,6),end:new Date(2026,9,13,18)});
+  body.querySelector('[data-shift-overview-lock="ald3"]').click();
+  check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections.ald3===true,'lock before clearing');
   body.querySelector('[data-shift-overview-action="clear"]').click();
+  check(Object.keys(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections||{}).length===0,'clear removes all locks');
   check(body.querySelector('[data-shift-overview-date]').value==='2026-10-13'&&body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','clear selects current morning and date immediately');
   const cleared=JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local'));
   check(Object.values(cleared.record.inputs.rows).every(row=>Object.values(row).every(value=>value==='')),'untouched displayed zeros remain empty draft values');
@@ -119,7 +143,7 @@ function probe(width){
   localStorage.setItem('rak_shift_overview_draft_v1:local',JSON.stringify(cleared));
   api.render(body);check(body.querySelector('[data-shift-overview-shift]').value==='B:ranni12','legacy zero counters no longer restore old night');
   window.rakAdminCanManageAdmins=()=>false;api.render(body);check(!body.querySelector('[data-shift-overview-field]'),'role gate');
-  return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','draft reopen','summary','roles','overflow']};
+  return {result:'PASS',containerWidth:width,checks:['routes','manual switch','hidden fields','arithmetic','multipliers','counters','locks','lock persistence','clear locks','stock alignment','draft reopen','summary','roles','overflow']};
  }catch(error){return {result:'FAIL',containerWidth:width,error:error.message};}
 }
 try{
