@@ -459,6 +459,21 @@ function adminRotationGeneratorMergeAbsences(existing, imported) {
   });
 }
 
+async function adminRotationGeneratorFetchCalendarIcs() {
+  const context=adminRotationGeneratorActiveShiftCalendarSources();
+  const team=String(context && context.team || 'D').trim().toUpperCase() || 'D';
+  const sources=Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
+  if(!sources.length)throw new Error('calendar-not-configured-for-shift-'+team);
+  const settled=await Promise.allSettled(sources.map(async source=>{
+    const response=await fetch(ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API+encodeURIComponent(source),{cache:'no-store',credentials:'same-origin'});
+    if(!response||!response.ok)throw new Error('HTTP '+String(response && response.status || ''));
+    return response.text();
+  }));
+  const texts=settled.filter(item=>item.status==='fulfilled').map(item=>item.value);
+  if(!texts.length)throw new Error('calendar-unavailable-for-shift-'+team);
+  return {team,texts,partial:settled.some(item=>item.status==='rejected')};
+}
+
 async function adminRotationGeneratorLoadCalendarAbsences() {
   const state = adminRotationGeneratorGetWizardState();
   state.days = adminRotationGeneratorResolveWizardDays(state);
@@ -466,21 +481,7 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
   const status = document.getElementById('adminOnlineSaveStatus');
   if (status) status.textContent = 'Načítám absence z kalendáře přiřazené směny...';
   try {
-    const context = adminRotationGeneratorActiveShiftCalendarSources();
-    const team = String(context && context.team || 'D').trim().toUpperCase() || 'D';
-    const sources = Array.isArray(context && context.sources) ? context.sources.filter(Boolean) : [];
-    if (!sources.length) throw new Error('calendar-not-configured-for-shift-' + team);
-
-    const settled = await Promise.allSettled(sources.map(async (source) => {
-      const response = await fetch(ADMIN_ROTATION_GENERATOR_PUBLIC_CALENDAR_API + encodeURIComponent(source), {
-        cache: 'no-store',
-        credentials: 'same-origin'
-      });
-      if (!response || !response.ok) throw new Error('HTTP ' + String(response && response.status || ''));
-      return response.text();
-    }));
-    const texts = settled.filter((item) => item.status === 'fulfilled').map((item) => item.value);
-    if (!texts.length) throw new Error('calendar-unavailable-for-shift-' + team);
+    const {team,texts,partial}=await adminRotationGeneratorFetchCalendarIcs();
 
     let imported = state.days.map((date) => ({ date, rows: [] }));
     texts.forEach((text) => {
@@ -494,12 +495,10 @@ async function adminRotationGeneratorLoadCalendarAbsences() {
     adminRotationGeneratorRenderWizard('absences');
     const nextStatus = document.getElementById('adminOnlineSaveStatus');
     if (nextStatus) {
-      const partial = settled.some((item) => item.status === 'rejected')
-        ? ' Část kalendářů směny se nepodařilo načíst.'
-        : '';
+      const partialText = partial ? ' Část kalendářů směny se nepodařilo načíst.' : '';
       nextStatus.textContent = importedCount
-        ? ('Načteno z kalendáře směny ' + team + ': ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.' + partial)
-        : ('V kalendáři směny ' + team + ' jsem pro vybraný měsíc nenašel žádné známé absence.' + partial);
+        ? ('Načteno z kalendáře směny ' + team + ': ' + String(importedCount) + ' absencí. Ručně zadané řádky zůstaly zachované.' + partialText)
+        : ('V kalendáři směny ' + team + ' jsem pro vybraný měsíc nenašel žádné známé absence.' + partialText);
     }
     return { ok: true, importedCount, team, sourceCount: texts.length };
   } catch (err) {

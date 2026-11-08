@@ -1964,6 +1964,17 @@ function bindAppMenuHandlers(body) {
         }
         return;
       }
+      if(adminAction==='refresh-calendar-absences'){
+        if(!window.rakRefreshRotationCalendarAbsences) await (window.__rakCalendarImporterPromise ||= new Promise((ok,fail)=>{
+          const script=document.createElement('script');
+          script.src='features/rotation-calendar-refresh.js?v='+window.RAK_RELEASE_METADATA.moduleCacheVersion;
+          script.onload=ok;script.onerror=()=>fail(Error('Kalendář není dostupný.'));
+          document.head.appendChild(script);
+        }).catch(err=>{window.__rakCalendarImporterPromise=null;throw err}));
+        if(!window.rakRefreshRotationCalendarAbsences)throw Error('Načítání absencí není dostupné.');
+        await window.rakRefreshRotationCalendarAbsences(monthKey,target);
+        return;
+      }
       if (adminAction === 'add-absence-row') {
         if (typeof adminAddAbsenceRowToEditor === 'function') adminAddAbsenceRowToEditor();
         return;

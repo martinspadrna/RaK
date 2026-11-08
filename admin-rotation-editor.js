@@ -1073,6 +1073,8 @@ function buildAdminRotationTableHtml(monthKey) {
     '  <details class="appMenuFoldSection adminRotationFold" open>',
     '    <summary>Absence</summary>',
     buildAdminRotationActionBarHtml('absence'),
+    '    <div class="adminRotationAbsenceAddRow"><button type="button" class="appMenuAction" data-admin-action="refresh-calendar-absences">↻ Aktualizovat absence z Google Kalendáře</button></div>',
+    '    <div class="smallText" id="adminRotationCalendarStatus" role="status" aria-live="polite">Načtené absence se doplní do editoru. Online až po Uložit rozpis.</div>',
     '    <div class="tableWrap appMenuTableWrap">',
     '      <table class="appMenuTable appMenuAdminTable appMenuAdminTableDense appMenuAdminAbsenceTable" data-rotation-action-section="absence">',
     '        ' + absenceColgroup,
@@ -1084,7 +1086,7 @@ function buildAdminRotationTableHtml(monthKey) {
     '      <button type="button" class="appMenuAction adminRotationAbsenceAddBtn" data-admin-action="add-absence-row">+ Přidat další absenci</button>',
     '    </div>',
     buildAdminAbsenceCodeDatalistHtml(),
-    buildAdminAbsenceSummaryHtml(month),
+    '<div id="adminRotationAbsenceSummary">' + buildAdminAbsenceSummaryHtml(month) + '</div>',
     '  </details>',
     '</div>'
   ].join('');
