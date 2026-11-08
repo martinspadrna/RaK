@@ -46,5 +46,12 @@ test('offline PWA keeps critical app caches and defers optional diagnostic files
   assert.equal(pkg.version,'2.0.48');
   assert(metadata.includes("displayVersion: '2.0.48'"));
   assert(read('tools/performance-parity-17069.json').includes('"version": "2.0.48"'));
-  assert(!read('supabase-config.js').includes('bkqamcbkiwumsvelahxr'));
+  const config=read('supabase-config.js');
+  if(process.env.RAK_BUILD_TARGET==='production'){
+    assert(config.includes('bkqamcbkiwumsvelahxr'),'production must use only the production database');
+    assert(!config.includes('cgshssdjgzzuprlwnabl'),'production must not contain the TEST database');
+  }else{
+    assert(config.includes('cgshssdjgzzuprlwnabl'),'TEST must use its isolated database');
+    assert(!config.includes('bkqamcbkiwumsvelahxr'),'TEST must not contain the production database');
+  }
 });
