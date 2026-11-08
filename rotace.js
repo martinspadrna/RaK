@@ -708,7 +708,7 @@ function renderMonth(monthKey) {
         if (val) {
           out += "<td class='" + (dayModClass + kalirnaClass).trim() + "'" + titleAttr + infoAttr + ">" + escapeHtml(val) + markHtml + "</td>";
         } else {
-          out += "<td class='missingCell" + dayModClass + kalirnaClass + "'" + titleAttr + infoAttr + ">" + (badge ? escapeHtml(badge) : "—") + "</td>";
+          out += "<td class='missingCell" + dayModClass + kalirnaClass + "'" + titleAttr + infoAttr + ">" + (badge ? markHtml.trim() : "—") + "</td>";
         }
       });
       out += "</tr>";

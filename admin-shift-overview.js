@@ -362,6 +362,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
       process: { rows: {} },
       inputs: { ald1: '', ald2: '', ald3: '', partsAssignment: 2, rows: {} },
       calculations: {},
+      lockedSections: {},
       nitrogen: '',
       machiningFaults: '',
       notes: '',
@@ -408,6 +409,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
   function normalizeRecord(record, date, shift) {
     const base = defaultRecord(date, shift);
     const src = record && typeof record === 'object' ? record : {};
+    base.lockedSections = Object.fromEntries(Object.entries(src.lockedSections && typeof src.lockedSections === 'object' && !Array.isArray(src.lockedSections) ? src.lockedSections : {}).filter(([key, value]) => /^[a-z][a-z0-9-]{0,40}$/.test(key) && value === true));
     base.date = String(src.date || date || base.date);
     base.shift = normalizeShift(src.shift || shift || base.shift);
     base.calculations = Object.fromEntries(Object.entries(src.calculations && typeof src.calculations === 'object' ? src.calculations : {}).map(([path,history]) => [path, validQuantityHistory(history)]).filter(([,history]) => history));
@@ -600,7 +602,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
 
   function canMultiply(value) {
     const text = String(value == null ? '' : value).trim();
-    return /^\d{1,2}$/.test(text) && Number(text) >= 1 && Number(text) <= 99;
+    return /^\d{1,3}$/.test(text) && Number(text) >= 1 && Number(text) <= 150;
   }
 
   function refreshMultipliers(rootEl) {
@@ -756,6 +758,48 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     return html;
   }
 
+
+  // Individual editing locks are part of the existing saved record and local draft.
+  function applySectionLocks(rootEl) {
+    const layout = rootEl.querySelector('[data-shift-overview-layout]');
+    if (!layout) return;
+    const legacyKeys = ['soft','before-kiln','after-kiln','before-145','after-145','ground','stock','assembly'];
+    layout.querySelectorAll('.rakShiftOverviewFlow > .rakShiftOverviewPanel').forEach((panel, index) => {
+      panel.setAttribute('data-shift-overview-lock-id', legacyKeys[index] || 'stage-' + index);
+    });
+    const saved = renderedRecords.get(rootEl) || {};
+    const locks = saved.lockedSections || {};
+    layout.querySelectorAll('[data-shift-overview-section], [data-shift-overview-lock-id]').forEach(section => {
+      const id = section.getAttribute('data-shift-overview-section') || section.getAttribute('data-shift-overview-lock-id');
+      const panel = section.matches('.rakShiftOverviewPanel') ? section : section.querySelector(':scope > .rakShiftOverviewPanel');
+      const heading = panel && panel.querySelector(':scope > h3');
+      if (!heading || !id) return;
+      let button = heading.querySelector('[data-shift-overview-lock]');
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'rakShiftOverviewLock';
+        button.setAttribute('data-shift-overview-lock', id);
+        heading.appendChild(button);
+      }
+      const locked = locks[id] === true;
+      button.textContent = locked ? '🔒' : '🔓';
+      button.setAttribute('aria-pressed', String(locked));
+      button.setAttribute('aria-label', (locked ? 'Odemknout blok ' : 'Zamknout blok ') + heading.firstChild.textContent.trim());
+      button.title = locked ? 'Odemknout pro úpravy' : 'Zamknout proti přepsání';
+      section.classList.toggle('isLocked', locked);
+      section.querySelectorAll('input[data-shift-overview-field], textarea[data-shift-overview-field]').forEach(control => {
+        control.readOnly = locked;
+      });
+      section.querySelectorAll('button:not([data-shift-overview-lock])').forEach(control => {
+        control.disabled = locked;
+      });
+      section.querySelectorAll('select').forEach(control => {
+        control.disabled = locked;
+      });
+    });
+  }
+
   function updateShiftLayout(rootEl) {
     const layout = rootEl.querySelector('[data-shift-overview-layout]');
     if (!layout || !ownerAllowed()) return;
@@ -771,6 +815,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     renderedRecords.set(rootEl, clone(record));
     clearQuantityUndo(rootEl);
     layout.innerHTML = shiftLayout(record);
+    applySectionLocks(rootEl);
     refreshMultipliers(rootEl);
     refreshTotals(rootEl);
     refreshSummary(rootEl);
@@ -1235,6 +1280,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     if (!rootEl || rootEl.dataset.bound === '1') return;
     rootEl.dataset.bound = '1';
     bindQuantityKeyboard(rootEl);
+    applySectionLocks(rootEl);
     refreshTotals(rootEl);
     refreshMultipliers(rootEl);
     refreshSummary(rootEl);
@@ -1276,6 +1322,23 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     });
 
     rootEl.addEventListener('click', async (event) => {
+      const lockButton = event.target.closest?.('[data-shift-overview-lock]');
+      if (lockButton && rootEl.contains(lockButton)) {
+        event.preventDefault();
+        if (!ownerAllowed()) { status(rootEl, 'Přístup byl zamítnut.'); return; }
+        const id = lockButton.getAttribute('data-shift-overview-lock');
+        if (!id || !/^[a-z][a-z0-9-]{0,40}$/.test(id)) return;
+        const record = readDom(rootEl);
+        record.lockedSections = Object.assign({}, record.lockedSections);
+        if (record.lockedSections[id]) delete record.lockedSections[id];
+        else record.lockedSections[id] = true;
+        renderedRecords.set(rootEl, clone(record));
+        rootEl.dataset.edited = '1';
+        clearQuantityUndo(rootEl);
+        applySectionLocks(rootEl);
+        persistDraft(rootEl);
+        return;
+      }
       const unit = event.target.closest?.('[data-running-unit]');
       if (unit && rootEl.contains(unit)) {
         event.preventDefault();
@@ -1490,7 +1553,7 @@ try { if (typeof window.rakMarkModuleReady === 'function') window.rakMarkModuleR
     document.head.appendChild(style);
     const extra=document.createElement('link');
     extra.rel='stylesheet';
-    extra.href='features/shift-overview-extra.css?v='+encodeURIComponent(root.RAK_RELEASE_METADATA?.moduleCacheVersion||'2.0.41');
+    extra.href='features/shift-overview-extra.css?v='+encodeURIComponent(root.RAK_RELEASE_METADATA?.moduleCacheVersion||'2.0.45');
     document.head.appendChild(extra);
   }
 

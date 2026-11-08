@@ -1,3 +1,12 @@
+## RaK 2.0.45 (development / TEST)
+
+- **Přehled směny:** jednotlivé oddíly mají vlastní zámek vedle nadpisu. Zamčení chrání proti přepsání bez zašednutí a ukládá se do rozepsaného přehledu i online zálohy. „Vymazat přehled“ obnoví prázdné hodnoty i odemčené bloky.
+- **Počty kusů:** násobení 32 a 64 lze použít pro zadání 1 až 150 místo 1 až 99. Historie výpočtu a vrácení původní hodnoty zůstává.
+- **Sklad a montáž:** vstupní pole jsou srovnaná na stejnou výšku jako výrobní indexy na mobilu i PC.
+- **Report směny:** zelené podbarvení výrobního řádku je sytější (např. MO index AG).
+- **Kalírna:** příchozí i odchozí značka se vykresluje také jako zvýrazněný symbol v prázdné buňce základního rozpisu. Datové párování směn z v2.0.44 zůstává.
+- Vše pouze na TEST/development, bez zásahu do MAIN, generátoru a produkčních dat.
+
 ## RaK 2.0.44 (development)
 
 - **Kalírna k nám (K→):** opravena skutečná příčina chybějící značky i v rozkliknutém rozpisu. Editor zapisuje datum např. `8.11.R`, uložený řádek používá `8.11. R`; dosavadní přesná textová shoda nerozpoznala stejnou směnu.
