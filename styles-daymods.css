@@ -249,3 +249,49 @@ body.ladaMode.ladaMode.ladaMode *::after{
 .rakDayModCell.rakKalirnaOutCell .rakDayModMark{
   color:#ffcf3a !important;
 }
+
+/* RaK 2.0.43 – Kalírna k nám: samostatná čitelná značka na prázdné i obsazené pozici. */
+.rakDayModCell.rakKalirnaInCell{
+  position:relative;
+  background:linear-gradient(135deg,rgba(70,188,255,.26),rgba(55,125,225,.13)) !important;
+  box-shadow:inset 0 0 0 1.5px rgba(88,199,255,.74) !important;
+}
+.rakDayModCell.rakKalirnaInCell .rakDayModMark{
+  position:absolute;
+  top:0;
+  right:0;
+  z-index:3;
+  margin:0;
+  padding:1px 2px;
+  border-radius:0 0 0 4px;
+  font-size:10px;
+  font-weight:900;
+  line-height:1.05;
+  color:#f2fdff !important;
+  background:rgba(5,70,110,.88);
+  vertical-align:baseline;
+}
+/* Mini přehled má úzké sloupce; značka nesmí být skrytá nulovou barvou prázdné buňky. */
+#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adminRotationMiniTable td.adminRotationMiniHasDayMod{
+  position:relative !important;
+}
+#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adminRotationMiniTable td.adminRotationMiniDayModIn{
+  background:linear-gradient(135deg,rgba(70,188,255,.34),rgba(55,125,225,.20)) !important;
+  box-shadow:inset 0 0 0 1px rgba(88,199,255,.74) !important;
+}
+#appMenuBody[data-admin-view="rotation"] #adminRotationEditor .adminRotationMiniTable td .rakMiniDayModMark{
+  position:absolute;
+  display:block !important;
+  top:0;
+  right:0;
+  z-index:2;
+  padding:0 1px;
+  margin:0;
+  border-radius:0 0 0 3px;
+  font-size:8px !important;
+  font-weight:900 !important;
+  line-height:1.05;
+  letter-spacing:-.04em;
+  color:#fff !important;
+  background:rgba(4,67,105,.95);
+}

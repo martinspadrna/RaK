@@ -933,8 +933,8 @@ function adminRotationCompactMachineLabel(machine) {
   return raw;
 }
 
-function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines) {
-  const renderSection = (title, rows, machines) => {
+function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines, month) {
+  const renderSection = (section, title, rows, machines) => {
     const safeRows = Array.isArray(rows) ? rows : [];
     const safeMachines = Array.isArray(machines) ? machines : [];
     if (!safeRows.length) return '';
@@ -947,7 +947,15 @@ function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, har
         const raw = String(cells[idx] || '').trim();
         const shortName = adminShortRotationName(raw);
         const empty = !shortName;
-        return '<td class="' + (empty ? 'adminRotationMiniEmpty' : '') + '" data-full-name="' + escapeHtml(raw) + '">' + escapeHtml(shortName || '') + '</td>';
+        // Výjimka dne musí být vidět i v horním mini přehledu a na volné pozici.
+        const mod = typeof rakDayModForCell === 'function' ? rakDayModForCell(month, section, row && row.date, idx) : null;
+        const badge = mod && typeof rakDayModBadge === 'function' ? rakDayModBadge(mod) : '';
+        const tooltip = mod && typeof rakDayModTooltip === 'function' ? rakDayModTooltip(mod) : '';
+        const classes = [empty ? 'adminRotationMiniEmpty' : ''];
+        if (mod) classes.push('adminRotationMiniHasDayMod');
+        if (mod && mod.type === 'kalirnaIn') classes.push('adminRotationMiniDayModIn');
+        const mark = badge ? '<span class="rakMiniDayModMark" aria-hidden="true">' + escapeHtml(badge) + '</span>' : '';
+        return '<td class="' + classes.filter(Boolean).join(' ') + '" data-full-name="' + escapeHtml(raw) + '"' + (tooltip ? ' title="' + escapeHtml(tooltip) + '"' : '') + '>' + escapeHtml(shortName || '') + mark + '</td>';
       }).join('') + '</tr>';
     }).join('');
     return [
@@ -963,8 +971,8 @@ function buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, har
     '<details class="adminRotationCompactOverview" open>',
     '  <summary>Přehled měsíce</summary>',
     '  <div class="adminRotationCompactHint">Mini přehled je jen pro orientaci. Upravuje se v tabulkách níž.</div>',
-    renderSection('Tvrdota', hardRows, hardMachines),
-    renderSection('Měkota', softRows, softMachines),
+    renderSection('hard', 'Tvrdota', hardRows, hardMachines),
+    renderSection('soft', 'Měkota', softRows, softMachines),
     '</details>'
   ].join('');
 }
@@ -1031,7 +1039,7 @@ function buildAdminRotationTableHtml(monthKey) {
       ? 'Zobrazen je nový návrh. Uloží se až horním tlačítkem Uložit rozpis.'
       : 'Rozepsané změny se uloží horním tlačítkem Uložit rozpis.') + '</span>',
     '  </div>',
-    buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines),
+    buildAdminRotationCompactOverviewHtml(monthKey, hardRows, softRows, hardMachines, softMachines, month),
     '  <div class="appMenuFreeNamesBox" id="adminRotationFreeNamesSummary">',
     '    <div class="appMenuFreeNamesTitle">Kontrola měsíce</div>',
     '    <div class="appMenuFreeNamesText">Vyber měsíc a hned uvidíš, kdo v něm není zapsaný ani jednou a na kterých dnech ještě někdo chybí.</div>',

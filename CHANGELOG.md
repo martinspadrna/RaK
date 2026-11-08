@@ -1,3 +1,9 @@
+## RaK 2.0.43 (development)
+
+- **Kalírna k nám (K→):** značka je nově viditelná také v horním mini přehledu měsíce, a to i na prázdném stroji.
+- **Rozpis a editor:** příchozí výpomoc kalírny má odlišenou modrou buňku a čitelně umístěnou značku i při úzké šířce na telefonu. Opačný směr **→K** zůstává beze změny.
+- Opravuje se pouze vykreslení; výjimky, ukládání, generátor, počty vlastních pracovníků, databáze a MAIN se nemění. Regresní test kontroluje zobrazení na obsazené i prázdné pozici.
+
 ## RaK 2.0.42 (development)
 
 - **Přehled směny – grafika:** vedle BK v provozu (ALD1 + ALD2, z 20) se nyní zobrazuje také **ST v provozu (ALD3, z 5)** v samostatné části. Ukazuje přesný počet běžících a jmenovitě vypnuté ST1–ST5.
