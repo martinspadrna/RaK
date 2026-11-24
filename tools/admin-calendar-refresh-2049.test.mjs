@@ -21,7 +21,7 @@ test('admin Absence button uses the same isolated Google ICS loader and never au
   assert(wizard.includes("cache:'no-store',credentials:'same-origin'"));
   assert(!/saveRotationToSupabase|syncRotationToSupabase|localStorage\.removeItem/.test(feature));
   const sw=read('sw.js');
-  assert(sw.includes("'./features/rotation-calendar-refresh.js?v=2.0.49'"),'offline app must retain lazy importer');
+  assert(sw.includes("'./features/rotation-calendar-refresh.js?v=2.0.50'"),'offline app must retain lazy importer');
 });
 
 function fixture({error=false,stale=false,partial=false}={}){
