@@ -1,3 +1,8 @@
+## RaK 2.0.50 (development)
+
+- Přehled směny: zamčení bloku jej automaticky sbalí do nadpisu se zámečkem; odemčení jej znovu rozbalí. Stav zůstává zachován po znovuotevření bez změny hodnot.
+- Zachováno současné zamykání, ukládání a vymazání přehledu; doplněny kontroly rozbalení i mobilního zobrazení.
+
 ## RaK 2.0.49 (development)
 
 - **Administrace → Rozpisy → Absence:** nové tlačítko „Aktualizovat absence z Google Kalendáře“ u právě otevřeného měsíce.

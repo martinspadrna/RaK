@@ -16,3 +16,12 @@ dialog.rakShiftOverviewViewer{position:fixed;inset:0;margin:0;padding:0;border:0
 #rakShiftOverviewRoot .rakShiftOverviewIndexRow .rakShiftOverviewFieldGrid>label:not(:has(>span)){grid-template-rows:44px;align-content:center;align-self:center;}
 #rakShiftOverviewRoot [data-shift-overview-section="stock"] .rakShiftOverviewIndexRow,#rakShiftOverviewRoot [data-shift-overview-section="assembly"] .rakShiftOverviewIndexRow,#rakShiftOverviewRoot [data-shift-overview-lock-id="stock"] .rakShiftOverviewIndexRow,#rakShiftOverviewRoot [data-shift-overview-lock-id="assembly"] .rakShiftOverviewIndexRow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;}
 #rakShiftOverviewRoot [data-shift-overview-section="stock"] .rakShiftOverviewIndexIdentity,#rakShiftOverviewRoot [data-shift-overview-section="assembly"] .rakShiftOverviewIndexIdentity,#rakShiftOverviewRoot [data-shift-overview-lock-id="stock"] .rakShiftOverviewIndexIdentity,#rakShiftOverviewRoot [data-shift-overview-lock-id="assembly"] .rakShiftOverviewIndexIdentity{align-self:center;text-align:center;}
+
+/* RaK 2.0.50: zamčené bloky se sbalí; nadpis a odemykací tlačítko zůstávají viditelné. */
+#rakShiftOverviewRoot [data-shift-overview-section].isCollapsed > .rakShiftOverviewPanel > :not(h3),
+#rakShiftOverviewRoot .rakShiftOverviewPanel[data-shift-overview-lock-id].isCollapsed > :not(h3){display:none!important;}
+#rakShiftOverviewRoot [data-shift-overview-section].isCollapsed{padding-top:10px;padding-bottom:10px;}
+#rakShiftOverviewRoot [data-shift-overview-section].isCollapsed > .rakShiftOverviewPanel,
+#rakShiftOverviewRoot .rakShiftOverviewPanel[data-shift-overview-lock-id].isCollapsed{gap:0;}
+#rakShiftOverviewRoot [data-shift-overview-section].isCollapsed > .rakShiftOverviewPanel > h3,
+#rakShiftOverviewRoot .rakShiftOverviewPanel[data-shift-overview-lock-id].isCollapsed > h3{border-bottom:0!important;padding-bottom:0!important;min-height:34px;}

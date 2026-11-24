@@ -23,6 +23,9 @@ test('locks are durable per section, do not dim values and clear with the record
   assert(locks.includes("data-shift-overview-lock"), 'lock control missing');
   assert(locks.includes('control.readOnly = locked'), 'input lock missing');
   assert(locks.includes('control.disabled = locked'), 'button lock missing');
+  assert(locks.includes("section.classList.toggle('isCollapsed', locked)"), 'lock must collapse and unlock must expand');
+  assert(locks.includes("button.setAttribute('aria-expanded', String(!locked))"), 'accessible expanded state missing');
+  assert(css.includes('.isCollapsed > .rakShiftOverviewPanel > :not(h3)') && css.includes('.isCollapsed > :not(h3)'), 'collapsed sections must keep headings visible');
   assert(overview.includes('rakApplyShiftOverviewLocks') && locks.includes('persistDraft(rootEl)'), 'lock state must persist with the draft');
   assert(overview.includes('const empty = defaultRecord(defaults.date, defaults.shift)'), 'clear must reset locked sections');
   assert(css.includes('.isLocked input[readonly]') && css.includes('opacity:1!important'), 'locked values must remain readable');

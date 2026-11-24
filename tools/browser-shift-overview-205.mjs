@@ -54,17 +54,24 @@ function probe(width){
   check(activeStyle.backgroundColor==='rgb(22, 122, 53)'&&inactiveStyle.backgroundColor==='rgb(102, 107, 115)','solid active/inactive backgrounds with full app theme');
   check(activeStyle.backgroundImage==='none'&&inactiveStyle.backgroundImage==='none','theme cannot cover unit colors');
 
+  const beforeExpandedHeight=beforeCard.getBoundingClientRect().height;
   const lockButton=beforeCard.querySelector('[data-shift-overview-lock="before-145"]');
   check(lockButton,'before-145 block has its own lock');
   lockButton.click();
   const lockedInput=body.querySelector('[data-shift-overview-section="before-145"] [data-shift-overview-field]');
   check(lockedInput?.readOnly&&lockButton.getAttribute('aria-pressed')==='true','locked block rejects edits');
+  check(beforeCard.classList.contains('isCollapsed')&&lockButton.getAttribute('aria-expanded')==='false','locked block reports collapsed state');
+  check(beforeCard.getBoundingClientRect().height<beforeExpandedHeight&&lockedInput.getClientRects().length===0,'locked block hides fields but keeps its heading');
+  check(beforeCard.querySelector(':scope > .rakShiftOverviewPanel > h3').getClientRects().length>0,'locked heading and unlock stay visible');
   check(!body.querySelector('[data-shift-overview-section="after-145"] [data-shift-overview-field]').readOnly,'other blocks stay editable');
   check(JSON.parse(localStorage.getItem('rak_shift_overview_draft_v1:local')).record.lockedSections['before-145']===true,'lock persists to draft');
   api.render(body);
   check(body.querySelector('[data-shift-overview-lock="before-145"]')?.getAttribute('aria-pressed')==='true','lock survives render');
+  check(body.querySelector('[data-shift-overview-section="before-145"]').classList.contains('isCollapsed'),'collapsed state survives render');
   body.querySelector('[data-shift-overview-lock="before-145"]').click();
   check(!body.querySelector('[data-shift-overview-section="before-145"] [data-shift-overview-field]').readOnly,'second click unlocks block');
+  check(!body.querySelector('[data-shift-overview-section="before-145"]').classList.contains('isCollapsed')&&body.querySelector('[data-shift-overview-lock="before-145"]').getAttribute('aria-expanded')==='true','unlock immediately expands block');
+  check(value('oam.rows.ag.op145')==='320','unlock preserves section values');
   for(const sectionId of ['stock','assembly']){
     const row=body.querySelector('[data-shift-overview-section="'+sectionId+'"] .rakShiftOverviewIndexRow');
     check(row,'missing '+sectionId+' index row');

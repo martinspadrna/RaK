@@ -1,4 +1,4 @@
-// RaK 2.0.49 – refresh editor absences through the generator's ICS loader.
+// RaK 2.0.50 – refresh editor absences through the generator's ICS loader.
 // Only adds unsaved local rows; never writes to Supabase or overrides manual edits.
 (function(root){
   let running=false;

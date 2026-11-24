@@ -84,9 +84,11 @@
       const locked = locks[id] === true;
       button.textContent = locked ? '🔒' : '🔓';
       button.setAttribute('aria-pressed', String(locked));
+      button.setAttribute('aria-expanded', String(!locked));
       button.setAttribute('aria-label', (locked ? 'Odemknout blok ' : 'Zamknout blok ') + heading.firstChild.textContent.trim());
       button.title = locked ? 'Odemknout pro úpravy' : 'Zamknout proti přepsání';
       section.classList.toggle('isLocked', locked);
+      section.classList.toggle('isCollapsed', locked);
       section.querySelectorAll('input[data-shift-overview-field], textarea[data-shift-overview-field]').forEach(control => {
         control.readOnly = locked;
       });
